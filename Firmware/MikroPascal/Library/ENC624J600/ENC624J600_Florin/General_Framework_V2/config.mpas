@@ -1,0 +1,933 @@
+unit config;
+
+uses dspic_additional_string_library,lib1_enc600_V3_5_b,def_io,df_lib_SPI1,OneWire_base2P,Termal_Library_My2P;
+
+function IsNB(var txtin : string[20]) : byte;
+procedure RomCode2Str(var RomCode_ : array[8] of byte; var str1_out : string[16]);
+procedure Save_Rom_Code_Stored;
+procedure Save_Rom_Code_Discovered;
+function Scan_1Wire : byte;
+procedure Str2Lower(var txt_in : string[1472]);
+procedure PutWebPageFromDF(j : byte; var initialname : string[64]);
+procedure HTTPProcDataInConfig(len_ : word; j : byte);
+
+const Config_Port = 8080;
+
+const httpMethod : string[5] = 'GET /'; far;
+const httpHeader3 : string[44] = 'HTTP/1.1 200 OK'+#13+#10+'Content-type: text/html'+#13+#10+#13+#10; far;// HTTP header3
+
+var pass : word;
+    access_config : byte;
+
+implementation
+
+procedure Compare_Stored_Code;
+var i,j,k : word;
+begin
+  Mem_Set(@Rom_Code_New,0,64);
+  Mem_Set(@Match_Rom_Code,0,8);
+  k := 0;
+  i := 0;
+  while i < Nb_dev do
+    begin
+      j := 0;
+      while j < 8 do
+        begin
+          if Mem_Cmp(@Rom_Code[i],@Rom_Code_Stored[j],8) = 0 then
+            begin
+              Match_Rom_Code[j] := 1;
+              break;
+            end;
+          inc(j);
+        end;
+      if j = 8 then
+        begin
+          Mem_Cpy(@Rom_Code_New[k],@Rom_Code[i],8);
+          inc(k);
+        end;
+      inc(i);
+    end;
+end;
+
+procedure RomCode2Str(var RomCode_ : array[8] of byte; var str1_out : string[16]);
+var txt2 : string[2];
+    i : word;
+begin
+  str1_out := '';
+  i := 0;
+  while i < 8 do
+    begin
+      Byte2Hex(RomCode_[i],txt2);
+      Str_Cat(str1_out,txt2);
+      inc(i);
+    end;
+end;
+
+procedure Save_Rom_Code_Stored;
+var pt : ^byte;
+    i : word;
+begin
+  pt := @Rom_Code_Stored;
+
+  i := 0;
+  while i < 64 do
+    begin
+      DF_BufferWriteByte(i,pt^,1);
+      inc(i);
+      inc(pt)
+    end;
+  DF_BufferToPage(2,1);
+  i := 0;
+  while i < 8 do
+    begin
+      RomCode2Str(Rom_Code_Stored[i],SNMP_string_SN[i]);
+      inc(i);
+    end;
+end;
+
+procedure Save_Rom_Code_Discovered;
+var pt : ^byte;
+    i : word;
+begin
+  pt := @Rom_Code;
+
+  i := 0;
+  while i < 64 do
+    begin
+      DF_BufferWriteByte(i,pt^,1);
+      inc(i);
+      inc(pt)
+    end;
+  DF_BufferToPage(2,1);
+  i := 0;
+  while i < 8 do
+    begin
+      RomCode2Str(Rom_Code[i],SNMP_string_SN[i]);
+      inc(i);
+    end;
+end;
+
+function Scan_1Wire : byte;
+var Rom_Code1 : array[1..8] of byte;
+begin
+// Search for ROM code, up to 8 devices
+  Mem_Set(@Rom_Code,0,64);
+  Mem_Set(@Rom_Code1,0,8);
+  result := 0;
+  if OWFirst_2P(Rom_Code1) = true then
+    begin
+      Mem_Cpy(@Rom_Code[result],@Rom_Code1,8);
+      inc(result);
+      while OWSearch_2P(Rom_Code1) = true do
+        begin
+          Mem_Cpy(@Rom_Code[result],@Rom_Code1,8);
+          if inc(result) = 8 then break;
+        end;
+    end;
+  Ow_Reset_2P;
+  Delay_ms(1);
+end;
+
+procedure Str2Lower(var txt_in : string[1472]);
+var i,j,buf : word;
+begin
+  j := Str_Len(txt_in);
+  if j > 1472 then
+    begin
+      j := 512;
+      txt_in[1472] := 0;
+    end;
+  i := 0;
+  while i < j do
+    begin
+      buf := txt_in[i];
+      if buf >= 'A' then
+      if buf <= 'Z' then txt_in[i] := buf + 32;
+      inc(i);
+    end;
+end;
+
+procedure PutWebPageFromDF(j : byte; var initialname : string[64]);
+var txt16,txt16_ : string[64];
+    start,stop,buf5 : dword;
+    kk,ii : word;
+    dat : byte;
+begin
+  ii := 5;
+  while ii < 60 do
+    begin
+      dat := Socket[j].TCP_buf[ii];
+      if dat = ' ' then break;
+      txt16[ii-5] := dat;
+      inc(ii);
+    end;
+  txt16[ii-5] := 0; // end of string
+  if Str_Len(txt16) = 0 then txt16 := initialname;
+  Str2Lower(txt16);
+
+  kk := 0;
+  while kk < 32 do
+    begin
+      buf5 := ((12+516)*512) + (kk*64);
+      ii := 0;
+      while ii < 55 do
+        begin
+          dat := DF_ContRead(buf5+ii);
+          if dat = 0 then break;
+          txt16_[ii] := dat;
+          inc(ii);
+        end;
+      txt16_[ii] := 0; // end of string
+      Str2Lower(txt16_);
+
+      ii := Str_Len(txt16);
+      if ii = Str_Len(txt16_) then
+      if Mem_Cmp(word(@txt16_), word(@txt16), ii) = 0 then
+        begin
+          Lo(start) := DF_ContRead(buf5+56);
+          Hi(start) := DF_ContRead(buf5+57);
+          Higher(start) := DF_ContRead(buf5+58);
+          Highest(start) := DF_ContRead(buf5+59);
+          start := start + ((12+516)*512);
+
+          Lo(stop) := DF_ContRead(buf5+60);
+          Hi(stop) := DF_ContRead(buf5+61);
+          Higher(stop) := DF_ContRead(buf5+62);
+          Highest(stop) := DF_ContRead(buf5+63);
+          stop := stop + ((12+516)*512);
+
+          Socket[j].RAM_ROM := 2;
+
+          Socket[j].Start_addr := start;
+          Socket[j].Stop_addr := stop;
+          exit;
+        end;
+      inc(kk);
+    end;
+
+  Socket[j].TCP_buf := httpHeader3;
+  Str_Cat(Socket[j].TCP_buf,'Page not found!');
+
+  Socket[j].RAM_ROM := 0;
+
+  Socket[j].Start_addr := @Socket[j].TCP_buf;
+  Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+end;
+
+function IsIP(var txtin : string[20]) : byte;
+var txt3 : array[4] of string[3];
+    buf,buf1 : word;
+    i,j,k : word;
+begin
+  result := 0;
+  buf := Str_Len(txtin);
+  if buf < 7 then exit;
+  if buf > 15 then exit;
+  txt3[0] := '';
+  txt3[1] := '';
+  txt3[2] := '';
+  txt3[3] := '';
+  i := 0;
+  j := 0;
+  k := 0;
+  while i < buf do
+    begin
+      buf1 := txtin[i];
+      if buf1 = '.' then
+        begin
+           txt3[j][k] := 0;
+           k := 0;
+           if inc(j) > 3 then exit; // more than 3 dot's
+        end
+      else
+        begin
+          txt3[j][k] := buf1;
+          if inc(k) > 3 then exit; // more than 3 chars
+        end;
+      inc(i);
+    end;
+  txt3[j][k] := 0;
+  i := 0;
+  while i < 4 do
+    begin
+      if Str_Len(txt3[i]) = 0 then exit;
+      if Str2Word(txt3[i]) > 255 then exit;
+      inc(i);
+    end;
+  result := 1;
+end;
+
+function IsHEX(var txtin : string[20]) : byte;
+var buf,buf1 : word;
+    i,j : word;
+begin
+  result := 0;
+  buf := Str_Len(txtin);
+  if buf > 12 then exit;
+  i := 0;
+  while i < buf do
+    begin
+      buf1 := txtin[i];
+      j := 0;
+      if (buf1 >= '0') and (buf1 <= '9') then j := 1
+      else if (buf1 >= 'a') and (buf1 <= 'f') then j := 1
+      else if (buf1 >= 'A') and (buf1 <= 'F') then j := 1;
+      if j = 0 then exit;
+      inc(i);
+    end;
+  result := 1;
+end;
+
+function IsHEX16(var txtin : string[20]) : byte;
+var buf,buf1 : word;
+    i,j : word;
+begin
+  result := 0;
+  buf := Str_Len(txtin);
+  if buf > 16 then exit;
+  i := 0;
+  while i < buf do
+    begin
+      buf1 := txtin[i];
+      j := 0;
+      if (buf1 >= '0') and (buf1 <= '9') then j := 1
+      else if (buf1 >= 'a') and (buf1 <= 'f') then j := 1
+      else if (buf1 >= 'A') and (buf1 <= 'F') then j := 1;
+      if j = 0 then exit;
+      inc(i);
+    end;
+  result := 1;
+end;
+
+function IsNB(var txtin : string[20]) : byte;
+var buf,buf1 : word;
+    i,j : word;
+begin
+  result := 0;
+  buf := Str_Len(txtin);
+  if buf > 10 then exit;
+  i := 0;
+  while i < buf do
+    begin
+      buf1 := txtin[i];
+      j := 0;
+      if (buf1 >= '0') and (buf1 <= '9') then j := 1
+      else if buf1 = ' ' then j := 1
+      else if buf1 = '-' then j := 1;
+      if j = 0 then exit;
+      inc(i);
+    end;
+  result := 1;
+end;
+
+procedure Str2RomCode(var str1_in : string[16]; var RomCode_ : array[8] of byte);
+var i,j : word;
+    txt2 : string[2];
+begin
+  Mem_Set(@RomCode_,0,8);
+  if Str_Len(str1_in) <> 16 then exit;
+  j := 0;
+  i := 0;
+  while i < 8 do
+    begin
+      txt2[0] := str1_in[j];
+      inc(j);
+      txt2[1] := str1_in[j];
+      inc(j);
+      txt2[2] := 0;
+      RomCode_[i] := Hex2Byte(txt2);
+      inc(i);
+    end;
+end;
+
+procedure HTML_Str2Str(var str_in : string[1400]; j : word);
+var i,k : word;
+    buf : byte;
+    txt : string[2];
+begin
+  k := 0;
+  i := 0;
+  while i < j do
+    begin
+      buf := str_in[i];
+      if buf = '%' then
+        begin
+          txt[0] := str_in[i+1];
+          txt[1] := str_in[i+2];
+          txt[2] := 0;
+          if IsHEX(txt) <> 0 then
+            begin
+              i := i + 2;
+              buf := Hex2Byte(txt);
+            end;
+        end;
+      str_in[k] := buf;
+      inc(i);
+      inc(k);
+    end;
+  str_in[k] := 0;
+end;
+
+procedure HTTPProcDataInConfig(len_ : word; j : byte);
+var txt31 : string[32];
+    i : word;
+    k,t,buf,index : word;
+    txt3 : string[3];
+    ConfIpF : array[9] of array[4] of byte;
+    ConfDF : array[2] of byte;
+label end1,end11,end2,end3;
+begin
+  Socket[j].Keep_Alive := false;
+
+  if Socket[j].Start_addr <> Socket[j].Stop_addr then exit;
+  
+  if len_ > 1024 then len_ := 1024;
+
+  CopyEthMem_CPToRam(word(@Socket[j].TCP_buf), len_);
+
+  HTML_Str2Str(Socket[j].TCP_buf,len_);
+  
+  txt31 := httpMethod;
+
+  if Mem_Cmp(@Socket[j].TCP_buf, @txt31, Str_Len(txt31)) <> 0 then exit;      // only GET method is supported here
+
+  Mem_Cpy(@ConfIpF[0],@ip_,4);
+  Mem_Cpy(@ConfIpF[1],@mask_,4);
+  Mem_Cpy(@ConfIpF[2],@gat_,4);
+  Mem_Cpy(@ConfIpF[3],@eth_ntp_addr,4);
+  Mem_Cpy(@ConfIpF[4],@dns_,4);
+  Mem_Cpy(@ConfIpF[5],@wdt_ip,4);
+  Mem_Cpy(@ConfIpF[6],@tr1_ip,4);
+  Mem_Cpy(@ConfIpF[7],@re1_ip,4);
+  Mem_Cpy(@ConfIpF[8],@vo1_ip,4);
+  ConfDF[0] := DHCP_flag__;
+  ConfDF[1] := board_type;
+
+  txt31 := 'conf1.php?';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+
+      i := 15;
+
+      Mem_Set(@ConfIpF,0,32);
+      Mem_Set(@ConfDF,0,2);
+
+      index := 1;
+
+      t := 0;
+      while t < 9 do
+        begin
+          Byte2StrWithZeros(index,txt3);
+          if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = txt3[1]) and (Socket[j].TCP_buf[i+2] = txt3[2]) then
+            begin
+              i := i + 3;
+              k := 0;
+              while true do
+                begin
+                  buf := Socket[j].TCP_buf[i];
+                  if buf = 'v' then
+                    begin
+                      txt31[k] := 0;
+                      break;
+                    end;
+                  txt31[k] := buf;
+                  if inc(k) > 15 then goto end2;
+                  if inc(i) > 1024 then goto end2;
+                end;
+              if IsIP(txt31) = 0 then goto end2;
+              Str2IP(txt31,ConfIpF[t]);
+            end
+//          else if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = '0') and (Socket[j].TCP_buf[i+2] = '0') then goto end1
+          else goto end2;
+          inc(t);
+          inc(index);
+        end;
+
+      t := 0;
+      while t < 1 do
+        begin
+          Byte2StrWithZeros(index,txt3);
+          if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = txt3[1]) and (Socket[j].TCP_buf[i+2] = txt3[2]) then
+            begin
+              i := i + 3;
+              buf := Socket[j].TCP_buf[i];
+              if buf < '0' then goto end2;
+              if buf > '1' then goto end2;
+              ConfDF[t] := buf - '0';
+              if inc(i) > 1024 then goto end2;
+              buf := Socket[j].TCP_buf[i];
+              if buf <> 'v' then
+                begin
+                  ConfDF[0] := 0;
+                  goto end2;
+                end;
+            end
+//          else if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = '0') and (Socket[j].TCP_buf[i+2] = '0') then goto end1
+          else goto end2;
+          inc(t);
+          inc(index);
+        end;
+
+      t := 0;
+      while t < 1 do
+        begin
+          Byte2StrWithZeros(index,txt3);
+          if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = txt3[1]) and (Socket[j].TCP_buf[i+2] = txt3[2]) then
+            begin
+              i := i + 3;
+              k := 0;
+              while true do
+                begin
+                  buf := Socket[j].TCP_buf[i];
+                  if buf = 'v' then
+                    begin
+                      txt31[k] := 0;
+                      break;
+                    end;
+                  txt31[k] := buf;
+                  if inc(k) > 3 then goto end2;
+                  if inc(i) > 1024 then goto end2;
+                end;
+              if IsNB(txt31) = 0 then goto end2;
+              ConfDF[1] := Str2Byte(txt31);
+            end
+//          else if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = '0') and (Socket[j].TCP_buf[i+2] = '0') then goto end1
+          else goto end2;
+          inc(t);
+          inc(index);
+        end;
+        
+      t := 0;
+      while t < 1 do
+        begin
+          Byte2StrWithZeros(index,txt3);
+          if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = txt3[1]) and (Socket[j].TCP_buf[i+2] = txt3[2]) then
+            begin
+              i := i + 3;
+              k := 0;
+              while true do
+                begin
+                  buf := Socket[j].TCP_buf[i];
+                  if buf = 'v' then
+                  if (Socket[j].TCP_buf[i+1] - '0') <= 9 then
+                  if (Socket[j].TCP_buf[i+2] - '0') <= 9 then
+                    begin
+                      sysName[k] := 0;
+                      break;
+                    end;
+                  sysName[k] := buf;
+                  if inc(k) > 31 then k := 31;
+                  if inc(i) > 1024 then goto end2;
+                end;
+              sysName[31] := 0;
+//              HTML_Str2Str(sysName);
+            end
+//          else if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = '0') and (Socket[j].TCP_buf[i+2] = '0') then goto end1
+          else goto end2;
+          inc(t);
+          inc(index);
+        end;
+        
+      Mem_Cpy(@ip_,@ConfIpF[0],4);
+      Mem_Cpy(@mask_,@ConfIpF[1],4);
+      Mem_Cpy(@gat_,@ConfIpF[2],4);
+      Mem_Cpy(@eth_ntp_addr,@ConfIpF[3],4);
+      Mem_Cpy(@dns_,@ConfIpF[4],4);
+      Mem_Cpy(@wdt_ip,@ConfIpF[5],4);
+      Mem_Cpy(@tr1_ip,@ConfIpF[6],4);
+      Mem_Cpy(@re1_ip,@ConfIpF[7],4);
+      Mem_Cpy(@vo1_ip,@ConfIpF[8],4);
+      DHCP_flag__ := ConfDF[0];
+      board_type := ConfDF[1];
+      
+      save_config := 1;
+
+      goto end1;
+    end;
+
+  txt31 := 'conf2.php?';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+
+      i := 15;
+
+      index := 1;
+
+      t := 0;
+      while t < 8 do
+        begin
+          Byte2StrWithZeros(index,txt3);
+          if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = txt3[1]) and (Socket[j].TCP_buf[i+2] = txt3[2]) then
+            begin
+              i := i + 3;
+              k := 0;
+              while true do
+                begin
+                  buf := Socket[j].TCP_buf[i];
+                  if buf = 'v' then
+                  if (Socket[j].TCP_buf[i+1] - '0') <= 9 then
+                  if (Socket[j].TCP_buf[i+2] - '0') <= 9 then
+                    begin
+                      Sensors_Name[t][k] := 0;
+                      break;
+                    end;
+                  Sensors_Name[t][k] := buf;
+                  if inc(k) > 15 then k := 15;
+                  if inc(i) > 1024 then goto end2;
+                end;
+              Sensors_Name[t][15] := 0;
+//              HTML_Str2Str(Sensors_Name[t]);
+            end
+//          else if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = '0') and (Socket[j].TCP_buf[i+2] = '0') then goto end1
+          else goto end2;
+          inc(t);
+          inc(index);
+        end;
+
+      t := 0;
+      while t < 4 do
+        begin
+          Byte2StrWithZeros(index,txt3);
+          if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = txt3[1]) and (Socket[j].TCP_buf[i+2] = txt3[2]) then
+            begin
+              i := i + 3;
+              k := 0;
+              while true do
+                begin
+                  buf := Socket[j].TCP_buf[i];
+                  if buf = 'v' then
+                  if (Socket[j].TCP_buf[i+1] - '0') <= 9 then
+                  if (Socket[j].TCP_buf[i+2] - '0') <= 9 then
+                    begin
+                      IO_Name[t][k] := 0;
+                      break;
+                    end;
+                  IO_Name[t][k] := buf;
+                  if inc(k) > 15 then k := 15;
+                  if inc(i) > 1024 then goto end2;
+                end;
+              IO_Name[t][15] := 0;
+//              HTML_Str2Str(IO_Name[t]);
+            end
+//          else if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = '0') and (Socket[j].TCP_buf[i+2] = '0') then goto end1
+          else goto end2;
+          inc(t);
+          inc(index);
+        end;
+        
+      save_config1 := 1;
+
+      goto end11;
+    end;
+
+  txt31 := 'conf3.php?';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+
+      i := 15;
+
+      index := 1;
+
+      t := 0;
+      while t < 8 do
+        begin
+          Byte2StrWithZeros(index,txt3);
+          if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = txt3[1]) and (Socket[j].TCP_buf[i+2] = txt3[2]) then
+            begin
+              i := i + 3;
+              k := 0;
+              while true do
+                begin
+                  buf := Socket[j].TCP_buf[i];
+                  if buf = 'v' then
+                    begin
+                      txt31[k] := 0;
+                      break;
+                    end;
+                  txt31[k] := buf;
+                  if inc(k) > 16 then k := 16;
+                  if inc(i) > 1024 then goto end2;
+                end;
+              txt31[16] := 0;
+              if IsHEX16(txt31) = 0 then goto end2;
+            end
+//          else if (Socket[j].TCP_buf[i] = 'v') and (Socket[j].TCP_buf[i+1] = '0') and (Socket[j].TCP_buf[i+2] = '0') then goto end1
+          else goto end2;
+          Str2RomCode(txt31,Rom_Code_Stored[t]);
+          inc(t);
+          inc(index);
+        end;
+
+      Save_Rom_Code_Stored;
+
+      goto end11;
+    end;
+
+  txt31 := 'v1.txt ';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+      Socket[j].TCP_buf := httpHeader3;
+
+      txt31 := '{"v01":"';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      IP2Str(ConfIpF[0],txt31);
+      Str_Cat(Socket[j].TCP_buf,txt31);
+
+      k := 2;
+
+      i := 1;
+      while i < 9 do
+        begin
+          txt31 := '","v';
+          Byte2StrWithZeros(k,txt3);
+          Str_Cut_Left(txt3,1);
+          Str_Cat(txt31,txt3);
+          Str_Cat(txt31,'":"');
+          Str_Cat(Socket[j].TCP_buf,txt31);
+          IP2Str(ConfIpF[i],txt31);
+          Str_Cat(Socket[j].TCP_buf,txt31);
+          inc(i);
+          inc(k);
+        end;
+
+      txt31 := '","v10":"';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      if ConfDF[0] <> 0 then txt31 := '1'
+      else txt31 := '0';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+
+      txt31 := '","v11":"';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      Byte2Str(ConfDF[1],txt31);
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      
+      txt31 := '","v12":"';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      Str_Cat(Socket[j].TCP_buf,sysName);
+      
+      txt31 := '"}';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      
+      Socket[j].RAM_ROM := 0;
+
+      Socket[j].Start_addr := @Socket[j].TCP_buf;
+      Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+      
+      exit;
+    end;
+
+  txt31 := 'v2.txt ';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+      Socket[j].TCP_buf := httpHeader3;
+
+      txt31 := '{"v01":"';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      Str_Cat(Socket[j].TCP_buf,Sensors_Name[0]);
+
+      k := 2;
+
+      i := 1;
+      while i < 8 do
+        begin
+          txt31 := '","v';
+          Byte2StrWithZeros(k,txt3);
+          Str_Cut_Left(txt3,1);
+          Str_Cat(txt31,txt3);
+          Str_Cat(txt31,'":"');
+          Str_Cat(Socket[j].TCP_buf,txt31);
+          Str_Cat(Socket[j].TCP_buf,Sensors_Name[i]);
+          inc(i);
+          inc(k);
+        end;
+
+      i := 0;
+      while i < 4 do
+        begin
+          txt31 := '","v';
+          Byte2StrWithZeros(k,txt3);
+          Str_Cut_Left(txt3,1);
+          Str_Cat(txt31,txt3);
+          Str_Cat(txt31,'":"');
+          Str_Cat(Socket[j].TCP_buf,txt31);
+          Str_Cat(Socket[j].TCP_buf,IO_Name[i]);
+          inc(i);
+          inc(k);
+        end;
+        
+      txt31 := '"}';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+
+      Socket[j].RAM_ROM := 0;
+
+      Socket[j].Start_addr := @Socket[j].TCP_buf;
+      Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+      
+      exit;
+    end;
+
+  txt31 := 'v3.txt ';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+      Nb_dev := Scan_1Wire;
+
+      Compare_Stored_Code;
+
+      Socket[j].TCP_buf := httpHeader3;
+
+      txt31 := '{"v01":"';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      if Match_Rom_Code[0] = 1 then RomCode2Str(Rom_Code_Stored[0],txt31)
+      else txt31 := '0000000000000000';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+
+      k := 2;
+
+      i := 1;
+      while i < 8 do
+        begin
+          txt31 := '","v';
+          Byte2StrWithZeros(k,txt3);
+          Str_Cut_Left(txt3,1);
+          Str_Cat(txt31,txt3);
+          Str_Cat(txt31,'":"');
+          Str_Cat(Socket[j].TCP_buf,txt31);
+          if Match_Rom_Code[i] = 1 then RomCode2Str(Rom_Code_Stored[i],txt31)
+          else txt31 := '0000000000000000';
+          Str_Cat(Socket[j].TCP_buf,txt31);
+          inc(i);
+          inc(k);
+        end;
+
+      i := 0;
+      while i < 8 do
+        begin
+          txt31 := '","v';
+          Byte2StrWithZeros(k,txt3);
+          Str_Cut_Left(txt3,1);
+          Str_Cat(txt31,txt3);
+          Str_Cat(txt31,'":"');
+          Str_Cat(Socket[j].TCP_buf,txt31);
+          RomCode2Str(Rom_Code_New[i],txt31);
+          Str_Cat(Socket[j].TCP_buf,txt31);
+          inc(i);
+          inc(k);
+        end;
+
+      txt31 := '"}';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+
+      Socket[j].RAM_ROM := 0;
+
+      Socket[j].Start_addr := @Socket[j].TCP_buf;
+      Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+      
+      exit;
+    end;
+
+  txt31 := 'erasecodes';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+      Mem_Set(@Rom_Code_Stored,0,64);
+      Save_Rom_Code_Stored;
+
+      Socket[j].TCP_buf := httpHeader3;
+
+      Str_Cat(Socket[j].TCP_buf, 'Stored codes was erased');
+
+      Socket[j].RAM_ROM := 0;
+
+      Socket[j].Start_addr := @Socket[j].TCP_buf;
+      Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+      
+      exit;
+    end;
+
+  txt31 := 'discover';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+      Nb_dev := Scan_1Wire;
+
+      Socket[j].TCP_buf := httpHeader3;
+
+      Byte2Str(Nb_dev,txt3);
+      Str_Cat(Socket[j].TCP_buf, txt3);
+      Str_Cat(Socket[j].TCP_buf, ' codes was discovered');
+
+      Socket[j].RAM_ROM := 0;
+
+      Socket[j].Start_addr := @Socket[j].TCP_buf;
+      Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+      
+      exit;
+    end;
+
+  txt31 := 'savecodes';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+      Nb_dev := Scan_1Wire;
+      Mem_Cpy(@Rom_Code_Stored,@Rom_Code,64);
+      Save_Rom_Code_Stored;
+
+      Socket[j].TCP_buf := httpHeader3;
+
+      Byte2Str(Nb_dev,txt3);
+      Str_Cat(Socket[j].TCP_buf, txt3);
+      Str_Cat(Socket[j].TCP_buf, ' new codes was saved');
+
+      Socket[j].RAM_ROM := 0;
+
+      Socket[j].Start_addr := @Socket[j].TCP_buf;
+      Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+      
+      exit;
+    end;
+
+  txt31 := 'settodefault';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+      settodefault := 1;
+
+      CC5s := 40;
+
+      Socket[j].TCP_buf := httpHeader3;
+
+      Str_Cat(Socket[j].TCP_buf, 'All data will be set to default');
+
+      Socket[j].RAM_ROM := 0;
+
+      Socket[j].Start_addr := @Socket[j].TCP_buf;
+      Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+
+      exit;
+    end;
+    
+  PutWebPageFromDF(j,'Netconfig.html');
+  exit;
+
+end1:
+  CC5s := 40;
+
+  Socket[j].TCP_buf := httpHeader3;
+  Str_Cat(Socket[j].TCP_buf,'Saved OK, Device will RESET');
+  goto end3;
+
+end11:
+  CC5s := 40;
+
+  Socket[j].TCP_buf := httpHeader3;
+  Str_Cat(Socket[j].TCP_buf,'Saved OK');
+  goto end3;
+
+end2:
+  Socket[j].TCP_buf := httpHeader3;
+  Str_Cat(Socket[j].TCP_buf,'ERROR');
+
+end3:
+  Socket[j].RAM_ROM := 0;
+
+  Socket[j].Start_addr := @Socket[j].TCP_buf;
+  Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+end;
+
+end.

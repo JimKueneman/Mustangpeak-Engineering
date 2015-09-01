@@ -1,0 +1,335 @@
+unit protocol_arp;
+
+{.$DEFINE DEBUG_STRING}
+
+uses 
+  lib1_enc600_V3_5_b,
+  port_utilities,
+  packet_utilities,  
+  protocol_defines,
+  helperfunctions;
+
+const
+  ARP_CACHE_LEN : byte = 2;
+  
+type
+  TArpSlot = Record
+    Valid      : Boolean;         // True, False and $8000 for Waiting
+    Timer       : DWord;          // Used to time out for Waiting and then to track the life time of the slot
+    Ip         : IpHeader;        // IP address associated with this slot  (if Valid is True or Waiting then it is defined)
+    Mac        : MacHeader;       // MAC address associated with this slot (if Valid is not True this is undefined)
+  end;
+  
+var
+  ArpCache : array[ARP_CACHE_LEN] of TArpSlot;
+  
+function Eth_Arp_MapMacAddress(var TargetIP: IpHeader): ^TArpSlot;
+procedure Eth_Arp_RequestHandler;
+procedure Eth_Arp_ResponseHandler;
+procedure Eth_Arp_EraseCache;
+procedure Eth_Arp_Timer_1s;
+procedure Eth_PrintArpCache;
+procedure Eth_PrintArpCacheSlot(Slot: ^TArpSlot);
+
+procedure Do_EthernetProc(n : word); external;
+procedure Eth_EnableTimer_1s(Enable: Boolean); external;
+
+
+implementation
+
+// *****************************************************************************
+// Call once a second to increment timers and such
+// *****************************************************************************
+procedure Eth_Arp_Timer_1s;
+var
+  i: Integer;
+begin
+  i := 0;
+  while i < ARP_CACHE_LEN do
+  begin
+    if ArpCache[i].Timer <> $FFFFFFFF then
+      Inc(ArpCache[i].Timer);                                                    // Stall at the max value
+    Inc(i)
+  end;
+end;
+
+// *****************************************************************************
+// Maps the IP to a node on the local network (defined by the Mask) or to the
+// gateway if it is off the local network;
+// Parameters:
+//         Ip:  [IN][OUT] The IP address that is trying to be mapped to a MAC address
+//                        if the IP is not on the same subnet as our IP address then
+//                        the Gateway IP is returned since that is the node that
+//                        needs to forward any off subnet messages to the outside
+//                        world.
+// *****************************************************************************
+procedure ArpMapIpMask(var Ip: IpHeader);
+var
+  ip_masked, 
+  ipb_masked : IpHeader;
+begin
+  // create the reference masked IP based on our IP address and our mask
+  ip_masked[0] := eth_ip_addr[0] and eth_mask[0];
+  ip_masked[1] := eth_ip_addr[1] and eth_mask[1];
+  ip_masked[2] := eth_ip_addr[2] and eth_mask[2];
+  ip_masked[3] := eth_ip_addr[3] and eth_mask[3];
+  
+  // create the target masked IP based on the passed IP and our mask
+  ipb_masked[0] := Ip[0] and eth_mask[0];
+  ipb_masked[1] := Ip[1] and eth_mask[1];
+  ipb_masked[2] := Ip[2] and eth_mask[2];
+  ipb_masked[3] := Ip[3] and eth_mask[3];
+  
+  // The base addresses are not equal the two nodes are not on the local network so we have to go through the gateway
+  if memcmp(@ip_masked, @ipb_masked, 4) <> 0 then
+  begin
+    {$IFDEF DEBUG_STRING}UART1_Write_Text('ArpMapIpMask: mapping to gateway' + CRLF);{$ENDIF}
+    memcpy(@Ip[0], @eth_gateway, 4);
+  end;
+end;
+
+// *****************************************************************************
+// Waits for the response to an ARP message previously sent to the node referenced 
+// in the Arp variable. On return either the CachedMAC is valid (result = true)
+// or it timed out and the request was not answered.  In that case CachedMAC
+// is undefined (result = false).
+// Parameters:
+//        Arp        : [IN] Arp record that is waiting for an ARP reply message
+//     cachedmac: [out] mac address associated with the targetip of result = true, else undefined
+// *****************************************************************************
+function ArpWaitFor(Arp: ^TArpSlot): Boolean;
+var
+  LocalTime: DWord;
+begin
+  Result := False;
+  Eth_EnableTimer_1s(False);                                                    // This may not be an atomic increase so stall the timer and grab a copy
+  LocalTime := Arp^.Timer;                                                       // Grab a copy of the timeout time
+  Eth_EnableTimer_1s(True);
+  while LocalTime < ARP_Wait do                                                 // Loop till done....  Timer is reset when the message is sent
+  begin
+    Do_EthernetProc(n);                                                         // Pump messages looking for the ARP Reply, this can get reentrant so be careful
+    if Arp^.Valid = True then
+    begin
+      Result := True;
+      Break;
+    end;
+    Eth_EnableTimer_1s(False);                                                  // This may not be an atomic increase so stall the timer and grab a copy
+    LocalTime := Arp^.Timer;                                                     // Update the local time with a new value
+    Eth_EnableTimer_1s(True);
+  end;
+  if Result = False then
+    Arp^.Valid := False;                                                        // If we failed then release the slot
+end;
+
+// *****************************************************************************
+// Uses the TargetIP to:
+//   1) Look through the cache to see if there is a mapping to a MAC address and if so returns the MAC address and true
+//   2) Sees if there is a current ARP requestion from that IP and if so waits for it and returns the MAC address and true or times out and returns false
+//   3) Sends and ARP Request and waits for it and returns the MAC address and true or times out and returns false
+// Parameters: 
+//        IpHeader  : [IN] IP Address to get MAC mapping of
+//        CachedMAC : [OUT] mac address associated with the targetip of result = true, else undefined
+// *****************************************************************************
+function Eth_Arp_MapMacAddress(var TargetIP: IpHeader): ^TArpSlot;
+var
+  {$IFDEF DEBUG_STRING}s1: string[128];{$ENDIF}
+  i,                                                                            // Simple counter
+  OldestSlot,                                                                   // Tracks the slot with the longest time without an access from the library
+  EmptySlot: Integer;                                                           // Index of the Arp Cache slot to use
+  ArpIp: IpHeader;                                                              // The destination IP (may need to go through the gateway of the passed IP is not in the same sub-net)
+begin
+  Result := nil;
+
+  if Check_Link = False then                                                    // Ensure the physical link is still up before trying
+  begin
+    Eth_Arp_EraseCache;                                                         // Link is down, reset everything
+    Exit;
+  end;
+  
+  // Link is up, lets get to work...
+  OldestSlot := -1;
+  EmptySlot := -1;
+  i := 0;
+  while i < ARP_CACHE_LEN do                                                    // Do we have it stored in the Cache or is it currently waiting for a response?
+  begin
+    if ArpCache[i].Valid = True then                                            // Found a valid cache?
+    begin    {$IFDEF DEBUG_STRING}UART1_Write_Text('Valid Arp found' + CRLF);{$ENDIF}
+      if memcmp(@TargetIP[0], @ArpCache[i].Ip[0], 4) = 0 then                   // Matching IP Address?
+      begin {$IFDEF DEBUG_STRING}UART1_Write_Text('Cached Arp found' + CRLF);{$ENDIF}
+        Eth_EnableTimer_1s(False);                                              // Don't change the timer values in the middle of a comparison
+        ArpCache[i].Timer := 0;                                                  // Reset the timer for how long has it been since the cached information was used
+        Eth_EnableTimer_1s(True);
+        Result := @ArpCache[i];                                                 // Yup, get the slot address and exit
+        Exit;
+      end;                                                                      // Nope, do we have a message pending?
+    end else
+    if ArpCache[i].Valid = Waiting then
+    begin    {$IFDEF DEBUG_STRING}UART1_Write_Text('Waiting Arp found' + CRLF);{$ENDIF}
+      if memcmp(@TargetIP[0], @ArpCache[i].Ip[0], 4) = 0 then                   // Matching IP Address?
+      begin  {$IFDEF DEBUG_STRING}UART1_Write_Text('Waiting with matching IP Arp found' + CRLF);{$ENDIF}                                                                    // Yup, start waiting
+        if ArpWaitFor(@ArpCache[i]) then
+          Result := @ArpCache[i];                                                 // Yup, get the slot address and exit
+        Exit;
+      end;
+    end;
+    
+    // Prepare just in case nothing is found
+    if ArpCache[i].Valid = False then                                           // Found an empty slot
+      EmptySlot := i;                                                           // Yup, save the index
+    
+    if ArpCache[i].Valid <> False then
+    begin  {$IFDEF DEBUG_STRING}UART1_Write_Text('Not Valid Arp found, updating Oldest Slot' + CRLF);{$ENDIF}
+      if OldestSlot < 0 then
+        OldestSlot := i
+      else begin
+        Eth_EnableTimer_1s(False);                                                  // Don't change the timer values in the middle of a comparison
+        if ArpCache[i].Timer > ArpCache[OldestSlot].Timer then                        // Look for the oldest slot to take owership of just in case there are no empty ones
+          OldestSlot := i;
+        Eth_EnableTimer_1s(True);
+      end;
+      {$IFDEF DEBUG_STRING}LongIntToStr(OldestSlot, s1); UART1_Write_Text('Arp OldestSlot: ' + s1 + CRLF);{$ENDIF}
+    end;
+    
+    Inc(i);                                                                     // Update our loop counter
+  end;                                                                          // Nope, not cached or waiting...
+    
+  // Either empty or is the oldest slot to take ownership of
+  memcpy(@ArpIp[0], @TargetIP[0], 4);                                           // Copy the Destinatin IP to a local copy
+  ArpMapIpMask(ArpIp);                                                          // Decide if it is unchanged or maps to the gateway
+  
+  EthMemSet(TXSTART, $FF, 6);                                                   // Destination Hardware Address is Global FF.FF.FF.FF.FF.FF
+  CopyRamToEthMem(@eth_mac, TXSTART+6, 6);                                      // Souce is us
+  WriteToEthMem(TXSTART+12, $08);                                               // Hi EtherType =  = 0x0806 ARP
+  Eth_PutByte($06);                                                             // Lo EtherType
+  Eth_PutByte($00);                                                             // Hi Hardware Type
+  Eth_PutByte($01);                                                             // Lo Hardware Type (0x0001 = Ethernet)
+  Eth_PutByte($08);                                                             // Hi Protocol Type  (0x8000 = Ping)
+  Eth_PutByte($00);                                                             // Lo Protocol Type
+  Eth_PutByte($06);                                                             // Hardware Address Length (MAC = 6)
+  Eth_PutByte($04);                                                             // IP Address Length (IP = 4 for IP4)
+  Eth_PutByte($00);                                                             // Hi Operation
+  Eth_PutByte($01);                                                             // Lo Operation (0x0001 = ARP)
+  CopyRamToEthMem(@eth_mac, TXSTART+22, 6);                                     // Sender Hardware Address (Us)
+  CopyRamToEthMem(@eth_ip_addr, TXSTART+28, 4);                                 // Sender Protocol Address (Us)
+  EthMemSet(TXSTART+32, $00, 6);                                                // Target Hardware Address (all zeros)
+  CopyRamToEthMem(@ArpIp[0], TXSTART+38, 4);                                    // Target Protocol Address (actual or mapped to gateway)
+  Eth_SendPacket(42);
+  
+  if EmptySlot < 0 then                                                         // If none empty then take the oldest
+    EmptySlot := OldestSlot;
+    
+  {$IFDEF DEBUG_STRING}
+   IntToStr(EmptySlot, s1);
+   UART1_Write_Text('Slot being used: ' + s1 + CRLF);
+  {$ENDIF}
+  
+  ArpCache[EmptySlot].Valid := False;                                           // Make sure no one sees this as a valid slot while we are modifiying it
+  memcpy(@ArpCache[EmptySlot].Ip[0], @ArpIp[0], 4);                             // Copy our target IP into the cache slot
+  memset(@ArpCache[EmptySlot].Mac[0], 0x00, 6);                                 // Clear the cache slot fields
+  Eth_EnableTimer_1s(False);
+  ArpCache[EmptySlot].Timer := 0;
+  Eth_EnableTimer_1s(True);
+  ArpCache[EmptySlot].Valid := Waiting;                                         // Set it up for waiting
+  if ArpWaitFor(@ArpCache[EmptySlot]) then                                      // Wait for the reply
+    Result := @ArpCache[EmptySlot];                                             // Yup, get the slot address and exit
+end;
+
+//******************************************************************************
+// Called in response to an ARP Request packet.  The packet has been copied to
+// the first bytes of the general purpose memory ready to be used as the basis
+// for the reply message.
+//******************************************************************************
+procedure Eth_Arp_RequestHandler;
+begin                                                                           // The request coming in has been copied from the RX memory space to the GP memoryspace at offset 0x00
+  CopyEthMemToEthMem(AddrPacket+6, TXSTART, 6);                                 // The source that sent the packet moved to the destination offset
+  CopyRamToEthMem(@eth_mac, TXSTART+6, 6);                                      // The destination in the old received message could be a global FF.FF.FF.FF.FF.FF so use our local copy to the ENC as the source
+  WriteToEthMem(TXSTART+12, $08);                                               // [HI] The EtherType for ARP is 0x0806.
+  Eth_PutByte($06);                                                             // [LO] The EtherType for ARP is 0x0806.
+  Eth_PutByte($00);                                                             // [HI] Hardware Type (HTYPE), ethernet = 0x0001
+  Eth_PutByte($01);                                                             // [LO] Hardware Type (HTYPE), ethernet = 0x0001
+  Eth_PutByte($08);                                                             // [HI] Protocol Type (PTYPE), For IPv4, this has the value 0x0800.
+  Eth_PutByte($00);                                                             // [LO] Protocol Type, (PTYPE) For IPv4, this has the value 0x0800.
+  Eth_PutByte($06);                                                             // Hardware length (HLEN)
+  Eth_PutByte($04);                                                             // Protocol length (PLEN)
+  Eth_PutByte($00);                                                             // [HI] Specifies the Operation that the sender is performing: 1 for request, 2 for reply.
+  Eth_PutByte($02);                                                             // [LO] Specifies the operation that the sender is performing: 1 for request, 2 for reply.
+  CopyRamToEthMem(@eth_mac, TXSTART+22, 6);                                     // Sender (our) hardware address (SHA)
+  CopyEthMemToEthMem(AddrPacket+38, TXSTART+28, 4);                             // Sender (our) protocol address (SPA)
+  CopyEthMemToEthMem(AddrPacket+6, TXSTART+32, 6);                              // Target hardware address (THA)
+  CopyEthMemToEthMem(AddrPacket+28, TXSTART+38, 4);                             // Target protocol address (TPA)
+  Eth_SendPacket(42);                                                           // Ship it
+end;
+
+//******************************************************************************
+// Called in reponse to an ARP reply.  Implies that we sent the request for an ARP
+// to an IP address
+//******************************************************************************
+procedure Eth_Arp_ResponseHandler;
+var
+  i : byte;
+begin                                                                           // We sent an ARP Request and this is the response
+  i := 0;
+  while i < ARP_CACHE_LEN do
+  begin
+    if (ArpCache[i].Valid = Waiting) then                                       // We set Valid to "Waiting" in the "Send ARP" message anticipating this reply
+      if (EthMemCompareWithRam(AddrPacket+28, @ArpCache[i].Ip[0], 4) <> 0) then // Does the IP in the Arp Cache match the IP that sent this message?
+      begin
+        CopyEthMemToRam(AddrPacket+6, @ArpCache[i].Mac[0], 6);                  // Yes, grab the MAC address from the packet and save it in this Arp Cache Slot
+        ArpCache[i].Valid := True;                                              // We are valid now
+        Exit;
+      end;
+    inc(i);
+  end;
+end;
+
+//******************************************************************************
+//* Name    : Eth_EraseArpCache                                                *
+//* Purpose : Response to ARP request                                          *
+//******************************************************************************
+procedure Eth_Arp_EraseCache;
+var 
+  j : byte;
+begin
+  j := 0;
+  while j < ARP_CACHE_LEN do
+  begin
+    memset(@ArpCache[j].Ip, 0, 4);
+    memset(@ArpCache[j].Mac, 0, 6);
+    ArpCache[j].Valid := False;
+    Eth_EnableTimer_1s(False);
+    ArpCache[j].Timer := 0;
+    Eth_EnableTimer_1s(True);
+    inc(j);
+  end;
+end;
+
+procedure Eth_PrintArpCache;
+var
+  j : byte;
+begin
+  j := 0;
+  while j < ARP_CACHE_LEN do
+  begin
+    Eth_PrintArpCacheSlot(@ArpCache[j]);
+    inc(j);
+  end;
+end;
+
+procedure Eth_PrintArpCacheSlot(Slot: ^TArpSlot);
+var
+  s2: string[10];
+  LocalTime: DWord;
+begin
+  LongWordToStr(Slot^.Valid, s2);
+  UART1_Write_Text('State: ' + s2 + CRLF);
+  UART1_Write_Text('IP: ' + IPAddressToStr(Slot^.ip) + CRLF);
+  UART1_Write_Text('MAC: ' + MACAddressToStr(Slot^.mac) + CRLF);
+  Eth_EnableTimer_1s(False);
+  LocalTime := Slot^.Timer;
+  Eth_EnableTimer_1s(True);
+  LongWordToStr(LocalTime, s2);
+  UART1_Write_Text('Time: ' + s2 + CRLF);
+  UART1_Write_Text(CRLF);
+end;
+
+end.

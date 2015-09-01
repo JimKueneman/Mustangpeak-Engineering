@@ -1,0 +1,111 @@
+<html><head>
+<title>Config</title>
+<link rel="stylesheet" type="text/css" href="c.css" />
+<script type="text/javascript">
+var req;
+try {
+if ( !window.XMLHttpRequest ) {
+req = new ActiveXObject("Microsoft.XMLHTTP");
+} else {
+req = new XMLHttpRequest();}
+} catch (e) { }
+function send() {
+var i=document.config.elements.length;
+var e=document.config.elements;
+var data='' ;
+for(var k=0;k<i;k++) {
+var el=document.config.elements[k];
+var value=document.config.elements[k].value;
+console.log(el.type);
+if(el.type == 'checkbox') {
+if(el.checked) { data = data + el.id + '1' } else { data = data + el.id + '0'}}
+if(el.type == 'text') { data = data + el.id + value }}
+req.onreadystatechange=function() {
+if (req.readyState==4) {
+var response = '' ;
+if (req.status==200 || window.location.href.indexOf("http")==-1){ reponse = req.responseText; } else { response = "An error has occured making the request"; }
+document.getElementById("result").innerHTML = reponse;}}
+req.open("GET", "conf2.php?" + data + 'v00', true)
+req.send(null)}
+function get() {
+req.onreadystatechange=function() {
+if (req.readyState==4) {
+if (req.status==200 || window.location.href.indexOf("http")==-1){
+try {
+var data = eval("(" + req.responseText + ")");
+for (var key in data) {
+var el = document.getElementById(key);
+if(null != el) {
+if(el.type == 'checkbox') {
+if(data[key] > 0) { el.checked = true; } else { el.checked = false; }
+} else {
+el.value = data[key];
+}}}} catch(e) {}}}}
+req.open("GET", 'v2.txt', true)
+req.send(null)}
+</script>
+</head>
+<body onLoad="get()">
+<div id="w"><div id="c">
+<div id="t"><center>Internal Configuration</center></div>
+<center>
+<a class="button" href="netconfig.html">Network Config</a>
+<a class="button" href="nameconfig.html">Name Config</a>
+<a class="button" href="sensorconfig.html">Sensor Config</a>
+</center>
+<br>
+<form name="config">
+<h2>Temperature Sensors Name Configuration</h2>
+<fieldset>
+<legend>Name Settings</legend>
+<div class="s">
+<div class="l">Sensor01 Name</div>
+<input id="v01" type="text" maxlength="15" /></div>
+<div class="s">
+<div class="l">Sensor02 Name</div>
+<input id="v02" type="text" maxlength="15" /></div>
+<div class="s">
+<div class="l">Sensor03 Name</div>
+<input id="v03" type="text" maxlength="15" /></div>
+<div class="s">
+<div class="l">Sensor04 Name</div>
+<input id="v04" type="text" maxlength="15" /></div>
+<div class="s">
+<div class="l">Sensor05 Name</div>
+<input id="v05" type="text" maxlength="15" /></div>
+<div class="s">
+<div class="l">Sensor06 Name</div>
+<input id="v06" type="text" maxlength="15" /></div>
+<div class="s">
+<div class="l">Sensor07 Name</div>
+<input id="v07" type="text" maxlength="15" /></div>
+<div class="s">
+<div class="l">Sensor08 Name</div>
+<input id="v08" type="text" maxlength="15" /></div>
+</fieldset>
+<br>
+<h2>Inputs/Outputs Name Configuration</h2>
+<fieldset>
+<legend>Name Settings</legend>
+<div class="s">
+<div class="l">Input/Output01 Name</div>
+<input id="v09" type="text" maxlength="15" /></div>
+<div class="s">
+<div class="l">Input/Output02 Name</div>
+<input id="v10" type="text" maxlength="15" /></div>
+<div class="s">
+<div class="l">Input/Output03 Name</div>
+<input id="v11" type="text" maxlength="15" /></div>
+<div class="s">
+<div class="l">Input/Output04 Name</div>
+<input id="v12" type="text" maxlength="15" /></div>
+</fieldset>
+<br>
+<fieldset>
+<legend>Save config</legend>
+<div class="s">
+<div class="l"><input value="Submit" type="button" onclick="send();"/><p id="result"></p></div>
+</div>
+</fieldset>
+</form></div></div>
+</body></html>

@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<cdi xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://openlcb.org/trunk/specs/schema/cdi.xsd">
+  <identification>
+    <manufacturer>Digitrax</manufacturer>
+    <model>Series 3 with FX3, silent, readback</model>
+    <hardwareVersion/>
+    <softwareVersion/>
+    <map>
+      <relation>
+        <property>Model</property>
+        <value>DG383</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DG583</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH163</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH163AT</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH163A0</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH163D</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH163IP</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH163K0</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH163L0</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH163P</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH163PS</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH165A0</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH165IP</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH165K0</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH165K1A</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH165L0</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH165Q1</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DH465</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN123K3</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN135D</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN135PS</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN143</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN143IP</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN143K1</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN143K2</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163A0</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163A1</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163A2</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163A3</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163A4</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163I0</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163I1A</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163I1B</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163I1C</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163I2</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163K0A</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163K0B</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163K0D</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163K0E</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163K1A</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163K1B</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163K1C</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163K1D</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163K2</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163K4A</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163K4B</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163L0A</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163M0</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DN163PS</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DZ123</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DZ123M0</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DZ123PS</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DZ123Z0</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DZ125</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DZ125IN</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DZ125PS</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DZ143</value>
+      </relation>
+      <relation>
+        <property>Model</property>
+        <value>DZ143PS</value>
+      </relation>
+    </map>
+  </identification>
+  <segment origin="1" space="253">
+    <group replication="256">
+      <name>CVs</name>
+      <repname>CV</repname>
+      <description>Raw CV access</description>
+      <int size="1">
+        <min>0</min>
+        <max>255</max>
+      </int>
+    </group>
+  </segment>
+  <segment space="253">
+    <int size="1" origin="1">
+      <name>Short Address</name>
+      <description>Short address</description>
+    </int>
+    <int size="2" origin="17">
+      <name>Long Address</name>
+    </int>
+    <int size="1" origin="2">
+      <name>Vstart</name>
+      <description>A value of 255 corresponds to 100%</description>
+    </int>
+    <int size="1" origin="5">
+      <name>Vhigh</name>
+    </int>
+    <int size="1" origin="6">
+      <name>Vmid</name>
+    </int>
+    <int size="1" origin="3">
+      <name>Accel</name>
+    </int>
+    <int size="1" origin="4">
+      <name>Decel</name>
+    </int>
+    <int size="1" origin="7">
+      <name>Decoder Version</name>
+    </int>
+    <int size="1" origin="8">
+      <name>Manufacturer</name>
+    </int>
+    <int size="1" origin="9">
+      <name>Total PWM Period</name>
+      <description>00 is fastest, 255 is slowest</description>
+    </int>
+    <bit size="8" mask="255" origin="19">
+      <name>Consist Address</name>
+    </bit>
+    <int size="1" origin="55">
+      <name>EMF Static Config</name>
+      <description>Factory default is 128, no effect until droop (CV57) set</description>
+    </int>
+    <int size="1" origin="56">
+      <name>EMF Dynamic Config</name>
+      <description>Factory default is 48, no effect until droop (CV57) set</description>
+    </int>
+    <bit size="8" mask="255" origin="57">
+      <name>EMF Droop Config</name>
+      <description>0 is compenstation off, 15 is full on, typical value is 5</description>
+    </bit>
+    <bit size="8" mask="255" origin="57">
+      <name>Advanced consist droop compensation for speed stabilization</name>
+      <description>0 is compenstation off, 15 is full on, typical value is 5</description>
+    </bit>
+    <bit size="8" mask="255" origin="62">
+      <name>Global lighting option 1</name>
+    </bit>
+    <bit size="8" mask="255" origin="62">
+      <name>Global lighting option 2</name>
+    </bit>
+    <int size="1" origin="63">
+      <name>Global lighting option 3</name>
+    </int>
+    <bit size="8" mask="255" origin="16">
+      <name>Decoder Lock ID number</name>
+    </bit>
+    <int size="1" origin="65">
+      <name>Kick Start</name>
+    </int>
+    <int size="1" origin="66">
+      <name>Forward Trim</name>
+      <description>Range 0-255</description>
+    </int>
+    <int size="1" origin="95">
+      <name>Reverse Trim</name>
+      <description>Range 0-255</description>
+    </int>
+    <int size="1" origin="105">
+      <name>User Id #1</name>
+    </int>
+    <int size="1" origin="106">
+      <name>User Id #2</name>
+    </int>
+  </segment>
+</cdi>

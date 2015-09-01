@@ -1,0 +1,2660 @@
+// ******************************************************************************
+//
+// * Copyright:
+//     (c) Mustangpeak Software 2011.
+//
+//     The contents of this file are subject to the GNU GPL v3 licence/ you maynot use
+//     this file except in compliance with the License. You may obtain a copy of the
+//     License at http://www.gnu.org/licenses/gpl.html
+//
+// * Revision History:
+//     2011-01-28:   Created
+//     2012-10-07:   Version 1.0
+//
+// * Description:
+//    Defines global constants for XpressNet
+//
+// ******************************************************************************
+
+unit OLCB_XpressnetBridge;
+
+{.$DEFINE DEBUG_MAIN_STATEMACHINE}
+{$DEFINE TRACE_XPRESSNET_MESSAGES}
+
+uses
+  opstack_node,
+  opstack_defines,
+  OLCB_XpressnetBridgeDefines;
+
+procedure XpressnetStateMachine_Process(NodeBuffer: POpenLCBNode);
+procedure XpressnetStateMachine_Initialize;
+procedure XpressnetStateMachine_UART_RX_StateMachine(XpressNetBuffer: PXpressnetStateMachineInfo; ReceivedByte: Byte);
+procedure XpressnetStateMachine_525ms_TimeTick;
+
+var
+  Xpressnet_RS485_Select              : sbit; sfr; external;
+  Xpressnet_RS485_Select_Direction    : sbit; sfr; external;
+
+
+implementation
+
+function InsertHiBitParity(DataByte: Byte): Byte; forward;
+procedure WriteXpressNetByte(DataByte: Word; SetAddressBit: Boolean; TxReg: ^Word; StatusReg: ^Word); forward;
+procedure XpressNet_HandleDeviceInstruction(XpressNetMessage: PXpressNetMessage; iDevice: Byte); forward;
+procedure SendXpressNetMessage(XpressNetMessage: PXpressNetMessage; Command: Byte; iDevice: Byte); forward;
+
+procedure XpressnetStateMachine_Initialize;
+var
+  i: Integer;
+begin
+  Xpressnet_RS485_Select := 0;                // Default in Receive
+  Xpressnet_RS485_Select_Direction := 0;      // Output
+  XpressnetStateMachineInfo.iState := STATE_DISCOVERDEVICES;
+  XpressnetStateMachineInfo.Discovering := False;
+  XpressnetStateMachineInfo.iActiveDevice := 0;
+  XpressnetStateMachineInfo.DiscoveryCount := 0;
+  XpressnetStateMachineInfo.WatchdogCount := 0;
+
+  // Device ID Initialization
+  for i := ID_MIN_DEVICE to ID_MAX_DEVICE do
+  begin
+    XpressnetStateMachineInfo.DeviceList[i].State := XDS_XPRESSNET_DEVICE_INACTIVE;
+    XpressnetStateMachineInfo.DeviceList[i].Node := nil;
+  end;
+end;
+
+// ****************************************************************************
+//
+// function NextAvailableDevice(iDevice: Byte): Byte;
+//
+//  Parameters:
+//           iDevice: Device ID that is used as the starting point to find the next installed
+//                      device ID
+//
+//  Result:
+//          Index into the DeviceList of the next installed device
+//
+//  Description:
+//         Returns the next installed Device index on the bus after the passed index.
+//           If there are no Devices installed it returns ID_NO_DEVICE
+//
+// *****************************************************************************
+function NextAvailableDevice(iDevice: Byte): Byte;
+var
+  i: Integer;
+  Device: PDevice;
+begin
+  Result := ID_NO_DEVICE;
+  
+  if iDevice = ID_NO_DEVICE then
+    iDevice := ID_MIN_DEVICE;
+
+  i := iDevice;
+  repeat
+    Inc(i);
+    if i > ID_MAX_DEVICE then
+      i := ID_MIN_DEVICE;
+
+    Device := @XpressnetStateMachineInfo.DeviceList[i];
+    if Device^.State and XDS_XPRESSNET_DEVICE_ACTIVE = XDS_XPRESSNET_DEVICE_ACTIVE then
+      if Device^.Node^.State and NS_PERMITTED = NS_PERMITTED then     // If it is active then the Node MUST be valid
+      begin
+        Result := i;
+        Exit
+      end;
+  until i = iDevice;
+end;
+
+// ****************************************************************************
+//
+// function FirstActiveDevice: Byte;
+//
+//  Parameters:
+//           None
+//
+//  Result:
+//          Index into the DeviceList of the first installed device
+//
+//  Description:
+//          Returns the first installed Device index on the bus. If there are no Devices
+//            installed it returns 0
+//
+// *****************************************************************************
+function FirstActiveDevice: Byte;
+var
+  i: Integer;
+begin
+  Result := ID_NO_DEVICE;
+  for i := ID_MIN_DEVICE to ID_MAX_DEVICE do
+  begin
+    if XpressnetStateMachineInfo.DeviceList[i].State and XDS_XPRESSNET_DEVICE_ACTIVE = XDS_XPRESSNET_DEVICE_ACTIVE then
+   //   if not Device_InServiceMode(i) then
+      begin
+        Result := i;
+        Exit
+      end;
+  end
+end;
+
+procedure PrepareUARTReceiver;
+var
+  Temp: Word;
+begin
+  while (URXDA_U2STA_bit = 1) do Temp := U2RXREG;                                                         // Flush the RX Buffer
+  U2RXIF_Bit := 0;                                                                                        // Clear the interrupt flag to receive the next byte
+  XpressnetStateMachineInfo.RS485.XpressnetData.StateMachineIndex := STATE_RS485_READ_HEADER_BYTE;        // Reset the RS485 RX statemachine
+  XpressnetStateMachineInfo.RS485.Done := False;
+  XpressnetStateMachineInfo.RS485.XORFailed := False;
+end;
+
+procedure SendTransferErrorMessage(Device: Byte);
+begin
+  Xpressnet_RS485_Select := 1;
+  WriteXpressNetByte(CALLBYTE_TRANSFER_ERRORS or Device, True, @U2TXREG, @U2STA); // 011AAAAA
+  WriteXpressNetByte($80, False, @U2TXREG, @U2STA);                                                                // 10000000
+  WriteXpressNetByte($E1, False, @U2TXREG, @U2STA);                                                                // 11100001
+  Xpressnet_RS485_Select := 0;
+end;
+
+procedure SendAckRequestMessage(Device: Byte);
+begin
+  Xpressnet_RS485_Select := 1;                                                                                     // Select the 485 chip to transmit mode
+  WriteXpressNetByte( InsertHiBitParity(CALLBYTE_REQUEST_ACK_FROM_DEVICE or Device), True, @U2TXREG, @U2STA);  // 000AAAAA
+  Xpressnet_RS485_Select := 0;
+end;
+
+procedure SendInquiryMessage(Device: Byte);
+begin
+  Xpressnet_RS485_Select := 1;                                                                              // Select the 485 chip to transmit mode
+  WriteXpressNetByte( InsertHiBitParity(CALLBYTE_INQUIRY or Device), True, @U2TXREG, @U2STA);  // Write to the Bus for a query
+  Xpressnet_RS485_Select := 0;                                                                              // Select the 485 chip to receive mode ASAP
+end;
+
+// *****************************************************************************
+//
+// procedure XpressnetStateMachine_525ms_TimeTick;
+//
+//  Parameters:
+//                None
+//  Returns:
+//                None
+//  Description:
+//              Updates internal flags to track for various timeout conditions
+//    mainly for the bus
+//
+// *****************************************************************************
+procedure XpressnetStateMachine_525ms_TimeTick;
+begin
+   // Count up to the time out then freeze.  The Timer Count will be reset after the
+  // main loop is done rediscovering
+  if XpressnetStateMachineInfo.DiscoveryCount < REDISCOVERY_TIME then
+    Inc(XpressnetStateMachineInfo.DiscoveryCount);
+
+  // Count up to the hung time then freeze.  Once Hung it is hung until the next
+  // device ID is queried and it is reset
+  if XpressnetStateMachineInfo.WatchdogCount < XPRESSNET_BUS_HUNG_COUNT then
+    Inc(XpressnetStateMachineInfo.WatchdogCount);
+  
+  if XpressnetStateMachineInfo.Bridge.WatchdogCount < XPRESSNET_OLCB_BUS_TIMEOUT then
+    Inc(XpressnetStateMachineInfo.Bridge.WatchdogCount)
+end;
+
+procedure DetectDeviceResponse(Device: PDevice; DetectedState, NoDetectedState: Word);
+var
+   NodeData: PXpressNetDeviceVolatileData;
+begin
+  if (U2STA.RIDLE = 0) or (U2STA.URXDA = 1) or (XpressnetStateMachineInfo.RS485.Done) then                  // Did we detect a Device starting to transmit on the UART?
+  begin                                                                                                     // Yes so wait for it to be received
+    if Device^.Node = nil then        // Did we find a new Xpressnet Device?
+    begin
+      Device^.State := Device^.State or XDS_XPRESSNET_DEVICE_ACTIVE;
+      Device^.Node := OpenLCBNode_Allocate;                                  // Link the Node to the Device
+      NodeData := GetDeviceData(Device^.Node);
+      NodeData^.DeviceID := XpressnetStateMachineInfo.iActiveDevice;        // Link the Device to the Node
+    end;
+    XpressnetStateMachineInfo.WatchdogCount := 0;                                                           // Reset the Watchdog for a hung bus
+    XpressnetStateMachineInfo.iState := DetectedState;
+  end else
+  begin                                                                                                   // No so set it device inactive and exit to the next device
+    XpressnetStateMachineInfo.iState := NoDetectedState;
+    // If a Device has nothing to say we can fall into this branch it is not a signal
+    // the device is has disappeared
+  end;
+end;
+
+// *****************************************************************************
+//
+// procedure XpressnetStateMachine_UART_RX_StateMachine;
+//
+//  Parameters:
+//                XpressNetMessage:   The Message to work on
+//                ReceivedByte:       The new Byte received by the UART
+//                IsPCMessage:        The Message is from the PC so we need to handle the CTS line
+//
+//  Returns:
+//                None
+//  Description:
+//              Updates internal flags to track for various timeout conditions
+//    mainly for the bus
+//
+//  WARNING:  This is called from the XPRESSNET_UART_RX_Interrupt and the
+//            XPRESSNET_UART_RX_Interrupt so make sure anything done is "ThreadSafe"
+//
+// *****************************************************************************
+procedure XpressnetStateMachine_UART_RX_StateMachine(XpressNetBuffer: PXpressnetStateMachineInfo; ReceivedByte: Byte);
+var
+  Error: Byte;
+  i: Integer;
+begin
+  case XpressNetBuffer^.RS485.XpressnetData.StateMachineIndex of
+    STATE_RS485_READ_HEADER_BYTE :
+      begin
+        XpressNetBuffer^.RS485.XpressnetData.DataCount := ReceivedByte and $0F;         // Use only the lower nibble for the count
+        XpressNetBuffer^.RS485.XpressnetData.Instruction := ReceivedByte and $F0;       // Strip off the Data Count in the lower nibble
+        XpressNetBuffer^.RS485.XpressnetData.StateMachineIndexDataByte := 0;
+        if XpressNetBuffer^.RS485.XpressnetData.DataCount = 0 then                      // If the count is 0 then jump to the XOR byte state
+          XpressNetBuffer^.RS485.XpressnetData.StateMachineIndex := STATE_RS485_READ_XOR_BYTE
+        else
+          Inc(XpressNetBuffer^.RS485.XpressnetData.StateMachineIndex)
+      end;
+    STATE_RS485_READ_MESSAGE_BYTE :
+      begin
+        XpressNetBuffer^.RS485.XpressnetData.Bytes[XpressNetBuffer^.RS485.XpressnetData.StateMachineIndexDataByte] := ReceivedByte;
+        Inc(XpressNetBuffer^.RS485.XpressnetData.StateMachineIndexDataByte);
+        if XpressNetBuffer^.RS485.XpressnetData.StateMachineIndexDataByte >= XpressNetBuffer^.RS485.XpressnetData.DataCount then  // Test to see if we are done reading
+        begin
+          Inc(XpressNetBuffer^.RS485.XpressnetData.StateMachineIndex)
+        end;
+      end;
+    STATE_RS485_READ_XOR_BYTE :
+      begin
+        Error := XpressNetBuffer^.RS485.XpressnetData.DataCount or XpressNetBuffer^.RS485.XpressnetData.Instruction; // Reconstruct the Header Byte
+        for i := 0 to XpressNetBuffer^.RS485.XpressnetData.DataCount - 1 do
+          Error := Error xor XpressNetBuffer^.RS485.XpressnetData.Bytes[i];
+        if Error <> ReceivedByte then                                           // This is the implementation of the STATE_RECEIVEDEVICEMESSAGE for the Xpressnet StateMachine
+          XpressnetStateMachineInfo.RS485.XORFailed := True;                    // Must be cleared in the main program
+        XpressnetStateMachineInfo.RS485.Done := True;                           // Must be cleared in the main program
+        Inc(XpressNetBuffer^.RS485.XpressnetData.StateMachineIndex)             // We are full move to Full State
+      end;
+    STATE_RS485_FULL :
+      begin                                                                     // Spin here until the system resets the statemachine
+
+      end;
+  end
+end;
+
+// *****************************************************************************
+//
+// procedure XpressnetStateMachine_Process
+//
+//  Parameters:
+//             Node: The physical Node of the Bridge
+//   Returns:
+//             None
+//
+// Description:
+//             There is no reason to send Device Nodes as internally the statemachine
+//             checks the Device Nodes for the Permitted state to use them.
+//
+// *****************************************************************************
+procedure XpressnetStateMachine_Process(Node: POpenLCBNode);
+var
+  Temp: Word;
+  Device: PDevice;
+begin
+  if OpenLCBNode_TestStateFlag(Node, NS_PERMITTED) then
+  begin
+    case XpressnetStateMachineInfo.iState of
+      STATE_DISCOVERDEVICES :
+        begin
+          {$IFDEF DEBUG_MAIN_STATEMACHINE} UART1_Write_Text('STATE_DISCOVERDEVICES'+LF);{$ENDIF}
+          XpressnetStateMachineInfo.Discovering := True;
+          XpressnetStateMachineInfo.iActiveDevice := 0;
+          XpressnetStateMachineInfo.iState := STATE_DISCOVERNEXTDEVICE;
+        end;
+      STATE_DISCOVERNEXTDEVICE  :
+        begin
+         {$IFDEF DEBUG_MAIN_STATEMACHINE} UART1_Write_Text('STATE_DISCOVERNEXTDEVICE'+LF);{$ENDIF}
+          Inc(XpressnetStateMachineInfo.iActiveDevice);
+          if XpressnetStateMachineInfo.iActiveDevice > ID_MAX_DEVICE then
+          begin
+            XpressnetStateMachineInfo.Discovering := False;
+            XpressnetStateMachineInfo.DiscoveryCount := 0;
+            XpressnetStateMachineInfo.iActiveDevice := FirstActiveDevice;
+            XpressnetStateMachineInfo.iState := STATE_ENUMERATEACTIVEDEVICES;
+          end else
+            XpressnetStateMachineInfo.iState := STATE_SENDDEVICEINQUIRY;
+        end;
+      STATE_SENDDEVICEINQUIRY :
+        begin
+          {$IFDEF DEBUG_MAIN_STATEMACHINE} UART1_Write_Text('STATE_SENDDEVICEINQUIRY'+LF);{$ENDIF}
+          PrepareUARTReceiver;
+          SendInquiryMessage(XpressnetStateMachineInfo.iActiveDevice);
+          Delay_us(120);                                                          // A bit of a hack to save another timer.  Just wait for the Xpressent spec timeout then check if a UART transfer has started
+          Device := @XpressnetStateMachineInfo.DeviceList[XpressnetStateMachineInfo.iActiveDevice];
+          DetectDeviceResponse(Device, STATE_WAITFORDEVICEMESSAGE, STATE_TESTFORDISCOVERYMODE);
+        end;
+      STATE_WAITFORDEVICEMESSAGE :
+        begin
+          {$IFDEF DEBUG_MAIN_STATEMACHINE} UART1_Write_Text('STATE_WAITFORDEVICEMESSAGE'+LF);{$ENDIF}
+          if XpressnetStateMachineInfo.RS485.Done then
+            XpressnetStateMachineInfo.iState := STATE_RECEIVEDEVICEMESSAGE;
+          if XpressnetStateMachineInfo.WatchdogCount > XPRESSNET_BUS_HUNG_COUNT then
+            XpressnetStateMachineInfo.iState := STATE_TESTFORDISCOVERYMODE;
+        end;
+      STATE_RECEIVEDEVICEMESSAGE :
+        begin
+          {$IFDEF DEBUG_MAIN_STATEMACHINE} UART1_Write_Text('STATE_RECEIVEDEVICEMESSAGE'+LF);{$ENDIF}
+          if XpressnetStateMachineInfo.RS485.XORFailed then
+            XpressnetStateMachineInfo.iState := STATE_SENDDEVICEERROR
+          else
+            XpressnetStateMachineInfo.iState := STATE_HANDLEMESSAGE
+        end;
+      STATE_HANDLEMESSAGE :
+        begin
+          {$IFDEF DEBUG_MAIN_STATEMACHINE} UART1_Write_Text('STATE_HANDLEMESSAGE'+LF);{$ENDIF}
+          XpressnetStateMachineInfo.Bridge.RequiresReply := False;           // The HandleDeviceInstruction call will set up the OlcbBridge info if needed.
+          XpressnetStateMachineInfo.Bridge.ReplyRead := False;
+          XpressnetStateMachineInfo.Bridge.WatchdogCount := 0;
+          XpressNet_HandleDeviceInstruction( @XpressnetStateMachineInfo.RS485.XpressnetData, XpressnetStateMachineInfo.iActiveDevice);
+          if XpressnetStateMachineInfo.Bridge.RequiresReply then
+            XpressnetStateMachineInfo.iState := STATE_SEND_OpenLCB_MESSAGE
+          else
+            XpressnetStateMachineInfo.iState := STATE_TESTFORDISCOVERYMODE
+        end;
+       STATE_SEND_OpenLCB_MESSAGE :
+         begin
+           // Spin until we can send the message/datagram then jump to wait for the reply with the OpenLCBStateMachine_TrySendxxx functions or similar.
+           // OpenLCBStateMachine_TrySendxxxx
+            XpressnetStateMachineInfo.iState := STATE_WAIT_FOR_OpenLCB_REPLY
+         end;
+       STATE_WAIT_FOR_OpenLCB_REPLY :
+        begin
+        {$IFDEF DEBUG_MAIN_STATEMACHINE} UART1_Write_Text('STATE_WAIT_FOR_OLCB_REPLY'+LF);{$ENDIF}
+          if XpressnetStateMachineInfo.Bridge.ReplyRead then
+            XpressnetStateMachineInfo.iState := STATE_SEND_INSTRUCTION_REPLY;
+          if XpressnetStateMachineInfo.Bridge.WatchdogCount > XPRESSNET_OLCB_BUS_TIMEOUT then
+            XpressnetStateMachineInfo.iState := STATE_TESTFORDISCOVERYMODE;
+        end;
+      STATE_SEND_INSTRUCTION_REPLY :
+        begin
+          {$IFDEF DEBUG_MAIN_STATEMACHINE} UART1_Write_Text('STATE_SEND_INSTRUCTION_REPLY'+LF);{$ENDIF}
+           // The Xpressnet message was created in the OpenLCBAppCallbacks.mpas
+           SendXpressNetMessage(@XpressnetStateMachineInfo.Bridge.XpressnetMessage, CALLBYTE_RESPONSE, XpressnetStateMachineInfo.iActiveDevice);
+           XpressnetStateMachineInfo.iState := STATE_TESTFORDISCOVERYMODE;
+        end;
+      STATE_SENDDEVICEERROR :
+        begin
+          {$IFDEF DEBUG_MAIN_STATEMACHINE} UART1_Write_Text('STATE_SENDDEVICEERROR'+LF);{$ENDIF}
+          PrepareUARTReceiver;
+          SendTransferErrorMessage(XpressnetStateMachineInfo.iActiveDevice);
+          SendAckRequestMessage(XpressnetStateMachineInfo.iActiveDevice);
+          Delay_us(120);                                                                                            // A bit of a hack to save another timer.  Just wait for the Xpressent spec timeout then check if a UART transfer has started
+          Device := @XpressnetStateMachineInfo.DeviceList[XpressnetStateMachineInfo.iActiveDevice];
+          DetectDeviceResponse(Device, STATE_WAITFORACKRESPONSE, STATE_TESTFORDISCOVERYMODE);
+        end;
+      STATE_WAITFORACKRESPONSE :                                                                                    // Error detected earlier so sending an ACK to see if it is really broken
+        begin
+          {$IFDEF DEBUG_MAIN_STATEMACHINE} UART1_Write_Text('STATE_WAITFORACKRESPONSE'+LF);{$ENDIF}
+          if XpressnetStateMachineInfo.RS485.Done then
+            XpressnetStateMachineInfo.iState := STATE_DEVICEACKRESPONSE;
+          if XpressnetStateMachineInfo.WatchdogCount > XPRESSNET_BUS_HUNG_COUNT then
+            XpressnetStateMachineInfo.iState := STATE_TESTFORDISCOVERYMODE;
+        end;
+      STATE_DEVICEACKRESPONSE :
+        begin
+          {$IFDEF DEBUG_MAIN_STATEMACHINE} UART1_Write_Text('STATE_DEVICEACKRESPONSE'+LF);{$ENDIF}
+          Device := @XpressnetStateMachineInfo.DeviceList[XpressnetStateMachineInfo.iActiveDevice];
+          if XpressnetStateMachineInfo.RS485.XORFailed then
+            Device^.State := Device^.State and not XDS_XPRESSNET_DEVICE_ACTIVE or XDS_XPRESSNET_DEVICE_INACTIVE;
+          XpressnetStateMachineInfo.iState := STATE_TESTFORDISCOVERYMODE
+        end;
+      STATE_TESTFORDISCOVERYMODE :
+        begin
+          {$IFDEF DEBUG_MAIN_STATEMACHINE} UART1_Write_Text('STATE_TESTFORDISCOVERYMODE'+LF);{$ENDIF}
+          if XpressnetStateMachineInfo.Discovering then
+            XpressnetStateMachineInfo.iState := STATE_DISCOVERNEXTDEVICE
+          else
+            XpressnetStateMachineInfo.iState := STATE_ENUMERATEACTIVEDEVICES
+        end;
+      STATE_ENUMERATEACTIVEDEVICES :
+        begin
+          {$IFDEF DEBUG_MAIN_STATEMACHINE} UART1_Write_Text('STATE_ENUMERATEACTIVEDEVICES'+LF);{$ENDIF}
+          XpressnetStateMachineInfo.iActiveDevice := NextAvailableDevice(XpressnetStateMachineInfo.iActiveDevice);
+          if XpressnetStateMachineInfo.iActiveDevice <> ID_NO_DEVICE then
+          begin
+            XpressnetStateMachineInfo.iState := STATE_SENDDEVICEINQUIRY
+          end;
+
+          if XpressnetStateMachineInfo.DiscoveryCount >= REDISCOVERY_TIME then
+            XpressnetStateMachineInfo.iState := STATE_DISCOVERDEVICES
+
+        end;
+    end;
+  end
+end;
+
+// *****************************************************************************
+//
+// procedure WriteXpressNetMessage(MessageInfo: PXpressNetMessage; TxReg: PWord; StatusReg: PWord);
+//
+//  Parameters:
+//             MessageInfo:       Tranmitter Data to send over the XPressNet bus
+//             TxReg:             Pointer to the SFR of the Transmitter register for the desired UART
+//             TxStaReg:          Pointer to the SFR of the Transmitter status register for the desired UART
+//   Returns:
+//             None
+//
+// Description:
+//             Correctly formats the passed parameters and sends the entire
+//  Reqeust packet to the device
+//
+//
+// *****************************************************************************
+procedure WriteXpressNetMessage(MessageInfo: PXpressNetMessage; TxReg: ^Word; StatusReg: ^Word);
+var
+  i: Integer;
+  XorError: Byte;
+begin
+  if MessageInfo^.CallByte <> 0 then
+    WriteXpressNetByte(MessageInfo^.CallByte, True, TxReg, StatusReg);     // Send the Call Byte if <> 0
+  WriteXpressNetByte(MessageInfo^.HeaderByte, False, TxReg, StatusReg);    // Send the Header Byte
+  XorError := MessageInfo^.HeaderByte;                                     // Start Calculating the Error Byte
+  for i := 0 to MessageInfo^.DataCount - 1 do
+  begin
+    WriteXpressNetByte(MessageInfo^.Bytes[i], False, TxReg, StatusReg);
+    XorError := XorError xor MessageInfo^.Bytes[i]
+  end;
+  WriteXpressNetByte(XorError, False, TxReg, StatusReg)
+end;
+
+// *****************************************************************************
+//
+// procedure SendXpressNetMessage(XpressNetMessage: PXpressNetMessage; Command: Byte; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              Command:    Upper new bits of the command (the lower bits are the number of bytes in the message)
+//              iDevice:    The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//
+// *****************************************************************************
+procedure SendXpressNetMessage(XpressNetMessage: PXpressNetMessage; Command: Byte; iDevice: Byte);
+var
+  OldMode: bit;
+begin
+  if iDevice <> ID_PC_DEVICE then
+  begin
+    OldMode := Xpressnet_RS485_Select;
+    Xpressnet_RS485_Select := 1;      // Select the 485 chip to transmit mode
+    XpressNetMessage^.CallByte := InsertHiBitParity(Command or Byte( iDevice));   // Send Message to the Xpressnet UART
+    WriteXpressNetMessage(XpressNetMessage, @U2TXREG, @U2STA);
+    Delay_us(200);
+    Xpressnet_RS485_Select := OldMode
+  end else
+  begin
+    XpressNetMessage^.CallByte := 0;                                              // Very Important to strip the CallByte from the PC Packet, Send to the PC UART
+    WriteXpressNetMessage(XpressNetMessage, @U1TXREG, @U1STA);
+  end;
+end;
+
+// *****************************************************************************
+//
+// procedure Broadcast_XpressNetMessage;
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              Command:    Upper new bits of the command (the lower bits are the number of bytes in the message)
+//
+//
+// *****************************************************************************
+procedure Broadcast_XpressNetMessage(XpressNetMessage: PXpressNetMessage; Command: Byte);
+var
+  i: Byte;
+begin
+  SendXpressNetMessage(XpressNetMessage, Command, ID_PC_DEVICE);
+  SendXpressNetMessage(XpressNetMessage, Command, 0);
+  for i := ID_MIN_DEVICE to ID_MAX_DEVICE do
+  begin
+    if XpressnetStateMachineInfo.DeviceList[i].State and XDS_XPRESSNET_DEVICE_ACTIVE = XDS_XPRESSNET_DEVICE_ACTIVE then
+       SendXpressNetMessage(XpressNetMessage, Command, i);
+  end
+end;
+
+// *****************************************************************************
+//
+// procedure Send_InstructionNotSupported(iDevice: Byte);
+//
+//  Parameters:
+//              iDevice:    ID of the XpressNet Device to send the message to
+//
+//  Description:
+//              Implements "2.1.10 Instruction not supported by command station" in the XpressNet spec
+//
+// *****************************************************************************
+procedure Send_InstructionNotSupported(iDevice: Byte);
+var
+  XpressNetMessage: TXpressNetMessage;
+begin
+  XpressNetMessage.HeaderByte := %01100001;            // $61
+  XpressNetMessage.Bytes[0] := %10000010;              // $82
+  XpressNetMessage.DataCount := 1;
+  SendXpressNetMessage(@XpressNetMessage, CALLBYTE_RESPONSE, iDevice);
+end;
+
+// *****************************************************************************
+//
+// function InsertHiBitParity(DataByte: Byte): Byte;
+//
+//  Parameters:
+//                DataByte:  Byte to count '1's in
+//
+//  Returns:
+//                DataByte with the parity bit (inclusive) in the MSB
+//
+//  Description:
+//              Adds the parity bit to B7.  It is an inclusive parity only on
+//  address bytes
+//
+// *****************************************************************************
+function InsertHiBitParity(DataByte: Byte): Byte;
+begin
+  Result := 0;
+  if DataByte.B0 then Inc(Result);
+  if DataByte.B1 then Inc(Result);
+  if DataByte.B2 then Inc(Result);
+  if DataByte.B3 then Inc(Result);
+  if DataByte.B4 then Inc(Result);
+  if DataByte.B5 then Inc(Result);
+  if DataByte.B6 then Inc(Result);
+  // This is inclusive parity so if there are an even number of 1's (mod 2 = 0) then
+  // adding the parity bit will make the number of 1's odd
+  if Result mod 2 <> 0 then
+    Result := DataByte or %10000000
+  else
+    Result := DataByte
+end;
+
+// *****************************************************************************
+//
+// procedure WriteXpressNetByte(DataByte: Word; SetAddressBit: Boolean);
+//
+//   Parameters:
+//              DataByte:      The Byte to send
+//              SetAddressBit: True if the 9th bit should be set to signify it as an address
+//
+//   Returns:
+//      None
+//
+//  Description:
+//                The workhorse function that places the data onto the
+//    UART Xpressnet bus RS485 but in RS485 format
+//
+// *****************************************************************************
+procedure WriteXpressNetByte(DataByte: Word; SetAddressBit: Boolean; TxReg: ^Word; StatusReg: ^Word);
+begin
+  {$IFNDEF DISABLE_XPRESSNET_UART_WRITE}
+  if SetAddressBit then
+   DataByte := DataByte or $0100
+  else
+    DataByte := DataByte and $00FF;
+
+  TxReg^ := DataByte;
+  StatusReg^.UTXEN := 1;          // Force the Register in to the TSR so the Idle check is not "too fast" to start
+  while StatusReg^.TRMT = 1 do;   // Wait for the UART to start transmitting
+  while StatusReg^.TRMT = 0 do;   // Wait for the UART to finsh transmitting to make sure the ExpressNet timing is met
+  {$ENDIF}
+end;
+
+
+// *****************************************************************************
+//
+// procedure ResumeOperationsRequest;
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//
+//  Device Request           : Paragraph 2.2.2
+//  Command Station Response : Paragraph 2.1.4.1
+//  Status:
+//     Complete 1/29/2011
+// *****************************************************************************
+procedure ResumeOperationsRequest(XpressNetMessage: PXpressNetMessage);
+begin
+
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('ResumeOperationsRequest'+LF);{$ENDIF}
+
+//TODO....
+
+//  ServiceMode_End;             // Any kind of Service Mode in process is finshed
+//  SPI_UpdateDCC_Outputs;
+
+//  NMRA_DCC_ResetTransmitter(@Track);                                      // Reset the transmitters so we are not in the middle of an unknown message
+ // NMRA_DCC_ResetTransmitter(@Accessory);
+//  NMRA_DCC_ResetTransmitter(@Programming);
+
+ // CommandStation.Flags.COMMANDSTATION_FLAGS_EMERGENCY_SHUTDOWN_BIT := 0;  // Flag the Command Station is not in E-Shutdown or E-Stop
+ // CommandStation.Flags.COMMANDSTATION_FLAGS_EMERGENCY_STOP_BIT := 0;
+
+  XpressNetMessage^.HeaderByte := %01100001;  // $61;  Reuse the passed XpressNet Message, enviromentally friendly save the bytes!
+  XpressNetMessage^.Bytes[0]   := %00000001;  // $01
+  XpressNetMessage^.DataCount  := 1;
+  Broadcast_XpressNetMessage(XpressNetMessage, CALLBYTE_BROADCAST);
+  Broadcast_XpressNetMessage(XpressNetMessage, CALLBYTE_BROADCAST);
+end;
+
+// *****************************************************************************
+//
+// procedure StopOperationsRequest(XpressNetMessage: PXpressNetMessage);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//
+//  Device Request           : Paragraph 2.2.3
+//  Command Station Response : Paragraph 2.1.4.2
+//  Status:
+//     Complete 1/29/2011
+// *****************************************************************************
+procedure StopOperationsRequest(XpressNetMessage: PXpressNetMessage);
+begin
+
+ {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('StopOperationsRequest'+LF);{$ENDIF}
+
+// TODO....
+
+//  CommandStation.Flags.COMMANDSTATION_FLAGS_EMERGENCY_SHUTDOWN_BIT := 1;  // Flag the Command Station is in E-Shutdown
+ // ServiceMode_End;             // Any kind of Service Mode in process is finshed
+//  SPI_UpdateDCC_Outputs;
+
+  XpressNetMessage^.HeaderByte  := %01100001;  // $61
+  XpressNetMessage^.Bytes[0]    := %00000000;  // $00
+  XpressNetMessage^.DataCount   := 1;
+  Broadcast_XpressNetMessage(XpressNetMessage, CALLBYTE_BROADCAST);
+  Broadcast_XpressNetMessage(XpressNetMessage, CALLBYTE_BROADCAST);
+end;
+
+// *****************************************************************************
+//
+// procedure StopAllLocomotivesRequest(XpressNetMessage: PXpressNetMessage);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.4
+//  Command Station Response : Paragraph 2.1.4.3
+//  Status:
+//     Complete 1/29/2011
+// *****************************************************************************
+procedure StopAllLocomotivesRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//var
+//  NewMessage: TDCCQueueMessage;
+begin
+
+ {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('StopAllLocomotivesRequest'+LF);{$ENDIF}
+
+  // TODO...
+
+//  CommandStation.Flags.COMMANDSTATION_FLAGS_EMERGENCY_STOP_BIT := 1;
+//  NMRA_DCC_LoadMessage(@NewMessage, %00000000, %01000001, 0, 0, 0, 2);   // NMRA Basic Emergency Stop All instruction
+//  NMRA_DCC_QueueMessage(@Track, @NewMessage, True);
+  XpressNetMessage^.HeaderByte := %10000000;  // $80
+  XpressNetMessage^.DataCount  := 0;
+  Broadcast_XpressNetMessage(XpressNetMessage, CALLBYTE_BROADCAST);
+  Broadcast_XpressNetMessage(XpressNetMessage, CALLBYTE_BROADCAST);
+  SendXpressNetMessage(XpressNetMessage, CALLBYTE_RESPONSE, iDevice);
+  SendXpressNetMessage(XpressNetMessage, CALLBYTE_RESPONSE, iDevice);
+end;
+
+{
+// *****************************************************************************
+//
+// procedure EmergencyStopSlot(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              Slot: Slot to Emergency Stop
+//
+//  Returns:
+//              True if the packet was queued
+//
+// *****************************************************************************
+function EmergencyStopSlot(Slot: PAddressSlot): Boolean;
+begin
+  if Slot^.Flags.ADDRESS_SLOT_FLAGS_SPEED_128_BIT = 1 then
+    Slot^.SpeedDir := Slot^.SpeedDir and $80                 // Clear the lower 7 bits, and set the speed to E-Stop
+  else
+  if Slot^.Flags.ADDRESS_SLOT_FLAGS_SPEED_28_BIT = 1 then
+    Slot^.SpeedDir := Slot^.SpeedDir and $E0                 // Clear the lower 5 bits, and set the speed to E-Stop
+  else
+    Slot^.SpeedDir := Slot^.SpeedDir and $F0;                // Clear the lower 4 bits, and set the speed to E-Stop
+
+  Slot^.SpeedDir := Slot^.SpeedDir or SPEEDSTEP_E_STOP;
+
+  Result :=  AddressSlot_QueueSpeedDCCMessage(Slot, True)
+end;
+      }
+// *****************************************************************************
+//
+// procedure EmergencyStopLocomotiveRequestV3(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Returns:
+//       No Response to Device Defined, only notify PC
+//
+//  Device Request           : Paragraph 2.2.5.2
+//  Command Station Response : Paragraph None
+//  Status:
+//     Complete 1/29/2011
+//
+// *****************************************************************************
+procedure EmergencyStopLocomotiveRequestV3(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+{var
+  Slot, Slot2: PAddressSlot;
+  Error: Byte;  }
+begin
+   {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('EmergencyStopLocomotiveRequestV3'+LF);{$ENDIF}
+   
+ { Error := E_PC_SUCCESS;
+  Slot := AddressSlot_FindSlot(ExtractAddressFromXpressNetMessage(XpressNetMessage, 0, 1), False); // If not found no harm done as there is nothing to stop!
+  if Slot <> nil then
+  begin
+    if Slot^.Flags.ADDRESS_SLOT_FLAGS_DOUBLEHEADER_BIT = 1 then
+    begin
+      // Slot is in a double header
+      Slot2 := AddressSlot_ExtractDoubleHeaderSecondSlot(Slot);
+      if (Slot2 <> nil) and (Track.Priority^.Count < MAX_TRACK_PRIORITY_BUFFER_DEPTH - 2) then
+      begin
+        Error := E_PC_COMMANDSTATION_COMMUNICATION;             // Tell the device to try it again
+        if EmergencyStopSlot(Slot) then
+          if EmergencyStopSlot(Slot2) then
+          Error := E_PC_SUCCESS
+      end else
+        Error := E_PC_UNKNOWN;
+    end else
+    begin
+      if not EmergencyStopSlot(Slot) then
+        Error := E_PC_COMMANDSTATION_COMMUNICATION;              // Tell the device to try it again
+    end
+  end;
+  // The PC needs a response
+  if iDevice = ID_PC_DEVICE then
+    Send_PCMessage(Error);    }
+end;
+
+// *****************************************************************************
+//
+// procedure EmergencyStopLocomotiveRequestV2_Down(iDevice: Byte);
+//
+//  Parameters:
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.5.1
+//  Command Station Response : Paragraph None
+//  Status:
+//     Complete 1/29/2011
+//
+// *****************************************************************************
+procedure EmergencyStopLocomotiveRequestV2_Down(iDevice: Byte);
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('EmergencyStopLocomotiveRequestV2_Down'+LF);{$ENDIF}
+  Send_InstructionNotSupported(iDevice)
+end;
+
+
+// *****************************************************************************
+//
+// procedure RegisterModeReadRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              MessageData: Global structure to hold the message information//
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.7
+//  Command Station Response : Paragraph 2.1.4.4
+//  Status:
+//     Complete: 2/19/2011
+//
+// *****************************************************************************
+procedure RegisterModeReadRequest(MessageData: PXpressNetDataArray; iDevice: Byte);
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('RegisterModeReadRequest'+LF);{$ENDIF}
+  // Register Mode only support 8 Registers so what is sent = the "register" only 8 are supported (0000 RRRR)
+ { if not ServiceMode_QueueRequest(MessageData^[1]-1, 0, iDevice, SERVICE_MODE_REGISTER or SERVICE_MODE_COMMMAND_VERIFY_BYTE, STATE_SERVICEMODE_RESET_CYCLE) then
+    if iDevice = ID_PC_DEVICE then
+    Send_PCMessage(E_PC_LOSS_OF_TIMESLOT)   }
+end;
+
+// *****************************************************************************
+//
+// procedure DirectModeReadRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              MessageData: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Description:  Also known as CV Mode
+//
+//  Device Request           : Paragraph 2.2.8     (2.2.6 - 2.2.10 German Document v3.6)
+//  Command Station Response : Paragraph 2.1.4.4
+//  Status:
+//     Complete: 2/19/2011
+//
+// *****************************************************************************
+procedure DirectModeReadRequest(MessageData: PXpressNetDataArray; iDevice: Byte);
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('DirectModeReadRequest'+LF);{$ENDIF}
+{  if not ServiceMode_QueueRequest(MapDirectModeCVToAddress(MessageData), 0, iDevice, SERVICE_MODE_DIRECT or SERVICE_MODE_COMMMAND_VERIFY_BYTE, STATE_SERVICEMODE_DIRECT_RESET_CYCLE) then
+    if iDevice = ID_PC_DEVICE then
+      Send_PCMessage(E_PC_LOSS_OF_TIMESLOT)   }
+end;
+
+// *****************************************************************************
+//
+// procedure PagedModeReadRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              MessageData: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.9
+//  Command Station Response : Paragraph 2.1.4.4
+//  Status:
+//     Complete: 2/19/2011
+//
+// *****************************************************************************
+procedure PagedModeReadRequest(MessageData: PXpressNetDataArray; iDevice: Byte);
+begin
+   {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('PagedModeReadRequest'+LF);{$ENDIF}
+ { if not ServiceMode_QueueRequest(MessageData^[1]-1, 0, iDevice, SERVICE_MODE_PAGE or SERVICE_MODE_COMMMAND_VERIFY_BYTE, STATE_SERVICEMODE_RESET_CYCLE) then
+    if iDevice = ID_PC_DEVICE then
+      Send_PCMessage(E_PC_LOSS_OF_TIMESLOT)  }
+end;
+
+
+// *****************************************************************************
+//
+// procedure CheckAndRunNextServiceModeRequest;
+//
+//  Parameters:  None
+//
+//  Returns:     None
+//
+//  Description:
+//
+// *****************************************************************************
+procedure CheckAndRunNextServiceModeRequest;
+begin
+ { if ServiceModeInfo.Queue.Count > 0 then                                       // There is another request waiting and the Service Mode engine is not busy with another request
+  begin
+    if ServiceModeInfo.Buffer.Mode and $F0 = ServiceModeInfo.Queue.Messages[ServiceModeInfo.Queue.iTail].Mode and $F0 then
+    begin
+      ServiceMode_LoadBufferFromNextInQueue(False);                             // If not changing ServiceMode types we can skip the PowerOn Cycle
+      if ServiceModeInfo.Buffer.iDevice = ID_PC_DEVICE then                     // This will force JMRI to send the Result Request for the Service Mode Request
+        Send_PCMessage(E_PC_SUCCESS)
+    end else
+    begin
+      ServiceMode_End;                                                          // Kick it out of Service Mode, the next loop through the main loop will restart with the new Service Mode type
+      SPI_UpdateDCC_Outputs;
+    end
+  end   }
+end;
+
+
+// *****************************************************************************
+//
+// function XpressNet_HandleServiceModeAndResults;
+//
+//  Parameters:  None
+//
+//  Returns:     None
+//
+//  Description:  Called from the main loop to look for the service mode engine
+//                to be complete and reloads it when necessary
+//
+// *****************************************************************************
+procedure XpressNet_HandleServiceModeAndResults;
+begin
+ { if ServiceModeInfo.Flags.PROGRAMMING_ACK_STATE_IN_SERVICEMODE_BIT = 1 then    // Already in Service Mode, handle it
+  begin
+    if ServiceModeInfo.Flags.PROGRAMMING_ACK_STATE_RESPONSE_READY_BIT = 1 then  // Is the result ready?
+    begin
+      if ServiceModeInfo.Queue.ResultRequestCount > 0 then                      // Make sure someone is waiting for a result, note is can be a race condition between reading the decoder and the requesting sending a Result Request so don't
+      begin                                                                     // and the requesting sending a Result Request so don't do anything if ResultRequestCount = 0.  Just wait for it
+        DispatchServiceModeResultsRequest(ServiceModeInfo.Buffer.iDevice);
+        ServiceModeInfo.Buffer.iDevice := ID_NO_DEVICE;                         // Unlink the Device with the Service Mode
+        ServiceModeInfo.Flags.PROGRAMMING_ACK_STATE_IDLE_BIT := 1;              // Ready for the next SM request
+        ServiceMode_ResetForNewAck;
+        Dec(ServiceModeInfo.Queue.ResultRequestCount)
+      end
+    end;
+    if ServiceModeInfo.Flags.PROGRAMMING_ACK_STATE_IDLE_BIT = 1 then            // Alway check if waiting for next message
+      CheckAndRunNextServiceModeRequest
+  end else
+  begin
+    if ServiceModeInfo.Queue.Count > 0 then
+    begin
+      ServiceModeInfo.Flags.PROGRAMMING_ACK_STATE_MACHINE_ENABLED := 0;         // Disable the State Machine (the Power On Cycle will just send "1"s)
+      NMRA_DCC_ResetTransmitter(@Programming);                                  // Clean sheet of paper in the Transmitter
+      NMRA_DCC_LoadIdlePacketIntoTransmitter(@Programming, PREAMBLE_BIT_COUNT_SERVICEMODE);  // Load up an Idle Packet
+      ServiceMode_LoadBufferFromNextInQueue(True);                              // Loads the Local Buffer with the request
+      ServiceModeInfo.Flags.PROGRAMMING_ACK_STATE_IN_SERVICEMODE_BIT := 1;      // After this is set a 56us interrupt will call the Service Mode statemachine.
+      SPI_UpdateDCC_Outputs;                                                    // Enable the DCC outputs, the statemachine will be sending "1"'s during this time (Not Enabled)
+      ServiceModeInfo.Flags.PROGRAMMING_ACK_STATE_MACHINE_ENABLED := 1;         // Enable the State Machine
+      Send_EnterServiceMode(ServiceModeInfo.Buffer.iDevice, True);             // This will force JMRI to send the Result Request for the Service Mode Request, can be sent and in the Queue before this returns!
+    end
+  end      }
+end;
+
+// *****************************************************************************
+//
+// procedure ServiceModeResultsRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.10
+//  Command Station Response : Paragraph 2.1.5
+//  Status:
+//     Complete:
+//
+// *****************************************************************************
+procedure ServiceModeResultsRequest(iDevice: Byte);
+begin
+   {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('ServiceModeResultsRequest'+LF);{$ENDIF}
+{  if ServiceModeInfo.Flags.PROGRAMMING_ACK_STATE_IN_SERVICEMODE_BIT = 0 then
+  begin
+    Send_InstructionNotSupported(iDevice);                                      // Per 2.1.5 Service Mode information response
+    ServiceMode_End;                                                            // Something is wrong so just clear everything and start over
+    SPI_UpdateDCC_Outputs
+  end else
+  begin
+    Inc(ServiceModeInfo.Queue.ResultRequestCount);                              // Here we just collect how many times the Results are Requested which should ideally match the number of requests for service mode
+    if ServiceModeInfo.Buffer.iDevice = ID_PC_DEVICE then                       // JMRI always needs some sort of reply to move it to the next state
+      Send_EnterServiceMode(ServiceModeInfo.Buffer.iDevice, True)
+  end  }
+end;
+
+// *****************************************************************************
+//
+// procedure DispatchServiceModeResultsRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+// *****************************************************************************
+procedure DispatchServiceModeResultsRequest(iDevice: Byte);
+var
+  Mask: Byte;
+  RegisterIndex: Word;
+  XpressNetMessage: TXpressNetMessage;
+begin
+
+// TODO...
+
+ { case ServiceModeInfo.ServiceModeResult of
+    SERVICE_MODE_RESULT_SHORTCIRCUIT :            // System had too much current draw
+      begin
+        XpressNetMessage.HeaderByte := %01100001;   // $61
+        XpressNetMessage.Bytes[0] := %00010010;     // $12
+        XpressNetMessage.DataCount := 1;
+      end;
+    SERVICE_MODE_RESULT_DATA_NOT_FOUND :          // No Acknowledgement was detected
+      begin
+        XpressNetMessage.HeaderByte := %01100001;   // $61
+        XpressNetMessage.Bytes[0] := %00010011;     // $13
+        XpressNetMessage.DataCount := 1;
+      end;
+    SERVICE_MODE_RESULT_STATION_BUSY :            // Not supported in XpressNet yet
+      begin
+        XpressNetMessage.HeaderByte := %01100001;   // $61
+        XpressNetMessage.Bytes[0] := %00011111;     // $1F
+        XpressNetMessage.DataCount := 1;
+      end;
+    SERVICE_MODE_RESULT_STATION_READY :           // Not supported in XpressNet yet
+      begin                        }
+        XpressNetMessage.HeaderByte := %01100001;   // $61
+        XpressNetMessage.Bytes[0] := %00010001;     // $11
+        XpressNetMessage.DataCount := 1;
+  {    end;
+    SERVICE_MODE_RESULT_RESPONSE_PAGE_MODE :        // Response was achieved in Register or Page mode
+      begin
+        // Page Mode supports 1024 but the Xpressnet implementation only support 256
+        // Register Mode only support 8 Registers and Address = what is sent
+        XpressNetMessage.HeaderByte := %01100011;   // $63
+        XpressNetMessage.Bytes[0] := %00010000;     // $10
+        XpressNetMessage.Bytes[1] := ServiceModeInfo.Buffer.DeviceCache.Address + 1;
+        XpressNetMessage.Bytes[2] := ServiceModeInfo.Buffer.DeviceCache.Value;
+        XpressNetMessage.DataCount := 3;
+      end;
+      SERVICE_MODE_RESULT_RESPONSE_DIRECT_MODE :    // Response was achieved in Direct CV mode
+      begin
+        // We support only v3.6 here as Register Index = 0 mapped to 256 does not exist in the v3.6 spec
+        if ServiceModeInfo.Buffer.DeviceCache.Address < 256 (*$00FF*) then
+        begin
+          if ServiceModeInfo.Buffer.DeviceCache.Address = 255 then
+            RegisterIndex := 0
+          else
+            RegisterIndex := (ServiceModeInfo.Buffer.DeviceCache.Address and $00FF) + 1;
+          Mask := %00010100      // $14   Pre v3.6 8 bit address only or v3.6 CV 1-255 and CV 1024
+        end else
+        if ServiceModeInfo.Buffer.DeviceCache.Address < 512 (*$01FF*) then
+        begin
+          if ServiceModeInfo.Buffer.DeviceCache.Address = 511 then
+            RegisterIndex := 0
+          else
+            RegisterIndex := (ServiceModeInfo.Buffer.DeviceCache.Address and $00FF) + 1;
+          Mask := %00010101      // $15   v3.6 CV 256-511
+        end else
+        if ServiceModeInfo.Buffer.DeviceCache.Address < 768 (*$02FF*) then
+        begin
+          if ServiceModeInfo.Buffer.DeviceCache.Address = 767 then
+            RegisterIndex := 0
+          else
+            RegisterIndex := (ServiceModeInfo.Buffer.DeviceCache.Address and $00FF) + 1;
+          Mask := %00010110      // $16   v3.6 CV 512-767
+        end else
+        begin
+          if ServiceModeInfo.Buffer.DeviceCache.Address = 1023 then  (*$03FF*)
+            RegisterIndex := 0
+          else
+            RegisterIndex := (ServiceModeInfo.Buffer.DeviceCache.Address and $00FF) + 1;
+          Mask := %00010111;     // $17   v3.6 CV 768-1023
+        end;
+
+        XpressNetMessage.HeaderByte := %01100011;   // $63
+        XpressNetMessage.Bytes[0] := Mask;
+        XpressNetMessage.Bytes[1] := RegisterIndex;
+        XpressNetMessage.Bytes[2] := ServiceModeInfo.Buffer.DeviceCache.Value;
+        XpressNetMessage.DataCount := 3;
+      end;
+  end;  }
+  SendXpressNetMessage(@XpressNetMessage, CALLBYTE_RESPONSE, iDevice);
+end;
+
+// *****************************************************************************
+//
+// procedure RegisterModeWriteRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              MessageData: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.11
+//  Command Station Response : Paragraph 2.1.4.4
+//  Status:
+//     Complete: 2/19/2011
+//
+// *****************************************************************************
+procedure RegisterModeWriteRequest(MessageData: PXpressNetDataArray; iDevice: Byte);
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('RegisterModeWriteRequest'+LF);{$ENDIF}
+ { // Register Mode only support 8 Registers
+  if not ServiceMode_QueueRequest(MessageData^[1]-1, MessageData^[2], iDevice, SERVICE_MODE_REGISTER or SERVICE_MODE_COMMMAND_WRITE_BYTE, STATE_SERVICEMODE_RESET_CYCLE) then
+    if iDevice = ID_PC_DEVICE then
+      Send_PCMessage(E_PC_LOSS_OF_TIMESLOT)  }
+end;
+
+// *****************************************************************************
+//
+// procedure DirectModeWriteRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              MessageData: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.12
+//  Command Station Response : Paragraph 2.1.4.4
+//  Status:
+//     Complete: 2/19/2011
+//
+// *****************************************************************************
+procedure DirectModeWriteRequest(MessageData: PXpressNetDataArray; iDevice: Byte);
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('DirectModeWriteRequest'+LF);{$ENDIF}
+{  if not ServiceMode_QueueRequest(MapDirectModeCVToAddress( MessageData), MessageData^[2], iDevice, SERVICE_MODE_DIRECT or SERVICE_MODE_COMMMAND_WRITE_BYTE, STATE_SERVICEMODE_DIRECT_RESET_CYCLE) then
+    if iDevice = ID_PC_DEVICE then
+      Send_PCMessage(E_PC_LOSS_OF_TIMESLOT);      }
+end;
+
+// *****************************************************************************
+//
+// procedure PagedModeWriteRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              MessageData: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.13
+//  Command Station Response : Paragraph 2.1.4.4
+//  Status:
+//     Complete: 2/19/2011
+//
+// *****************************************************************************
+procedure PagedModeWriteRequest(MessageData: PXpressNetDataArray; iDevice: Byte);
+begin
+   {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('PagedModeWriteRequest'+LF);{$ENDIF}
+ { if not ServiceMode_QueueRequest(MessageData^[1]-1, MessageData^[2], iDevice, SERVICE_MODE_PAGE or SERVICE_MODE_COMMMAND_WRITE_BYTE, STATE_SERVICEMODE_RESET_CYCLE) then
+    if iDevice = ID_PC_DEVICE then
+      Send_PCMessage(E_PC_LOSS_OF_TIMESLOT)   }
+end;
+
+// *****************************************************************************
+//
+// procedure CommandStationSoftwareVersionRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//
+//  Device Request           : Paragraph 2.2.14
+//  Command Station Response : Paragraph 2.1.6
+//  Status:
+//     Complete 1/29/2011
+//
+// *****************************************************************************
+procedure CommandStationSoftwareVersionRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+begin
+  // Fake V3 Software
+  XpressNetMessage^.HeaderByte := %01100011;  // $63  Reuse the passed XpressNet Message, enviromentally friendly save the bytes!
+  XpressNetMessage^.Bytes[0]   := %00100001;  // $21
+  XpressNetMessage^.Bytes[1]   := VERSION_SOFTWARE_XPRESSNET;
+  XpressNetMessage^.Bytes[2]   := VERSION_COMMANDSTATION_LZ100;
+  XpressNetMessage^.DataCount  := 3;
+  SendXpressNetMessage(XpressNetMessage, CALLBYTE_RESPONSE, iDevice);
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('CommandStationSoftwareVersionRequest'+LF);{$ENDIF}
+end;
+
+// *****************************************************************************
+//
+// procedure CommandStationStatusRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.15
+//  Command Station Response : Paragraph 2.1.7
+//  Status:
+//     Complete 1/29/2011
+//
+// *****************************************************************************
+procedure CommandStationStatusRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+begin
+  XpressNetMessage^.HeaderByte := %01100010;  // Reuse the passed XpressNet Message, enviromentally friendly save the bytes!
+  XpressNetMessage^.Bytes[0]   := %00100010;
+  XpressNetMessage^.Bytes[1]   := $00;      //   TODO:  CommandStation.Flags and $00FF;  // CommandStation State bottom 8 bits are mapped as the Xpressnet Spec
+  XpressNetMessage^.DataCount  := 2;
+  SendXpressNetMessage(XpressNetMessage, CALLBYTE_RESPONSE, iDevice);
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('CommandStationStatusRequest'+LF);{$ENDIF}
+end;
+
+// *****************************************************************************
+//
+// procedure SetCommandStationPowerUpMode(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.16
+//  Command Station Response : Paragraph None
+//  Status:
+//     Complete 1/29/2011
+//
+// *****************************************************************************
+procedure SetCommandStationPowerUpMode(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+begin
+ {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('SetCommandStationPowerUpMode'+LF);{$ENDIF}
+{  CommandStation.Flags.COMMANDSTATION_FLAGS_STARTUP_MODE_BIT := XpressNetMessage^.Bytes[1].2; // CommandStation.State bit 2 is mapped to this bit in the Xpressnet message
+  // The PC needs a response
+  if iDevice = ID_PC_DEVICE then
+    Send_PCMessage(E_PC_SUCCESS);   }
+end;
+
+// *****************************************************************************
+//
+// procedure AccessoryInformationRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.17
+//  Command Station Response : Paragraph 2.1.11
+//  Status:
+//     Complete TBD
+//
+// *****************************************************************************
+procedure AccessoryInformationRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+var
+  Address: Word;
+begin
+   {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('AccessoryInformationRequest'+LF);{$ENDIF}
+  Address := XpressNetMessage^.Bytes[0] shl 2;  // Address is sent as the Group Address need to mulitpy by 4
+//  AddressSlotInfo.AccessorySlot[Address div 8];
+  Send_InstructionNotSupported(iDevice)
+end;
+
+// *****************************************************************************
+//
+// procedure AccessoryOperationRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.18
+//  Command Station Response : Paragraph None
+//  Status:
+//     Complete TBD
+//
+// *****************************************************************************
+procedure AccessoryOperationRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('AccessoryOperationRequest'+LF);{$ENDIF}
+  Send_InstructionNotSupported(iDevice)
+end;
+
+// *****************************************************************************
+//
+// procedure LocomotiveInformationRequestV1(iDevice: Byte);
+//
+//  Parameters:
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.19.1
+//  Command Station Response : Paragraph 2.1.12
+//  Status:
+//     Complete 1/29/2011
+//
+// *****************************************************************************
+procedure LocomotiveInformationRequestV1(iDevice: Byte);
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('LocomotiveInformationRequestV1'+LF);{$ENDIF}
+  Send_InstructionNotSupported(iDevice)
+end;
+
+// *****************************************************************************
+//
+// procedure LocomotiveInformationRequestV2(iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//
+//  Device Request           : Paragraph 2.2.19.2
+//  Command Station Response : Paragraph 2.1.13
+//  Status:
+//     Complete 1/29/2011
+//
+// *****************************************************************************
+procedure LocomotiveInformationRequestV2(iDevice: Byte);
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('LocomotiveInformationRequestV2'+LF);{$ENDIF}
+  Send_InstructionNotSupported(iDevice)
+end;
+
+// *****************************************************************************
+//
+// procedure LocomotiveInformationRequestV3(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.19.3
+//  Command Station Response : Paragraph 2.1.14
+//  Status:
+//     Single Locomotive Complete 1/29/2011
+//     ToDo: MU/Consist/Double Header
+//
+// *****************************************************************************
+procedure LocomotiveInformationRequestV3(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//var
+//  Slot, Slot2: PAddressSlot;
+begin
+// TODO...
+
+{  Slot := AddressSlot_FindSlot(ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2), False);  // Don't allocate if it does not exist
+  if Slot <> nil then
+  begin
+    if Slot^.Flags.ADDRESS_SLOT_FLAGS_MU_BIT = 1 then
+    begin
+      // The Address Slot is one in group of Multiple Units
+      XpressNetMessage^.Bytes[0] := %00010000;  // Identification
+      XpressNetMessage^.HeaderByte := %11100101;
+      XpressNetMessage^.DataCount := 5;
+      Slot2 := AddressSlot_WalkMU_ChainRoot(Slot);
+      if Slot2 <> nil then
+        XpressNetMessage^.Bytes[4] := Slot2^.Address;
+    end else
+    if Slot^.Flags.ADDRESS_SLOT_FLAGS_CONSIST_BIT = 1 then
+    begin
+      // The Address Slot is the Consist Address of a MU Consist
+      XpressNetMessage^.Bytes[0] := %00100000;  // Identification
+      XpressNetMessage^.HeaderByte := %11100010;
+      XpressNetMessage^.DataCount := 2;
+    end else
+    if Slot^.Flags.ADDRESS_SLOT_FLAGS_DOUBLEHEADER_BIT = 1 then
+    begin
+      // The Address Slot is in a double header
+      XpressNetMessage^.Bytes[0] := %01100000;  // Identification
+      XpressNetMessage^.HeaderByte := %11100110;
+      XpressNetMessage^.DataCount := 6;
+      Slot2 := AddressSlot_ExtractDoubleHeaderSecondSlot(Slot);
+      if Slot2 <> nil then
+        AddressSlot_EncodeAddressToNMRA_Format(Slot2, XpressNetMessage^.Bytes[4], XpressNetMessage^.Bytes[5], True);
+    end else
+    begin
+      // The Address Slot is a normal loco     }
+      XpressNetMessage^.Bytes[0] := %00000000;  // Identification
+      XpressNetMessage^.HeaderByte := %11100100;
+      XpressNetMessage^.DataCount := 4;         {
+    end;
+
+    XpressNetMessage^.Bytes[0] := XpressNetMessage^.Bytes[0] or MapSlotToXpressNetSpeedStepID(Slot);  // Indentification Byte
+    if not ((Slot^.OwnerDevice = ID_NO_DEVICE) or (Slot^.OwnerDevice = iDevice)) then
+      XpressNetMessage^.Bytes[0].XPRESSNET_LOCO_CONTROLLED_BY_DEVICE_BIT := 1;
+
+          }
+    XpressNetMessage^.Bytes[1]  := 0; //Slot^.SpeedDir;
+    XpressNetMessage^.Bytes[2]  := 0; // Slot^.Functions and $001F;          // Functions F0..F4;   Bottom 5 Bits F0-F4
+    XpressNetMessage^.Bytes[3]  := 0;  //(Slot^.Functions shr 5) and $00FF;  // Functions F5..F12;  Shift out the bottom 5 bits to get F5-F12
+
+    SendXpressNetMessage(XpressNetMessage, CALLBYTE_RESPONSE, iDevice);
+      {
+  end else
+  begin
+    // If we can't find a slot then send back default values for the address, this is so we don't allocate a slot when a user is just typing in
+    // addresses without sending them a command
+    XpressNetMessage^.HeaderByte := %11100100;
+    XpressNetMessage^.Bytes[0] := %00000010;  // Identification, Loco Free, 28 Speed Step Default
+    XpressNetMessage^.Bytes[1]  := 0;
+    XpressNetMessage^.Bytes[2]  := 0;         // Functions F0..F4;   Bottom 5 Bits F0-F4
+    XpressNetMessage^.Bytes[3]  := 0;         // Functions F5..F12;  Shift out the bottom 5 bits to get F5-F12
+    XpressNetMessage^.DataCount := 4;
+  end  }
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('LocomotiveInformationRequestV3'+LF);{$ENDIF}
+end;
+
+// *****************************************************************************
+//
+// procedure FunctionStatusRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Description:  Called by [$E3 $07 ....]   Momentary/Continious Status
+//
+//  Device Request           : Paragraph 2.2.19.4
+//  Command Station Response : Paragraph 2.1.16
+//  Status:
+//     Single Locomotive Complete 1/29/2011
+//     ToDo: MU/Consist/Double Header  Not clear the meaning of this for these cases.......
+//
+// *****************************************************************************
+procedure FunctionStatusRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+{var
+  Slot: PAddressSlot;  }
+begin
+  // Extract the Address BEFORE changing the Message Data!!!!!
+ { Slot := AddressSlot_FindSlot(ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2), False); // Don't allocate if it does not exist
+      }
+  XpressNetMessage^.HeaderByte := %11100011;  // Reuse the passed XpressNet Message, enviromentally friendly save the bytes!
+  XpressNetMessage^.Bytes[0]   := %01010000;  // Identification
+  XpressNetMessage^.Bytes[1]   := $00;        // Functions F0..F4 Status;   Bottom 5 Bits F0-F4
+  XpressNetMessage^.Bytes[2]   := $00;        // Functions F5..F12 Status;  Shift out the bottom 5 bits to get F5-F12
+  XpressNetMessage^.DataCount  := 3;
+   {
+  if Slot <> nil then
+  begin
+    // Valid for:
+    //     - Consist address can have momentary/continious states of functions (review this)
+    //     - MU can operate the functions of individual decoders
+    //     - Double Header can operate the functions of individual decoders
+    //     - Single decoder can operate its functions
+    XpressNetMessage^.Bytes[1]   := 0; //Slot^.FunctionType and $001F;            // Functions F0..F4 Status;   Bottom 5 Bits F0-F4
+    XpressNetMessage^.Bytes[2]   := 0; //(Slot^.FunctionType shr 5) and $00FF;    // Functions F5..F12 Status;  Shift out the bottom 5 bits to get F5-F12
+  end;                                                                  }
+  SendXpressNetMessage(XpressNetMessage, CALLBYTE_RESPONSE, iDevice);
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('FunctionStatusRequest'+LF);{$ENDIF}
+end;
+
+// *****************************************************************************
+//
+// procedure FunctionStateRequestEx(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Description:  (version 3.6) Called by [$E3 $08 ....]  Momentary/Continious Status
+//
+//  Device Request           : Paragraph 2.2.19.5??    (2.2.25.2 in the German document)
+//  Command Station Response : Paragraph 2.1.16??      (2.1.12 in the German document)
+//  Status:
+//     Complete 1/29/2011
+//
+// *****************************************************************************
+procedure FunctionStateRequestEx(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+{var
+  Slot: PAddressSlot; }
+begin
+     {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('FunctionStateRequestEx'+LF);{$ENDIF}
+  // Extract the Address BEFORE changing the Message Data!!!!!
+{  Slot := AddressSlot_FindSlot(ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2), False); // Don't allocate if it does not exist
+       }
+  XpressNetMessage^.HeaderByte := %11100100;  // Reuse the passed XpressNet Message, enviromentally friendly save the bytes!
+  XpressNetMessage^.Bytes[0]   := %01010001;  // Identification
+  XpressNetMessage^.Bytes[1]   := $00;        // Functions F13..F20 Momentary/Continious Status;  Bottom 8 Bits F20-F13
+  XpressNetMessage^.Bytes[2]   := $00;        // Functions F21..F28 Momentary/Continious Status;  Shift out the bottom 5 bits to get F21..F28
+  XpressNetMessage^.Bytes[3]   := $00;        // Mystery Byte that is not documented but needed
+  XpressNetMessage^.DataCount  := 4;
+ {
+  if Slot <> nil then
+  begin
+    // Valid for:
+    //     - Consist address can have momentary/continious states of functions (review this)
+    //     - MU can operate the functions of individual decoders
+    //     - Double Header can operate the functions of individual decoders
+    //     - Single decoder can operate its functions
+    XpressNetMessage^.Bytes[1]   :=  Lo(Slot^.FunctionTypeEx);                  // Functions F13..F20 Momentary/Continious Status;  Bottom 8 Bits F20-F13
+    XpressNetMessage^.Bytes[2]   :=  Hi(Slot^.FunctionTypeEx);                  // Functions F21..F28 Momentary/Continious Status;  Shift out the bottom 5 bits to get F21..F28
+  end;                                                                  }
+  SendXpressNetMessage(XpressNetMessage, CALLBYTE_RESPONSE, iDevice);
+end;
+
+// *****************************************************************************
+//
+// procedure FunctionOperationRequestEx(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Description:  (version 3.6) Called by [$E3 $09 ....]  On/Off Status
+//
+//  Device Request           : Paragraph 2.2.19.6??    (2.2.25.3 in the German document)
+//  Command Station Response : Paragraph 2.1.16??      (2.1.9.2 in the German document)
+//  Status:
+//     Complete 1/29/2011
+//
+// *****************************************************************************
+procedure FunctionOperationRequestEx(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+{var
+  Slot: PAddressSlot;  }
+begin
+    {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('FunctionOperationRequestEx'+LF);{$ENDIF}
+ { // Extract the Address BEFORE changing the Message Data!!!!!
+  Slot := AddressSlot_FindSlot(ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2), False); // Don't allocate if it does not exist
+ }
+  XpressNetMessage^.HeaderByte := %11100011;  // Reuse the passed XpressNet Message, enviromentally friendly save the bytes!
+  XpressNetMessage^.Bytes[0]   := %01010010;  // Identification
+  XpressNetMessage^.Bytes[1]   := $00;        // Functions F13..F20 On/Off Status;  Bottom 8 Bits F20-F13
+  XpressNetMessage^.Bytes[2]   := $00;        // Functions F21..F28 On/Off Status;  Shift out the bottom 5 bits to get F21..F28
+  XpressNetMessage^.DataCount  := 3;
+    {
+  if Slot <> nil then
+  begin
+    // Valid for:
+    //     - MU can operation the functions of individual decoders
+    //     - Double Header can operate the functions of individual decoders
+    //     - Single decoder can operate its functions
+    XpressNetMessage^.Bytes[1]   := Lo(Slot^.FunctionsEx);                      // Functions F13..F20 On/Off Status;  Bottom 8 Bits F20-F13
+    XpressNetMessage^.Bytes[2]   := Hi(Slot^.FunctionsEx)                       // Functions F21..F28 On/Off Status;  Shift out the bottom 5 bits to get F21..F28
+  end;                                                                }
+  SendXpressNetMessage(XpressNetMessage, CALLBYTE_RESPONSE, iDevice);
+end;
+
+// *****************************************************************************
+//
+// procedure LocomotiveOperationRequestV1(iDevice: Byte);
+//
+//  Parameters:
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.20.1
+//  Command Station Response : None
+//  Status:
+//     Complete 1/29/2011
+//
+// *****************************************************************************
+procedure LocomotiveOperationRequestV1(iDevice: Byte);
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('LocomotiveOperationRequestV1'+LF);{$ENDIF}
+  // Paragraph 2.2.20.1
+  Send_InstructionNotSupported(iDevice)
+end;
+
+// *****************************************************************************
+//
+// procedure LocomotiveOperationRequestV2(iDevice: Byte);
+//
+//  Parameters:
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.20.2
+//  Command Station Response : None
+//  Status:
+//     Complete 1/29/2011
+//
+// *****************************************************************************
+procedure LocomotiveOperationRequestV2(iDevice: Byte);
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('LocomotiveOperationRequestV2'+LF);{$ENDIF}
+  // Paragraph 2.2.20.2
+  Send_InstructionNotSupported(iDevice)
+end;
+
+
+// *****************************************************************************
+//
+// procedure UpdateSlotSpeedAndDirectionAndQueue;
+//
+//  Parameters:
+//              Slot            : The Mobile Decoder Slot structure (address) to get the new Speed and Direction
+//              Identification  : The Xpressnet Identifcation byte for the SetLocomotiveSpeedAndDirectionRequest message
+//              SpeedDir        : New SpeedDir byte, in NMRA format
+//              iDevice         : The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.20.2
+//  Command Station Response : None
+//  Status:
+//     Complete 1/29/2011
+//
+// *****************************************************************************
+{function UpdateSlotSpeedAndDirectionAndQueue(Slot: PAddressSlot; Identification, SpeedDir, iDevice: Byte): Boolean;
+begin
+  AssignDeviceToSlot(Slot, iDevice);
+  Slot^.Flags := Slot^.Flags and not MASK_ADDRESS_SLOT_FLAGS_SPEED;   // Clear the Speed Flags
+  case Identification of   // Identification
+     %00010000: (*$16*) Slot^.Flags.ADDRESS_SLOT_FLAGS_SPEED_14_BIT := 1;   // 14 Speed Step
+     %00010010: (*$18*) Slot^.Flags.ADDRESS_SLOT_FLAGS_SPEED_28_BIT := 1;   // 28 Speed Step
+     %00010011: (*$19*) Slot^.Flags.ADDRESS_SLOT_FLAGS_SPEED_128_BIT := 1;  // 128 Speed Step
+  end;
+  Slot^.SpeedDir := SpeedDir;   // Save the Speed, direction
+  Result := AddressSlot_QueueSpeedDCCMessage(Slot, True)
+end;   }
+
+// *****************************************************************************
+//
+// procedure SetLocomotiveSpeedAndDirectionRequest
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.20.3
+//  Command Station Response : None
+//  Status:
+//     Complete 1/30/2011
+//
+// *****************************************************************************
+procedure SetLocomotiveSpeedAndDirectionRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte; Node: POpenLCBNode);
+{var
+  Slot, Slot2: PAddressSlot;
+  ErrorCode, MappedSpeedDir: Byte;  }
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('SetLocomotiveSpeedAndDirectionRequest'+LF);{$ENDIF}
+ { if XpressNetMessage^.Bytes[0] = %00010001 then (*$11*)   // 27 Speed Step not supported
+    Send_InstructionNotSupported(iDevice)
+  else begin
+    ErrorCode := E_PC_UNKNOWN;
+    CommandStation.Flags.COMMANDSTATION_FLAGS_EMERGENCY_STOP_BIT := 0;
+    Slot := AddressSlot_FindSlot(ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2),  True); // AutoAllocate
+    if Slot <> nil then
+    begin
+      if Slot^.Flags.ADDRESS_SLOT_FLAGS_DOUBLEHEADER_BIT = 1 then
+      begin
+        // Slot is in a double header
+        Slot2 := AddressSlot_ExtractDoubleHeaderSecondSlot(Slot);
+        if (Slot2 <> nil) and (Track.Priority^.Count < MAX_TRACK_PRIORITY_BUFFER_DEPTH - 2) then
+        begin
+          UpdateSlotSpeedAndDirectionAndQueue(Slot, XpressNetMessage^.Bytes[0], XpressNetMessage^.Bytes[3], iDevice);
+          MappedSpeedDir := MapSpeedDir(MapSlotToXpressNetSpeedStepID(Slot), MapSlotToXpressNetSpeedStepID(Slot2), Slot^.SpeedDir);
+          UpdateSlotSpeedAndDirectionAndQueue(Slot2, XpressNetMessage^.Bytes[0], MappedSpeedDir, iDevice);
+          ErrorCode := E_PC_SUCCESS
+        end
+      end else
+      if Slot^.Flags.ADDRESS_SLOT_FLAGS_MU_BIT = 1 then
+      begin
+        // Slot is in a MU
+        Slot2 := AddressSlot_WalkMU_ChainRoot(Slot);  // Find the Consist Slot
+        if UpdateSlotSpeedAndDirectionAndQueue(Slot2, XpressNetMessage^.Bytes[0], XpressNetMessage^.Bytes[3], iDevice) then   // Update the Consist and not the Loco
+          ErrorCode := E_PC_SUCCESS
+      end else
+      if Slot^.Flags.ADDRESS_SLOT_FLAGS_CONSIST_BIT = 1 then
+      begin
+        // Slot is a MU Consist Main Address
+        if UpdateSlotSpeedAndDirectionAndQueue(Slot, XpressNetMessage^.Bytes[0], XpressNetMessage^.Bytes[3], iDevice) then   // Update the Consist
+          ErrorCode := E_PC_SUCCESS
+      end else
+      begin
+        // Slot is a normal loco
+        if UpdateSlotSpeedAndDirectionAndQueue(Slot, XpressNetMessage^.Bytes[0], XpressNetMessage^.Bytes[3], iDevice) then   // Update the Locomotive
+          ErrorCode := E_PC_SUCCESS
+      end
+    end;
+    if iDevice = ID_PC_DEVICE then  // The PC needs a response
+      Send_PCMessage(ErrorCode);
+  end             }
+
+  //LATD3_bit := not LATD3_bit;
+  //delay_ms(10000);
+end;
+
+
+// *****************************************************************************
+//
+// procedure SetFunctionOperationRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              Identification: Identifies the sub-instruction for the request
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Description:  Called by [$E4 $20 ....]   On/Off State of the Function for Group 1
+//                          [$E4 $21 ....]   On/Off State of the Function for Group 2
+//                          [$E4 $22 ....]   On/Off State of the Function for Group 3
+//                          [$E4 $23 ....]   On/Off State of the Function for Group 4
+//                          [$E4 $28 ....]   On/Off State of the Function for Group 5
+//
+//  Device Request           : Paragraph 2.2.20.4
+//  Command Station Response : None
+//  Status:
+//     Complete 1/28/2011
+//
+// *****************************************************************************
+procedure SetFunctionOperationRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+{var
+  Slot: PAddressSlot;
+  ErrorCode: Byte;   }
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('SetFunctionOperationRequest'+LF);{$ENDIF}
+{  ErrorCode := E_PC_UNKNOWN;
+  Slot := AddressSlot_FindSlot(ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2), True); // AutoAllocate
+  if Slot <> nil then
+  begin
+    // Valid for:
+    //     - MU can operation the functions of individual decoders
+    //     - Double Header can operate the functions of individual decoders
+    //     - Single decoder can operate its functions
+    //     - Consist Address
+    AssignDeviceToSlot(Slot, iDevice);
+    case XpressNetMessage^.Bytes[0] of   // Identification
+      %00100000 : (*$20*)   // Set Function Operation on Group 1 ( on/off ) Functions F0..F4 Status   (Note the order is F0-F4-F3-F2-F1)
+        begin
+          Slot^.Functions := Slot^.Functions and $FFE0;                             // Clear bits 0, 1, 2, 3, 4
+          Slot^.Functions := Slot^.Functions or XpressNetMessage^.Bytes[3];         // Set the new bits 5, 6 ,7 8
+          if AddressSlot_QueueFunctionDCCMessage(Slot, 1, False) then
+            ErrorCode := E_PC_SUCCESS
+        end;
+      %00100001 : (*$21*)   // Set Function Operation on Group 2 ( on/off )  Functions F8..F5 Status
+        begin
+          Slot^.Functions := Slot^.Functions and $FE1F;                             // Clear bits 5, 6 ,7 8
+          Slot^.Functions := Slot^.Functions or (XpressNetMessage^.Bytes[3] shl 5); // Set the new bits 5, 6 ,7 8
+          if AddressSlot_QueueFunctionDCCMessage(Slot, 2, False) then
+            ErrorCode := E_PC_SUCCESS
+        end;
+      %00100010 : (*$22*)   // Set Function Operation on Group 3 ( on/off )  Functions F12..F9 Status
+        begin
+          Slot^.Functions := Slot^.Functions and $E1FF;                             // Clear bits 9, 10, 11, 12
+          Slot^.Functions := Slot^.Functions or (XpressNetMessage^.Bytes[3] shl 9); // Set the new bits 5, 6 ,7 8
+          if AddressSlot_QueueFunctionDCCMessage(Slot, 3, False) then
+            ErrorCode := E_PC_SUCCESS
+        end;
+      %00100011 : (*$23*)   // Set Function Operation on Group 4 ( on/off ) Functions F20..F13 Status
+        begin
+          Slot^.FunctionsEx := Slot^.FunctionsEx and $FF00;                         // Clear bits 0..7
+          Slot^.FunctionsEx := Slot^.FunctionsEx or XpressNetMessage^.Bytes[3];     // Set the new bits 0, 1, 2, 3
+          if AddressSlot_QueueFunctionDCCMessage(Slot, 4, False) then
+            ErrorCode := E_PC_SUCCESS
+        end;
+      %00101000 : (*$28*)   // Set Function Operation on Group 5 ( on/off )  Functions F12..F9 Status
+        begin
+          Slot^.FunctionsEx := Slot^.FunctionsEx and $00FF;                               // Clear bits 8..15
+          Slot^.FunctionsEx := Slot^.FunctionsEx or (XpressNetMessage^.Bytes[3] shl 8);   // Set the new bits 4, 5, 6, 7
+          if AddressSlot_QueueFunctionDCCMessage(Slot, 5, False) then
+            ErrorCode := E_PC_SUCCESS
+        end;
+    end
+  end;
+  if iDevice = ID_PC_DEVICE then // The PC needs a response
+    Send_PCMessage(ErrorCode);    }
+end;
+
+
+// *****************************************************************************
+//
+// procedure SetFunctionStateRequest
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Description:  Called by [$E4 $24 ....]   Momentary/Continious State of the Function for Group 1
+//                          [$E4 $25 ....]   Momentary/Continious State of the Function for Group 2
+//                          [$E4 $26 ....]   Momentary/Continious State of the Function for Group 3
+//                          [$E4 $27 ....]   Momentary/Continious State of the Function for Group 4
+//                          [$E4 $2C ....]   Momentary/Continious State of the Function for Group 5
+//
+//  Device Request           : Paragraph 2.2.20.5
+//  Command Station Response : None
+//  Status:
+//     Complete 1/30/2011
+//
+// *****************************************************************************
+procedure SetFunctionStateRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+{var
+  Slot: PAddressSlot;
+  ErrorCode: Byte;  }
+begin
+    {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('SetFunctionStateRequest'+LF);{$ENDIF}
+{  ErrorCode := E_PC_UNKNOWN;
+  Slot := AddressSlot_FindSlot(ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2), True); // AutoAllocate
+  if Slot <> nil then
+  begin
+    // Valid for:
+    //     - Consist address can have momentary/continious states of functions (review this)
+    //     - MU can operate the functions of individual decoders
+    //     - Double Header can operate the functions of individual decoders
+    //     - Single decoder can operate its functions
+    AssignDeviceToSlot(Slot, iDevice);
+
+    case XpressNetMessage^.Bytes[0] of   // Identification
+      %00100100 : (*$24*)   // Set Function Operation on Group 1 ( on/off )   Functions F0..F4 Status
+        begin
+          Slot^.FunctionType := Slot^.FunctionType and $FFE0;                             // Clear bits 0, 1, 2, 3, 4   (Note the order is F0-F4-F3-F2-F1)
+          Slot^.FunctionType := Slot^.FunctionType or XpressNetMessage^.Bytes[3];          // Set the new bits 5, 6 ,7 8
+          ErrorCode := E_PC_SUCCESS
+        end;
+      %00100101 : (*$25*)   // Set Function Operation on Group 2 ( on/off ) Functions F8..F5 Status
+        begin
+          Slot^.FunctionType := Slot^.FunctionType and $FE1F;                             // Clear bits 5, 6 ,7 8
+          Slot^.FunctionType := Slot^.FunctionType or (XpressNetMessage^.Bytes[3] shl 5); // Set the new bits 5, 6 ,7 8
+          ErrorCode := E_PC_SUCCESS
+        end;
+      %00100110 : (*$26*)   // Set Function Operation on Group 3 ( on/off ) Functions F12..F9 Status
+        begin
+          Slot^.FunctionType := Slot^.FunctionType and $E1FF;                             // Clear bits 9, 10, 11, 12
+          Slot^.FunctionType := Slot^.FunctionType or (XpressNetMessage^.Bytes[3] shl 9); // Set the new bits 5, 6 ,7 8
+          ErrorCode := E_PC_SUCCESS
+        end;
+      %00100111 : (*$27*)   // Set Function Operation on Group 4 ( on/off )  Functions F20..F13 Status
+        begin
+          Slot^.FunctionTypeEx := Slot^.FunctionTypeEx and $FF00;                         // Clear bits 1..7
+          Slot^.FunctionTypeEx := Slot^.FunctionTypeEx or XpressNetMessage^.Bytes[3];     // Set the new bits 1-7
+          ErrorCode := E_PC_SUCCESS
+        end;
+      %00101100 : (*$2C*)   // Set Function Operation on Group 5 ( on/off )               Functions F28..F21 Status
+        begin
+          Slot^.FunctionTypeEx := Slot^.FunctionTypeEx and $00FF;                               // Clear bits 8..15
+          Slot^.FunctionTypeEx := Slot^.FunctionTypeEx or (XpressNetMessage^.Bytes[3] shl 8);   // Set the new bits 8-15
+          ErrorCode := E_PC_SUCCESS
+        end;
+      end
+   end;
+  if iDevice = ID_PC_DEVICE then  // The PC needs a response
+    Send_PCMessage(ErrorCode);  }
+end;
+
+// *****************************************************************************
+//
+// procedure EstablishDoubleHeader_V2(iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.21.1
+//  Command Station Response : 2.1.20
+//  Status:
+//     Complete 1/28/2011
+//
+// *****************************************************************************
+procedure EstablishDoubleHeaderV2(iDevice: Byte);
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('EstablishDoubleHeaderV2'+LF);{$ENDIF}
+  Send_InstructionNotSupported(iDevice)
+end;
+
+// *****************************************************************************
+//
+// procedure DisolveDoubleHeader_V2(iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.21.2
+//  Command Station Response : 2.1.20
+//  Status:
+//     Complete 1/28/2011
+//
+// *****************************************************************************
+procedure DisolveDoubleHeaderV2(iDevice: Byte);
+begin
+   {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('DisolveDoubleHeaderV2'+LF);{$ENDIF}
+  Send_InstructionNotSupported(iDevice)
+end;
+
+// *****************************************************************************
+//
+// procedure FunctionRefreshMode(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph ???????  (2.2.26.5 in the German document)  XpressNet v3.6
+//  Command Station Response : 2.1.20
+//  Status:
+//     Complete TBD
+//
+// *****************************************************************************
+procedure FunctionRefreshMode(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('FunctionRefreshMode'+LF);{$ENDIF}
+  Send_InstructionNotSupported(iDevice)
+end;
+
+
+// *****************************************************************************
+//
+// procedure EstablishDoubleHeaderV3(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.22.1
+//  Command Station Response : 2.1.21
+//  Status:
+//     Complete TBD
+//
+// *****************************************************************************
+procedure EstablishDoubleHeaderV3(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+{var
+  Slot1, Slot2: PAddressSlot;
+  Address1, Address2: Word;   }
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('EstablishDoubleHeaderV3'+LF);{$ENDIF}
+ { Address1 := ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2);
+  Address2 := ExtractAddressFromXpressNetMessage(XpressNetMessage, 3, 4);
+
+  Slot1 := AddressSlot_FindSlot(Address1, True);
+  Slot2 := AddressSlot_FindSlot(Address2, True);
+
+  if (Slot1 <> nil) and (Slot2 <> nil) then
+  begin
+    if Slot1 <> Slot2 then
+    begin
+      if (Slot1^.OwnerDevice <> iDevice) or (Slot2^.OwnerDevice <> iDevice) or (Address1 = 0) or (Address2 = 0) then
+        Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_LOCO_NOT_OWNED_BY_DEVICE)
+      else
+      if (Slot1^.OwnerDevice <> iDevice) or (Slot2^.OwnerDevice <> iDevice) then
+        Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_LOCO_OPERATED_BY_ANOTHER_DEVICE)
+      else
+      if (Slot1^.Flags.ADDRESS_SLOT_FLAGS_DOUBLEHEADER_BIT = 1) or (Slot2^.Flags.ADDRESS_SLOT_FLAGS_DOUBLEHEADER_BIT = 1) or
+         (Slot1^.Flags.ADDRESS_SLOT_FLAGS_MU_BIT = 1) or (Slot2^.Flags.ADDRESS_SLOT_FLAGS_MU_BIT = 1) then
+        Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_ALREADY_IN_DH_MU)
+      else
+      if not IsMobileSlotStopped(Slot1) or not IsMobileSlotStopped(Slot2) then
+        Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_SPEED_NOT_ZERO)
+      else begin
+        Slot1^.Flags.ADDRESS_SLOT_FLAGS_DOUBLEHEADER_BIT := 1;
+        Slot2^.Flags.ADDRESS_SLOT_FLAGS_DOUBLEHEADER_BIT := 1;
+        Slot1^.NextSlot := Word( Slot2);         // Link them together
+        Slot2^.PrevSlot := Word( Slot1);
+        // The PC needs a response
+        if iDevice = ID_PC_DEVICE then
+          Send_PCMessage(E_PC_SUCCESS);
+      end
+    end else
+      Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_ALREADY_IN_DH_MU);  // Duplicate Address
+  end else
+    Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_STACK_IS_FULL);    }
+end;
+
+// *****************************************************************************
+//
+// procedure DissolveDoubleHeaderV3(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.22.2
+//  Command Station Response : 2.1.21
+//  Status:
+//     Complete TBD
+//
+// *****************************************************************************
+procedure DissolveDoubleHeaderV3(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+{var
+  Slot1, Slot2: PAddressSlot;    }
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('DissolveDoubleHeaderV3'+LF);{$ENDIF}
+{  Slot1 := AddressSlot_FindSlot(ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2),  False); // Should already exist
+  if (Slot1 <> nil) then
+  begin
+    // Assumed to be linked but not sure which direction
+    Slot2 := AddressSlot_ExtractDoubleHeaderSecondSlot(Slot1);
+    if Slot2 <> nil then    // If not linked then there is a problem
+    begin
+      Slot1^.Flags.ADDRESS_SLOT_FLAGS_DOUBLEHEADER_BIT := 0;
+      Slot2^.Flags.ADDRESS_SLOT_FLAGS_DOUBLEHEADER_BIT := 0;
+      Slot1^.NextSlot := 0;
+      Slot1^.PrevSlot := 0;
+      Slot2^.PrevSlot := 0;
+      Slot2^.NextSlot := 0;
+      if iDevice = ID_PC_DEVICE then   // The PC needs a response
+        Send_PCMessage(E_PC_SUCCESS);
+    end else
+      Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_CAN_NOT_DELETE)
+  end else
+    Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_CAN_NOT_DELETE); }
+end;
+
+// *****************************************************************************
+//
+// procedure OperationsModeRequest
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Description:  Called by [$E6 $30 ....]   Operations Mode Programming
+//
+//  Device Request           : Paragraph 2.2.23.1
+//  Command Station Response : None
+//  Status:
+//     Complete TBD
+//
+// *****************************************************************************
+procedure OperationsModeRequest(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+{var
+  Slot: PAddressSlot;
+  AddressHi, AddressLo: Byte;
+  CV: Word;       }
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('OperationsModeRequest'+LF);{$ENDIF}
+{  Slot := AddressSlot_FindSlot(ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2), True); // AutoAllocate
+  if Slot <> nil then
+  begin
+    AddressHi := 0;
+    AddressLo := 0;
+    AddressSlot_EncodeAddressToNMRA_Format(Slot, AddressHi, AddressLo, False);
+    CV := (XpressNetMessage^.Bytes[3] and %00000011) shr 8;
+    CV := XpressNetMessage^.Bytes[4] or CV;
+
+    case (XpressNetMessage^.Bytes[3] and %11111100) of
+      %11101100:  (*$EC*)   // 2.2.23.1  Operations Mode Programming byte mode write request
+        begin
+          if CommandStation.FlagsEx.COMMANDSTATION_FLAGSEX_POM_COMMAND_MODE = 1 then
+          begin
+            if CV = 7 then
+            begin
+              case XpressNetMessage^.Bytes[5] of
+                93: begin end;  // Turn RailCom ON
+                92: begin end;  // Turn RailCom OFF
+                94: begin end;  // 3 Byte Blanking Window
+                95: begin end;  // 4 Byte Blanking Window
+                88: begin end;  // "normal Small Window"
+                89: begin end;  // NCE compatibility Small Window
+                70: begin end;  // Decrease Window by 6us
+                71: begin end;  // Increase Window by 6us
+              end; // case
+            end;
+            CommandStation.FlagsEx.COMMANDSTATION_FLAGSEX_POM_COMMAND_MODE := 0;  // Drop out of the mode
+          end else
+          begin
+            if (CV = 7) and (XpressNetMessage^.Bytes[5] = 50) then                  // Command Station Setup Special Instruction coming next
+            begin
+              CommandStation.FlagsEx.COMMANDSTATION_FLAGSEX_POM_COMMAND_MODE := 1;  // Set the flag to enter this special mode
+              CommandStation.PoMCommandTimeoutCount := 0;                           // Start the timer
+            end else
+              Send_PoM_Message(AddressHi, AddressLo, XpressNetMessage);
+          end
+        end;
+      %11100100, (*$E4*)   // 2.2.23.x  Operations Mode Programming byte mode read request (XpressNet only v3.6; 2.2.28.2 in the German document)
+      %11111000  (*$E8*):  // 2.2.23.2  Operations Mode Programming bit mode write request  (Mistake in the XpressNet Document, Binary = 1111 10CC Hex = 0xE8 which is correct at 1110 10CC)
+        Send_PoM_Message(AddressHi, AddressLo, XpressNetMessage);
+    end;
+  end;
+  if iDevice = ID_PC_DEVICE then  // The PC needs a response
+    Send_PCMessage(E_PC_SUCCESS);      }
+end;
+
+// *****************************************************************************
+//
+// procedure AddLocomotiveToMU_Request(XpressNetMessage: PXpressNetMessage; iDevice: Byte; Backward: Boolean);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//              Backward: Search Backwards
+//
+//  Device Request           : Paragraph 2.2.24.1
+//  Command Station Response : 2.1.21
+//  Status:
+//     Complete TBD
+//
+// *****************************************************************************
+procedure AddLocomotiveToMU_Request(XpressNetMessage: PXpressNetMessage; iDevice: Byte; Backward: Boolean);
+{var
+  LocoSlot, ConsistSlot: PAddressSlot;
+  Address: Word;         // Loco Address
+  ConsistAddress: Byte;     // Consist Addresss
+  NewDCCMessage: TDCCQueueMessage;
+  i: Byte;       }
+begin
+   {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('AddLocomotiveToMU_Request'+LF);{$ENDIF}
+ { Address := ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2);
+  ConsistAddress := XpressNetMessage^.Bytes[3];
+
+  if Address <> ConsistAddress then        // Loco Address can't be the same as the Consist Address
+  begin
+    LocoSlot := AddressSlot_FindSlot(Address, True);               // Find the Slots based on the Addresses
+
+    if LocoSlot <> nil then
+    begin
+      if AddressSlot_InMUorDoubleHeader(LocoSlot) then
+        Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_ALREADY_IN_DH_MU)
+      else begin
+        ConsistSlot := AddressSlot_FindSlot(ConsistAddress, False);    // Need to know if the ConsistAddress already exists
+
+        if ConsistSlot = nil then
+        begin                                                          // Constist Address does not exist, create it
+          ConsistSlot := AddressSlot_Allocate(ConsistAddress);
+          if ConsistSlot <> PAddressSlot( nil) then
+            ConsistSlot^.Flags.ADDRESS_SLOT_FLAGS_CONSIST_BIT := 1;   // If we get here then this must be true
+        end else
+        begin
+          if ConsistSlot^.Flags.ADDRESS_SLOT_FLAGS_CONSIST_BIT = 0 then  // A Loco already has this address assigned
+          begin
+            Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_LOCO_NOT_MU_BASE_ADDRESS);
+            Exit;
+          end;
+        end;
+
+        if ConsistSlot <> nil then
+        begin
+          AddressSlot_InsertSlotIntoMU_Chain( LocoSlot, AddressSlot_WalkMU_ChainLast(ConsistSlot), SLOT_INSERT_NEXT);
+
+          NewDCCMessage.MessageBytes[0] := Hi( Address) or %11000000;
+          NewDCCMessage.MessageBytes[1] := Lo( Address);
+          if Backward then
+            NewDCCMessage.MessageBytes[2] := %00010011    // Reverse Direction
+          else
+            NewDCCMessage.MessageBytes[2] := %00010010;   // Forward Direction
+          NewDCCMessage.MessageBytes[3] := ConsistAddress; // MTR address
+          NewDCCMessage.Flags := 4;
+
+          i := 0;
+          while i < 3 do     // Make sure we send it 3 times
+          begin
+            if NMRA_DCC_QueueMessage(@Track, @NewDCCMessage, False) then
+              Inc(i)
+          end;
+
+          if iDevice = ID_PC_DEVICE then // PC needs a response
+            Send_PCMessage(E_PC_SUCCESS)
+        end else
+          Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_STACK_IS_FULL);
+      end
+    end
+  end else
+    Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_LOCO_NOT_MU_BASE_ADDRESS);  // Send error, can't have a loco and consist address the same....  }
+end;
+
+// *****************************************************************************
+//
+// procedure RemoveLocomotiveFromMU_Request(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 2.2.24.2
+//  Command Station Response : 2.1.21
+//  Status:
+//     Complete TBD
+//
+// *****************************************************************************
+
+procedure RemoveLocomotiveFromMU_Request(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+{var
+  LocoSlot, ConsistSlot: PAddressSlot;
+  NewDCCMessage: TDCCQueueMessage;
+  i: Byte;                }
+begin
+   {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('RemoveLocomotiveFromMU_Request'+LF);{$ENDIF}
+{  LocoSlot := AddressSlot_FindSlot(ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2), False); // Should already exist
+  ConsistSlot := AddressSlot_FindSlot(XpressNetMessage^.Bytes[3], False);                              // Should already exist
+
+  if (LocoSlot <> nil) and (ConsistSlot <> nil) then
+  begin
+    if ConsistSlot^.Flags.ADDRESS_SLOT_FLAGS_CONSIST_BIT = 1 then
+    begin
+      if AddressSlot_ExtractSlotFromMU_Chain(LocoSlot) then    // If the passed address is in the list then remove the loco
+      begin
+        NewDCCMessage.MessageBytes[0] := Hi( LocoSlot^.Address) or %11000000;
+        NewDCCMessage.MessageBytes[1] := Lo( LocoSlot^.Address);
+        NewDCCMessage.MessageBytes[2] := %00010010;
+        NewDCCMessage.MessageBytes[3] := %00000000;       //  Exit Consist Mode
+        NewDCCMessage.Flags := 4;
+
+        i := 0;
+        while i < 3 do     // Make sure we send it 3 times
+        begin
+          if NMRA_DCC_QueueMessage(@Track, @NewDCCMessage, False) then
+            Inc(i)
+        end;
+
+        if ConsistSlot^.NextSlot = 0 then
+          AddressSlot_Free(ConsistSlot);   // Release the Consist Address
+
+        if iDevice = ID_PC_DEVICE then // PC needs a response
+          Send_PCMessage(E_PC_SUCCESS)
+      end else
+        Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_CAN_NOT_DELETE);
+    end else
+      Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_CAN_NOT_DELETE);
+  end else
+    Send_DoubleHeader_MU_Error(iDevice, E_DH_MU_ERROR_CAN_NOT_DELETE);       }
+end;
+
+// *****************************************************************************
+//
+// procedure AddressInquiryOfMember_MU_Request(XpressNetMessage: PXpressNetMessage; iDevice: Byte; Backward: Boolean);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//              Backward: Search Backwards
+//
+//  Device Request           : Paragraph 2.2.25.1
+//  Command Station Response : 2.1.17
+//
+// *****************************************************************************
+procedure AddressInquiryOfMember_MU_Request(XpressNetMessage: PXpressNetMessage; iDevice: Byte; Backward: Boolean);
+{var
+  LocoSlot, ConsistSlot: PAddressSlot;
+  Address: Word;    }
+begin
+ {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('AddressInquiryOfMember_MU_Request'+LF);{$ENDIF}
+{  ConsistSlot := AddressSlot_FindSlot(XpressNetMessage^.Bytes[1], False);     // Should already exist
+  Address := ExtractAddressFromXpressNetMessage(XpressNetMessage, 2, 3);
+  if Address <> 0 then
+  begin
+    LocoSlot := AddressSlot_FindSlot(Address, False);                         // Should already exist
+    if LocoSlot <> nil then
+    begin
+      if ConsistSlot = AddressSlot_WalkMU_ChainRoot(LocoSlot) then               // Make sure the passed address is in the passed consist list
+      begin
+        if Backward then
+          Send_AddressRetrievalInfo(iDevice, AddressSlot_WalkMU_ChainPrev(LocoSlot))
+        else
+          Send_AddressRetrievalInfo(iDevice, AddressSlot_WalkMU_ChainNext(LocoSlot))
+      end else
+        Send_AddressRetrievalInfo(iDevice, PAddressSlot( nil))
+    end else
+      Send_AddressRetrievalInfo(iDevice, PAddressSlot( nil));
+  end else
+  begin
+    // The caller does not know any members of the MU
+    if Backward then
+      Send_AddressRetrievalInfo( iDevice, AddressSlot_WalkMU_ChainLast(ConsistSlot))
+    else
+      Send_AddressRetrievalInfo(iDevice, AddressSlot_WalkMU_ChainFirst(ConsistSlot));
+  end;  }
+end;
+
+// *****************************************************************************
+//
+// procedure AddressInquiryOf_MU_Request(XpressNetMessage: PXpressNetMessage; iDevice: Byte; Backward: Boolean);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//              Backward: Search Backwards
+//
+//  Device Request           : Paragraph 2.2.25.2
+//  Command Station Response : 2.1.17
+//  Status:
+//     Complete TBD
+//
+// *****************************************************************************
+procedure AddressInquiryOf_MU_Request(XpressNetMessage: PXpressNetMessage; iDevice: Byte; Backward: Boolean);
+{var
+  ConsistSlot: PAddressSlot;
+  ConsistAddress: Byte;  }
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('AddressInquiryOf_MU_Request'+LF);{$ENDIF}
+ { ConsistAddress := XpressNetMessage^.Bytes[1];
+  if ConsistAddress <> 0 then
+  begin
+    ConsistSlot := AddressSlot_FindSlot(ConsistAddress, False);     // Should already exist
+    if ConsistSlot <> nil then
+    begin
+      if Backward then
+        Send_AddressRetrievalInfo(iDevice, AddressSlot_WalkMU_ChainPrevConsist(ConsistSlot))
+      else
+        Send_AddressRetrievalInfo(iDevice, AddressSlot_WalkMU_ChainNextConsist(ConsistSlot))
+    end else
+      Send_AddressRetrievalInfo(iDevice, PAddressSlot( nil))
+  end else
+  begin
+    // The caller does not know any Consist Address
+    if Backward then
+      Send_AddressRetrievalInfo( iDevice, AddressSlot_WalkMU_ChainLastConsist)
+    else
+      Send_AddressRetrievalInfo(iDevice, AddressSlot_WalkMU_ChainFirstConsist);
+  end;   }
+end;
+
+// *****************************************************************************
+//
+// procedure AddressInquiryLocoStack(XpressNetMessage: PXpressNetMessage; iDevice: Byte; Backward: Boolean);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//              Backward: Search Backwards
+//
+//  Device Request           : Paragraph 2.2.25.3
+//  Command Station Response : 2.1.17
+//  Status:
+//     Complete TBD
+//
+// *****************************************************************************
+procedure AddressInquiryLocoStack(XpressNetMessage: PXpressNetMessage; iDevice: Byte; Backward: Boolean);
+{var
+  LocoSlot: PAddressSlot;
+  Address: Word;  }
+begin
+   {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('AddressInquiryLocoStack'+LF);{$ENDIF}
+{  Address := ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2);
+  if Address = 0 then
+  begin
+    // Caller wants first address in the stack
+    if Backward then
+      Send_AddressRetrievalInfo(iDevice, AddressSlot_WalkStackLast)
+    else
+      Send_AddressRetrievalInfo(iDevice, AddressSlot_WalkStackFirst)
+  end else
+  begin
+    LocoSlot := AddressSlot_FindSlot(Address, False);
+    if LocoSlot <> nil then
+    begin
+      if Backward then
+        Send_AddressRetrievalInfo(iDevice, AddressSlot_WalkStackPrev(LocoSlot))
+      else
+        Send_AddressRetrievalInfo(iDevice, AddressSlot_WalkStackNext(LocoSlot))
+    end else
+      Send_AddressRetrievalInfo(iDevice, PAddressSlot( nil));
+  end   }
+end;
+
+// *****************************************************************************
+//
+// procedure AddressInquiryLocoDeleteFromStack(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//              Backward: Search Backwards
+//
+//  Device Request           : Paragraph 2.2.26
+//  Command Station Response : None
+//  Status:
+//     Complete TBD
+//
+// *****************************************************************************
+procedure AddressInquiryLocoDeleteFromStack(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+ {var
+  LocoSlot: PAddressSlot;    }
+begin
+   {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('AddressInquiryLocoDeleteFromStack'+LF);{$ENDIF}
+{ LocoSlot := AddressSlot_FindSlot(ExtractAddressFromXpressNetMessage(XpressNetMessage, 1, 2), False);
+  if LocoSlot <> nil then
+    AddressSlot_Free(LocoSlot);
+
+  if iDevice = ID_PC_DEVICE then  // The PC needs a response
+    Send_PCMessage(E_PC_SUCCESS); }
+end;
+
+// *****************************************************************************
+//
+// procedure PC_Interface_VersionNumber(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//              Backward: Search Backwards
+//
+//  Device Request           : Paragraph 1.5.4
+//  Command Station Response : 1.5.4
+//  Status:
+//     Complete 1/30/2011
+//
+// *****************************************************************************
+procedure PC_Interface_VersionNumber(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+begin
+   {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('PC_Interface_VersionNumber'+LF);{$ENDIF}
+  // TODO
+  // 1.5.4
+  XpressNetMessage^.HeaderByte := %00000010;
+  XpressNetMessage^.Bytes[0] := VERSION_HARDWARE_PC_INERFACE; // Hardware version
+  XpressNetMessage^.Bytes[1] := VERSION_SOFTWARE_PC_INERFACE; // Software
+  XpressNetMessage^.DataCount := 2;
+  SendXpressNetMessage(XpressNetMessage, %00000000, iDevice);
+end;
+
+// *****************************************************************************
+//
+// procedure PC_Interface_SetAddress(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//              Backward: Search Backwards
+//
+//  Device Request           : Paragraph 1.5.5
+//  Command Station Response : 1.5.5
+//  Status:
+//     Complete 1/30/2011
+//
+// *****************************************************************************
+procedure PC_Interface_SetAddress(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('PC_Interface_SetAddress'+LF);{$ENDIF}
+  XpressNetMessage^.HeaderByte := %11110010;
+  XpressNetMessage^.Bytes[0] := %00000001;
+  XpressNetMessage^.Bytes[1] := $20;           // Set it for Address 32 because it takes no address
+  XpressNetMessage^.DataCount := 2;
+  SendXpressNetMessage(XpressNetMessage, %00000000, iDevice);
+end;
+
+// *****************************************************************************
+//
+// procedure PC_Interface_SetBaudRate(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Device Request           : Paragraph 1.5.6
+//  Command Station Response : 1.5.6
+//  Status:
+//     Complete 1/30/2011
+//
+// *****************************************************************************
+procedure PC_Interface_SetBaudRate(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+var
+  OldBaud: Word;
+begin
+  {$IFDEF TRACE_XPRESSNET_MESSAGES} UART1_Write_Text('PC_Interface_SetBaudRate'+LF);{$ENDIF}
+  // 1.5.6
+ { OldBaud := ((CommandStation.Flags and MASK_COMMANDSTATION_FLAGS_BAUD_RATE) shr COMMANDSTATION_FLAGS_BAUD_RATE_OFFSET) + 1;
+  if (XpressNetMessage^.Bytes[1] >= 0) and (XpressNetMessage^.Bytes[1] <= 4) then
+  begin
+     // Clear the current Baud Rate
+    CommandStation.Flags := CommandStation.Flags and not MASK_COMMANDSTATION_FLAGS_BAUD_RATE;
+    case XpressNetMessage^.Bytes[1] of
+      BAUD_RATE_XPRESSNET_PC_INTERFACE_19200 : CommandStation.Flags := CommandStation.Flags or COMMANDSTATION_FLAGS_BAUD_RATE_19200;
+      BAUD_RATE_XPRESSNET_PC_INTERFACE_38400 : CommandStation.Flags := CommandStation.Flags or COMMANDSTATION_FLAGS_BAUD_RATE_38400;
+      BAUD_RATE_XPRESSNET_PC_INTERFACE_57600 : CommandStation.Flags := CommandStation.Flags or COMMANDSTATION_FLAGS_BAUD_RATE_57600;
+      BAUD_RATE_XPRESSNET_PC_INTERFACE_115200 : CommandStation.Flags := CommandStation.Flags or COMMANDSTATION_FLAGS_BAUD_RATE_115200;
+    end;
+  }  XpressNetMessage^.HeaderByte := %11110010;
+    XpressNetMessage^.Bytes[0] := %00000010;
+    XpressNetMessage^.Bytes[1] := 0; //  OldBaud;
+    XpressNetMessage^.DataCount := 2;
+    SendXpressNetMessage(XpressNetMessage, %00000000, iDevice);  // Reply at the old baud rate
+  {  CommandStation_SetupBaud_Rate;
+  end else
+  begin
+    XpressNetMessage^.HeaderByte := %11110010;
+    XpressNetMessage^.Bytes[0] := %00000010;
+    XpressNetMessage^.Bytes[1] := OldBaud;
+    XpressNetMessage^.DataCount := 2;
+    SendXpressNetMessage(XpressNetMessage, %00000000, iDevice);
+  end    }
+end;
+
+// *****************************************************************************
+// procedure HandleDeviceInstruction(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+//
+//  Parameters:
+//              XpressNetMessage: Global structure to hold the message information
+//              iDevice: The device ID that has the open window to send an Inquiry, send ID_PC_DEVICE to send to the RS485 PC link
+//
+//  Description:
+//              Dispatches the instruction sent by the Device
+//
+// *****************************************************************************
+procedure XpressNet_HandleDeviceInstruction(XpressNetMessage: PXpressNetMessage; iDevice: Byte);
+var
+  i: Integer;
+  Node: POpenLCBNode;
+begin
+ {  DatagramTransmit.List[0].DataBytes[0] := $20;
+   DatagramTransmit.List[0].DataBytes[1] := XpressnetMessage^.DataCount;
+   DatagramTransmit.List[0].DataBytes[2] := XpressNetMessage^.Instruction;
+   for i := 0 to XpressnetMessage^.DataCount do
+     DatagramTransmit.List[0].DataBytes[i+3] := XpressnetMessage^.Bytes[i];
+   DatagramTransmit.List[0].iByteCount := XpressnetMessage^.DataCount + 3;
+   DatagramTransmit.List[0].Alias := XpressnetStateMachineInfo.CommandStationNode.AliasID;
+   DatagramTransmit.List[0].State := DATAGRAM_BUFFER_IN_PROCESS;               // Kick it off.
+   while DatagramTransmit.List[0].State <> DATAGRAM_BUFFER_EMPTY do
+     OpenLCBStateMachine_Process;
+      }
+  
+  Node := XpressnetStateMachineInfo.DeviceList[iDevice].Node;
+  if Node <> nil then
+  begin
+    // Divide and Conquer
+    case XpressNetMessage^.Instruction of
+      %00100000:  // 0010 xxxx {$2x}
+        begin
+          case XpressNetMessage^.DataCount of
+            1: begin
+                 case XpressNetMessage^.Bytes[0] of
+                   %10000001 (*$81*): ResumeOperationsRequest(XpressNetMessage);                       // 2.2.2  Resume operations request
+                   %10000000 (*$80*): StopOperationsRequest(XpressNetMessage);                         // 2.2.3  Stop operations request (emergency off)
+                   %00010000 (*$10*): ServiceModeResultsRequest(iDevice);                              // 2.2.10 Request for Service Mode results;
+                   %00100001 (*$21*): CommandStationSoftwareVersionRequest(XpressNetMessage, iDevice); // 2.2.14 Command station software-version request
+                   %00100100 (*$24*): CommandStationStatusRequest(XpressNetMessage, iDevice)           // 2.2.15 Command station status request
+                 else
+                   Send_InstructionNotSupported(iDevice);
+                 end;
+               end;
+            2: begin
+                 case XpressNetMessage^.Bytes[0] of
+                   %00010001 (*$11*): RegisterModeReadRequest(@XpressNetMessage^.Bytes, iDevice);      // 2.2.7  Register Mode read request (Register Mode)
+                   %00010101,(*$15*)                                                                   // 2.2.8  Direct Mode CV read request (CV mode)
+                   %00011000,(*$18*)                                                                   // 4-Byte-Format (CV 1-255 und CV1024) (v3.6)
+                   %00011001,(*$19*)                                                                   // 4-Byte-Format (CV 256-511)) (v3.6)
+                   %00011010,(*$1A*)                                                                   // 4-Byte-Format (CV 512-767) (v3.6)
+                   %00011011 (*$1B*): DirectModeReadRequest(@XpressNetMessage^.Bytes, iDevice);        // 4-Byte-Format (CV 768-1023) (v3.6)
+                   %00010100 (*$14*): PagedModeReadRequest(@XpressNetMessage^.Bytes, iDevice);         // 2.2.9  Paged Mode read request (Paged Mode)
+                   %00100010 (*$22*): SetCommandStationPowerUpMode(XpressNetMessage, iDevice)          // 2.2.16 Set command station power-up mode
+                 else
+                   Send_InstructionNotSupported(iDevice);
+                 end;
+               end;
+            3: begin
+                 case XpressNetMessage^.Bytes[0] of
+                   %00010010 (*$12*): RegisterModeWriteRequest(@XpressNetMessage^.Bytes, iDevice);     // 2.2.11 Register Mode write request (Register Mode)
+                   %00011100,(*$16*)                                                                   // 2.2.12 Direct Mode write request (CV Mode) (CV 1-255) and 256)
+                   %00011111,(*$1C*)                                                                   // 4-Byte-Format (CV 1-255 and CV1024) (v3.6)
+                   %00011110,(*$1D*)                                                                   // 4-Byte-Format (CV 256-511)) (v3.6)
+                   %00011101,(*$1E*)                                                                   // 4-Byte-Format (CV 512-767) (v3.6)
+                   %00010110 (*$1F*): DirectModeWriteRequest(@XpressNetMessage^.Bytes, iDevice);       // 4-Byte-Format (CV 768-1023) (v3.6)
+                   %00010111 (*$17*): PagedModeWriteRequest(@XpressNetMessage^.Bytes, iDevice)         // 2.2.13 Register Mode write request (Paged Mode)
+                 else
+                   Send_InstructionNotSupported(iDevice);
+                 end;
+               end
+            else
+              Send_InstructionNotSupported(iDevice);
+          end;
+        end;
+      %10000000:  // 1000 xxxx {$8x}
+        begin
+          case XpressNetMessage^.DataCount of
+            0: StopAllLocomotivesRequest(XpressNetMessage, iDevice)                                   // 2.2.4  Stop all locomotives request (emergency stop)
+          else
+            Send_InstructionNotSupported(iDevice);
+          end
+        end;
+      %10010000:  // 1001 xxxx {$9x}
+        begin
+          case XpressNetMessage^.DataCount of
+            1: EmergencyStopLocomotiveRequestV2_Down(iDevice);                                         // 2.2.5.1 Emergency stop a locomotive (X-Bus V1 and V2)
+            2: EmergencyStopLocomotiveRequestV3(XpressNetMessage, iDevice)                             // 2.2.5.2 Emergency stop a locomotive (XpressNet)
+          else
+            Send_InstructionNotSupported(iDevice);
+          end;
+        end;
+      %10100000:  // 1010 xxxx {$Ax}
+        begin
+          case XpressNetMessage^.DataCount of
+            1: LocomotiveInformationRequestV1(iDevice);                                                // 2.2.19.1 Locomotive information requests (X-Bus V1)
+            2: LocomotiveInformationRequestV2(iDevice)                                                 // 2.2.19.2 Locomotive information requests (X-Bus V1 and V2)
+          else
+            Send_InstructionNotSupported(iDevice);
+          end;
+        end;
+      %11100000:  // 1110 xxxx {$Ex}
+        begin
+          case XpressNetMessage^.DataCount of
+            3: begin
+                 case XpressNetMessage^.Bytes[0] of
+                   %00000000 (*$00*): LocomotiveInformationRequestV3(XpressNetMessage, iDevice);       // 2.2.19.3 Locomotive information requests (XpressNet only) [QUERIES the Function on/off State state (F0-F12)]
+                   %00000111 (*$07*): FunctionStatusRequest(XpressNetMessage, iDevice);                // 2.2.19.4 Function momentary/continious status request (XpressNet only)  [QUERIES the momentary or on/off state] [QUERIES the momentary or on/off state (F0-F12)]
+                   %00001000 (*$08*): FunctionStateRequestEx(XpressNetMessage, iDevice);               // 2.2.19.5 Function momentary/continious status request (XpressNet only v3.6; 2.2.25.2 in the German document)    [QUERIES the momentary or on/off state (F13-F28)]
+                   %00001001 (*$09*): FunctionOperationRequestEx(XpressNetMessage, iDevice);           // 2.2.19.6 Function on/off status request (XpressNet only v3.6; 2.2.25.3 in the German document)    [QUERIES the Function State state (F13-F28)]
+                   %00000101, %00000110 (*$05, $06*): AddressInquiryLocoStack(XpressNetMessage, iDevice, XpressNetMessage^.Bytes[0] = %00000110);  // 2.2.25.3 Address inquiry locomotive at command station stack request
+                   %01000100 (*$68*): AddressInquiryLocoDeleteFromStack(XpressNetMessage, iDevice)     // 2.2.26 Delete locomotive from command station stack request
+                 else
+                   Send_InstructionNotSupported(iDevice);
+                 end;
+               end;
+            4: begin
+                 case XpressNetMessage^.Bytes[0] of
+                   %00010000, (*$10*) // 14 Step
+                   %00010001, (*$11*) // 27 Step
+                   %00010010, (*$12*) // 28 Step
+                   %00010011: (*$13*) // 128 Step
+                     SetLocomotiveSpeedAndDirectionRequest(XpressNetMessage, iDevice, Node);                 // 2.2.20.3  Format - Speed and direction instruction
+                   %00100000, (*$20*)   // Set Function Operation on Group 1 ( on/off )
+                   %00100001, (*$21*)   // Set Function Operation on Group 1 ( on/off )
+                   %00100010, (*$22*)   // Set Function Operation on Group 1 ( on/off )
+                   %00100011, (*$23*)   // Set Function Operation on Group 1 ( on/off )
+                   %00101000: (*$28*)   // Set Function Operation on Group 1 ( on/off )
+                      SetFunctionOperationRequest(XpressNetMessage, iDevice);                          // 2.2.20.4 Format - Function instruction group 1-5:  [SETS the momentary or on/off state]
+                   %00100100, (*$24*)  // Set Function State on Group 1 ( momentary/continious )
+                   %00100101, (*$25*)  // Set Function State on Group 2 ( momentary/continious )
+                   %00100110, (*$26*)  // Set Function State on Group 3 ( momentary/continious )
+                   %00100111, (*$27*)  // Set Function State on Group 4 ( momentary/continious )
+                   %00101100: (*$2C*)  // Set Function State on Group 5 ( momentary/continious )
+                     SetFunctionStateRequest(XpressNetMessage, iDevice);                               // 2.2.20.5 Format - Set Function state group 5: (XpressNet only v3.6; 2.2.26.4 in the German document) [SETS the Function State]
+                   %01000000, %01000001 (*$40, $41*): AddLocomotiveToMU_Request(XpressNetMessage, iDevice, XpressNetMessage^.Bytes[0] = %01000001);  // 2.2.24.1 Add a locomotive to a multi-unit request [SETS the Function State]
+                   %01000010 (*$42*): RemoveLocomotiveFromMU_Request(XpressNetMessage, iDevice);                    // 2.2.24.2 Remove a locomotive from a Multi-unit request
+                   %00000001, %00000010: AddressInquiryOfMember_MU_Request(XpressNetMessage, iDevice, XpressNetMessage^.Bytes[0] = %00000010);       // 2.2.25.1 Address inquiry member of a Multi-unit request
+                   %00000011, %00000100: AddressInquiryOf_MU_Request(XpressNetMessage, iDevice, XpressNetMessage^.Bytes[0] = %00000100)              // 2.2.25.2 Address inquiry Multi-unit request
+                 else
+                   Send_InstructionNotSupported(iDevice);
+                 end;
+               end;
+            5: begin
+                 case XpressNetMessage^.Bytes[0] of
+                   %01000011 (*$43*):
+                     begin
+                       if (XpressNetMessage^.Bytes[3] = 0) and (XpressNetMessage^.Bytes[4] = 0) then
+                         DissolveDoubleHeaderV3(XpressNetMessage, iDevice)            // 2.2.22.2 Dissolve Double Header
+                       else
+                         EstablishDoubleHeaderV3(XpressNetMessage, iDevice)           // 2.2.22.1 Establish Double Header
+                     end;
+                   %00101111 (*$2F*): FunctionRefreshMode(XpressNetMessage, iDevice) // ?????? ?????  (XpressNet only v3.6; 2.2.26.5 in the German document)
+                 else
+                   Send_InstructionNotSupported(iDevice);
+                 end;
+               end;
+            6: begin
+                 case XpressNetMessage^.Bytes[0] of
+                   %00110000 (*$30*): OperationsModeRequest(XpressNetMessage,  iDevice) // 2.2.23.1  Operations Mode Programming
+                   else
+                     Send_InstructionNotSupported(iDevice);
+                 end;
+               end
+            else
+              Send_InstructionNotSupported(iDevice);
+          end;
+        end;
+      %10110000:  // 1011 xxxx {$Bx}
+        begin
+          case XpressNetMessage^.DataCount of
+            3: LocomotiveOperationRequestV1(iDevice);            // 2.2.20.1 Locomotive operations (X-Bus V1)
+            4: LocomotiveOperationRequestV2(iDevice)             // 2.2.20.2 Locomotive operations (X-Bus V2)
+          else
+            Send_InstructionNotSupported(iDevice);
+          end;
+        end;
+      %01000000:  // 0100 xxxx {$4x}
+        begin
+          case XpressNetMessage^.DataCount of
+            2: begin
+                 AccessoryInformationRequest(XpressNetMessage, iDevice);           // 2.2.17 Accessory Decoder information request
+                 AccessoryOperationRequest(XpressNetMessage, iDevice)              // 2.2.18 Accessory Decoder operation request
+               end
+          else
+            Send_InstructionNotSupported(iDevice);
+          end;
+        end;
+      %11000000:  // 1100 xxxx {$Cx}
+        begin
+          case XpressNetMessage^.DataCount of
+            3: begin
+                 case XpressNetMessage^.Bytes[0] of
+                   %00000101: EstablishDoubleHeaderV2(iDevice);  // 2.2.21.1 Establish Double Header
+                   %00000100: DisolveDoubleHeaderV2(iDevice)     // 2.2.21.2 Dissolve Double Header
+                 else
+                   Send_InstructionNotSupported(iDevice);
+                 end;
+               end
+            else
+              Send_InstructionNotSupported(iDevice);
+          end;
+        end;
+      %11110000:  // 1111 xxxx {$Fx}   // Sent by the PC interface for information about the PC to XpressBus interface (LI101F)
+        begin
+          case XpressNetMessage^.DataCount of
+            0: PC_Interface_VersionNumber(XpressNetMessage, iDevice);              // 1.5.4 Determining the Version number of the LI100F and LI101
+            2: begin
+                 case XpressNetMessage^.Bytes[0] of
+                   1: PC_Interface_SetAddress(XpressNetMessage, iDevice);                 // 1.5.5 Determing and changing the XpressNet address for the LI101
+                   2: PC_Interface_SetBaudRate(XpressNetMessage, iDevice)                 // 1.5.6 Determing and changing the Baud Rate for the LI101
+                 else
+                   Send_InstructionNotSupported(iDevice);
+                 end;
+              end
+           else
+             Send_InstructionNotSupported(iDevice);
+           end;
+        end
+      else
+        Send_InstructionNotSupported(iDevice);
+    end
+  end
+end;
+
+end.

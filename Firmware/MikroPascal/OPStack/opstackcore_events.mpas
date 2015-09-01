@@ -1,0 +1,554 @@
+unit opstackcore_events;
+
+{$IFDEF FPC}
+interface
+{$ENDIF}
+
+{$I Options.inc}
+
+uses
+  template_node,
+  {$IFDEF SUPPORT_VIRTUAL_NODES}
+  template_vnode,
+  {$ENDIF}
+  template_event_callbacks,
+  opstack_events,
+  opstack_node,
+  opstack_utilities,
+  opstack_defines,
+  opstack_buffers,
+  opstack_types;
+
+procedure IdentifyEvents(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+procedure IdentifyConsumers(AMessage: POPStackMessage);
+procedure IdentifyProducers(AMessage: POPStackMessage);
+procedure LearnEvent(AMessage: POPStackMessage);
+
+function NodeRunPCERFlagsReply(Node: POpenLCBNode; var OPStackMessage: POPStackMessage): Boolean;
+function NodeRunEventFlagsReply(Node: POpenLCBNode; var OPStackMessage: POPStackMessage): Boolean;
+function NodeRunFlagsReply(Node: POpenLCBNode; var OPStackMessage: POPStackMessage): Boolean;
+
+implementation
+
+// *****************************************************************************
+//  procedure SupportsVNodeEventAsConsumer
+//     Parameters:
+//     Returns:
+//
+//     Description:
+//
+// *****************************************************************************
+function SupportsVNodeEventAsConsumer(Node: POpenLCBNode; DataBytes: PEventID; var EventIndex: Integer): Boolean;
+var
+  Event: TEventID;
+begin
+  Result := False;
+  {$IFDEF SUPPORT_AT_LEAST_ONE_VNODE_CONSUMED_EVENT}
+  EventIndex := 0;
+  while (EventIndex < USER_MAX_VNODE_SUPPORTED_EVENTS_CONSUMED) do
+  begin
+    if OpenLCBUtilities_EqualEventID(dword(@USER_VNODE_SUPPORTED_EVENTS_CONSUMED[EventIndex]), DataBytes) then
+    begin
+      Result := True;
+      Exit
+    end;
+    Inc(EventIndex)
+  end;
+  EventIndex := 0;
+  while (EventIndex < USER_MAX_VNODE_SUPPORTED_DYNAMIC_EVENTS_CONSUMED) do
+  begin
+    if AppCallback_DynamicVNodeConsumedEvent(Node, EventIndex, Event) then
+      if OpenLCBUtilities_EqualEventID(@Event, DataBytes) then
+      begin
+        EventIndex := USER_MAX_VNODE_SUPPORTED_EVENTS_CONSUMED + EventIndex;
+        Result := True;
+        Exit;
+      end;
+    Inc(EventIndex);
+  end
+  {$ENDIF}
+end;
+
+// *****************************************************************************
+//  procedure SupportsVNodeEventAsProducer
+//     Parameters:
+//     Returns:
+//
+//     Description:
+//
+// *****************************************************************************
+function SupportsVNodeEventAsProducer(Node: POpenLCBNode; DataBytes: PEventID; var EventIndex: Integer): Boolean;
+var
+  Event: TEventID;
+begin
+  Result := False;
+  {$IFDEF SUPPORT_AT_LEAST_ONE_VNODE_PRODUCED_EVENT}
+  EventIndex := 0;
+  while (EventIndex < USER_MAX_VNODE_SUPPORTED_EVENTS_PRODUCED) do
+  begin
+    if OpenLCBUtilities_EqualEventID(DWord(@USER_VNODE_SUPPORTED_EVENTS_PRODUCED[EventIndex]), DataBytes) then
+    begin
+      Result := True;
+      Exit
+    end;
+    Inc(EventIndex)
+  end;
+  EventIndex := 0;
+  while (EventIndex < USER_MAX_VNODE_SUPPORTED_DYNAMIC_EVENTS_PRODUCED) do
+  begin
+    if AppCallback_DynamicVNodeProducedEvent(Node, EventIndex, Event) then
+      if OpenLCBUtilities_EqualEventID(@Event, DataBytes) then
+      begin
+        EventIndex := USER_MAX_VNODE_SUPPORTED_EVENTS_PRODUCED + EventIndex;
+        Result := True;
+        Exit;
+      end;
+    Inc(EventIndex);
+  end
+  {$ENDIF}
+end;
+
+// *****************************************************************************
+//  procedure SupportsEventAsConsumer
+//     Parameters:
+//     Returns:
+//
+//     Description:
+//
+// *****************************************************************************
+function SupportsEventAsConsumer(Node: POpenLCBNode; DataBytes: PEventID; var EventIndex: Integer): Boolean;
+var
+  Event: TEventID;
+begin
+  Result := False;
+  {$IFDEF SUPPORT_AT_LEAST_ONE_CONSUMED_EVENT}
+  EventIndex := 0;
+  while (EventIndex < USER_MAX_SUPPORTED_EVENTS_CONSUMED) do
+  begin
+    if OpenLCBUtilities_EqualEventID(DWord(@USER_SUPPORTED_EVENTS_CONSUMED[EventIndex]), DataBytes) then
+    begin
+      Result := True;
+      Exit
+    end;
+    Inc(EventIndex)
+  end;
+  EventIndex := 0;
+  while (EventIndex < USER_MAX_SUPPORTED_DYNAMIC_EVENTS_CONSUMED) do
+  begin
+    if AppCallback_DynamicConsumedEvent(Node, EventIndex, Event) then
+      if OpenLCBUtilities_EqualEventID(@Event, DataBytes) then
+      begin
+        EventIndex := USER_MAX_SUPPORTED_EVENTS_CONSUMED + EventIndex;
+        Result := True;
+        Exit;
+      end;
+    Inc(EventIndex);
+  end
+  {$ENDIF}
+end;
+
+// *****************************************************************************
+//  procedure SupportsEventAsProducer
+//     Parameters:
+//     Returns:
+//
+//     Description:
+//
+// *****************************************************************************
+function SupportsEventAsProducer(Node: POpenLCBNode; DataBytes: PEventID; var EventIndex: Integer): Boolean;
+var
+  Event: TEventID;
+begin
+  Result := False;
+  {$IFDEF SUPPORT_AT_LEAST_ONE_PRODUCED_EVENT}
+  EventIndex := 0;
+  while (EventIndex < USER_MAX_SUPPORTED_EVENTS_PRODUCED) do
+  begin
+    if OpenLCBUtilities_EqualEventID(DWord(@USER_SUPPORTED_EVENTS_PRODUCED[EventIndex]), DataBytes) then
+    begin
+      Result := True;
+      Exit
+    end;
+    Inc(EventIndex)
+  end;
+  EventIndex := 0;
+  while (EventIndex < USER_MAX_SUPPORTED_DYNAMIC_EVENTS_PRODUCED) do
+  begin
+    if AppCallback_DynamicProducedEvent(Node, EventIndex, Event) then
+      if OpenLCBUtilities_EqualEventID(@Event, DataBytes) then
+      begin
+        EventIndex := USER_MAX_SUPPORTED_EVENTS_PRODUCED + EventIndex;
+        Result := True;
+        Exit;
+      end;
+    Inc(EventIndex);
+  end
+  {$ENDIF}
+end;
+
+procedure IdentifyEvents(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+var
+  i: Integer;
+begin
+  if DestNode <> nil then
+  begin
+    OPStackNode_SetEventFlags(DestNode^.Events.Consumed);
+    OPStackNode_SetEventFlags(DestNode^.Events.Produced);
+  end else
+  begin
+    for i := 0 to NodePool.AllocatedCount - 1 do
+    begin
+      DestNode := NodePool.AllocatedList[i];
+      OPStackNode_SetEventFlags(DestNode^.Events.Consumed);
+      OPStackNode_SetEventFlags(DestNode^.Events.Produced);
+    end;
+  end;
+end;
+
+procedure IdentifyConsumers(AMessage: POPStackMessage);
+var
+  VNodeEventIndex, NodeEventIndex, i: Integer;
+  LocalDestNode: POpenLCBNode;
+begin
+  VNodeEventIndex := -1;
+  NodeEventIndex := -1;
+  for i := 0 to NodePool.AllocatedCount - 1 do
+  begin
+    LocalDestNode := NodePool.AllocatedList[i];
+    {$IFDEF SUPPORT_VIRTUAL_NODES}
+    if LocalDestNode^.State and NS_VIRTUAL <> 0 then
+    begin
+      if SupportsVNodeEventAsConsumer(LocalDestNode, @AMessage^.Buffer^.DataArray, VNodeEventIndex) then
+        OPStackNode_SetEventFlag(VNodeEventIndex, False, LocalDestNode^.Events.Consumed);
+    end else
+    {$ENDIF}
+    begin
+      if SupportsEventAsConsumer(LocalDestNode, @AMessage^.Buffer^.DataArray, NodeEventIndex) then
+        OPStackNode_SetEventFlag(NodeEventIndex, False, LocalDestNode^.Events.Consumed);
+    end
+  end;
+end;
+
+procedure IdentifyProducers(AMessage: POPStackMessage);
+var
+  VNodeEventIndex, NodeEventIndex, i: Integer;
+  LocalDestNode: POpenLCBNode;
+begin
+  VNodeEventIndex := -1;
+  NodeEventIndex := -1;
+  for i := 0 to NodePool.AllocatedCount - 1 do
+  begin
+    LocalDestNode := NodePool.AllocatedList[i];
+    {$IFDEF SUPPORT_VIRTUAL_NODES}
+    if LocalDestNode^.State and NS_VIRTUAL <> 0 then
+    begin
+      if SupportsVNodeEventAsProducer(LocalDestNode, @AMessage^.Buffer^.DataArray, VNodeEventIndex) then
+        OPStackNode_SetEventFlag(VNodeEventIndex, False, LocalDestNode^.Events.Produced);
+    end else
+    {$ENDIF}
+    begin
+      if SupportsEventAsProducer(LocalDestNode, @AMessage^.Buffer^.DataArray, NodeEventIndex) then
+        OPStackNode_SetEventFlag(NodeEventIndex, False, LocalDestNode^.Events.Produced);
+    end
+  end;
+end;
+
+procedure LearnEvent(AMessage: POPStackMessage);
+begin
+  if OnLearnEvent <> nil then
+    OnLearnEvent(@AMessage^.Source, PEventID( PByte(@AMessage^.Buffer^.DataArray[0])))
+end;
+
+// *****************************************************************************
+//  procedure NodeRunPCERFlagsReply
+//     Parameters:
+//     Returns:     True if a message was loaded
+//     Description: Picks up PCER Flags in the node and tries to send the reply
+// *****************************************************************************
+function NodeRunPCERFlagsReply(Node: POpenLCBNode; var OPStackMessage: POPStackMessage): Boolean;
+var
+  EventIndex: Integer;
+begin
+  Result := False;
+  OPStackMessage := nil;
+  if OPStackNode_IsAnyPCER_Set(Node) then
+  begin
+    EventIndex := OPStackNode_NextPCER_Flag(Node);
+    if EventIndex > -1 then
+    begin
+      if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI_PC_EVENT_REPORT, Node^.Info, NULL_NODE_INFO, False) then
+      begin
+        {$IFDEF SUPPORT_AT_LEAST_ONE_VNODE_PRODUCED_EVENT}
+        {$IFDEF SUPPORT_VIRTUAL_NODES}
+        if Node^.State and NS_VIRTUAL <> 0 then
+          OpenLCBUtilities_LoadSimpleDataWithEventID(DWord(@USER_VNODE_SUPPORTED_EVENTS_PRODUCED[EventIndex]), PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray))
+        else
+        {$ENDIF}
+        {$ENDIF}
+        begin
+          {$IFDEF SUPPORT_AT_LEAST_ONE_PRODUCED_EVENT}
+          OpenLCBUtilities_LoadSimpleDataWithEventID(DWord(@USER_SUPPORTED_EVENTS_PRODUCED[EventIndex]), PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+          {$ENDIF}
+        end;
+        OPStackMessage^.Buffer^.DataBufferSize := 8;
+        Result := True;
+      end
+    end
+  end
+end;
+
+// *****************************************************************************
+//  procedure NodeRunFlagsReply
+//     Parameters:
+//     Returns:    True if a message was loaded
+//     Description: Picks up Flags in the node and tries to send the reply
+///                : YOU MUST CHECK IsOutgoingBufferAvailable BEFORE CALLING THIS FUNCTION
+// *****************************************************************************
+function NodeRunFlagsReply(Node: POpenLCBNode; var OPStackMessage: POPStackMessage): Boolean;
+const
+  MF_CRITICAL = MF_DUPLICATE_NODE_ID or MF_DUPLICATE_ALIAS or MF_DUPLICATE_ALIAS_RID;
+begin
+  Result := False;
+  OPStackMessage := nil;
+  if Node^.Flags <> 0 then                                                      // See if any flags need to be replied to
+  begin
+     if Node^.Flags and MF_CRITICAL <> 0 then                                 // Critical issue detected (duplicate Node ID or Alias)
+     begin
+       if Node^.Flags and MF_DUPLICATE_NODE_ID <> 0 then
+       begin
+         Node^.Flags := Node^.Flags and not MF_DUPLICATE_NODE_ID;             // Clear the Flag
+         Node^.iStateMachine := STATE_NODE_DUPLICATE_FULL_ID;
+       end else
+       if Node^.Flags and MF_DUPLICATE_ALIAS <> 0 then
+       begin
+         Node^.Flags := Node^.Flags and not MF_DUPLICATE_ALIAS;               // Clear the Flag
+         Node^.iStateMachine := STATE_NODE_INHIBITED;
+       end else
+       if Node^.Flags and MF_DUPLICATE_ALIAS_RID <> 0 then                    // MsgFlag, a Duplicate Alias was Detected during a CID message, not a fault just need to respond to claim the Alias
+       begin
+         if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI_CAN_RID, Node^.Info, NULL_NODE_INFO, True) then
+         begin
+           Node^.Flags := Node^.Flags and not MF_DUPLICATE_ALIAS_RID;         // Clear the Flag
+           Result := True;
+         end
+       end
+     end else
+     if Node^.Flags and MF_ALIAS_MAP_ENQUIRY <> 0 then                        // MsgFlag, an AME message needs to be responded to with an AMD
+     begin
+       if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI_CAN_AMD, Node^.Info, NULL_NODE_INFO, True) then
+       begin
+         OpenLCBUtilities_LoadSimpleDataWith48BitNodeID(@Node^.Info.ID, PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+         Node^.Flags := Node^.Flags and not MF_ALIAS_MAP_ENQUIRY;             // Clear the Flag
+         OPStackMessage^.Buffer^.DataBufferSize := 6;
+         Result := True;
+       end
+     end else
+     if Node^.Flags and MF_VERIFY_NODE_ID <> 0 then                           // MsgFlag, a Verify Node ID message needs to be responded to
+     begin
+       if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI_VERIFIED_NODE_ID_NUMBER, Node^.Info, NULL_NODE_INFO, False) then
+       begin
+         OpenLCBUtilities_LoadSimpleDataWith48BitNodeID(@Node^.Info.ID, PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+         Node^.Flags := Node^.Flags and not MF_VERIFY_NODE_ID;                // Clear the Flag
+         OPStackMessage^.Buffer^.DataBufferSize := 6;
+         Result := True;
+       end
+     end
+  end;
+end;
+
+// *****************************************************************************
+//  procedure NodeRunEventFlagsReply
+//     Parameters:
+//     Returns:     True if a message was loaded
+//     Description: Picks up Event Flags in the node and tries to send the reply
+// *****************************************************************************
+function NodeRunEventFlagsReply(Node: POpenLCBNode; var OPStackMessage: POPStackMessage): Boolean;
+var
+  EventIndex: Integer;
+  State: Byte;
+  MTI: Word;
+  DynamicEvent: TEventID;
+begin
+  Result := False;
+  OPStackMessage := nil;
+
+  // First see if there are any Consumed Events that need to be broadcast
+  if OPStackNode_IsAnyEventSet(Node^.Events.Consumed) then
+  begin
+    EventIndex := OPStackNode_NextEventFlag(Node^.Events.Consumed);             // what index  and clear it
+    // This index can be beyond the number of actual events depending as each byte carries 8 flags for 8 Events
+    if EventIndex > -1  then
+    begin
+      {$IFDEF SUPPORT_AT_LEAST_ONE_VNODE_CONSUMED_EVENT}
+      {$IFDEF SUPPORT_VIRTUAL_NODES}
+      if Node^.State and NS_VIRTUAL <> 0 then
+      begin
+        // Make sure the event index is in the range of defined events
+        if EventIndex < USER_MAX_VNODE_SUPPORTED_EVENTS_CONSUMED + USER_MAX_VNODE_SUPPORTED_DYNAMIC_EVENTS_CONSUMED then
+        begin
+          State := OPStackNode_GetEventState(Node^.Events.ConsumedState, EventIndex);
+          case State of
+            EVENT_STATE_UNKNOWN : MTI := MTI_CONSUMER_IDENTIFIED_UNKNOWN;
+            EVENT_STATE_VALID   : MTI := MTI_CONSUMER_IDENTIFIED_SET;
+            EVENT_STATE_INVALID : MTI := MTI_CONSUMER_IDENTIFIED_CLEAR
+          else
+            Exit;                                                                   // Error
+          end;
+          if EventIndex >= USER_MAX_VNODE_SUPPORTED_EVENTS_CONSUMED then
+          begin
+            // It is a Dynamic Index
+            if AppCallback_DynamicVNodeConsumedEvent(Node, EventIndex - USER_MAX_VNODE_SUPPORTED_EVENTS_CONSUMED, DynamicEvent) then
+              if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI, Node^.Info, NULL_NODE_INFO, False) then
+              begin
+                OpenLCBUtilities_LoadSimpleDataWithEventID(@DynamicEvent, PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+                OPStackMessage^.Buffer^.DataBufferSize := 8;
+                Result := True;
+                Exit;
+              end;
+          end else
+          begin
+            // It is a Static Index
+            if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI, Node^.Info, NULL_NODE_INFO, False) then
+            begin
+              OpenLCBUtilities_LoadSimpleDataWithEventID(DWord(@USER_VNODE_SUPPORTED_EVENTS_CONSUMED[EventIndex]), PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+              OPStackMessage^.Buffer^.DataBufferSize := 8;
+              Result := True;
+              Exit;
+            end;
+          end
+        end;
+      end else
+      {$ENDIF}
+      {$ENDIF}
+      begin
+        {$IFDEF SUPPORT_AT_LEAST_ONE_CONSUMED_EVENT}
+        // Make sure the event index is in the range of defined events
+        if EventIndex < USER_MAX_SUPPORTED_EVENTS_CONSUMED + USER_MAX_SUPPORTED_DYNAMIC_EVENTS_CONSUMED then
+        begin
+          State := OPStackNode_GetEventState(Node^.Events.ConsumedState, EventIndex);
+          case State of
+            EVENT_STATE_UNKNOWN : MTI := MTI_CONSUMER_IDENTIFIED_UNKNOWN;
+            EVENT_STATE_VALID   : MTI := MTI_CONSUMER_IDENTIFIED_SET;
+            EVENT_STATE_INVALID : MTI := MTI_CONSUMER_IDENTIFIED_CLEAR
+          else
+            Exit;                                                                   // Error
+          end;
+          if EventIndex >= USER_MAX_SUPPORTED_EVENTS_CONSUMED then
+          begin
+            // It is a Dynamic Event
+            if AppCallback_DynamicConsumedEvent(Node, EventIndex - USER_MAX_SUPPORTED_EVENTS_CONSUMED, DynamicEvent) then
+              if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI, Node^.Info, NULL_NODE_INFO, False) then
+              begin
+                OpenLCBUtilities_LoadSimpleDataWithEventID(@DynamicEvent, PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+                OPStackMessage^.Buffer^.DataBufferSize := 8;
+                Result := True;
+                Exit;
+              end;
+          end else
+          begin
+            // It is a Static Event
+            if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI, Node^.Info, NULL_NODE_INFO, False) then
+            begin
+              OpenLCBUtilities_LoadSimpleDataWithEventID(DWord(@USER_SUPPORTED_EVENTS_CONSUMED[EventIndex]), PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+              OPStackMessage^.Buffer^.DataBufferSize := 8;
+              Result := True;
+              Exit;
+            end;
+          end;
+        end;
+        {$ENDIF}
+      end;
+    end;
+  end;
+
+
+  if OPStackNode_IsAnyEventSet(Node^.Events.Produced) then
+  begin
+    EventIndex := OPStackNode_NextEventFlag(Node^.Events.Produced);             // what index  and clear it
+    // This index can be beyond the number of actual events depending as each byte carries 8 flags for 8 Events
+    if EventIndex > -1  then
+    begin
+      {$IFDEF SUPPORT_AT_LEAST_ONE_VNODE_PRODUCED_EVENT}
+      {$IFDEF SUPPORT_VIRTUAL_NODES}
+      if Node^.State and NS_VIRTUAL <> 0 then
+      begin
+        // Make sure the event index is in the range of defined events
+        if EventIndex < USER_MAX_VNODE_SUPPORTED_EVENTS_PRODUCED + USER_MAX_VNODE_SUPPORTED_DYNAMIC_EVENTS_PRODUCED then
+        begin
+          State := OPStackNode_GetEventState(Node^.Events.ProducedState, EventIndex);
+          case State of
+            EVENT_STATE_UNKNOWN : MTI := MTI_PRODUCER_IDENTIFIED_UNKNOWN;
+            EVENT_STATE_VALID   : MTI := MTI_PRODUCER_IDENTIFIED_SET;
+            EVENT_STATE_INVALID : MTI := MTI_PRODUCER_IDENTIFIED_CLEAR
+          else
+            Exit;                                                                   // Error
+          end;
+          if EventIndex >= USER_MAX_VNODE_SUPPORTED_EVENTS_PRODUCED then
+          begin
+            // It is a Dynamic Event
+            if AppCallback_DynamicVNodeProducedEvent(Node, EventIndex - USER_MAX_VNODE_SUPPORTED_EVENTS_PRODUCED, DynamicEvent) then
+              if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI, Node^.Info, NULL_NODE_INFO, False) then
+              begin
+                OpenLCBUtilities_LoadSimpleDataWithEventID(@DynamicEvent, PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+                OPStackMessage^.Buffer^.DataBufferSize := 8;
+                Result := True;
+                Exit;
+              end;
+          end else
+          begin
+            // It is a Static Event
+            if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI, Node^.Info, NULL_NODE_INFO, False) then
+            begin
+              OpenLCBUtilities_LoadSimpleDataWithEventID(DWord(@USER_VNODE_SUPPORTED_EVENTS_PRODUCED[EventIndex]), PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+              OPStackMessage^.Buffer^.DataBufferSize := 8;
+              Result := True;
+              Exit;
+            end;
+          end
+        end;
+      end else
+      {$ENDIF}
+      {$ENDIF}
+      begin
+        {$IFDEF SUPPORT_AT_LEAST_ONE_PRODUCED_EVENT}
+        // Make sure the event index is in the range of defined events
+        if EventIndex < USER_MAX_SUPPORTED_EVENTS_PRODUCED + USER_MAX_SUPPORTED_DYNAMIC_EVENTS_PRODUCED then
+        begin
+          State := OPStackNode_GetEventState(Node^.Events.ProducedState, EventIndex);
+          case State of
+            EVENT_STATE_UNKNOWN : MTI := MTI_PRODUCER_IDENTIFIED_UNKNOWN;
+            EVENT_STATE_VALID   : MTI := MTI_PRODUCER_IDENTIFIED_SET;
+            EVENT_STATE_INVALID : MTI := MTI_PRODUCER_IDENTIFIED_CLEAR
+          else
+            Exit;                                                                   // Error
+          end;
+          if EventIndex >= USER_MAX_SUPPORTED_EVENTS_PRODUCED then
+          begin
+            // It is a Dynamic Event
+            if AppCallback_DynamicProducedEvent(Node, EventIndex - USER_MAX_SUPPORTED_EVENTS_PRODUCED, DynamicEvent) then
+              if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI, Node^.Info, NULL_NODE_INFO, False) then
+              begin
+                OpenLCBUtilities_LoadSimpleDataWithEventID(@DynamicEvent, PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray)) ;
+                OPStackMessage^.Buffer^.DataBufferSize := 8;
+                Result := True;
+                Exit;
+              end;
+          end else
+          begin
+            // It is a Static Event
+            if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI, Node^.Info, NULL_NODE_INFO, False) then
+            begin
+              OpenLCBUtilities_LoadSimpleDataWithEventID(DWord(@USER_SUPPORTED_EVENTS_PRODUCED[EventIndex]), PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+              OPStackMessage^.Buffer^.DataBufferSize := 8;
+              Result := True;
+              Exit;
+            end
+          end
+        end;
+      {$ENDIF}
+      end
+    end
+  end;
+end;
+
+end.

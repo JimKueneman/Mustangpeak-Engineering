@@ -1,0 +1,1351 @@
+unit lib1_enc600_V3_5_b;
+
+uses dspic_additional_string_library,Lib_Delays_LIO,definitions_ENC600,def_IO;
+
+procedure DisableInt;
+procedure EnableInt;
+procedure delayms(n : word);
+Procedure Eth_Select;
+Procedure Eth_UnSelect;
+Procedure Eth_SendSystemReset;
+Procedure Eth_BSF(register_address : byte; mask : word);
+Procedure Eth_BCF(register_address : byte; mask : word);
+Function Eth_ReadReg(register_address : byte) : word;
+Procedure Eth_WriteReg(register_address : byte; data_b : word);
+function Check_Link : boolean;
+procedure Eth_PutByte(value : byte);
+procedure Eth_PutByte_00;
+function Eth_GetByte : byte;
+Procedure Eth_WritePHYReg(register_address : byte; data_b : word);
+Function Eth_ReadPHYReg(register_address : byte) : word;
+procedure CopyEthMemToRam(start_eth_address, dest_ram_address, length_w : word);
+procedure CopyEthMem_CPToRam(dest_ram_address, length_w : word);
+procedure CopyEthMemToRam_Inv(start_eth_address, dest_ram_address, length_w : word);
+procedure CopyEthMem_CPToRam_Inv(dest_ram_address, length_w : word);
+procedure CopyEthMemToEthMem(start_eth_address, dest_eth_address, length_w : word);
+procedure CopyRamToEthMem(start_ram_address, dest_eth_address, length_w : word);
+procedure CopyRamToEthMem_Inv(start_ram_address, dest_eth_address, length_w : word);
+procedure CopyRamToEthMem_CP(start_ram_address, length_w : word);
+procedure CopyRamToEthMem_Inv_CP(start_ram_address, length_w : word);
+procedure EthMemSet(dest_eth_address : word; chr_ : byte; length_w : word);
+procedure EthMemSet_CP(chr_ : byte; length_w : word);
+function CopyRamStringToEthMem_CP(var s : string[1472]): word;
+function CopyRamStringToEthMem_CP_a(s_addr : word): word;
+procedure CopyFlashToEthMem(start_Flash_address : ^far const byte; dest_eth_address, length_w : word);
+procedure CopyFlashToEthMem_CP(start_Flash_address : ^far const byte; length_w : word);
+function CopyFlashStringToEthMem(start_Flash_address : ^far const byte;  dest_eth_address : word): word;
+function CopyFlashStringToEthMem_CP(start_Flash_address : ^far const byte): word;
+procedure WriteToEthMem(dest_eth_address : word; value : byte);
+function ReadFromEthMem(start_eth_address : word) : byte;
+function EthMemCompareWithRam(start_eth_address, start_ram_address, length_w : word) : boolean;
+function EthMemCompareWithFlash(start_eth_address : word; start_Flash_address : ^far const byte; length_w : word) : boolean;
+function Eth_Cksum(start_eth_address, length_w : word) : word;
+procedure Put_UDPPointer;
+procedure Put_TCPPointer;
+procedure Get_Time;
+procedure EraseArpCache;
+procedure ErasePingCache;
+procedure EraseSockets;
+procedure Firewall(F_ICMP, F_TCP, F_UDP : boolean);
+function Search_Port(protocol : byte; port_ : word) : boolean;
+function Close_Port(protocol : byte; port_ : word) : boolean;
+function Open_Port(protocol_ : byte; port__ : word) : boolean;
+procedure UDP_Open_Port(port_u : word);
+procedure TCP_Open_Port(port_t : word);
+procedure UDP_Close_Port(port_u : word);
+procedure TCP_Close_Port(port_t : word);
+procedure Eth_Policy(poli : byte);
+function Process_NTP(var data_in : array[48] of byte; len_ : byte) : byte;
+function debugg_stack : word;
+procedure Set_TCP_TimeOut_Interval(int_ : word);
+function String2NTP(var strin : string[32]) : dword;
+procedure NTP2String(buf : dWord; var TTime_Str : string[19]);
+
+var ENC_CS : sbit; sfr; external;
+    ENC_CS_dir : sbit; sfr; external;
+    
+const
+      RXSTART              : word = $1000;
+      RXEND                : word = $5FFF;
+      TXSTART              : word = $0000;
+      GPSTART              : word = $0800;
+      
+      ETH_ARP                     : word = $0806;
+      ETH_ARP_REQ                 : byte = $01;
+      ETH_ARP_RES                 : byte = $02;
+
+      ETH_IP                     : word = $0800;
+      ETH_IP_TCP                 : byte = $06;
+      ETH_IP_UDP                 : byte = $11;
+      ETH_IP_ICMP                 : byte = $01;
+      ETH_IP_ICMP_ECHO           : byte = $08;
+      ETH_IP_ICMP_REPLY           : byte = $00;
+
+      max_packet           : word = 1518;
+      CacheLength          : byte = 12;
+      PingCacheLength      : byte = 9;
+
+      URG                  : byte = 5;
+      ACK                  : byte = 4;
+      PSH                  : byte = 3;
+      RST                  : byte = 2;
+      SYN                  : byte = 1;
+      FIN                  : byte = 0;
+
+      URG_S                : byte = $20;
+      ACK_S                : byte = $10;
+      PSH_S                : byte = $08;
+      RST_S                : byte = $04;
+      SYN_S                : byte = $02;
+      FIN_S                : byte = $01;
+
+      Months_Days          : array[13] of Byte = ( 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31); far;
+
+      Waiting              : byte = 127;
+
+      TCP                  : byte = 100;
+      UDP                  : byte = 200;
+
+      Reject               : byte = 1;
+      Drop                 : byte = 2;
+
+      Nb_Sock              : byte = 5;
+
+const DHCP_DISCOVER_MESSAGE = 1;
+      DHCP_REQUEST_MESSAGE = 3;
+      DHCP_SERVER_IDENTIFIER = 54;
+      DHCP_SERVER_IDENTIFIER_LEN = 4;
+      DHCP_PARAM_REQUEST_IP_ADDRESS = 50;
+      DHCP_PARAM_REQUEST_IP_ADDRESS_LEN = 4;
+      BOOT_REPLY = 2;
+      DHCP_MESSAGE_TYPE = 53;
+      DHCP_SUBNET_MASK = 1;
+      DHCP_GATEWAY = 3;
+      DHCP_DNS = 6;
+      DHCP_END_OPTION = 255;
+      DHCP_IP_LEASE_TIME = 51;
+      DHCP_OFFER = 2;
+      DHCP_ACK = 5;
+
+      dhcp_c_1 : array[12] of byte = ($01,$01,$06,$00,$68,$BB,$2E,$23,$00,$00,$80,$00); far;
+      dhcp_c_2 : array[4] of byte = ($63,$82,$53,$63); far;
+      dhcp_c_3 : array[5] of byte = ($37,$03,$01,$03,$06); far;
+
+//      DHCP_SEND_PORT = 50067;
+//      DHCP_RECEIVE_PORT = 68;
+      
+type IpHeader = array[4] of byte;
+type MacHeader = array[6] of byte;
+
+type TPingCache = Record
+     IpP                : IpHeader;
+     MacP               : MacHeader;
+     Time               : word;
+     UserTime           : word;
+     T                  : word;
+     TTL                : byte;
+     UserTTL            : byte;
+end;
+
+type TArpCache = Record
+     Valid             : boolean;
+     tmr               : longint;
+     Ip                : IpHeader;
+     Mac               : MacHeader;
+end;
+
+type TNtp = Record
+     Rfc          : dWord;
+     Unix         : dWord;
+     Year         : word;
+     Month        : byte;
+     Day          : byte;
+     Hour         : byte;
+     Min          : byte;
+     Sec          : byte;
+     SSec         : byte;
+     Str          : string[48];
+end;
+
+type TSocket = Record
+     State_S         : word;
+     source_port_S   : word;
+     Dest_Ip         : IpHeader;
+     Dest_Mac        : MacHeader;
+     dest_port_S     : word;
+     Seq_No_S        : dword;
+     Ack_No_S        : dword;
+     Wait_ACK        : word;
+     Exp_Time        : word;
+     Exp_Time_Val    : word;
+     Start_addr      : dword;
+     Stop_addr       : dword;
+     RAM_ROM         : word;
+     Keep_Alive      : boolean;
+     TCP_buf         : string[1024];
+end;
+
+type DNS_HEADER = Record
+   TransactionID        : word;
+   Flags                : word;
+   Questions            : word;
+   Answers              : word;
+   AuthoritativeRecords : word;
+   AdditionalRecords    : word;
+end;
+
+type DNS_ANSWER_HEADER = Record
+   ResponseName        : word;
+   ResponseType        : word;
+   ResponseClass       : word;
+   ResponseTTL         : dword;
+   ResponseLen         : word;
+end;
+
+var DNSHeader : DNS_HEADER;
+    DNSAnswerHeader : DNS_ANSWER_HEADER;
+    DNS_TR_ID : word;
+
+var
+    ip_masked : IpHeader;
+    eth_ip_addr : IpHeader;
+    eth_dns_addr : IpHeader;
+    eth_ntp_addr : IpHeader;
+    eth_gateway : IpHeader;
+    eth_mask : IpHeader;
+    eth_mac : MacHeader;
+    dest_ip_addr : IpHeader;
+    dest_ip_addr1 : IpHeader;
+    dest_ip_addr2 : IpHeader;
+    resp_ip_addr : IpHeader;
+    dest_mac : MacHeader;
+    source_port : word;
+    len,cksum_ip,cksum_udp,cksum_tcp,udp_counter : word;
+    AddrPacket, NextPacket : word;
+    ArpCache : array[CacheLength] of TArpCache;
+    PingCache : array[PingCacheLength] of TPingCache;
+    LongTmr : longint;
+    SEQ_No, ACK_No, SEQ_NoR, ACK_NoR : dWord;
+    TCP_Flag,TCP_FlagR,count_100 : byte;
+    Window,tcp_counter : word;
+    TickCounter1,TickCounter2,TickCounter10 : word;
+
+    FICMP,FTCP,FUDP, NTP_Sync, DNS_resp : boolean;
+    NTP_Time : dWord;
+    NTP_Sec, NTP_ReSync : Word;
+    TTime : TNtp;
+    Offset_Time : longint;
+    offset_clock_err : short;
+
+    TCP_Opened_Ports, UDP_Opened_Ports : array[Nb_Sock] of word;
+    policy : byte;
+
+    Socket : array[Nb_Sock] of TSocket;
+
+    portaddress_cs,portaddress_reset : word;
+    set_cs, set_reset : word;
+    clr_cs, clr_reset : word;
+
+    link_status : boolean;
+
+    save_int : byte;
+
+    DHCPServerID : IpHeader;
+    DHCP_State : byte;
+    tmp_ip_addr,tmp_gat_addr,tmp_mask_addr,tmp_dns_addr : IpHeader;
+    DHCP_count_1,DHCP_count_2 : word;
+    DHCP_count_3 : dword;
+    DHCP_Lease_Time : dword;
+    announce : boolean;
+    DHCP_Enable : boolean;
+
+    hw_cksum,udp_broadcast,broadcast_packet,use_user_MAC : boolean;
+    dynamic_var_addr : word;
+    DHCP_SEND_PORT,DHCP_RECEIVE_PORT : word;
+    TCP_Wait,UDP_Wait : word;
+    opened_socket : word;
+    
+implementation
+
+procedure DisableInt;
+begin
+  asm
+    DISI #31
+  end;
+end;
+
+procedure EnableInt;
+begin
+  DISICNT := 0;
+end;
+
+procedure delayms(n : word);
+var i : word;
+begin
+  i := 0;
+  while i < n do
+    begin
+      delay_1ms_;
+      CLRWDT;
+      inc(i);
+    end;
+end;
+
+Procedure Eth_Select;
+begin
+  ENC_CS := 0;
+End;
+
+Procedure Eth_UnSelect;
+begin
+  nop;
+  ENC_CS := 1;
+End;
+
+function Spi_Read_(dummy : byte) : byte;
+begin
+  result := SPI2BUF;
+  while SPI2STAT.1 = 1 do ;
+  SPI2BUF := dummy;
+  while SPI2STAT.0 = 0 do ;
+  result := SPI2BUF;
+end;
+
+Procedure WCmd1(cmd1 : byte);
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Eth_UnSelect;
+End;
+
+Procedure WCmd2(cmd1,cmd2 : byte);
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Spi_Read_(cmd2);
+  Eth_UnSelect;
+End;
+
+Function RCmd2(cmd1 : byte) : byte;
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  result := Spi_Read_(0);
+  Eth_UnSelect;
+End;
+
+Function RCmd2W(cmd1 : byte) : word;
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Lo(result) := Spi_Read_(0);
+  Hi(result) := Spi_Read_(0);
+  Eth_UnSelect;
+End;
+
+Procedure WCmd3(cmd1,cmd2,cmd3 : byte);
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Spi_Read_(cmd2);
+  Spi_Read_(cmd3);
+  Eth_UnSelect;
+End;
+
+Function RCmd3(cmd1,cmd2 : byte) : byte;
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Spi_Read_(cmd2);
+  result := Spi_Read_(0);
+  Eth_UnSelect;
+End;
+
+Function RCmd3W(cmd1,cmd2 : byte) : word;
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Spi_Read_(cmd2);
+  Lo(result) := Spi_Read_(0);
+  Hi(result) := Spi_Read_(0);
+  Eth_UnSelect;
+End;
+
+Procedure WCmd4(cmd1,cmd2 : byte; cmd3 : word);
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Spi_Read_(cmd2);
+  Spi_Read_(Lo(cmd3));
+  Spi_Read_(Hi(cmd3));
+  Eth_UnSelect;
+End;
+
+Procedure Eth_BSF(register_address : byte; mask : word);
+Begin
+  WCmd4(BFSUCMD_,register_address,mask);
+End;
+
+Procedure Eth_BCF(register_address : byte; mask : word);
+Begin
+  WCmd4(BFCUCMD_,register_address,mask);
+End;
+
+Function Eth_ReadReg(register_address : byte) : word;
+Begin
+  result := RCmd3W(RCRUCMD_,register_address);
+End;
+
+Procedure Eth_WriteReg(register_address : byte; data_b : word);
+Begin
+  WCmd4(WCRUCMD_,register_address,data_b);
+End;
+
+Procedure Eth_SendSystemReset;
+begin
+  while true do
+    begin
+      while true do
+        begin
+          Eth_WriteReg(EUDAST_,$1234);
+          if Eth_ReadReg(EUDAST_) = $1234 then break;
+        end;
+      Eth_BSF(ECON2_, $0010);
+      while true do
+        begin
+          if (Eth_ReadReg(ESTAT_) and $1A00) = $1A00 then break;
+        end;
+      delayms(1);
+      if Eth_ReadReg(EUDAST_) = 0 then break;
+    end;
+  delayms(1);
+end;
+
+procedure Eth_PutByte(value : byte);
+begin
+  WCmd2(WGPDATA_,value);
+end;
+
+procedure Eth_PutByte_00;
+begin
+  WCmd2(WGPDATA_,0);
+  WCmd2(WGPDATA_,0);
+end;
+
+function Eth_GetByte : byte;
+begin
+  result := RCmd2(RGPDATA_);
+end;
+
+Procedure Eth_WritePHYReg(register_address : byte; data_b : word);
+Begin
+  Eth_WriteReg(MIREGADR_,$0100 or register_address);
+  Eth_WriteReg(MIWR_,data_b);
+  while (Eth_ReadReg(MISTAT_) and $0001) <> 0 do ;
+End;
+
+Function Eth_ReadPHYReg(register_address : byte) : word;
+Begin
+  Eth_WriteReg(MIREGADR_,$0100 or register_address);
+  Eth_WriteReg(MICMD_,$0001);
+  while (Eth_ReadReg(MISTAT_) and $0001) <> 0 do ;
+  Eth_WriteReg(MICMD_,$0000);
+  result := Eth_ReadReg(MIRD_);
+End;
+
+function Check_Link : boolean;
+begin
+  result := true;
+  if (Eth_ReadReg(ESTAT_) and $0100) = 0 then
+  if (Eth_ReadReg(ESTAT_) and $0100) = 0 then result := false;
+end;
+
+procedure CopyEthMemToRam(start_eth_address, dest_ram_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then exit;
+  Eth_WriteReg(EGPRDPT_, start_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+
+  pt := dest_ram_address;
+  i := 0;
+  while i < length_w do
+    begin
+      pt^ := Spi_Read_(0);
+      pt := pt + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyEthMem_CPToRam(dest_ram_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then exit;
+  
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+
+  pt := dest_ram_address;
+  i := 0;
+  while i < length_w do
+    begin
+      pt^ := Spi_Read_(0);
+      pt := pt + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyEthMemToRam_Inv(start_eth_address, dest_ram_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then exit;
+  Eth_WriteReg(EGPRDPT_, start_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+  
+  pt := dest_ram_address + length_w - 1;
+  i := 0;
+  while i < length_w do
+    begin
+      pt^ := Spi_Read_(0);
+      pt := pt - 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyEthMem_CPToRam_Inv(dest_ram_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then exit;
+  
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+  
+  pt := dest_ram_address + length_w - 1;
+  i := 0;
+  while i < length_w do
+    begin
+      pt^ := Spi_Read_(0);
+      pt := pt - 1;
+      inc(i);
+    end;
+
+  Eth_UnSelect;
+end;
+
+procedure CopyEthMemToEthMem(start_eth_address, dest_eth_address, length_w : word);
+begin
+  if length_w = 0 then exit;
+  Eth_WriteReg(EDMAST_, start_eth_address);
+  Eth_WriteReg(EDMADST_, dest_eth_address);
+  Eth_WriteReg(EDMALEN_, length_w);
+
+  Eth_BSF(ECON1_, ECON1_DMANOCS_ or ECON1_DMAST_ or ECON1_DMACPY_);
+  while (Eth_ReadReg(ECON1_) and ECON1_DMAST_) <> 0 do ;
+end;
+
+procedure CopyRamToEthMem(start_ram_address, dest_eth_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then exit;
+  Eth_WriteReg(EGPWRPT_, dest_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+
+  pt := start_ram_address;
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(pt^);
+      pt := pt + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyRamToEthMem_Inv(start_ram_address, dest_eth_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then exit;
+  Eth_WriteReg(EGPWRPT_, dest_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  pt := start_ram_address + length_w - 1;
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(pt^);
+      pt := pt - 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyRamToEthMem_CP(start_ram_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then exit;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  pt := start_ram_address;
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(pt^);
+      pt := pt + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyRamToEthMem_Inv_CP(start_ram_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then exit;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  pt := start_ram_address + length_w - 1;
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(pt^);
+      pt := pt - 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure EthMemSet(dest_eth_address : word; chr_ : byte; length_w : word);
+var i : word;
+begin
+  if length_w = 0 then exit;
+  Eth_WriteReg(EGPWRPT_, dest_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(chr_);
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure EthMemSet_CP(chr_ : byte; length_w : word);
+var i : word;
+begin
+  if length_w = 0 then exit;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(chr_);
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+function CopyRamStringToEthMem_CP(var s : string[1472]): word;
+var pt : ^byte;
+    buf : byte;
+begin
+  result := 0;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  pt := @s;
+  while true do
+    begin
+      buf := pt^;
+      if buf = 0 then break;
+      Spi_Read_(buf);
+      pt := pt + 1;
+      inc(result);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+function CopyRamStringToEthMem_CP_a(s_addr : word): word;
+var pt : ^byte;
+    buf : byte;
+begin
+  result := 0;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  pt := s_addr;
+  while true do
+    begin
+      buf := pt^;
+      if buf = 0 then break;
+      Spi_Read_(buf);
+      pt := pt + 1;
+      inc(result);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyFlashToEthMem(start_Flash_address : ^far const byte; dest_eth_address, length_w : word);
+var i : word;
+begin
+  if length_w = 0 then exit;
+  i := 0;
+  Eth_WriteReg(EGPWRPT_, dest_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  while i < length_w do
+    begin
+      Spi_Read_(start_Flash_address^);
+      start_Flash_address := start_Flash_address + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyFlashToEthMem_CP(start_Flash_address : ^far const byte; length_w : word);
+var i : word;
+begin
+  if length_w = 0 then exit;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(start_Flash_address^);
+      start_Flash_address := start_Flash_address + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+function CopyFlashStringToEthMem(start_Flash_address : ^far const byte;  dest_eth_address : word): word;
+var buf : byte;
+begin
+  result := 0;
+  Eth_WriteReg(EGPWRPT_, dest_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  while true do
+    begin
+      buf := start_Flash_address^;
+      if buf = 0 then break;
+      Spi_Read_(buf);
+      start_Flash_address := start_Flash_address + 1;
+      inc(result);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+function CopyFlashStringToEthMem_CP(start_Flash_address : ^far const byte): word;
+var buf : byte;
+begin
+  result := 0;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  while true do
+    begin
+      buf := start_Flash_address^;
+      if buf = 0 then break;
+      Spi_Read_(buf);
+      start_Flash_address := start_Flash_address + 1;
+      inc(result);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure WriteToEthMem(dest_eth_address : word; value : byte);
+begin
+  Eth_WriteReg(EGPWRPT_, dest_eth_address);
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  Spi_Read_(value);
+  Eth_UnSelect;
+end;
+
+function ReadFromEthMem(start_eth_address : word) : byte;
+begin
+  Eth_WriteReg(EGPRDPT_, start_eth_address);
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+  result := Spi_Read_(0);
+  Eth_UnSelect;
+end;
+
+function EthMemCompareWithRam(start_eth_address, start_ram_address, length_w : word) : boolean;
+var i : word;
+    pt : ^byte;
+begin
+  result := false;
+  if length_w = 0 then exit;
+  Eth_WriteReg(EGPRDPT_, start_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+  
+  pt := start_ram_address;
+  i := 0;
+  while i < length_w do
+    begin
+      if pt^ <> Spi_Read_(0) then
+        begin
+          Eth_UnSelect;
+          exit;
+        end;
+      pt := pt + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+  result := true;
+end;
+
+function EthMemCompareWithFlash(start_eth_address : word; start_Flash_address : ^far const byte; length_w : word) : boolean;
+var i : word;
+begin
+  result := false;
+  if length_w = 0 then exit;
+  Eth_WriteReg(EGPRDPT_, start_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+  
+  i := 0;
+  while i < length_w do
+    begin
+      if Spi_Read_(0) <> start_Flash_address^ then
+        begin
+          Eth_UnSelect;
+          exit;
+        end;
+      start_Flash_address := start_Flash_address + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+  result := true;
+end;
+
+function Eth_Cksum(start_eth_address, length_w : word) : word;
+var i : word;
+begin
+  result := 0;
+  if length_w = 0 then exit;
+  while (Eth_ReadReg(ECON1_) and ECON1_DMAST_) <> 0 do;
+  Eth_WriteReg(EDMAST_, start_eth_address);
+  Eth_WriteReg(EDMALEN_, length_w);
+  Eth_BCF(ECON1_, ECON1_DMACPY_ or ECON1_DMANOCS_ or ECON1_DMACSSD_);
+  Eth_BSF(ECON1_, ECON1_DMAST_);
+  while (Eth_ReadReg(ECON1_) and ECON1_DMAST_) <> 0 do;  // wait for DMA complete checksum calculation, but NO more than 500 us
+  i := Eth_ReadReg(EDMACS_);
+  Lo(result) := Hi(i);
+  Hi(result) := Lo(i);
+end;
+
+procedure Put_UDPPointer;
+begin
+  WriteToEthMem(TXSTART+41,$00);
+end;
+
+procedure Put_TCPPointer;
+begin
+  WriteToEthMem(TXSTART+53,$00);
+end;
+
+procedure Get_Time;
+var buf : dWord;
+    TempDay, TempMonth, buf_d : word;
+    text : string[3];
+begin
+  DisableInt;
+  TTime.Rfc := NTP_Time;
+  EnableInt;
+  TTime.Unix := TTime.Rfc - 2208988800;
+  buf := TTime.Unix;
+  TTime.SSec := word(NTP_Sec div 10);
+  TTime.Sec := dword(buf Mod 60);
+  buf := buf div 60;
+  TTime.Min := dword(buf Mod 60);
+  buf := buf div 60;
+  TTime.Hour := dword(buf Mod 24);
+  buf := buf div 24;
+  buf_d := Word(buf);
+  TTime.Year := (buf_d div 1461)*4 + 1970;
+  buf_d := buf_d Mod 1461;
+  While true do
+    begin
+      TempDay := 365;
+      If (TTime.Year And $03) = 0 Then TempDay := 366;
+      If TempDay > buf_d Then break;
+      buf_d := buf_d - TempDay;
+      Inc (TTime.Year);
+    end;
+  inc(buf_d);
+  For TTime.Month := 1 To 12 do
+    begin
+      TempMonth := Months_Days[TTime.Month];
+      if (TTime.Month = 2) and (TempDay = 366) then TempMonth := 29;
+      If buf_d <= TempMonth Then break;
+      buf_d := buf_d - TempMonth;
+    end;
+  TTime.Day := buf_d;
+  
+  Byte2StrWithZeros(TTime.Day, TTime.Str);
+  Str_Cut_Left(TTime.Str,1);
+  Str_Cat(TTime.Str, '.');
+
+  Byte2StrWithZeros(TTime.Month, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TTime.Str, text);
+
+  Str_Cat(TTime.Str, '.');
+
+  Word2Str(TTime.Year,text);
+  Str_Cat(TTime.Str, text);
+
+  Str_Cat(TTime.Str, ' ');
+
+  Byte2StrWithZeros(TTime.Hour, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TTime.Str, text);
+  Str_Cat(TTime.Str, ':');
+  Byte2StrWithZeros(TTime.Min, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TTime.Str, text);
+  Str_Cat(TTime.Str, ':');
+  Byte2StrWithZeros(TTime.Sec, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TTime.Str, text);
+end;
+
+procedure EraseArpCache;
+var j : byte;
+begin
+  j := 0;
+  while j < CacheLength do
+    begin
+      Mem_Set(@ArpCache[j].Ip, 0, 4);
+      Mem_Set(@ArpCache[j].Mac, 0, 6);
+      ArpCache[j].Valid := False;
+      ArpCache[j].Tmr := 0;
+      inc(j);
+    end;
+end;
+
+procedure ErasePingCache;
+var j : byte;
+begin
+  j := 0;
+  while j < PingCacheLength do
+    begin
+      Mem_Set(@PingCache[j].IpP, 0, 4);
+      Mem_Set(@PingCache[j].MacP, 0, 6);
+      PingCache[j].Time := 0;
+      PingCache[j].UserTime := 0;
+      PingCache[j].T := 0;
+      PingCache[j].TTL := 0;
+      PingCache[j].UserTTL := 0;
+      inc(j);
+    end;
+end;
+
+procedure EraseSockets;
+var j : byte;
+begin
+  j := 0;
+  while j < Nb_Sock do
+    begin
+      Socket[j].State_S := 0;
+      Socket[j].source_port_S := 0;
+      Mem_Set(@Socket[j].Dest_Ip, 0, 4);
+      Mem_Set(@Socket[j].Dest_Mac, 0, 6);
+      Socket[j].dest_port_S := 0;
+      Socket[j].SEQ_No_S := 0;
+      Socket[j].ACK_No_S := 0;
+      Socket[j].Wait_ACK := 0;
+      Socket[j].Exp_Time := 0;
+      Socket[j].Exp_Time_Val := 12;
+      Socket[j].Start_addr := 0;
+      Socket[j].Stop_addr := 0;
+      Socket[j].RAM_ROM := 0;
+      Socket[j].Keep_Alive := false;
+      Socket[j].TCP_buf := '';
+      inc(j);
+    end;
+end;
+
+procedure Firewall(F_ICMP, F_TCP, F_UDP : boolean);
+begin
+  FICMP := F_ICMP;
+  FTCP := F_TCP;
+  FUDP := F_UDP;
+end;
+
+function Search_Port(protocol : byte; port_ : word) : boolean;
+var i : byte;
+    pt : ^word;
+begin
+  result := false;
+  if port_ = 0 then exit;
+  if protocol = TCP then pt := @TCP_Opened_Ports
+  else pt := @UDP_Opened_Ports;
+  i := 0;
+  while i < Nb_Sock do
+    begin
+      if pt^ = port_ then
+        begin
+          result := true;
+          exit;
+        end;
+      pt := pt + 1;
+      inc(i);
+    end;
+end;
+
+function Close_Port(protocol : byte; port_ : word) : boolean;
+var i : byte;
+    pt : ^word;
+begin
+  result := false;
+  if port_ = 0 then exit;
+  if protocol = TCP then pt := @TCP_Opened_Ports
+  else pt := @UDP_Opened_Ports;
+  i := 0;
+  while i < Nb_Sock do
+    begin
+      if pt^ = port_ then
+        begin
+          pt^ := 0;
+          result := true;
+          exit;
+        end;
+      pt := pt + 1;
+      inc(i);
+    end;
+end;
+
+function Open_Port(protocol_ : byte; port__ : word) : boolean;
+var i : byte;
+    pt : ^word;
+begin
+  result := false;
+  if port__ = 0 then exit;
+  if Search_Port(protocol_, port__) = true then
+    begin
+      result := true;
+      exit;
+    end;
+  if protocol_ = TCP then pt := @TCP_Opened_Ports
+  else pt := @UDP_Opened_Ports;
+  i := 0;
+  while i < Nb_Sock do
+    begin
+      if pt^ = 0 then
+        begin
+          pt^ := port__;
+          result := true;
+          exit;
+        end;
+      pt := pt + 1;
+      inc(i);
+    end;
+end;
+
+procedure UDP_Open_Port(port_u : word);
+begin
+  Open_Port(UDP, port_u);
+end;
+
+procedure TCP_Open_Port(port_t : word);
+begin
+  Open_Port(TCP, port_t);
+end;
+
+procedure UDP_Close_Port(port_u : word);
+begin
+  Close_Port(UDP, port_u);
+end;
+
+procedure TCP_Close_Port(port_t : word);
+begin
+  Close_Port(TCP, port_t);
+end;
+
+procedure Eth_Policy(poli : byte);
+begin
+  policy := poli;
+end;
+
+//******************************************************************************
+//* Name    : Process_NTP                                                      *
+//* Purpose : NTP Response for NTP Server                                      *
+//******************************************************************************
+function Process_NTP(var data_in : array[48] of byte; len_ : byte) : byte;
+begin
+  result := 0;
+  if (len_ <> 48) or ((data_in[0] and $03) <> 1) then exit; // simmetric active
+
+  data_in[0] := $1A;
+  data_in[1] := $01;
+  data_in[2] := $08;
+  data_in[3] := $E3;
+  Mem_Set(word(@data_in[4]), 0, 8);
+  data_in[12] := $41;
+  data_in[13] := $43;
+  data_in[14] := $54;
+  data_in[15] := $53;
+
+  Mem_Cpy(word(@data_in[24]), word(@data_in[40]), 8);
+
+  DisableInt;
+  data_in[32] := Highest(Ntp_Time);
+  data_in[33] := Higher(Ntp_Time);
+  data_in[34] := Hi(Ntp_Time);
+  data_in[35] := Lo(Ntp_Time);
+  EnableInt;
+  data_in[36] := 0;
+  data_in[37] := 0;
+  data_in[38] := 0;
+  data_in[39] := 0;
+
+  Mem_Cpy(word(@data_in[40]), word(@data_in[32]), 8);
+  Mem_Cpy(word(@data_in[16]), word(@data_in[32]), 8);
+
+  result := 48;
+end;
+
+function debugg_stack : word;
+var i : byte;
+    txt31 : string[32];
+begin
+  Eth_PutByte($0D);
+  Eth_PutByte($0A);
+  result := 2;
+
+  i := 0;
+  while i < Nb_Sock do
+    begin
+      result := result + CopyRamStringToEthMem_CP('Sock_No: ');
+      Byte2StrWithZeros(i,txt31);
+      Str_Cut_Left(txt31,1);
+      result := result + CopyRamStringToEthMem_CP(txt31);
+
+      result := result + CopyRamStringToEthMem_CP(', State: ');
+      Byte2StrWithZeros(Socket[i].State_S,txt31);
+      Str_Cut_Left(txt31,2);
+      result := result + CopyRamStringToEthMem_CP(txt31);
+
+      result := result + CopyRamStringToEthMem_CP(', Keep_Alive: ');
+      if Socket[i].Keep_Alive = true then txt31 := 'True '
+      else txt31 := 'False';
+      result := result + CopyRamStringToEthMem_CP(txt31);
+
+      result := result + CopyRamStringToEthMem_CP(', Dest_Port: ');
+      Word2StrWithZeros(Socket[i].dest_port_S,txt31);
+      result := result + CopyRamStringToEthMem_CP(txt31);
+
+      result := result + CopyRamStringToEthMem_CP(', Ip: ');
+      Ip2Str(Socket[i].Dest_Ip,txt31);
+      result := result + CopyRamStringToEthMem_CP(txt31);
+
+      Eth_PutByte($0D);
+      Eth_PutByte($0A);
+      result := result + 2;
+
+      inc(i);
+    end;
+end;
+
+procedure Set_TCP_TimeOut_Interval(int_ : word);
+var j : byte;
+begin
+  j := 0;
+  while j < Nb_Sock do
+    begin
+      Socket[j].Exp_Time_Val := int_;
+      inc(j);
+    end;
+end;
+
+function String2NTP(var strin : string[32]) : dword;  // 26.11.2009 12:34:05
+var year_, day_buf : word;
+    month_, day_, hour_, min_, sec_, feb : byte;
+    str_buf : string[4];
+begin
+  result := 3502828800;//2208988800;
+  if Str_Len(strin) <> 19 then exit;
+
+  str_buf[0] := strin[6];
+  str_buf[1] := strin[7];
+  str_buf[2] := strin[8];
+  str_buf[3] := strin[9];
+  str_buf[4] := 0;
+
+  year_ := Str2Word(str_buf);
+
+  str_buf[0] := strin[3];
+  str_buf[1] := strin[4];
+  str_buf[2] := 0;
+
+  month_ := Str2Byte(str_buf);
+
+  str_buf[0] := strin[0];
+  str_buf[1] := strin[1];
+  str_buf[2] := 0;
+
+  day_ := Str2Byte(str_buf);
+
+  str_buf[0] := strin[11];
+  str_buf[1] := strin[12];
+  str_buf[2] := 0;
+
+  hour_ := Str2Byte(str_buf);
+
+  str_buf[0] := strin[14];
+  str_buf[1] := strin[15];
+  str_buf[2] := 0;
+
+  min_ := Str2Byte(str_buf);
+
+  str_buf[0] := strin[17];
+  str_buf[1] := strin[18];
+  str_buf[2] := 0;
+
+  sec_ := Str2Byte(str_buf);
+
+  result := year_ - 1970;
+  if ((result-2) mod 4) = 0 then feb := 29
+  else feb := 28;
+  result := result*365 + ((result-3) div 4);
+
+  case month_ of
+    1 : day_buf := day_;
+    2 : day_buf := day_ + 31;
+    3 : day_buf := day_ + (31 + feb);
+    4 : day_buf := day_ + (31 + feb + 31);
+    5 : day_buf := day_ + (31 + feb + 31 + 30);
+    6 : day_buf := day_ + (31 + feb + 31 + 30 + 31);
+    7 : day_buf := day_ + (31 + feb + 31 + 30 + 31 + 30);
+    8 : day_buf := day_ + (31 + feb + 31 + 30 + 31 + 30 + 31);
+    9 : day_buf := day_ + (31 + feb + 31 + 30 + 31 + 30 + 31 + 31);
+    10 : day_buf := day_ + (31 + feb + 31 + 30 + 31 + 30 + 31 + 31 + 30);
+    11 : day_buf := day_ + (31 + feb + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31)
+    else  day_buf := day_ + (31 + feb + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30);
+  end;
+
+  result := (result + day_buf) * 86400 + (hour_ * 3600) + (min_ * 60) + sec_ + 2208988800;
+end;
+
+procedure NTP2String(buf : dWord; var TTime_Str : string[19]);
+var TempDay, TempMonth, buf_d : word;
+    text : string[5];
+    TTime_Sec,TTime_Min,TTime_Hour,TTime_Month,TTime_Day : byte;
+    TTime_Year : word;
+begin
+  buf := buf - 2208988800;
+  TTime_Sec := dword(buf Mod 60);
+  buf := buf div 60;
+  TTime_Min := dword(buf Mod 60);
+  buf := buf div 60;
+  TTime_Hour := dword(buf Mod 24);
+  buf := buf div 24;
+  buf_d := Word(buf);
+  TTime_Year := (buf_d div 1461)*4 + 1970;
+  buf_d := buf_d Mod 1461;
+  While true do
+    begin
+      TempDay := 365;
+      If (TTime_Year And $03) = 0 Then TempDay := 366;
+      If TempDay > buf_d Then break;
+      buf_d := buf_d - TempDay;
+      Inc(TTime_Year);
+    end;
+  inc(buf_d);
+  For TTime_Month := 1 To 12 do
+    begin
+      TempMonth := Months_Days[TTime_Month];
+      if (TTime_Month = 2) and (TempDay = 366) then TempMonth := 29;
+      If buf_d <= TempMonth Then break;
+      buf_d := buf_d - TempMonth;
+    end;
+  TTime_Day := buf_d;
+
+  Byte2StrWithZeros(TTime_Day, TTime_Str);
+  Str_Cut_Left(TTime_Str,1);
+  Str_Cat(TTime_Str, '.');
+
+  Byte2StrWithZeros(TTime_Month, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TTime_Str, text);
+
+  Str_Cat(TTime_Str, '.');
+
+  Word2Str(TTime_Year,text);
+  Str_Cat(TTime_Str, text);
+
+  Str_Cat(TTime_Str, ' ');
+
+  Byte2StrWithZeros(TTime_Hour, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TTime_Str, text);
+  Str_Cat(TTime_Str, ':');
+  Byte2StrWithZeros(TTime_Min, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TTime_Str, text);
+  Str_Cat(TTime_Str, ':');
+  Byte2StrWithZeros(TTime_Sec, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TTime_Str, text);
+end;
+
+end.

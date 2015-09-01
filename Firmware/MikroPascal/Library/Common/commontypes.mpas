@@ -1,0 +1,18 @@
+unit commontypes;
+
+{$I Options.inc}
+
+const
+  LF = #13 + #10;
+
+type
+  TOpenLCBCanBuffer = record
+    MTI: DWord;
+    Payload: array[0..7] of byte;
+    PayloadCount: Byte;
+  end;
+  POpenLCBCanBuffer = ^TOpenLCBCanBuffer;
+
+implementation
+
+end.

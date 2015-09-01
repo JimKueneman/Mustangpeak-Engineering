@@ -1,0 +1,419 @@
+unit ENC624J600;
+
+uses
+  opstack_debug,
+  opstackcore_tcp,
+  opstack_utilities,
+  opstack_defines,
+  opstack_types;
+
+type
+  TEthernetInfo = record
+    SendBuffers: TOPStackTcpOutgoingMessages;
+    Connections: array[NUM_OF_SOCKET_24j600] of TEthernetConnection;
+    Connected: Boolean;
+    AddressIp: TOlcbIpAddress;
+    NetworkMaskIp: TOlcbIpAddress;
+    GatewayIp: TOlcbIpAddress;
+    DnsIp: TOlcbIpAddress;
+    MacAddressIp: TOlcbMacAddress;
+  end;
+  
+type
+  PSOCKET_24j600_Dsc = ^SOCKET_24j600_Dsc;
+
+procedure ENC624J600_EnableInterrupts(Enable: Boolean);
+procedure ENC624J600_Initialize;
+procedure ENC624J600_SetAddressIp(Byte1, Byte2, Byte3, Byte4: Byte);
+procedure ENC624J600_SetNetworkMaskIp(Byte1, Byte2, Byte3, Byte4: Byte);
+procedure ENC624J600_SetGatewayIp(Byte1, Byte2, Byte3, Byte4: Byte);
+procedure ENC624J600_SetDnsIp(Byte1, Byte2, Byte3, Byte4: Byte);
+procedure ENC624J600_SetMacAddress(Byte1, Byte2, Byte3, Byte4, Byte5, Byte6: Byte);
+procedure ENC624J600_Connect;
+procedure ENC624J600_WriteHandler;
+
+function ENC624J600_FindConnectionFromSocket(Socket: PSOCKET_24j600_Dsc; Connection: PEthernetConnection): Boolean;
+function ENC624J600_FindSocketFromConnection(Socket: PSOCKET_24j600_Dsc; Connection: PEthernetConnection): Boolean;
+function ENC624J600_AssignConnectionToSocket(Socket: PSOCKET_24j600_Dsc; Connection: PEthernetConnection): Boolean;
+function ENC624J600_IsConnectionAssignedToSocket(Connection: PEthernetConnection): Boolean;
+function ENC624J600_ReleaseConnectionBySocket(Socket: PSOCKET_24j600_Dsc): Boolean;
+procedure ENC624J600_ReleaseConnectionsOnClosedSockets;
+
+
+procedure ENC624J600_PrintEthernetInfo;
+procedure ENC624J600_PrintSocketDsc(var Socket: SOCKET_24j600_Dsc);
+procedure ENC624J600_PrintAllSocketDsc;
+
+var
+  EthernetInfo: TEthernetInfo;
+
+implementation
+
+procedure ENC624J600_Initialize;
+var
+  i, j: Integer;
+begin
+  EthernetInfo.SendBuffers.Head := 0;
+  EthernetInfo.SendBuffers.Tail := 0;
+  EthernetInfo.SendBuffers.Count := 0;
+  for i := 0 to MAX_OLCB_TCP_SEND_BUFFERS - 1 do
+  begin
+    for j := 0 to MAX_OLCB_TCP_MESSAGE_ARRAY - 1 do
+      EthernetInfo.SendBuffers.Buffers[i][j] := 0;
+  end;
+  
+  for i := 0 to NUM_OF_SOCKET_24j600 - 1 do
+  begin
+    EthernetInfo.Connections[i].Port := 0;
+    EthernetInfo.Connections[i].AddressIp[0] := 0;
+    EthernetInfo.Connections[i].AddressIp[1] := 0;
+    EthernetInfo.Connections[i].AddressIp[2] := 0;
+    EthernetInfo.Connections[i].AddressIp[3] := 0;
+    EthernetInfo.Connections[i].NodeID[0] := 0;
+    EthernetInfo.Connections[i].NodeID[1] := 0;
+    EthernetInfo.Connections[i].ReceiveBuffer.ReceiveState := 0;
+    EthernetInfo.Connections[i].ReceiveBuffer.iMessage := 0;
+    EthernetInfo.Connections[i].ReceiveBuffer.MessageSize := 0;
+    EthernetInfo.Connections[i].ReceiveBuffer.CaptureTime[0] := 0;
+    EthernetInfo.Connections[i].ReceiveBuffer.CaptureTime[1] := 0;
+    for j := 0 to MAX_OLCB_TCP_MESSAGE_ARRAY - 1 do
+      EthernetInfo.Connections[i].ReceiveBuffer.DataArray[j] := 0;
+  end;
+  EthernetInfo.Connected := False;
+  EthernetInfo.AddressIp[0] := 0;
+  EthernetInfo.AddressIp[1] := 0;
+  EthernetInfo.AddressIp[2] := 0;
+  EthernetInfo.AddressIp[3] := 0;
+  EthernetInfo.NetworkMaskIp[0] := 0;
+  EthernetInfo.NetworkMaskIp[1] := 0;
+  EthernetInfo.NetworkMaskIp[2] := 0;
+  EthernetInfo.NetworkMaskIp[3] := 0;
+  EthernetInfo.GatewayIp[0] := 0;
+  EthernetInfo.GatewayIp[1] := 0;
+  EthernetInfo.GatewayIp[2] := 0;
+  EthernetInfo.GatewayIp[3] := 0;
+  EthernetInfo.DnsIp[0] := 0;
+  EthernetInfo.DnsIp[1] := 0;
+  EthernetInfo.DnsIp[2] := 0;
+  EthernetInfo.DnsIp[3] := 0;
+  EthernetInfo.MacAddressIp[0] := 0;
+  EthernetInfo.MacAddressIp[1] := 0;
+  EthernetInfo.MacAddressIp[2] := 0;
+  EthernetInfo.MacAddressIp[3] := 0;
+  EthernetInfo.MacAddressIp[4] := 0;
+  EthernetInfo.MacAddressIp[5] := 0;
+  
+  Net_Ethernet_24j600_stackInitTCP();
+end;
+
+procedure ENC624J600_SetAddressIp(Byte1, Byte2, Byte3, Byte4: Byte);
+begin
+  EthernetInfo.AddressIp[0] := Byte1;
+  EthernetInfo.AddressIp[1] := Byte2;
+  EthernetInfo.AddressIp[2] := Byte3;
+  EthernetInfo.AddressIp[3] := Byte4;
+end;
+
+procedure ENC624J600_SetNetworkMaskIp(Byte1, Byte2, Byte3, Byte4: Byte);
+begin
+  EthernetInfo.NetworkMaskIp[0] := Byte1;
+  EthernetInfo.NetworkMaskIp[1] := Byte2;
+  EthernetInfo.NetworkMaskIp[2] := Byte3;
+  EthernetInfo.NetworkMaskIp[3] := Byte4;
+end;
+
+procedure ENC624J600_SetGatewayIp(Byte1, Byte2, Byte3, Byte4: Byte);
+begin
+  EthernetInfo.GatewayIp[0] := Byte1;
+  EthernetInfo.GatewayIp[1] := Byte2;
+  EthernetInfo.GatewayIp[2] := Byte3;
+  EthernetInfo.GatewayIp[3] := Byte4;
+end;
+
+procedure ENC624J600_SetDnsIp(Byte1, Byte2, Byte3, Byte4: Byte);
+begin
+  EthernetInfo.DnsIp[0] := Byte1;
+  EthernetInfo.DnsIp[1] := Byte2;
+  EthernetInfo.DnsIp[2] := Byte3;
+  EthernetInfo.DnsIp[3] := Byte4;
+end;
+
+procedure ENC624J600_SetMacAddress(Byte1, Byte2, Byte3, Byte4, Byte5, Byte6: Byte);
+begin 
+  EthernetInfo.MacAddressIp[0] := Byte1;
+  EthernetInfo.MacAddressIp[1] := Byte2;
+  EthernetInfo.MacAddressIp[2] := Byte3;
+  EthernetInfo.MacAddressIp[3] := Byte4;
+  EthernetInfo.MacAddressIp[4] := Byte5;
+  EthernetInfo.MacAddressIp[5] := Byte6;
+end;
+
+procedure ENC624J600_Connect;
+begin
+  Net_Ethernet_24j600_Init(@EthernetInfo.MacAddressIp, @EthernetInfo.AddressIp, Net_Ethernet_24j600_AUTO_NEGOTIATION); // init ethernet board
+  Net_Ethernet_24j600_confNetwork(@EthernetInfo.NetworkMaskIp, @EthernetInfo.GatewayIp, @EthernetInfo.DnsIp);
+end;
+
+procedure ENC624J600_WriteHandler;
+var
+  i: Integer;
+  MTI: Word;
+  TargetNodeID: TNodeID;
+  OutgoingMessagePtr: POPStackTcpMessageArray;
+  MessageCount: DWord;
+  SocketPtr: PSOCKET_24j600_Dsc;
+begin
+  if EthernetInfo.SendBuffers.Count > 0 then
+  begin
+    OutgoingMessagePtr := @EthernetInfo.SendBuffers.Buffers[EthernetInfo.SendBuffers.Tail];
+
+    MTI := 0;
+    Hi(MTI) := OutgoingMessagePtr^[17];
+    Hi(MTI) := OutgoingMessagePtr^[18];
+
+    TargetNodeID[0] := 0;
+    TargetNodeID[1] := 0;
+    MessageCount := 0;
+    Higher(TargetNodeID[0]) := OutgoingMessagePtr^[25]; // Destination Node ID...
+    Hi(TargetNodeID[0])     := OutgoingMessagePtr^[26];
+    Lo(TargetNodeID[0])     := OutgoingMessagePtr^[27];
+    Higher(TargetNodeID[1]) := OutgoingMessagePtr^[28];
+    Hi(TargetNodeID[1])     := OutgoingMessagePtr^[29];
+    Lo(TargetNodeID[1])     := OutgoingMessagePtr^[30];
+    Higher(MessageCount)    := OutgoingMessagePtr^[2];
+    Hi(MessageCount)        := OutgoingMessagePtr^[3];
+    Lo(MessageCount)        := OutgoingMessagePtr^[4];
+    
+    for i := 0 to NUM_OF_SOCKET_24j600 - 1 do
+    begin
+      if MTI and MTI_ADDRESSED_MASK = MTI_ADDRESSED_MASK then
+      begin   // Addressed message only goes down the pipe that had the correct destination node on the other end (or if the connection has not sent a message so we don't know what is on the other end
+        if ENC624J600_IsConnectionAssignedToSocket(@EthernetInfo.Connections[i]) then
+          if OpenLCBUtilities_NullNodeID(EthernetInfo.Connections[i].NodeID) or OpenLCBUtilities_EqualNodeID(EthernetInfo.Connections[i].NodeID, TargetNodeID) then
+          begin  // Okay now we need to find the right Pipe....
+            if ENC624J600_FindSocketFromConnection(SocketPtr, @EthernetInfo.Connections[i]) then
+            begin
+              if SocketPtr^.State = 3 then // established?
+              begin
+                DebugLine('Net_Ethernet_24j600_startSendTCP addressed');
+                Net_Ethernet_24j600_startSendTCP(SocketPtr);              // Plink on this socket and call UserTCP
+              end
+            end;
+          end
+      end else
+      begin
+        if socket_24j600[i].State = 3 then // established?
+        begin
+          DebugLine('Net_Ethernet_24j600_startSendTCP global');
+          Net_Ethernet_24j600_startSendTCP(@socket_24j600[i]);              // Plink on this socket and call UserTCP
+        end;
+      end
+    end
+  end;
+end;
+
+function ENC624J600_FindConnectionFromSocket(Socket: PSOCKET_24j600_Dsc; Connection: PEthernetConnection): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  for i := 0 to NUM_OF_SOCKET_24j600 - 1 do
+  begin
+    if Socket^.remotePort <> 0 then
+    begin
+      if (Socket^.remotePort = EthernetInfo.Connections[i].Port) then
+        if OPStackcoreTCP_EqualOlcbIpAddresses(Socket^.remoteIP, EthernetInfo.Connections[i].AddressIp) then
+        begin
+          Connection := @EthernetInfo.Connections[i];
+          Result := True;
+          Break;
+        end;
+    end
+  end;
+end;
+
+function ENC624J600_FindSocketFromConnection(Socket: PSOCKET_24j600_Dsc; Connection: PEthernetConnection): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  for i := 0 to NUM_OF_SOCKET_24j600 - 1 do
+  begin
+    if Connection^.Port <> 0 then
+    begin
+      if (socket_24j600[i].remotePort = Connection^.Port) then
+        if OPStackcoreTCP_EqualOlcbIpAddresses(socket_24j600[i].remoteIp, Connection^.AddressIp) then
+        begin
+          Socket := @socket_24j600[i];
+          Result := True;
+          Break;
+        end;
+    end;
+  end;
+end;
+
+function ENC624J600_IsConnectionAssignedToSocket(Connection: PEthernetConnection): Boolean;
+begin
+  Result := (Connection^.Port <> 0) and not OPStackcoreTCP_NullIpAddress(Connection^.AddressIp)
+end;
+
+function ENC624J600_AssignConnectionToSocket(Socket: PSOCKET_24j600_Dsc; Connection: PEthernetConnection): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  for i := 0 to NUM_OF_SOCKET_24j600 - 1 do
+  begin
+    if EthernetInfo.Connections[i].Port = 0 then
+    begin       
+      Connection := @EthernetInfo.Connections[i];
+      Connection^.Port := Socket^.remotePort;
+      OPStackcoreTCP_CopyOlcbIpAddresses(Socket^.remoteIp, Connection^.AddressIp);
+      Result := True;
+      Break;
+    end
+  end;
+end;
+
+function ENC624J600_ReleaseConnectionBySocket(Socket: PSOCKET_24j600_Dsc): Boolean;
+var
+  Connection: PEthernetConnection;
+  i: Integer;
+begin
+  Result := False;
+  for i := 0 to NUM_OF_SOCKET_24j600 - 1 do
+  begin
+    if ENC624J600_FindConnectionFromSocket(Socket, Connection) then
+    begin
+      DebugLine('Releasing Connection...');
+      OPStackcoreTCP_ClearOlcbIpAddress(Connection^.AddressIp);
+      Connection^.Port := 0;
+      Result := True;
+    end;
+  end;
+end;
+
+procedure ENC624J600_ReleaseConnectionsOnClosedSockets;
+var
+  Connection: TEthernetConnection;
+  i: Integer;
+begin
+  for i := 0 to NUM_OF_SOCKET_24j600 - 1 do
+  begin
+    if ENC624J600_FindConnectionFromSocket(@socket_24j600[i], @Connection) then
+    begin
+      if socket_24j600[i].state = 0 then
+      begin
+        DebugLine('Releasing Connection...');
+        OPStackcoreTCP_ClearOlcbIpAddress(socket_24j600[i].remoteIP);
+        socket_24j600[i].remotePort := 0;
+        OPStackcoreTCP_ClearOlcbIpAddress(Connection.AddressIp);
+        Connection.Port := 0;
+      end
+    end;
+  end;
+end;
+
+procedure ENC624J600_PrintEthernetInfo;
+var
+  i: Integer;
+begin
+  DebugLine('Ethernet Info....');
+  OPStackcoreTCP_PrintOPStackTcpOutgoingMessages(EthernetInfo.SendBuffers);
+  for i := 0 to NUM_OF_SOCKET_24j600 - 1 do
+  begin
+    IntToStr(i, s1);
+    DebugLine('Connection: ' + s1);
+    OPStackcoreTCP_PrintEthernetConnection(EthernetInfo.Connections[i]);
+  end;
+  WordToStr(EthernetInfo.Connected, s1);
+  DebugLine('Connected: ' + s1);
+  DebugStr('IP Address: ' + s1);
+  OPStackcoreTCP_PrintIpAddress(EthernetInfo.AddressIp);
+  DebugStr('Network Mask: ');
+  OPStackcoreTCP_PrintIpAddress(EthernetInfo.NetworkMaskIp);
+  DebugStr('Gateway Address: ');
+  OPStackcoreTCP_PrintIpAddress(EthernetInfo.GatewayIp);
+  DebugStr('DNS Address: ');
+  OPStackcoreTCP_PrintIpAddress(EthernetInfo.DnsIp);
+  DebugStr('Mac Address: ');
+  OPStackcoreTCP_PrintMacAddress(EthernetInfo.MacAddressIp);
+  DebugLine('..........');
+end;
+
+procedure ENC624J600_PrintAllSocketDsc;
+var
+  i: Integer;
+begin
+  DebugLine('...Sockets...');
+  for i := 0 to NUM_OF_SOCKET_24j600 - 1 do
+  begin
+    IntToStr(i, s1);
+    DebugLine('Socket: ' + s1);
+    ENC624J600_PrintSocketDsc(socket_24j600[i]);
+    DebugLine('');  DebugLine('');
+  end;
+  DebugLine('..........');
+end;
+
+procedure ENC624J600_PrintSocketDsc(var Socket: SOCKET_24j600_Dsc);
+begin
+  DebugStr('Remote Ip: ');
+  OPStackcoreTCP_PrintIpAddress(Socket.remoteIP);
+  DebugStr('Remote Mac Address: ');
+  OPStackcoreTCP_PrintMacAddress(Socket.remoteMac);
+  DebugLine('Remote Port: ' + s1);
+  WordToStr(Socket.destPort, s1);
+  DebugLine('Destination Port: ' + s1);
+  WordToStr(Socket.dataLength, s1);
+  DebugLine('DataLength: ' + s1);
+  WordToStr(Socket.remoteMSS, s1);
+  DebugLine('remoteMSS: ' + s1);
+  WordToStr(Socket.myWin, s1);
+  DebugLine('myWin: ' + s1);
+  WordToStr(Socket.myMSS, s1);
+  DebugLine('myMSS: ' + s1);
+  LongWordToStr(Socket.mySeq, s1);
+  DebugLine('mySeq: ' + s1);
+  LongWordToStr(Socket.myACK, s1);
+  DebugLine('myAck: ' + s1);
+
+  ByteToStr(Socket.stateTimer, s1);
+  DebugLine('stateTimer: ' + s1);
+  ByteToStr(Socket.retransmitTimer, s1);
+  DebugLine('retransmitTimer: ' + s1);
+  WordToStr(Socket.packetID, s1);
+  DebugLine('packetID: ' + s1);
+  ByteToStr(Socket.open, s1);
+  DebugLine('open: ' + s1);
+  ByteToStr(Socket.ID, s1);
+  DebugLine('ID (handle): ' + s1);
+  ByteToStr(Socket.broadcastMark, s1);
+  DebugLine('broadcaseMark: ' + s1);
+  ByteToStr(Socket.state, s1);
+  DebugLine('state: ' + s1);
+  
+  WordToStr(Socket.nextSend, s1);
+  DebugLine('nextSend: ' + s1);
+  WordToStr(Socket.lastACK, s1);
+  DebugLine('lastACK: ' + s1);
+  WordToStr(Socket.lastSent, s1);
+  DebugLine('lastSent: ' + s1);
+  WordToStr(Socket.lastWritten, s1);
+  DebugLine('lastWritten: ' + s1);
+  WordToStr(Socket.numToSend, s1);
+  DebugLine('numToSend: ' + s1);
+  ByteToStr(Socket.buffState, s1);
+  DebugLine('buffState: ' + s1);
+  LongWordToHex(Socket.txBuffer, s1);
+  DebugLine('txBuffer: 0x' + s1);
+end;
+
+
+procedure ENC624J600_EnableInterrupts(Enable: Boolean);
+begin
+end;
+
+
+
+end.

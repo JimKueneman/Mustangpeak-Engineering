@@ -1,0 +1,409 @@
+0	1	mPDsPic.exe -MSF -DBG -pP33EP512MU810 -Y -DL -SSA -RA -O11111114 -fo140 -N"S:\Mustangpeak\mikroPascal\Library\ENC624J600\Example\ENC624J600_Exampe.mppds" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\defs\" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\uses\" -SP"S:\Mustangpeak\mikroPascal\Library\ENC624J600\Example\" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Packages\Network_Ethernet_dsPIC\Uses\" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Packages\FAT32 Library\Uses\" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Packages\FT800\Uses\" -SP"S:\Mustangpeak\mikroPascal\Library\ENC624J600\Library\" -SP"S:\Mustangpeak\mikroPascal\Library\ENC624J600\" -SP"S:\Mustangpeak\mikroPascal\Library\ENC624J600\User\" -SP"S:\Mustangpeak\mikroPascal\Library\Common\" -SP"S:\Mustangpeak\mikroPascal\Library\ENC624J600\The TCP:" "__Lib_Math.mcl" "__Lib_MathDouble.mcl" "__Lib_System.mcl" "__Lib_Delays.mcl" "__Lib_CType.mcl" "__Lib_String.mcl" "__Lib_CStdlib.mcl" "__Lib_Conversions.mcl" "__Lib_SPI_123_p24fj.mcl" "__Lib_UART_1234_p24_p33.mcl" "__Lib_PPS_p33EP512MU810.mcl" "ENC624J600_Exampe.mpas" "dspic_additional_string_library.mpas" "Lib_Delays_LIO.mpas" "definitions_ENC600.mpas" "lib1_enc600_V3_5_b.mpas" "lib2_enc600_V3_5_b.mpas" "def_io.mpas" "enc_lib_user.mpas" "helperfunctions.mpas"	 
+warning: 0	1501	Specified search path does not exist: 'S:\Mustangpeak\mikroPascal\Library\ENC624J600\The TCP:'	 
+diagnostics: 0	133	Compilation Started	C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\defs\P33EP512MU810.mpas
+hint: 1	1015	Hint: Compiling unit "C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\defs\P33EP512MU810.mpas"	P33EP512MU810.mpas
+hint: 24557	1010	Hint: Unit "P33EP512MU810.mpas" has been recompiled	P33EP512MU810.mpas
+diagnostics: 0	134	Compiled Successfully	C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\defs\P33EP512MU810.mpas
+diagnostics: 0	133	Compilation Started	C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\uses\__Lib_Delays.mpas
+hint: 1	1015	Hint: Compiling unit "C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\uses\__Lib_Delays.mpas"	__Lib_Delays.mpas
+warning: 244	1527	Logical expression is always: 'True'	__Lib_Delays.mpas
+warning: 321	1527	Logical expression is always: 'True'	__Lib_Delays.mpas
+hint: 724	1010	Hint: Unit "__Lib_Delays.mpas" has been recompiled	__Lib_Delays.mpas
+diagnostics: 0	134	Compiled Successfully	C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\uses\__Lib_Delays.mpas
+diagnostics: 0	133	Compilation Started	S:\Mustangpeak\mikroPascal\Library\ENC624J600\Example\ENC624J600_Exampe.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\Example\ENC624J600_Exampe.mpas"	ENC624J600_Exampe.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\Library\dspic_additional_string_library.mpas"	dspic_additional_string_library.mpas
+warning: 127	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 139	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 227	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 242	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 261	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 262	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 278	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 298	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 299	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+hint: 308	1021	Hint: Jumping out of asm block stops SSA optimization	dspic_additional_string_library.mpas
+warning: 314	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 315	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 338	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 362	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 384	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 395	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 408	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 432	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 451	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 464	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 486	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 523	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 524	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 524	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 539	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 576	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 577	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 577	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 590	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 630	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 631	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 631	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 643	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 691	1516	Warning: Source size (3) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 691	1516	Warning: Source size (4) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 708	1516	Warning: Source size (5) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 708	1516	Warning: Source size (6) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 725	1516	Warning: Source size (10) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 725	1516	Warning: Source size (11) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 741	1516	Warning: Source size (3) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 742	1516	Warning: Source size (3) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 747	1516	Warning: Source size (3) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 747	1516	Warning: Source size (4) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 764	1516	Warning: Source size (5) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 765	1516	Warning: Source size (5) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 770	1516	Warning: Source size (5) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 770	1516	Warning: Source size (6) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 787	1516	Warning: Source size (10) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 788	1516	Warning: Source size (10) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 793	1516	Warning: Source size (10) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 793	1516	Warning: Source size (11) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 799	1516	Warning: Source size (3) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 800	1516	Warning: Source size (3) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 810	1516	Warning: Source size (5) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 811	1516	Warning: Source size (5) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 821	1516	Warning: Source size (10) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 822	1516	Warning: Source size (10) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 836	1516	Warning: Source size (10) does not match destination size (11)	dspic_additional_string_library.mpas
+warning: 845	1516	Warning: Source size (10) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 845	1516	Warning: Source size (17) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 850	1516	Warning: Source size (1) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 850	1516	Warning: Source size (17) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 852	1516	Warning: Source size (10) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 852	1516	Warning: Source size (17) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 862	1516	Warning: Source size (10) does not match destination size (11)	dspic_additional_string_library.mpas
+warning: 871	1516	Warning: Source size (10) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 871	1516	Warning: Source size (17) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 876	1516	Warning: Source size (1) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 876	1516	Warning: Source size (17) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 878	1516	Warning: Source size (10) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 878	1516	Warning: Source size (17) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 894	1516	Warning: Source size (3) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 896	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 897	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 914	1516	Warning: Source size (4) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 916	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 917	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 935	1516	Warning: Source size (5) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 937	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 938	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 957	1516	Warning: Source size (6) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 959	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 960	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 981	1516	Warning: Source size (10) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 983	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 984	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 990	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 990	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 990	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 990	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 993	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 993	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 993	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 993	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 996	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 996	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 996	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 996	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 1014	1516	Warning: Source size (11) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 1016	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1017	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1023	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1023	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 1023	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1023	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 1026	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1026	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 1026	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1026	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 1029	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1029	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 1029	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1029	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 1042	1516	Warning: Source size (17) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 1044	1516	Warning: Source size (17) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 1047	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1050	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1067	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1068	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1112	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1147	1516	Warning: Source size (3) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 1147	1516	Warning: Source size (15) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 1148	1516	Warning: Source size (1) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 1148	1516	Warning: Source size (15) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 1162	1516	Warning: Source size (2) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 1162	1516	Warning: Source size (12) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 1171	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1171	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 1210	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1210	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 1211	1516	Warning: Source size (12) does not match destination size (65535)	dspic_additional_string_library.mpas
+warning: 1227	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1227	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 1267	1518	Warning: Suspicious pointer conversion	dspic_additional_string_library.mpas
+warning: 1267	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	dspic_additional_string_library.mpas
+warning: 1268	1516	Warning: Source size (12) does not match destination size (65535)	dspic_additional_string_library.mpas
+diagnostics: 1174	169	Logical expression is always: 'False'	dspic_additional_string_library.mpas
+diagnostics: 1189	169	Logical expression is always: 'False'	dspic_additional_string_library.mpas
+diagnostics: 1230	169	Logical expression is always: 'False'	dspic_additional_string_library.mpas
+diagnostics: 1245	169	Logical expression is always: 'False'	dspic_additional_string_library.mpas
+hint: 1314	1010	Hint: Unit "dspic_additional_string_library.mpas" has been recompiled	dspic_additional_string_library.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\Library\Lib_Delays_LIO.mpas"	Lib_Delays_LIO.mpas
+hint: 96	1010	Hint: Unit "Lib_Delays_LIO.mpas" has been recompiled	Lib_Delays_LIO.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\definitions_ENC600.mpas"	definitions_ENC600.mpas
+hint: 263	1010	Hint: Unit "definitions_ENC600.mpas" has been recompiled	definitions_ENC600.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\User\def_IO.mpas"	def_IO.mpas
+hint: 46	1010	Hint: Unit "def_IO.mpas" has been recompiled	def_IO.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\lib1_enc600_V3_5_b.mpas"	lib1_enc600_V3_5_b.mpas
+warning: 330	1512	Warning: Implicit typecast of integral value to pointer	lib1_enc600_V3_5_b.mpas
+warning: 351	1512	Warning: Implicit typecast of integral value to pointer	lib1_enc600_V3_5_b.mpas
+warning: 373	1512	Warning: Implicit typecast of integral value to pointer	lib1_enc600_V3_5_b.mpas
+warning: 394	1512	Warning: Implicit typecast of integral value to pointer	lib1_enc600_V3_5_b.mpas
+warning: 427	1512	Warning: Implicit typecast of integral value to pointer	lib1_enc600_V3_5_b.mpas
+warning: 449	1512	Warning: Implicit typecast of integral value to pointer	lib1_enc600_V3_5_b.mpas
+warning: 470	1512	Warning: Implicit typecast of integral value to pointer	lib1_enc600_V3_5_b.mpas
+warning: 491	1512	Warning: Implicit typecast of integral value to pointer	lib1_enc600_V3_5_b.mpas
+warning: 549	1518	Warning: Suspicious pointer conversion	lib1_enc600_V3_5_b.mpas
+warning: 571	1512	Warning: Implicit typecast of integral value to pointer	lib1_enc600_V3_5_b.mpas
+warning: 693	1512	Warning: Implicit typecast of integral value to pointer	lib1_enc600_V3_5_b.mpas
+diagnostics: 258	169	Logical expression is always: 'False'	lib1_enc600_V3_5_b.mpas
+diagnostics: 260	169	Logical expression is always: 'False'	lib1_enc600_V3_5_b.mpas
+diagnostics: 266	169	Logical expression is always: 'False'	lib1_enc600_V3_5_b.mpas
+diagnostics: 550	169	Logical expression is always: 'False'	lib1_enc600_V3_5_b.mpas
+diagnostics: 572	169	Logical expression is always: 'False'	lib1_enc600_V3_5_b.mpas
+diagnostics: 632	169	Logical expression is always: 'False'	lib1_enc600_V3_5_b.mpas
+diagnostics: 652	169	Logical expression is always: 'False'	lib1_enc600_V3_5_b.mpas
+hint: 765	1010	Hint: Unit "lib1_enc600_V3_5_b.mpas" has been recompiled	lib1_enc600_V3_5_b.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\Common\helperfunctions.mpas"	helperfunctions.mpas
+warning: 208	1519	Warning: Source size may exceed destination size	helperfunctions.mpas
+warning: 211	1519	Warning: Source size may exceed destination size	helperfunctions.mpas
+warning: 214	1519	Warning: Source size may exceed destination size	helperfunctions.mpas
+warning: 228	1519	Warning: Source size may exceed destination size	helperfunctions.mpas
+warning: 232	1519	Warning: Source size may exceed destination size	helperfunctions.mpas
+warning: 236	1519	Warning: Source size may exceed destination size	helperfunctions.mpas
+warning: 240	1519	Warning: Source size may exceed destination size	helperfunctions.mpas
+warning: 245	1519	Warning: Source size may exceed destination size	helperfunctions.mpas
+warning: 362	1518	Warning: Suspicious pointer conversion	helperfunctions.mpas
+warning: 367	1518	Warning: Suspicious pointer conversion	helperfunctions.mpas
+warning: 372	1518	Warning: Suspicious pointer conversion	helperfunctions.mpas
+warning: 377	1518	Warning: Suspicious pointer conversion	helperfunctions.mpas
+diagnostics: 202	162	variable 'Result' might not have been initialized	variable 'Result' might not have been initialized
+diagnostics: 221	162	variable 'Result' might not have been initialized	variable 'Result' might not have been initialized
+diagnostics: 321	162	variable 'SegmentCharOffset' might not have been initialized	helperfunctions.mpas
+hint: 380	1010	Hint: Unit "helperfunctions.mpas" has been recompiled	helperfunctions.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\protocol_defines.mpas"	protocol_defines.mpas
+hint: 151	1010	Hint: Unit "protocol_defines.mpas" has been recompiled	protocol_defines.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\User\enc_lib_user.mpas"	enc_lib_user.mpas
+hint: 67	1001	Hint: Variable "type_" has been declared, but not used	enc_lib_user.mpas
+hint: 98	1001	Hint: Variable "i" has been declared, but not used	enc_lib_user.mpas
+hint: 98	1001	Hint: Variable "j" has been declared, but not used	enc_lib_user.mpas
+hint: 113	1001	Hint: Variable "dest_ip_addr_T" has been declared, but not used	enc_lib_user.mpas
+hint: 113	1001	Hint: Variable "source_port_T" has been declared, but not used	enc_lib_user.mpas
+hint: 113	1001	Hint: Variable "dest_port_T" has been declared, but not used	enc_lib_user.mpas
+hint: 113	1001	Hint: Variable "len_T" has been declared, but not used	enc_lib_user.mpas
+hint: 113	1001	Hint: Variable "CC_Sock" has been declared, but not used	enc_lib_user.mpas
+hint: 118	1001	Hint: Variable "dest_ip_addr_U" has been declared, but not used	enc_lib_user.mpas
+hint: 118	1001	Hint: Variable "dest_port_U" has been declared, but not used	enc_lib_user.mpas
+hint: 118	1001	Hint: Variable "source_port_U" has been declared, but not used	enc_lib_user.mpas
+hint: 118	1001	Hint: Variable "len_U" has been declared, but not used	enc_lib_user.mpas
+hint: 123	1010	Hint: Unit "enc_lib_user.mpas" has been recompiled	enc_lib_user.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\packet_utilities.mpas"	packet_utilities.mpas
+warning: 72	1518	Warning: Suspicious pointer conversion	packet_utilities.mpas
+warning: 72	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	packet_utilities.mpas
+warning: 77	1518	Warning: Suspicious pointer conversion	packet_utilities.mpas
+warning: 77	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	packet_utilities.mpas
+warning: 83	1518	Warning: Suspicious pointer conversion	packet_utilities.mpas
+warning: 83	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	packet_utilities.mpas
+warning: 84	1518	Warning: Suspicious pointer conversion	packet_utilities.mpas
+warning: 84	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	packet_utilities.mpas
+warning: 89	1518	Warning: Suspicious pointer conversion	packet_utilities.mpas
+warning: 89	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	packet_utilities.mpas
+warning: 90	1518	Warning: Suspicious pointer conversion	packet_utilities.mpas
+warning: 90	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	packet_utilities.mpas
+diagnostics: 34	162	variable 'Result' might not have been initialized	packet_utilities.mpas
+diagnostics: 100	162	variable 'PacketSize' might not have been initialized	packet_utilities.mpas
+hint: 137	1010	Hint: Unit "packet_utilities.mpas" has been recompiled	packet_utilities.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\port_utilities.mpas"	port_utilities.mpas
+hint: 132	1010	Hint: Unit "port_utilities.mpas" has been recompiled	port_utilities.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\protocol_arp.mpas"	protocol_arp.mpas
+warning: 201	1518	Warning: Suspicious pointer conversion	protocol_arp.mpas
+warning: 201	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_arp.mpas
+warning: 212	1518	Warning: Suspicious pointer conversion	protocol_arp.mpas
+warning: 212	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_arp.mpas
+warning: 213	1518	Warning: Suspicious pointer conversion	protocol_arp.mpas
+warning: 213	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_arp.mpas
+warning: 215	1518	Warning: Suspicious pointer conversion	protocol_arp.mpas
+warning: 215	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_arp.mpas
+warning: 245	1518	Warning: Suspicious pointer conversion	protocol_arp.mpas
+warning: 245	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_arp.mpas
+warning: 256	1518	Warning: Suspicious pointer conversion	protocol_arp.mpas
+warning: 256	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_arp.mpas
+warning: 275	1518	Warning: Suspicious pointer conversion	protocol_arp.mpas
+warning: 275	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_arp.mpas
+warning: 277	1518	Warning: Suspicious pointer conversion	protocol_arp.mpas
+warning: 277	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_arp.mpas
+hint: 335	1010	Hint: Unit "protocol_arp.mpas" has been recompiled	protocol_arp.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\protocol_ping.mpas"	protocol_ping.mpas
+warning: 66	1518	Warning: Suspicious pointer conversion	protocol_ping.mpas
+warning: 66	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ping.mpas
+warning: 167	1518	Warning: Suspicious pointer conversion	protocol_ping.mpas
+warning: 167	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ping.mpas
+warning: 168	1518	Warning: Suspicious pointer conversion	protocol_ping.mpas
+warning: 168	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ping.mpas
+warning: 186	1518	Warning: Suspicious pointer conversion	protocol_ping.mpas
+warning: 186	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ping.mpas
+warning: 187	1518	Warning: Suspicious pointer conversion	protocol_ping.mpas
+warning: 187	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ping.mpas
+warning: 232	1518	Warning: Suspicious pointer conversion	protocol_ping.mpas
+warning: 232	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ping.mpas
+warning: 234	1518	Warning: Suspicious pointer conversion	protocol_ping.mpas
+warning: 234	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ping.mpas
+diagnostics: 228	162	variable 'PacketSize' might not have been initialized	protocol_ping.mpas
+hint: 303	1010	Hint: Unit "protocol_ping.mpas" has been recompiled	protocol_ping.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\protocol_udp.mpas"	protocol_udp.mpas
+warning: 204	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 283	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 283	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 284	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 284	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 308	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 308	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 309	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 309	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 321	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 321	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 481	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 481	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 482	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 482	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 484	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 484	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 485	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 485	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 503	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 503	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 528	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 528	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 551	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 551	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 576	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 576	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 584	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 584	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 602	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 602	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 622	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 622	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 700	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 700	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 737	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 737	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+warning: 774	1518	Warning: Suspicious pointer conversion	protocol_udp.mpas
+warning: 774	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_udp.mpas
+hint: 123	1001	Hint: Variable "i" has been declared, but not used	protocol_udp.mpas
+diagnostics: 144	162	variable 'iLastEmpty' might not have been initialized	protocol_udp.mpas
+diagnostics: 428	162	variable 'iLastEmpty' might not have been initialized	protocol_udp.mpas
+diagnostics: 435	162	variable 'IpCheckSum' might not have been initialized	protocol_udp.mpas
+diagnostics: 437	162	variable 'UdpCheckSum' might not have been initialized	protocol_udp.mpas
+diagnostics: 440	162	variable 'PacketLength' might not have been initialized	protocol_udp.mpas
+hint: 820	1010	Hint: Unit "protocol_udp.mpas" has been recompiled	protocol_udp.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\protocol_ntp.mpas"	protocol_ntp.mpas
+warning: 129	1518	Warning: Suspicious pointer conversion	protocol_ntp.mpas
+warning: 129	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ntp.mpas
+warning: 185	1516	Warning: Source size (24) does not match destination size (65535)	protocol_ntp.mpas
+warning: 186	1516	Warning: Source size (1) does not match destination size (65535)	protocol_ntp.mpas
+warning: 186	1516	Warning: Source size (24) does not match destination size (65535)	protocol_ntp.mpas
+warning: 189	1516	Warning: Source size (3) does not match destination size (65535)	protocol_ntp.mpas
+warning: 190	1516	Warning: Source size (3) does not match destination size (65535)	protocol_ntp.mpas
+warning: 190	1516	Warning: Source size (24) does not match destination size (65535)	protocol_ntp.mpas
+warning: 192	1516	Warning: Source size (1) does not match destination size (65535)	protocol_ntp.mpas
+warning: 192	1516	Warning: Source size (24) does not match destination size (65535)	protocol_ntp.mpas
+warning: 194	1516	Warning: Source size (3) does not match destination size (5)	protocol_ntp.mpas
+warning: 195	1516	Warning: Source size (3) does not match destination size (65535)	protocol_ntp.mpas
+warning: 195	1516	Warning: Source size (24) does not match destination size (65535)	protocol_ntp.mpas
+warning: 197	1516	Warning: Source size (1) does not match destination size (65535)	protocol_ntp.mpas
+warning: 197	1516	Warning: Source size (24) does not match destination size (65535)	protocol_ntp.mpas
+warning: 200	1516	Warning: Source size (3) does not match destination size (65535)	protocol_ntp.mpas
+warning: 201	1516	Warning: Source size (3) does not match destination size (65535)	protocol_ntp.mpas
+warning: 201	1516	Warning: Source size (24) does not match destination size (65535)	protocol_ntp.mpas
+warning: 202	1516	Warning: Source size (1) does not match destination size (65535)	protocol_ntp.mpas
+warning: 202	1516	Warning: Source size (24) does not match destination size (65535)	protocol_ntp.mpas
+warning: 204	1516	Warning: Source size (3) does not match destination size (65535)	protocol_ntp.mpas
+warning: 205	1516	Warning: Source size (3) does not match destination size (65535)	protocol_ntp.mpas
+warning: 205	1516	Warning: Source size (24) does not match destination size (65535)	protocol_ntp.mpas
+warning: 206	1516	Warning: Source size (1) does not match destination size (65535)	protocol_ntp.mpas
+warning: 206	1516	Warning: Source size (24) does not match destination size (65535)	protocol_ntp.mpas
+warning: 208	1516	Warning: Source size (3) does not match destination size (65535)	protocol_ntp.mpas
+warning: 209	1516	Warning: Source size (3) does not match destination size (65535)	protocol_ntp.mpas
+warning: 209	1516	Warning: Source size (24) does not match destination size (65535)	protocol_ntp.mpas
+warning: 231	1518	Warning: Suspicious pointer conversion	protocol_ntp.mpas
+warning: 231	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ntp.mpas
+warning: 231	1518	Warning: Suspicious pointer conversion	protocol_ntp.mpas
+warning: 231	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ntp.mpas
+warning: 244	1518	Warning: Suspicious pointer conversion	protocol_ntp.mpas
+warning: 244	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ntp.mpas
+warning: 244	1518	Warning: Suspicious pointer conversion	protocol_ntp.mpas
+warning: 244	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ntp.mpas
+warning: 245	1518	Warning: Suspicious pointer conversion	protocol_ntp.mpas
+warning: 245	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ntp.mpas
+warning: 245	1518	Warning: Suspicious pointer conversion	protocol_ntp.mpas
+warning: 245	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_ntp.mpas
+warning: 256	1516	Warning: Source size (32) does not match destination size (65535)	protocol_ntp.mpas
+warning: 264	1516	Warning: Source size (4) does not match destination size (5)	protocol_ntp.mpas
+warning: 354	1516	Warning: Source size (19) does not match destination size (65535)	protocol_ntp.mpas
+warning: 355	1516	Warning: Source size (1) does not match destination size (65535)	protocol_ntp.mpas
+warning: 355	1516	Warning: Source size (19) does not match destination size (65535)	protocol_ntp.mpas
+warning: 358	1516	Warning: Source size (5) does not match destination size (65535)	protocol_ntp.mpas
+warning: 359	1516	Warning: Source size (5) does not match destination size (65535)	protocol_ntp.mpas
+warning: 359	1516	Warning: Source size (19) does not match destination size (65535)	protocol_ntp.mpas
+warning: 361	1516	Warning: Source size (1) does not match destination size (65535)	protocol_ntp.mpas
+warning: 361	1516	Warning: Source size (19) does not match destination size (65535)	protocol_ntp.mpas
+warning: 364	1516	Warning: Source size (5) does not match destination size (65535)	protocol_ntp.mpas
+warning: 364	1516	Warning: Source size (19) does not match destination size (65535)	protocol_ntp.mpas
+warning: 366	1516	Warning: Source size (1) does not match destination size (65535)	protocol_ntp.mpas
+warning: 366	1516	Warning: Source size (19) does not match destination size (65535)	protocol_ntp.mpas
+warning: 369	1516	Warning: Source size (5) does not match destination size (65535)	protocol_ntp.mpas
+warning: 370	1516	Warning: Source size (5) does not match destination size (65535)	protocol_ntp.mpas
+warning: 370	1516	Warning: Source size (19) does not match destination size (65535)	protocol_ntp.mpas
+warning: 371	1516	Warning: Source size (1) does not match destination size (65535)	protocol_ntp.mpas
+warning: 371	1516	Warning: Source size (19) does not match destination size (65535)	protocol_ntp.mpas
+warning: 373	1516	Warning: Source size (5) does not match destination size (65535)	protocol_ntp.mpas
+warning: 374	1516	Warning: Source size (5) does not match destination size (65535)	protocol_ntp.mpas
+warning: 374	1516	Warning: Source size (19) does not match destination size (65535)	protocol_ntp.mpas
+warning: 375	1516	Warning: Source size (1) does not match destination size (65535)	protocol_ntp.mpas
+warning: 375	1516	Warning: Source size (19) does not match destination size (65535)	protocol_ntp.mpas
+warning: 377	1516	Warning: Source size (5) does not match destination size (65535)	protocol_ntp.mpas
+warning: 378	1516	Warning: Source size (5) does not match destination size (65535)	protocol_ntp.mpas
+warning: 378	1516	Warning: Source size (19) does not match destination size (65535)	protocol_ntp.mpas
+diagnostics: 335	169	Logical expression is always: 'False'	protocol_ntp.mpas
+diagnostics: 129	162	variable 'buft' might not have been initialized	protocol_ntp.mpas
+diagnostics: 166	169	Logical expression is always: 'False'	protocol_ntp.mpas
+hint: 322	1011	Hint: Variable "TTime_Day" has been eliminated by optimizer	protocol_ntp.mpas
+hint: 381	1010	Hint: Unit "protocol_ntp.mpas" has been recompiled	protocol_ntp.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\protocol_dns.mpas"	protocol_dns.mpas
+warning: 37	1516	Warning: Source size (40) does not match destination size (65535)	protocol_dns.mpas
+warning: 45	1516	Warning: Source size (40) does not match destination size (65535)	protocol_dns.mpas
+warning: 46	1518	Warning: Suspicious pointer conversion	protocol_dns.mpas
+warning: 46	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_dns.mpas
+warning: 46	1518	Warning: Suspicious pointer conversion	protocol_dns.mpas
+warning: 46	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_dns.mpas
+warning: 103	1518	Warning: Suspicious pointer conversion	protocol_dns.mpas
+warning: 103	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_dns.mpas
+warning: 103	1518	Warning: Suspicious pointer conversion	protocol_dns.mpas
+warning: 103	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	protocol_dns.mpas
+hint: 34	1011	Hint: Variable "data_len" has been eliminated by optimizer	protocol_dns.mpas
+hint: 107	1010	Hint: Unit "protocol_dns.mpas" has been recompiled	protocol_dns.mpas
+hint: 1	1015	Hint: Compiling unit "S:\Mustangpeak\mikroPascal\Library\ENC624J600\protocol_tcp.mpas"	protocol_tcp.mpas
+error: 243	303	Identifier "IpLength" was not declared	protocol_tcp.mpas
+error: 243	301	"<="is not valid identifier	protocol_tcp.mpas
+error: 243	304	Syntax error: Expected "end" but "<=" found	protocol_tcp.mpas
+error: 243	304	Syntax error: Expected ";" but "28" found	protocol_tcp.mpas
+error: 243	304	Syntax error: Expected "end" but "then" found	protocol_tcp.mpas
+error: 244	304	Syntax error: Expected "." but "Exit" found	protocol_tcp.mpas
+error: 0	102	Finished (with errors): 29 Jun 2015, 10:28:55	ENC624J600_Exampe.mppds

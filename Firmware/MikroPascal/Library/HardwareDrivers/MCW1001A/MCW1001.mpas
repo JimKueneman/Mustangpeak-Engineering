@@ -1,0 +1,1322 @@
+unit MCW1001;
+
+{$I Options.inc}
+
+{.$DEFINE PRINT_RECEIVE}
+{.$DEFINE PRINT_TRANSMIT}
+{$DEFINE PRINT_RESULT_MSG}
+
+
+uses
+  opstack_types,
+  opstack_debug,
+  MCW1001_Utilities,
+  MCW1001_Defines,
+  MCW1001_Print;
+  
+const
+  MAX_MSG_DATA_LEN = 1024;
+  BLOCK_EVENT_DELAY_US = 100;
+  BLOCK_ACK_DELAY_US = 100;
+  
+procedure MCW1001_Initialize;
+
+var MCW1001_ErrorEvent: TWiFiErrorEvent;
+function MCW1001_IsAcknowledged: Boolean;                                       // True after the message sent to the MCW1001 and the Ack has been received (if the message sends an ACK)
+procedure MCW1001_FillChannelList(var ChannelList: TChannelList);               // Helper for all Channels
+procedure MCW1001_Receive(NextByte: Byte);                                      // Call for every byte received on the UART
+procedure MCW1001_EnableInterrupt(Enable: Boolean);
+
+// Control Messages and structures updated by them
+var MCW1001_StartupEvent: TWiFiStartupEvent;
+procedure MCW1001_HardwareReset(Blocking: Boolean);
+procedure MCW1001_SoftwareReset(Blocking: Boolean);
+procedure MCW1001_GetVersion(Blocking: Boolean);
+
+// Network Configuration Messages
+var MCW1001_IpAddressAssignedEvent: TWiFiIpAddressAssignedEvent;
+var MCW1001_NetworkStatus: TWiFiNetworkStatus;
+procedure MCW1001_SetDHCP(Blocking: Boolean);
+procedure MCW1001_SetIpAddress(var IpAddress: TOlcbIpAddress; Blocking: Boolean);                  // This will fire an IP Address Set Event
+procedure MCW1001_SetNetworkMask(var Mask: TOlcbIpAddress; Blocking: Boolean);
+procedure MCW1001_SetGatewayIpAddress(var IpAddress: TOlcbIpAddress; Blocking: Boolean);
+procedure MCW1001_GetNetworkStatus(Blocking: Boolean);                                     // THERE IS NO ACK TO THIS MESSAGE!!!!!
+procedure MCW1001_SetMacAddress(var MacAddress: TOlcbMacAddress; Blocking: Boolean);
+procedure MCW1001_SetARPSendInterval(Internal: Word; Blocking: Boolean);                           // 0 Turn off automatic ARP
+
+// Wi-Fi General Configuration Messages
+procedure MCW1001_SetNetworkMode(ConnectionProfile: Byte; NetworkMode: Byte; Blocking: Boolean);   // Profile 1 or 2, Mode NETWORK_MODE_INFASTRUCTURE or NETWORK_MODE_ADHOC
+procedure MCW1001_SetSSID(ConnectionProfile: Byte; var SSID: TSSID; Blocking: Boolean);
+procedure MCW1001_SetRegionalDomain(RegionCode: Byte; Blocking: Boolean);                          // See REGIONAL_DOMAIN_xxxx constants
+procedure MCW1001_SetChannelList(NumberOfChannels: Byte; var ChannelList: TChannelList; Blocking: Boolean);
+procedure MCW1001_SetListRetryCount(AdHocRetryCount: Byte; InfastructureRetryCount: Byte; Blocking: Boolean); // See RETRY_xxxx constants
+
+// Wi-Fi Security Configuration Messages
+var MCW1001_BinaryWPAKeyResult: TWiFiWPAKeyResult;
+procedure MCW1001_SetSecurityOpen(ConnectionProfile: Byte; Blocking: Boolean);                     // Profile 1 or 2
+procedure MCW1001_SetSecurityWEP40(ConnectionProfile: Byte; Mode: Byte; KeyIndex: Byte; var Keys: TKey5Array; Blocking: Boolean);   // Profile 1 or 2, Mode WEP_MODE_OPEN or WEP_MODE_SHARED, Index of Key to use, List of 4 Keys
+procedure MCW1001_SetSecurityWEP104(ConnectionProfile: Byte; Mode: Byte; KeyIndex: Byte; var Keys: TKey13Array; Blocking: Boolean); // Profile 1 or 2, Mode WEP_MODE_OPEN or WEP_MODE_SHARED, Index of Key to use, List of 4 Keys
+procedure MCW1001_SetSecurityWPA(ConnectionProfile: Byte; Mode: Byte; KeyLength: Byte; KeyType: Byte; var Key: TKey64; Blocking: Boolean);  // Profile 1 or 2  Mode MODE_xxxx, Length of the Key string, If KEY_TYPE_BINARY_PRESHARED or KEY_TYPE_PASSPHRASE, 8-64 character string for the Key
+procedure MCW1001_GetWPAKey(ConnectionProfile: Byte; Blocking: Boolean);                                                                    // Profile 1 or 2, call after a connect is established to get the binary Key associated with the SSID and Passphase for the connection to use in MCW1001_SetSecurityWPA later to eliminate the possible 30 second delay when logging in with the passphrase
+
+// Wi-Fi Scanning Messages
+var MCW1001_ScanResult: TWiFiScanResult;
+var MCW1001_ScanResultsReadyEvent: TWiFiScanResultsReadyEvent;
+procedure MCW1001_ScanStart(ConnectionProfile: Byte; Blocking: Boolean);                           // Profile 1 or 2 or SCAN_ALL to scan everything
+procedure MCW1001_GetScanResults(ListIndex: Byte; Blocking: Boolean);                              // THERE IS NO ACK TO THIS MESSAGE!!!!!
+
+// Wi-Fi Connection Messages
+var MCW1001_ConnectionStatusChangedEvent: TWiFiConnectionStatusChangedEvent;
+procedure MCW1001_Connect(ConnectionProfile: Byte; Blocking: Boolean);   // Profile 1 or 2
+procedure MCW1001_Disconnect(Blocking: Boolean);
+
+// ICMP (Ping) Messages
+var MCW1001_PingResponseEvent: TWiFiPingResponseEvent;
+procedure MCW1001_Ping(var IpAddress: TOlcbIpAddress; Blocking: Boolean);
+
+// Socket Messages
+var MCW1001_SocketCreateResult: TSocketCreateResult;
+var MCW1001_SocketBindResult: TSocketBindResult;
+var MCW1001_SocketConnectResult: TSocketConnectResult;
+var MCW1001_SocketListenResult: TSocketListenResult;
+var MCW1001_SocketAcceptResult: TSocketAcceptResult;
+var MCW1001_SocketSendResult: TSocketSendResult;
+var MCW1001_SocketReceiveResult: TSocketReceiveResult;
+var MCW1001_SocketSendToResult: TSocketSendToResult;
+var MCW1001_SocketReceiveFromResult: TSocketReceiveFromResult;
+procedure MCW1001_SocketCreateUDP(Blocking: Boolean);
+procedure MCW1001_SocketCreateTCP(Blocking: Boolean);
+procedure MCW1001_SocketClose(SocketHandle: Word);
+procedure MCW1001_SocketBind(LocalPort: Word; SocketHandle: Byte; Blocking: Boolean);
+procedure MCW1001_SocketConnect(SocketHandle: Byte; RemotePort: Word; var RemoteIp: TOlcbIpAddress; Blocking: Boolean);
+procedure MCW1001_SocketListen(SocketHandle: Byte; MaxClientCount: Byte; Blocking: Boolean);
+procedure MCW1001_SocketAccept(SocketHandle: Byte; Blocking: Boolean);
+procedure MCW1001_SocketSend(SocketHandle: Byte; DataCount: Word; SendData: ^Byte; Blocking: Boolean);
+procedure MCW1001_SocketReceive(SocketHandle: Byte; DataCount: Word; Blocking: Boolean);
+procedure MCW1001_SocketSendTo(SocketHandle: Byte; RemotePort: Word; var RemoteIP: TOlcbIpAddress; DataCount: Word; var DataArray: TWiFiDataBuffer; Blocking: Boolean);
+procedure MCW1001_SocketReceiveFrom(SocketHandle: Byte; DataCount: Word; Blocking: Boolean);
+
+// Socket Allocations
+var MCW1001_SocketAllocateResult: TSocketAllocateResult;
+procedure MCW1001_SocketAllocate(MaxServerSockets: Byte; MaxClientSockets: Byte; ServerRxBufSize: Word; ServerTxBufSize: Word; ClientRxBufSize: Word; ClientTxBufSize: Word; Blocking: Boolean);
+
+var
+  MCW1001_HardwareResetPin: sbit; sfr; external;
+  MCW1001_HardwareResetPinDirection: sbit; sfr; external;
+  
+implementation
+
+const
+   STATE_RECEIVE_HEADER_0   = 0;
+   STATE_RECEIVE_HEADER_1   = 1;
+   STATE_RECEIVE_MSG_TYPE_0 = 2;
+   STATE_RECEIVE_MSG_TYPE_1 = 3;
+   STATE_RECEIVE_MSG_LEN_0  = 4;
+   STATE_RECEIVE_MSG_LEN_1  = 5;
+   STATE_RECEIVE_DATA       = 6;
+   STATE_RECEIVE_TRAILER    = 10;
+
+type
+  TMessageData = array[MAX_MSG_DATA_LEN] of Byte;
+  PMessageData = ^TMessageData;
+  
+  TReceive = record
+    iStateMachine: Word;
+    Msg: Word;
+    MsgLen: Word;
+    MsgData: TMessageData;
+    iCurrent: Word;  // Current count of incoming data bytes
+  end;
+
+var
+  Receive: TReceive;
+  ReceivedAck: Boolean;
+  
+procedure AckWait;
+begin
+   while not MCW1001_IsAcknowledged do;
+   Delay_us(BLOCK_ACK_DELAY_US);
+end;
+
+procedure MCW1001_Initialize;
+var
+  i: Integer;
+begin
+  MCW1001_ZeroIpAddressAssigned(@MCW1001_IpAddressAssignedEvent);
+  MCW1001_ZeroConnectionStatusChanged(@MCW1001_ConnectionStatusChangedEvent);
+  MCW1001_ZeroScanResultsReady(@MCW1001_ScanResultsReadyEvent);
+  MCW1001_ZeroPingResponse(@MCW1001_PingResponseEvent);
+  MCW1001_ZeroError(@MCW1001_ErrorEvent);
+  MCW1001_ZeroStartup(@MCW1001_StartupEvent);
+  MCW1001_ZeroNetworkStatus(@MCW1001_NetworkStatus);
+  MCW1001_ZeroBinaryKeyResult(@MCW1001_BinaryWPAKeyResult);
+  MCW1001_ZeroScanResult(@MCW1001_ScanResult);
+  MCW1001_ZeroSocketCreateResult(@MCW1001_SocketCreateResult);
+  MCW1001_ZeroSocketBindResult(@MCW1001_SocketBindResult);
+  MCW1001_ZeroSocketConnectResult(@MCW1001_SocketConnectResult);
+  MCW1001_ZeroSocketListenResult(@MCW1001_SocketListenResult);
+  MCW1001_ZeroSocketAcceptResult(@MCW1001_SocketAcceptResult);
+  MCW1001_ZeroSocketSendResult(@MCW1001_SocketSendResult);
+  MCW1001_ZeroSocketReceiveResult(@MCW1001_SocketReceiveResult);
+  MCW1001_ZeroSocketSendToResult(@MCW1001_SocketSendToResult);
+  MCW1001_ZeroSocketReceiveFromResult(@MCW1001_SocketReceiveFromResult);
+  MCW1001_ZeroSocketAllocateResult(@MCW1001_SocketAllocateResult);
+
+  MCW1001_HardwareResetPin := 1;
+  MCW1001_HardwareResetPinDirection := 0; // Output
+  Receive.iStateMachine := 0;
+  Receive.Msg := 0;
+  Receive.MsgLen := 0;
+  Receive.iCurrent := 0;
+  for i := 0 to MAX_MSG_DATA_LEN - 1 do
+    Receive.MsgData[i] := 0;
+  ReceivedAck := False;
+end;
+
+procedure Write(AByte: Byte);
+begin
+  UART2_Write(AByte);
+  
+  {$IFDEF PRINT_TRANSMIT}
+  ByteToHex(AByte, s1);
+  DebugLine(s1);
+  {$ENDIF}
+end;
+
+procedure WriteArray(DataLen: Byte; Buffer: ^Byte);
+var
+  i: Integer;
+begin
+  for i := 0 to Datalen - 1 do
+  begin
+   {$IFDEF PRINT_TRANSMIT}
+    ByteToHex(Buffer^, s1);
+    DebugLine(s1);
+    {$ENDIF}
+    Write(Buffer^);
+    Inc(Buffer)
+  end;
+end;
+
+procedure WriteIp(var Ip: TOlcbIpAddress);
+var
+  i: Integer;
+begin
+  WriteArray(4, @Ip[0]);
+  for i := 0 to 11 do
+    Write(0);
+end;
+
+procedure SendHeader;
+begin
+  {$IFDEF PRINT_TRANSMIT}
+  DebugLine('');
+  {$ENDIF}
+  ReceivedAck := False;
+  Write(0x55);
+  Write(0xAA);
+end;
+
+procedure WriteWord(var AWord: Word);      // Bug in dsPIC33 v6.2, this must be a VAR or it fails
+begin
+  Write(Lo(AWord));
+  Write(Hi(AWord));
+end;
+
+procedure SendMsgType(MsgType: Word);  // Bug in dsPIC33 v6.2, this must be a VAR or it fails
+begin
+  Write(Lo(MsgType));
+  Write(Hi(MsgType));
+end;
+
+procedure SendDataLen(DataLen: Word);  // Bug in dsPIC33 v6.2, this must be a VAR or it fails
+begin
+  Write(Lo(DataLen));
+  Write(Hi(DataLen));
+end;
+
+procedure SendTrailer;
+begin
+  Write(0x45);
+  {$IFDEF PRINT_TRANSMIT}
+  DebugLine('');
+  {$ENDIF}
+end;
+
+function MCW1001_IsAcknowledged: Boolean;
+begin
+  Result := ReceivedAck;
+end;
+
+procedure MCW1001_HardwareReset(Blocking: Boolean);
+begin
+  MCW1001_StartupEvent.Valid := False; 
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+
+  MCW1001_HardwareResetPin := 0;
+  Delay_ms(1000);
+  MCW1001_HardwareResetPin := 1;
+  
+  if Blocking then
+  begin
+    while not (MCW1001_StartupEvent.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SoftwareReset(Blocking: Boolean);
+begin
+  MCW1001_StartupEvent.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(RESET_MSG);
+  SendDataLen(0);
+  SendTrailer;
+  
+  if Blocking then
+  begin
+    while not (MCW1001_StartupEvent.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_GetVersion(Blocking: Boolean);
+begin
+  MCW1001_StartupEvent.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  MCW1001_StartupEvent.Valid := False;
+  SendHeader;
+  SendMsgType(GET_VERSION_MSG);
+  SendDataLen(0);
+  SendTrailer;
+  
+  if Blocking then
+  begin
+    while not (MCW1001_StartupEvent.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SetDHCP(Blocking: Boolean);
+var
+  i: Integer;
+begin
+  MCW1001_IpAddressAssignedEvent.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+
+  SendHeader;
+  SendMsgType(SET_IP_ADDRESS_MSG);
+  SendDataLen(18);
+  for i := 0 to 17 do
+    Write(0);                      // DHCP IP
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_SetIpAddress(var IpAddress: TOlcbIpAddress; Blocking: Boolean);
+var
+  i: Integer;
+begin
+  MCW1001_IpAddressAssignedEvent.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SET_IP_ADDRESS_MSG);    
+  SendDataLen(18);
+  Write(0);                    // Reserved
+  Write(1);                    // Static IP
+  WriteIp(IpAddress);
+  SendTrailer;
+  
+  if Blocking then
+  begin
+    while not (MCW1001_IpAddressAssignedEvent.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SetNetworkMask(var Mask: TOlcbIpAddress; Blocking: Boolean);
+var
+  i: Integer;
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SET_NETWORK_MASK_MSG);
+  SendDataLen(16);
+  WriteIp(Mask);
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_SetGatewayIpAddress(var IpAddress: TOlcbIpAddress; Blocking: Boolean);
+var
+  i: Integer;
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SET_GATEWAY_IP_ADDRESS_MSG);
+  SendDataLen(16);
+  WriteIp(IpAddress);
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_SetMacAddress(var MacAddress: TOlcbMacAddress; Blocking: Boolean);
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SET_MACADDRESS_MSG);
+  SendDataLen(6);
+  WriteArray(6, @MacAddress[0]);
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_GetNetworkStatus(Blocking: Boolean);
+begin
+  MCW1001_NetworkStatus.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+
+  SendHeader;
+  SendMsgType(GET_NETWORK_STATUS);
+  SendDataLen(0);
+  SendTrailer;
+  
+  if Blocking then
+  begin
+    while not (MCW1001_NetworkStatus.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SetARPSendInterval(Internal: Word; Blocking: Boolean);                           // 0 Turn off automatic ARP
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SET_ARP_TIME_MSG);
+  SendDataLen(2);
+  Write(Lo(Internal));
+  Write(Hi(Internal));
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_SetNetworkMode(ConnectionProfile: Byte; NetworkMode: Byte; Blocking: Boolean);   // Profile 1 or 2, Mode NETWORK_MODE_INFASTRUCTURE or NETWORK_MODE_ADHOC
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SET_CP_NETWORK_MODE_MSG);
+  SendDataLen(2);
+  Write(ConnectionProfile);
+  Write(NetworkMode);
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_SetSSID(ConnectionProfile: Byte; var SSID: TSSID; Blocking: Boolean);
+var
+  i, Len: Integer;
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SET_CP_SSID_MSG);
+  Len := strlen(SSID);
+  if Len > 32 then
+    Len := 32;
+  SendDataLen(Len+2);
+  Write(ConnectionProfile);
+  Write(Len);
+  for i := 0 to Len-1 do
+    Write(SSID[i]);
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_SetRegionalDomain(RegionCode: Byte; Blocking: Boolean);                          // See REGIONAL_DOMAIN_xxxx constants
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SET_REGIONAL_DOMAIN_MSG);
+  SendDataLen(1);
+  Write(RegionCode);                                                            // Datasheet says Data Length 1 but shows a reserved bytes...??
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_SetChannelList(NumberOfChannels: Byte; var ChannelList: TChannelList; Blocking: Boolean);
+var
+  i: Integer;
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SET_CHANNEL_LIST_MSG);
+  if NumberOfChannels > 11 then
+    NumberOfChannels := 11;
+  SendDataLen(NumberOfChannels+2);
+  Write(NumberOfChannels);
+  Write(0);                             // Reserved
+  WriteArray(NumberOfChannels, @ChannelList[0]);
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_SetListRetryCount(AdHocRetryCount: Byte; InfastructureRetryCount: Byte; Blocking: Boolean);
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SET_LIST_RETRY_COUNT_MSG);
+  SendDataLen(2);
+  Write(InfastructureRetryCount);
+  Write(AdHocRetryCount);
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_SetSecurityOpen(ConnectionProfile: Byte; Blocking: Boolean);                     // Profile 1 or 2
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SET_CP_SECURITY_OPEN_MSG);
+  SendDataLen(2);
+  Write(ConnectionProfile);
+  Write(0);                          // Reserved
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_SetSecurityWEP40(ConnectionProfile: Byte; Mode: Byte; KeyIndex: Byte; var Keys: TKey5Array; Blocking: Boolean);   // Profile 1 or 2, Mode WEP_MODE_OPEN or WEP_MODE_SHARED, Index of Key to use, List of 4 Keys
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  if KeyIndex > 3 then
+    KeyIndex := 0;
+  SendHeader;
+  SendMsgType(SET_CP_SECURITY_WEP40_MSG);
+  SendDataLen(24);
+  Write(ConnectionProfile);
+  Write(Mode);
+  Write(KeyIndex);
+  Write(0);             // Reserved
+  WriteArray(5, @Keys[0]);
+  WriteArray(5, @Keys[1]);
+  WriteArray(5, @Keys[2]);
+  WriteArray(5, @Keys[3]);
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_SetSecurityWEP104(ConnectionProfile: Byte; Mode: Byte; KeyIndex: Byte; var Keys: TKey13Array; Blocking: Boolean); // Profile 1 or 2, Mode WEP_MODE_OPEN or WEP_MODE_SHARED, Index of Key to use, List of 4 Keys
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  if KeyIndex > 3 then
+    KeyIndex := 0;
+  SendHeader;
+  SendMsgType(SET_CP_SECURITY_WEP104_MSG);
+  SendDataLen(24);
+  Write(ConnectionProfile);
+  Write(Mode);
+  Write(KeyIndex);
+  Write(0);             // Reserved
+  WriteArray(5, @Keys[0]);
+  WriteArray(5, @Keys[1]);
+  WriteArray(5, @Keys[2]);
+  WriteArray(5, @Keys[3]);
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_SetSecurityWPA(ConnectionProfile: Byte; Mode: Byte; KeyLength: Byte; KeyType: Byte; var Key: TKey64; Blocking: Boolean); // Profile 1 or 2  Mode WPA_MODE or WPA2_MODE, Length of the Key string, If KEY_TYPE_BINARY_PRESHARED or KEY_TYPE_PASSPHRASE, 8-64 character string for the Key
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  if KeyLength > 64 then
+    KeyLength := 64;
+  SendHeader;
+  SendMsgType(SET_CP_SECURITY_WPA_MSG);
+  SendDataLen(KeyLength+4);
+  case KeyType of
+    KEY_TYPE_BINARY_PRESHARED :
+      begin
+        case Mode of
+          MODE_WPA      : Mode := 3;
+          MODE_WPA2     : Mode := 5;
+          MODE_WPA_WPA2 : Mode := 7
+        else
+          Mode := 3;
+        end;
+      end;
+    KEY_TYPE_PASSPHRASE :
+      begin
+        case Mode of
+          MODE_WPA      : Mode := 4;
+          MODE_WPA2     : Mode := 6;
+          MODE_WPA_WPA2 : Mode := 8
+        else
+          Mode := 4;
+    end;
+      end
+  else
+    Mode := 4;
+  end;
+  Write(ConnectionProfile);
+  Write(Mode);
+  Write(0);     // Reserved
+  Write(KeyLength);
+  WriteArray(KeyLength, @Key[0]);
+  SendTrailer;
+  if Blocking then
+    AckWait
+end;
+
+procedure MCW1001_GetWPAKey(ConnectionProfile: Byte; Blocking: Boolean);   // Profile 1 or 2, call after a connect is established to get the binary Key associated with the SSID and Passphase for the connection to use in MCW1001_SetSecurityWPA later to eliminate the possible 30 second delay when logging in with the passphrase
+begin                       
+  MCW1001_BinaryWPAKeyResult.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+
+  SendHeader;
+  SendMsgType(GET_CP_WPAKEY_MSG);
+  SendDataLen(2);
+  Write(ConnectionProfile);
+  Write(0);             // Reserved
+  SendTrailer;
+  if Blocking then
+  begin
+    while not (MCW1001_BinaryWPAKeyResult.Valid or MCW1001_BinaryWPAKeyResult.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end
+end;
+
+procedure MCW1001_FillChannelList(var ChannelList: TChannelList);
+var
+  i: Integer;
+begin
+  for i := 0 to MAX_CHANNELS - 1 do
+    ChannelList[i] := i + 1;
+end;
+
+procedure MCW1001_ScanStart(ConnectionProfile: Byte; Blocking: Boolean);   // Profile 1 or 2 or SCAN_ALL to scan everything
+begin
+  MCW1001_ScanResultsReadyEvent.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+
+  SendHeader;
+  SendMsgType(SCAN_START_MSG);
+  SendDataLen(2);
+  Write(ConnectionProfile);
+  Write(0);             // Reserved
+  SendTrailer;
+  
+  if Blocking then
+  begin
+    while not (MCW1001_ScanResultsReadyEvent.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_GetScanResults(ListIndex: Byte; Blocking: Boolean);
+begin
+  MCW1001_ScanResult.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+
+  SendHeader;
+  SendMsgType(SCAN_GET_RESULTS_MSG);
+  SendDataLen(2);
+  Write(ListIndex);
+  Write(0);             // Reserved
+  SendTrailer;
+  
+  if Blocking then
+  begin
+    while not (MCW1001_ScanResult.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_Connect(ConnectionProfile: Byte; Blocking: Boolean);   // Profile 1 or 2
+begin
+  MCW1001_ConnectionStatusChangedEvent.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(WIFI_CONNECT_MSG);
+  SendDataLen(2);
+  Write(ConnectionProfile);
+  Write(0);             // Reserved
+  SendTrailer;
+
+  if Blocking then
+  begin
+    while not (MCW1001_ConnectionStatusChangedEvent.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_Disconnect(Blocking: Boolean);
+begin
+  MCW1001_ConnectionStatusChangedEvent.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(WIFI_DISCONNECT_MSG);
+  SendDataLen(0);
+  SendTrailer;
+  
+  if Blocking then
+  begin
+    AckWait;
+    // datasheet says this is called but it does not seem to be....
+  //  while not MCW1001_IsConnectionStatusChangeEvent(ConnectionStatus) do;
+  //  Delay_us(BLOCK_EVENT_DELAY_US);
+  end
+end;
+
+procedure MCW1001_Ping(var IpAddress: TOlcbIpAddress; Blocking: Boolean);
+var
+  i: Integer;
+begin
+  MCW1001_PingResponseEvent.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(PING_SEND_MSG);
+  SendDataLen(16);
+  WriteIp(IpAddress);
+  SendTrailer;
+  
+  if Blocking then
+  begin
+    while not (MCW1001_PingResponseEvent.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SocketCreateUDP(Blocking: Boolean);
+begin
+  MCW1001_SocketCreateResult.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SOCKET_CREATE_MSG);
+  SendDataLen(2);
+  Write(0);        // UDP
+  Write(0);        // Reserved
+  SendTrailer;
+
+  if Blocking then
+  begin
+    while not (MCW1001_SocketCreateResult.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SocketCreateTCP(Blocking: Boolean);
+begin
+  MCW1001_SocketCreateResult.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SOCKET_CREATE_MSG);
+  SendDataLen(2);
+  Write(1);        // TCP
+  Write(0);        // Reserved
+  SendTrailer;
+
+  if Blocking then
+  begin
+    while not (MCW1001_SocketCreateResult.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+  
+procedure MCW1001_SocketClose(SocketHandle: Word);
+begin
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SOCKET_CLOSE_MSG);
+  SendDataLen(2);
+  Write(SocketHandle);
+  Write(0);        // Reserved
+  SendTrailer;
+end;
+
+procedure MCW1001_SocketBind(LocalPort: Word; SocketHandle: Byte; Blocking: Boolean);
+begin
+  MCW1001_SocketBindResult.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+
+  SendHeader;
+  SendMsgType(SOCKET_BIND_MSG);
+  SendDataLen(4);
+  WriteWord(LocalPort);
+  Write(SocketHandle);
+  Write(0);        // Reserved
+  SendTrailer;
+
+  if Blocking then
+  begin
+    while not (MCW1001_SocketBindResult.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SocketConnect(SocketHandle: Byte; RemotePort: Word; var RemoteIp: TOlcbIpAddress; Blocking: Boolean);
+begin
+  MCW1001_SocketConnectResult.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+
+  SendHeader;
+  SendMsgType(SOCKET_CONNECT_MSG);
+  SendDataLen(20);
+  Write(SocketHandle);
+  Write(0);        // Reserved
+  WriteWord(RemotePort);
+  WriteIp(RemoteIp);
+  SendTrailer;
+
+  if Blocking then
+  begin
+    while not (MCW1001_SocketConnectResult.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SocketListen(SocketHandle: Byte; MaxClientCount: Byte; Blocking: Boolean);
+begin
+  MCW1001_SocketListenResult.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SOCKET_LISTEN_MSG);
+  SendDataLen(2);
+  Write(SocketHandle);
+  Write(MaxClientCount);
+  SendTrailer;
+
+  if Blocking then
+  begin
+    while not (MCW1001_SocketListenResult.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SocketAccept(SocketHandle: Byte; Blocking: Boolean);
+begin
+  MCW1001_SocketAcceptResult.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SOCKET_ACCEPT_MSG);
+  SendDataLen(2);
+  Write(SocketHandle);
+  Write(0);               // Reserved
+  SendTrailer;
+
+  if Blocking then
+  begin
+    while not (MCW1001_SocketAcceptResult.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SocketSend(SocketHandle: Byte; DataCount: Word; SendData: ^Byte; Blocking: Boolean);
+var
+  i: Integer;
+begin
+  MCW1001_SocketSendResult.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SOCKET_SEND_MSG);
+  SendDataLen(4+DataCount);
+  Write(SocketHandle);
+  Write(0);               // Reserved
+  WriteWord(DataCount);
+  i := 0;
+  while i < DataCount do
+  begin
+    Write(SendData^);
+    Inc(SendData);
+    Inc(i);
+  end;
+  SendTrailer;
+
+  if Blocking then
+  begin
+    while not (MCW1001_SocketSendResult.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SocketReceive(SocketHandle: Byte; DataCount: Word; Blocking: Boolean);
+begin
+  MCW1001_SocketReceiveResult.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SOCKET_RECV_MSG);
+  SendDataLen(4);
+  Write(SocketHandle);
+  Write(0);               // Reserved
+  WriteWord(DataCount);
+  SendTrailer;
+
+  if Blocking then
+  begin
+    while not (MCW1001_SocketReceiveResult.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SocketSendTo(SocketHandle: Byte; RemotePort: Word; var RemoteIP: TOlcbIpAddress; DataCount: Word; var DataArray: TWiFiDataBuffer; Blocking: Boolean);
+var
+  i: Integer;
+begin
+  MCW1001_SocketSendToResult.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  MCW1001_SocketSendResult.Valid := False;
+  SendHeader;
+  SendMsgType(SOCKET_SEND_TO_MSG);
+  SendDataLen(22+DataCount);
+  Write(SocketHandle);
+  Write(0);               // Reserved
+  WriteWord(RemotePort);
+  WriteIp(RemoteIp);
+  WriteWord(DataCount);
+  i := 0;
+  while i < DataCount do
+  begin
+    Write(DataArray[i]);
+    Inc(i);
+  end;
+  SendTrailer;
+
+  if Blocking then
+  begin
+    while not (MCW1001_SocketSendToResult.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SocketReceiveFrom(SocketHandle: Byte; DataCount: Word; Blocking: Boolean);
+begin
+  MCW1001_SocketReceiveFromResult.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SOCKET_RECV_FROM_MSG);
+  SendDataLen(4);
+  Write(SocketHandle);
+  Write(0);               // Reserved
+  WriteWord(DataCount);
+  SendTrailer;
+
+  if Blocking then
+  begin
+    while not (MCW1001_SocketReceiveFromResult.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+procedure MCW1001_SocketAllocate(MaxServerSockets: Byte; MaxClientSockets: Byte; ServerRxBufSize: Word; ServerTxBufSize: Word; ClientRxBufSize: Word; ClientTxBufSize: Word; Blocking: Boolean);
+begin
+  MCW1001_SocketAllocateResult.Valid := False;
+  MCW1001_ErrorEvent.Valid := False;
+  ReceivedAck := False;
+  
+  SendHeader;
+  SendMsgType(SOCKET_ALLOCATE_MSG);
+  SendDataLen(10);
+  Write(MaxServerSockets);
+  Write(MaxClientSockets);
+  WriteWord(ServerRxBufSize);
+  WriteWord(ServerTxBufSize);
+  WriteWord(ClientRxBufSize);
+  WriteWord(ClientTxBufSize);
+  SendTrailer;
+
+  if Blocking then
+  begin
+    while not (MCW1001_SocketAllocateResult.Valid or MCW1001_ErrorEvent.Valid) do;
+    Delay_us(BLOCK_EVENT_DELAY_US);
+  end;
+end;
+
+function RunStateMachine(NextByte: Byte): Boolean;
+begin
+  Result := False;
+  case Receive.istateMachine of
+    STATE_RECEIVE_HEADER_0 :
+        begin
+          if NextByte = $55 then
+            Receive.istateMachine := STATE_RECEIVE_HEADER_1
+        end;
+    STATE_RECEIVE_HEADER_1 :
+        begin
+          if NextByte = $AA then
+            Receive.istateMachine := STATE_RECEIVE_MSG_TYPE_0
+          else
+            Receive.istateMachine := STATE_RECEIVE_HEADER_0
+        end;
+    STATE_RECEIVE_MSG_TYPE_0 :
+        begin
+          Receive.Msg := NextByte;
+          Receive.istateMachine := STATE_RECEIVE_MSG_TYPE_1;
+        end;
+    STATE_RECEIVE_MSG_TYPE_1 :
+        begin
+          Receive.Msg := Receive.Msg or (NextByte shl 8);
+          Receive.istateMachine := STATE_RECEIVE_MSG_LEN_0;
+        end;
+    STATE_RECEIVE_MSG_LEN_0 :
+        begin
+          Receive.MsgLen := NextByte;
+          Receive.istateMachine := STATE_RECEIVE_MSG_LEN_1;
+        end;
+    STATE_RECEIVE_MSG_LEN_1 :
+        begin
+          Receive.MsgLen := Receive.MsgLen or (NextByte shl 8);
+          if Receive.MsgLen = 0 then
+            Receive.istateMachine := STATE_RECEIVE_TRAILER
+          else
+            Receive.istateMachine := STATE_RECEIVE_DATA;
+          Receive.iCurrent := 0;
+        end;
+    STATE_RECEIVE_DATA :
+        begin
+          Receive.MsgData[Receive.iCurrent] := NextByte;
+          Inc(Receive.iCurrent);
+          if Receive.iCurrent >= Receive.MsgLen then
+            Receive.istateMachine := STATE_RECEIVE_TRAILER;
+        end;
+    STATE_RECEIVE_TRAILER :
+        begin
+          if NextByte = 0x45 then
+            Result := True;
+          Receive.istateMachine := STATE_RECEIVE_HEADER_0
+        end
+    else
+      Receive.istateMachine := STATE_RECEIVE_HEADER_0;
+  end;
+end;
+
+procedure DecodeAckMessage(var Receive: TReceive);
+begin
+  ReceivedAck := True;
+end;
+  
+procedure DecodeIpAddressEvent(var Receive: TReceive; var Event: TWiFiIpAddressAssignedEvent);
+begin
+  Event.IpAddress[0] := Receive.MsgData[2];
+  Event.IpAddress[1] := Receive.MsgData[3];
+  Event.IpAddress[2] := Receive.MsgData[4];
+  Event.IpAddress[3] := Receive.MsgData[5];
+  Event.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintIpAddressAssigned(@Event);{$ENDIF}
+end;
+
+procedure DecodeConnectionStatusChangeEvent(var AReceive: TReceive; var Event: TWiFiConnectionStatusChangedEvent);
+begin
+  Event.Status := AReceive.MsgData[1];
+  Event.EventData := AReceive.MsgData[2];
+  Event.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintConnectionStatusChanged(@Event);{$ENDIF}
+end;
+
+procedure DecodeScanResultsReadyEvent(var AReceive: TReceive; var Event: TWiFiScanResultsReadyEvent);
+begin
+  Event.NumberOfResults := AReceive.MsgData[1];
+  Event.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintScanResultsReady(@Event);{$ENDIF}
+end;
+
+procedure DecodePingResponseEvent(var AReceive: TReceive; var Event: TWiFiPingResponseEvent);
+begin
+  Event.Received := AReceive.MsgData[1] = 0;
+  Event.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintPingResponse(@Event);{$ENDIF}
+end;
+
+procedure DecodeErrorEvent(var AReceive: TReceive; var Event: TWiFiErrorEvent);
+begin
+  Event.ErrorType := AReceive.MsgData[2];
+  Event.ErrorData[0] := AReceive.MsgData[3];
+  Event.ErrorData[1] := AReceive.MsgData[4];
+  Event.ErrorData[2] := AReceive.MsgData[5];
+  Event.ErrorData[3] := AReceive.MsgData[6];
+  Event.Valid := True;
+  
+  LATB8_bit := not LATB8_bit;
+  LATB8_bit := not LATB8_bit;
+  LATB8_bit := not LATB8_bit;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintError(@Event);{$ENDIF}
+end;
+
+procedure DecodeStartupEvent(var AReceive: TReceive; var Event: TWiFiStartupEvent);
+begin
+  Event.ConditionMask := AReceive.MsgData[1];
+  Event.SocketVersion := AReceive.MsgData[2];
+  Event.SocketVersion := Event.SocketVersion or (AReceive.MsgData[3] shl 8);
+  Event.RadioVersion := AReceive.MsgData[4];
+  Event.RadioVersion := Event.RadioVersion or (AReceive.MsgData[5] shl 8);
+  Event.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintStartup(@Event);{$ENDIF}
+end;
+
+procedure DecodeUnknownEvent(var Receive: TReceive);
+begin
+  DebugLine('Unknown Event');
+end;
+
+procedure DecodeEventMessage(var Receive: TReceive);
+begin
+  {$IFDEF PRINT_RECEIVE}
+  ByteToHex(Receive.MsgData[0], s1);
+  DebugLine('.'+s1+'.');
+  {$ENDIF}
+  
+  case Receive.MsgData[0] of
+    EVENT_TYPE_IP_ADDRESS               : DecodeIpAddressEvent(Receive, MCW1001_IpAddressAssignedEvent);
+    EVENT_TYPE_CONNECTION_STATUS_CHANGE : DecodeConnectionStatusChangeEvent(Receive, MCW1001_ConnectionStatusChangedEvent);
+    EVENT_TYPE_SCAN_RESULTS_READY       : DecodeScanResultsReadyEvent(Receive, MCW1001_ScanResultsReadyEvent);
+    EVENT_TYPE_PING_RESPONSE            : DecodePingResponseEvent(Receive, MCW1001_PingResponseEvent);
+    EVENT_TYPE_ERROR                    : DecodeErrorEvent(Receive, MCW1001_ErrorEvent);
+    EVENT_TYPE_STARTUP                  : DecodeStartupEvent(Receive, MCW1001_StartupEvent)
+  else
+    DecodeUnknownEvent(Receive);
+  end;
+end;
+
+procedure DecodeNetworkStatusResponseMessage(var Receive: TReceive; var NetworkStatus: TWiFiNetworkStatus);
+begin
+  memcpy(@NetworkStatus.MacAddress, @Receive.MsgData[1], 6);
+  memcpy(@NetworkStatus.IpAddress, @Receive.MsgData[7], 6);
+  memcpy(@NetworkStatus.Mask, @Receive.MsgData[23], 6);
+  memcpy(@NetworkStatus.GatewayAddress, @Receive.MsgData[39], 6);
+  NetworkStatus.Status := Receive.MsgData[55];
+  NetworkStatus.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintNetworkStatus(@NetworkStatus);{$ENDIF}
+end;
+
+procedure DecodeScanGetResultsMessage(var Receive: TReceive; var ScanResult: TWiFiScanResult);
+begin
+  memcpy(@ScanResult.BSSID, @Receive.MsgData[0], 6);
+  ScanResult.SSIDLen := Receive.MsgData[6];
+  memcpy(@ScanResult.SSID, @Receive.MsgData[7], 32);
+  ScanResult.APConfig := Receive.MsgData[39];
+  Lo(ScanResult.BeaconPeriod) := Receive.MsgData[40];
+  Hi(ScanResult.BeaconPeriod) := Receive.MsgData[41];
+  Lo(ScanResult.ATIMWindow) := Receive.MsgData[42];
+  Hi(ScanResult.ATIMWindow) := Receive.MsgData[43];
+  memcpy(@ScanResult.BasicRates, @Receive.MsgData[44], 8);
+  ScanResult.RSSI := Receive.MsgData[52];
+  ScanResult.BasicRateListLen := Receive.MsgData[53];
+  ScanResult.DTIMPeriod := Receive.MsgData[54];
+  ScanResult.BSSType := Receive.MsgData[55];
+  ScanResult.ChannelNumber := Receive.MsgData[56];
+  ScanResult.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintScanResult(@ScanResult, 0);{$ENDIF}
+end;
+
+procedure DecodeWpaKeyResponseMessage(var Receive: TReceive; var BinaryWPAKeyResult: TWiFiWPAKeyResult;);
+begin
+  memcpy(@BinaryWPAKeyResult.BinaryKey, @Receive.MsgData[0], 32);
+  BinaryWPAKeyResult.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}
+  MCW1001_PrintWPAKey(@BinaryWPAKeyResult);
+  {$ENDIF}
+end;
+
+procedure DecodeSocketCreateResponse(var Receive: TReceive; var SocketCreateResult: TSocketCreateResult);
+begin
+  SocketCreateResult.Handle := Receive.MsgData[0];   
+  SocketCreateResult.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintSocketCreateResult(@SocketCreateResult);{$ENDIF}
+end;
+
+procedure DecodeSocketBindResponse(var Receive: TReceive; var SocketBindResult: TSocketBindResult);
+begin
+  Lo(SocketBindResult.Port) := Receive.MsgData[0];
+  Hi(SocketBindResult.Port) := Receive.MsgData[1];
+  SocketBindResult.BindResult := Receive.MsgData[2]; 
+  SocketBindResult.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintSocketBindResult(@SocketBindResult);{$ENDIF}
+end;
+
+procedure DecodeSocketConnectResponse(var Receive: TReceive; var SocketConnectResult: TSocketConnectResult);
+begin
+  SocketConnectResult.ConnectResult := Receive.MsgData[0];   
+  SocketConnectResult.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintSocketConnectResult(@SocketConnectResult);{$ENDIF}
+end;
+
+procedure DecodeSocketListenResponse(var Receive: TReceive; var SocketListenResult: TSocketListenResult);
+begin
+  SocketListenResult.ListenResult := Receive.MsgData[0];
+  SocketListenResult.BackLog := Receive.MsgData[1];   
+  SocketListenResult.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintSocketListenResult(@SocketListenResult);{$ENDIF}
+end;
+
+procedure DecodeSocketAcceptResponse(var Receive: TReceive; var SocketAcceptResult: TSocketAcceptResult);
+begin
+  SocketAcceptResult.Handle := Receive.MsgData[0];
+  Lo(SocketAcceptResult.RemotePort) := Receive.MsgData[2];
+  Hi(SocketAcceptResult.RemotePort) := Receive.MsgData[3];
+  memcpy(@SocketAcceptResult.RemoteIP, @Receive.MsgData[4], 4);    
+  SocketAcceptResult.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintSocketAcceptResult(@SocketAcceptResult);{$ENDIF}
+end;
+
+procedure DecodeSocketSendResponse(var Receive: TReceive; var SocketSendResult: TSocketSendResult);
+begin
+  SocketSendResult.Count := Receive.MsgData[0];   
+  SocketSendResult.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintSocketSendResult(@SocketSendResult);{$ENDIF}
+end;
+
+procedure DecodeSocketReceiveResponse(var Receive: TReceive; var SocketReceiveResult: TSocketReceiveResult);
+begin
+  SocketReceiveResult.Handle := Receive.MsgData[0];
+  Lo(SocketReceiveResult.Count) := Receive.MsgData[2];
+  Hi(SocketReceiveResult.Count) := Receive.MsgData[3];
+  memcpy(@SocketReceiveResult.ReceiveBuffer, @Receive.MsgData[4], SocketReceiveResult.Count); 
+  SocketReceiveResult.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintSocketReceiveResult(@SocketReceiveResult);{$ENDIF}
+end;
+
+procedure DecodeSocketSendToResponse(var Receive: TReceive; var SocketSendToResult: TSocketSendToResult);
+begin
+  Lo(SocketSendToResult.Count) := Receive.MsgData[0];
+  Hi(SocketSendToResult.Count) := Receive.MsgData[1];      
+  SocketSendToResult.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintSocketSendToResult(@SocketSendToResult);{$ENDIF}
+end;
+
+procedure DecodeSocketReceiveFromResponse(var Receive: TReceive; var SocketReceiveFromResult: TSocketReceiveFromResult);
+begin
+  SocketReceiveFromResult.Handle := Receive.MsgData[0];
+  Lo(SocketReceiveFromResult.SenderPort) := Receive.MsgData[2];
+  Hi(SocketReceiveFromResult.SenderPort) := Receive.MsgData[3];
+  memcpy(@SocketReceiveFromResult.SenderIp, @Receive.MsgData[4], 4);
+  Lo(SocketReceiveFromResult.Count) := Receive.MsgData[20];
+  Hi(SocketReceiveFromResult.Count) := Receive.MsgData[21];
+  memcpy(@SocketReceiveFromResult.ReceiveBuffer, @Receive.MsgData[22], SocketReceiveFromResult.Count);  
+  SocketReceiveFromResult.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintSocketReceiveFromResult(@SocketReceiveFromResult);{$ENDIF}
+end;
+
+procedure DecodeSocketAllocateResponse(var Receive: TReceive; var SocketAllocateResult: TSocketAllocateResult);
+begin
+  SocketAllocateResult.AllocationResult := Receive.MsgData[0];
+  SocketAllocateResult.Count := Receive.MsgData[1];  
+  SocketAllocateResult.Valid := True;
+  {$IFDEF PRINT_RESULT_MSG}MCW1001_PrintSocketAllocateResult(@SocketAllocateResult);{$ENDIF}
+end;
+
+procedure MCW1001_Receive(NextByte: Byte);
+var
+  StrippedMsg: Byte;
+begin
+  {$IFDEF PRINT_RECEIVE}
+  ByteToHex(NextByte, s1);
+  DebugLine(s1);
+  {$ENDIF}
+  
+  if RunStateMachine(NextByte) then
+  begin
+    StrippedMsg := Receive.Msg and $7FFF;  // Strip off the ACK bit
+    
+    if Receive.Msg and EVENT_TYPE_ACK_MASK <> 0 then
+    begin
+      {$IFDEF PRINT_RECEIVE}DebugLine('...Ack Msg');{$ENDIF}
+      DecodeAckMessage(Receive);
+    end;
+    {$IFDEF PRINT_RECEIVE}DebugLine('...New Msg');{$ENDIF}
+    case StrippedMsg of
+      EVENT_MSG                     : DecodeEventMessage(Receive);
+      NETWORK_STATUS_RESPONSE_MSG   : DecodeNetworkStatusResponseMessage(Receive, MCW1001_NetworkStatus);
+      SCAN_RESULT_MSG               : DecodeScanGetResultsMessage(Receive, MCW1001_ScanResult);
+      WPAKEY_RESPONSE_MSG           : DecodeWpaKeyResponseMessage(Receive, MCW1001_BinaryWPAKeyResult);
+      SOCKET_CREATE_RESPONSE_MSG    : DecodeSocketCreateResponse(Receive, MCW1001_SocketCreateResult);
+      SOCKET_BIND_RESPONSE_MSG      : DecodeSocketBindResponse(Receive, MCW1001_SocketBindResult);
+      SOCKET_CONNECT_RESPONSE_MSG   : DecodeSocketConnectResponse(Receive, MCW1001_SocketConnectResult);
+      SOCKET_LISTEN_RESPONSE_MSG    : DecodeSocketListenResponse(Receive, MCW1001_SocketListenResult);
+      SOCKET_ACCEPT_RESPONSE_MSG    : DecodeSocketAcceptResponse(Receive, MCW1001_SocketAcceptResult);
+      SOCKET_SEND_RESPONSE_MSG      : DecodeSocketSendResponse(Receive, MCW1001_SocketSendResult);
+      SOCKET_RECV_RESPONSE_MSG      : DecodeSocketReceiveResponse(Receive, MCW1001_SocketReceiveResult);
+      SOCKET_SEND_TO_RESPONSE_MSG   : DecodeSocketSendToResponse(Receive, MCW1001_SocketSendToResult);
+      SOCKET_RECV_FROM_RESPONSE_MSG : DecodeSocketReceiveFromResponse(Receive, MCW1001_SocketReceiveFromResult);
+      SOCKET_ALLOCATE_RESPONSE_MSG  : DecodeSocketAllocateResponse(Receive, MCW1001_SocketAllocateResult);
+    end;
+  end;
+end;
+
+procedure MCW1001_EnableInterrupt(Enable: Boolean);
+begin                     // TODO
+end;
+
+end.

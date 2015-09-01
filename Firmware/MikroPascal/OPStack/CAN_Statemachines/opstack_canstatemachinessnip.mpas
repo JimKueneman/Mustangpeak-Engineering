@@ -1,0 +1,130 @@
+unit opstack_canstatemachinessnip;
+
+{$IFDEF FPC}
+interface
+{$ENDIF}
+
+{$I Options.inc}
+
+uses
+  {$IFDEF FPC}
+  Classes, SysUtils,
+  {$ENDIF}
+  template_hardware,
+  opstack_defines,
+  opstack_buffers,
+  opstack_types,
+  opstackcore_basic,
+  opstack_canstatemachinesbuffers;
+
+procedure OPStackCANStatemachineSnip_ProcessOutgoingMultiFrameStringMessage;
+function OPStackCANStatemachineSnip_ProcessIncomingMultiFrameStringMessage(OPStackMessage: POPStackMessage; var AcdiSnipMessage: POPStackMessage): Boolean;
+
+implementation
+
+// *****************************************************************************
+//  procedure OPStackCANStatemachineSnip_ProcessOutgoingMultiFrameStringMessage;
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+
+procedure OPStackCANStatemachineSnip_ProcessOutgoingMultiFrameStringMessage;
+var
+  LocalMessage: TOPStackMessage;
+  LocalOutgoingMessagePtr: POPStackMessage;
+  LocalBuffer: TSimpleBuffer;
+  MultiFrameStringBufferPtr: PMultiFrameStringBuffer;
+  FramingBits: Byte;
+begin            
+  if IsOutgoingBufferAvailable then
+  begin
+    LocalOutgoingMessagePtr := OPStackCANStatemachineBuffers_FirstMessageOnOutgoingMultiFrameStringStack(0);
+    if LocalOutgoingMessagePtr <> nil then
+    begin
+      LocalOutgoingMessagePtr^.WatchDog_1s := 0;
+      MultiFrameStringBufferPtr := PMultiFrameStringBuffer( PByte( LocalOutgoingMessagePtr^.Buffer));
+      OPStackBuffers_LoadMessage(@LocalMessage, LocalOutgoingMessagePtr^.MTI, LocalOutgoingMessagePtr^.Source, LocalOutgoingMessagePtr^.Dest, 0);
+      OPStackBuffers_ZeroSimpleBuffer(@LocalBuffer, False);
+      LocalMessage.MessageType := MT_SIMPLE;
+      LocalMessage.Buffer := @LocalBuffer;
+      LocalBuffer.DataBufferSize := 0;
+      while MultiFrameStringBufferPtr^.CurrentCount < MultiFrameStringBufferPtr^.DataBufferSize do
+      begin
+        LocalBuffer.DataArray[LocalBuffer.DataBufferSize] := MultiFrameStringBufferPtr^.DataArray[MultiFrameStringBufferPtr^.CurrentCount];
+        Inc(LocalBuffer.DataBufferSize );
+        Inc(MultiFrameStringBufferPtr^.CurrentCount);
+        if LocalBuffer.DataBufferSize = 6 then
+          Break;
+      end;
+      
+      if LocalOutgoingMessagePtr^.MTI <> MTI_SIMPLE_NODE_INFO_REPLY then
+      begin
+        // Set Framing Bits
+        if MultiFrameStringBufferPtr^.CurrentCount = 6 then
+          LocalMessage.FramingBits := $10                                         // First Frame
+        else
+        if MultiFrameStringBufferPtr^.CurrentCount >= MultiFrameStringBufferPtr^.DataBufferSize then
+          LocalMessage.FramingBits := $20                                         // Upper nibble = $20 means last frame
+        else
+          LocalMessage.FramingBits := $30;                                        // Upper nibble = $30 means middle frame
+      end;
+      
+      OutgoingMessage(@LocalMessage, True);
+
+      if MultiFrameStringBufferPtr^.CurrentCount >= MultiFrameStringBufferPtr^.DataBufferSize then
+      begin
+        OPStackCANStatemachineBuffers_RemoveOutgoingMultiFrameStringMessage(LocalOutgoingMessagePtr);
+        OPStackBuffers_DeAllocateMessage(LocalOutgoingMessagePtr);
+      end;
+    end;
+  end;
+end;
+
+function OPStackCANStatemachineSnip_ProcessIncomingMultiFrameStringMessage(OPStackMessage: POPStackMessage; var AcdiSnipMessage: POPStackMessage): Boolean;
+var
+  InProcessMessage: POPStackMessage;
+  i: Integer;
+  MultiFrameStringBuffer: PMultiFrameStringBuffer;
+  OutOfBuffers: Boolean;
+begin
+  Result := False;
+  MultiFrameStringBuffer := nil;
+
+  InProcessMessage := OPStackCANStatemachineBuffers_FindMessageOnIncomingMultiFrameStringFrameStack(OPStackMessage);
+  if InProcessMessage = nil then
+  begin
+    OutOfBuffers := True;
+    if OPStackBuffers_Allocate_MultiFrameString_Message(InProcessMessage, OPStackMessage^.MTI, OPStackMessage^.Source, OPStackMessage^.Dest) then
+      if OPStackCANStatemachineBuffers_AddIncomingMultiFrameStringMessage(InProcessMessage) then
+        OutOfBuffers := False;
+    if OutOfBuffers then
+    begin
+      OPStackBuffers_DeAllocateMessage(InProcessMessage);  // sending NIL is safe
+      OptionalInteractionRejected(OPStackMessage^.Dest, OPStackMessage^.Source, OPStackMessage^.MTI, False);         // HOW DO I WAIT AND FIND THE LAST BIT WITHOUT THE FRAMING BITS????
+      Exit;
+    end;
+  end;
+
+  InProcessMessage^.WatchDog_1s := 0;
+
+  MultiFrameStringBuffer := PMultiFrameStringBuffer( PByte( InProcessMessage^.Buffer));
+
+  for i := 0 to OPStackMessage^.Buffer^.DataBufferSize - 1 do
+  begin
+    MultiFrameStringBuffer^.DataArray[MultiFrameStringBuffer^.DataBufferSize] := OPStackMessage^.Buffer^.DataArray[i];
+    Inc(MultiFrameStringBuffer^.DataBufferSize);
+    if OPStackMessage^.Buffer^.DataArray[i] = Ord( #0) then
+      Inc(MultiFrameStringBuffer^.CurrentCount);
+  end;
+
+  if MultiFrameStringBuffer^.CurrentCount >= 6 then            // Found the 6 nulls?
+  begin
+    // Done
+    OPStackCANStatemachineBuffers_RemoveIncomingMultiFrameStringMessage(InProcessMessage);
+    AcdiSnipMessage := InProcessMessage;
+    Result := True
+  end;
+end;
+
+end.

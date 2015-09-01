@@ -1,0 +1,115 @@
+unit SNMP_OID;
+
+const OID_number = 86;
+
+const OID : array[OID_number] of string[32] =
+(
+      '.1.3.6.1.2.1.1.1.0',                  // sysDescr, string, read only
+      '.1.3.6.1.2.1.1.2.0',                  // sysObjectID, OID, read only
+      '.1.3.6.1.2.1.1.3.0',                  // sysUpTime, timeticks, read only
+      '.1.3.6.1.2.1.1.5.0',                  // sysName, string, read write
+
+      '.1.3.6.1.4.1.17095.1.1.1.1',        // IP, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.2',        // MASK, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.3',        // GATEWAY, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.4',        // NTP, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.5',        // DNS, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.6',        // WDT IP, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.7',        // TRIAC1 IP, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.8',        // RELAY1 IP, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.9',        // VOLTAGE OUT1 IP, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.10',       // MAC, string, 12 bytes, read only
+      '.1.3.6.1.4.1.17095.1.1.1.11',       // DHCP, read write
+      '.1.3.6.1.4.1.17095.1.1.1.12',       // pass, read write
+      '.1.3.6.1.4.1.17095.1.1.1.13',       // save config (0 or 1, 1 - save config), read write
+
+      '.1.3.6.1.4.1.17095.1.1.2.1',        // DS18B20 sensor01 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.2',        // DS18B20 sensor02 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.3',        // DS18B20 sensor03 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.4',        // DS18B20 sensor04 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.5',        // DS18B20 sensor05 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.6',        // DS18B20 sensor06 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.7',        // DS18B20 sensor07 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.8',        // DS18B20 sensor08 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.9',        // IO_01 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.10',       // IO_02 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.11',       // IO_03 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.12',       // IO_04 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.13',       // save config1 names (0 or 1, 1 - save config1), read write
+
+      '.1.3.6.1.4.1.17095.2.1.1.1',        // DS18B20 or DS2438 sensor01, error, read only
+      '.1.3.6.1.4.1.17095.2.1.1.2',        // DS18B20 or DS2438 sensor02, error, read only
+      '.1.3.6.1.4.1.17095.2.1.1.3',        // DS18B20 or DS2438 sensor03, error, read only
+      '.1.3.6.1.4.1.17095.2.1.1.4',        // DS18B20 or DS2438 sensor04, error, read only
+      '.1.3.6.1.4.1.17095.2.1.1.5',        // DS18B20 or DS2438 sensor05, error, read only
+      '.1.3.6.1.4.1.17095.2.1.1.6',        // DS18B20 or DS2438 sensor06, error, read only
+      '.1.3.6.1.4.1.17095.2.1.1.7',        // DS18B20 or DS2438 sensor07, error, read only
+      '.1.3.6.1.4.1.17095.2.1.1.8',        // DS18B20 or DS2438 sensor08, error, read only
+      
+      '.1.3.6.1.4.1.17095.2.2.1.1',        // DS18B20 or DS2438 sensor01, temp integer*100, read only
+      '.1.3.6.1.4.1.17095.2.2.1.2',        // DS18B20 or DS2438 sensor02, temp integer*100, read only
+      '.1.3.6.1.4.1.17095.2.2.1.3',        // DS18B20 or DS2438 sensor03, temp integer*100, read only
+      '.1.3.6.1.4.1.17095.2.2.1.4',        // DS18B20 or DS2438 sensor04, temp integer*100, read only
+      '.1.3.6.1.4.1.17095.2.2.1.5',        // DS18B20 or DS2438 sensor05, temp integer*100, read only
+      '.1.3.6.1.4.1.17095.2.2.1.6',        // DS18B20 or DS2438 sensor06, temp integer*100, read only
+      '.1.3.6.1.4.1.17095.2.2.1.7',        // DS18B20 or DS2438 sensor07, temp integer*100, read only
+      '.1.3.6.1.4.1.17095.2.2.1.8',        // DS18B20 or DS2438 sensor08, temp integer*100, read only
+
+      '.1.3.6.1.4.1.17095.2.2.2.1',        // DS18B20 or DS2438 sensor01, temp string, read only
+      '.1.3.6.1.4.1.17095.2.2.2.2',        // DS18B20 or DS2438 sensor02, temp string, read only
+      '.1.3.6.1.4.1.17095.2.2.2.3',        // DS18B20 or DS2438 sensor03, temp string, read only
+      '.1.3.6.1.4.1.17095.2.2.2.4',        // DS18B20 or DS2438 sensor04, temp string, read only
+      '.1.3.6.1.4.1.17095.2.2.2.5',        // DS18B20 or DS2438 sensor05, temp string, read only
+      '.1.3.6.1.4.1.17095.2.2.2.6',        // DS18B20 or DS2438 sensor06, temp string, read only
+      '.1.3.6.1.4.1.17095.2.2.2.7',        // DS18B20 or DS2438 sensor07, temp string, read only
+      '.1.3.6.1.4.1.17095.2.2.2.8',        // DS18B20 or DS2438 sensor08, temp string, read only
+
+      '.1.3.6.1.4.1.17095.2.3.1.1',        // DS2438 sensor01, hum integer*100, read only
+      '.1.3.6.1.4.1.17095.2.3.1.2',        // DS2438 sensor02, hum integer*100, read only
+      '.1.3.6.1.4.1.17095.2.3.1.3',        // DS2438 sensor03, hum integer*100, read only
+      '.1.3.6.1.4.1.17095.2.3.1.4',        // DS2438 sensor04, hum integer*100, read only
+      '.1.3.6.1.4.1.17095.2.3.1.5',        // DS2438 sensor05, hum integer*100, read only
+      '.1.3.6.1.4.1.17095.2.3.1.6',        // DS2438 sensor06, hum integer*100, read only
+      '.1.3.6.1.4.1.17095.2.3.1.7',        // DS2438 sensor07, hum integer*100, read only
+      '.1.3.6.1.4.1.17095.2.3.1.8',        // DS2438 sensor08, hum integer*100, read only
+
+      '.1.3.6.1.4.1.17095.2.3.2.1',        // DS2438 sensor01, hum string, read only
+      '.1.3.6.1.4.1.17095.2.3.2.2',        // DS2438 sensor02, hum string, read only
+      '.1.3.6.1.4.1.17095.2.3.2.3',        // DS2438 sensor03, hum string, read only
+      '.1.3.6.1.4.1.17095.2.3.2.4',        // DS2438 sensor04, hum string, read only
+      '.1.3.6.1.4.1.17095.2.3.2.5',        // DS2438 sensor05, hum string, read only
+      '.1.3.6.1.4.1.17095.2.3.2.6',        // DS2438 sensor06, hum string, read only
+      '.1.3.6.1.4.1.17095.2.3.2.7',        // DS2438 sensor07, hum string, read only
+      '.1.3.6.1.4.1.17095.2.3.2.8',        // DS2438 sensor08, hum string, read only
+      
+      '.1.3.6.1.4.1.17095.2.4.1.1',        // DS18B20 or DS2438 sensor01 serial number, string, read only
+      '.1.3.6.1.4.1.17095.2.4.1.2',        // DS18B20 or DS2438 sensor02 serial number, string, read only
+      '.1.3.6.1.4.1.17095.2.4.1.3',        // DS18B20 or DS2438 sensor03 serial number, string, read only
+      '.1.3.6.1.4.1.17095.2.4.1.4',        // DS18B20 or DS2438 sensor04 serial number, string, read only
+      '.1.3.6.1.4.1.17095.2.4.1.5',        // DS18B20 or DS2438 sensor05 serial number, string, read only
+      '.1.3.6.1.4.1.17095.2.4.1.6',        // DS18B20 or DS2438 sensor06 serial number, string, read only
+      '.1.3.6.1.4.1.17095.2.4.1.7',        // DS18B20 or DS2438 sensor07 serial number, string, read only
+      '.1.3.6.1.4.1.17095.2.4.1.8',        // DS18B20 or DS2438 sensor08 serial number, string, read only
+      
+      '.1.3.6.1.4.1.17095.3.1.1.1',        // I/O_01 State, read only
+      '.1.3.6.1.4.1.17095.3.1.1.2',        // I/O_02 State, read only
+      '.1.3.6.1.4.1.17095.3.1.1.3',        // I/O_02 State, read only
+      '.1.3.6.1.4.1.17095.3.1.1.4',        // I/O_04 State, read only
+      
+      '.1.3.6.1.4.1.17095.3.1.2.1',        // I/O_01 State, string, read only
+      '.1.3.6.1.4.1.17095.3.1.2.2',        // I/O_02 State, string, read only
+      '.1.3.6.1.4.1.17095.3.1.2.3',        // I/O_03 State, string, read only
+      '.1.3.6.1.4.1.17095.3.1.2.4'         // I/O_04 State, string, read only
+
+); far;
+
+const comunity : string[32] = 'public';
+
+const SNMP_Port = 161;
+
+const sysDescr_ = 'SMSC V2.1'; far;                   // sysName, string
+const sysObjectID_ = '.1.3.6.1.4.1.17095.1.1'; far;     // sysObjectID, OID
+
+implementation
+
+end.

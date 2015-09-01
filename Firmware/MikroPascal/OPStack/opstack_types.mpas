@@ -1,0 +1,101 @@
+unit opstack_types;
+
+{$I Options.inc}
+
+type
+  TOlcbIpAddress = array[0..3] of Byte;
+  TOlcbMacAddress = array[0..5] of Byte;
+
+type
+  TEventID = array[0..7] of Byte;                                               // Is the 48 Bit node ID + 16 Bits of unique Event ID = 64 Bits
+  PEventID = ^TEventID;
+
+  PByte = ^Byte;
+  
+const
+  MCO_WRITE_UNDER_MASK               = $8000;                                   // MemoryConfigurationOptions - Write under mask supported
+  MCO_UNALIGNED_READS                = $4000;                                   // MemoryConfigurationOptions - Unaligned memory Reads supported
+  MCO_UNALIGNED_WRITES               = $2000;
+  MCO_ACDI_MFG_READS                 = $0800;                                   // MemoryConfigurationOptions - Address Space 0xFC supported (ACDI Manufacturer Area) for reads
+  MCO_ACDI_USER_READS                = $0400;                                   // MemoryConfigurationOptions - Address Space 0xFB supported (ACDI User Defined Area) for reads
+  MCO_ACDI_USER_WRITES               = $0200;                                   // MemoryConfigurationOptions - Address Space 0xFB supported (ACDI User Defined Area) for writes
+
+  MCWL_ONE_BYTE                      = $80;                                     // MemoryConfigurationWriteLength - 1 Byte Write Supported
+  MCWL_TWO_BYTE                      = $40;                                     // MemoryConfigurationWriteLength - 2 Byte Write Supported
+  MCWL_FOUR_BYTE                     = $20;                                     // MemoryConfigurationWriteLength - 4 Byte Write Supported
+  MCWL_64_BYTE                       = $10;                                     // MemoryConfigurationWriteLength - 64 Byte (exactly) Write Supported
+  MCWL_ARBITRARY_BYTE                = $02;                                     // MemoryConfigurationWriteLength - Any Number of Byte Write Supported
+  MCWL_STREAM_WRITE_SUPPORTED        = $01;                                     // MemoryConfigurationWriteLength - Stream Write Supported
+
+
+
+const
+  OPS_PROCESSING      = $0001;                                                    // Start and stops the main StateMachine for running. Default is Off on startup Allows holding off OLCB processing until the node is read (Ethernet link is up, etc)
+
+type
+  TOPStack = record
+    State: Word;                                                                // The State of the OPStack Library, see the OPS_xxx flags
+    _1sCounter: Byte;                                                           // Counts 10 100ms timer ticks to update items at a 1s rate
+  end;
+  
+// TCP Header:
+//  |   Flags 16 Bits   |       Size 24 Bits          |             Originating/Gateway Node 48 Bits              |             Message Capture Time 48 Bits                  |
+//  | Byte 00 | Byte 01 | Byte 02 | Byte 03 | Byte 04 | Byte 05 | Byte 06 | Byte 07 | Byte 08 | Byte 09 | Byte 10 | Byte 11 | Byte 12 | Byte 13 | Byte 14 | Byte 15 | Byte 16 |
+//         2 bytes      +          3 bytes            +                       6 bytes                             +                      6 bytes
+
+// TCP Message:
+//  |  MTI 16 bits      |               Source Node ID 48 bits                      |                Dest Node ID 48 bits {optional}            | Data Payload
+//  | Byte 17 | Byte 18 | Byte 19 | Byte 20 | Byte 21 | Byte 22 | Byte 23 | Byte 24 | Byte 25 | Byte 26 | Byte 27 | Byte 28 | Byte 29 | Byte 30 | Byte 31 | Byte 32 | Byte 33 |
+//         2 bytes      +                 6 bytes                             +                      6 bytes
+
+// OR
+
+// TCP Message:
+//  |    MTI 16 bits    |               Source Node ID 48 bits                      |                        Data Payload
+//  | Byte 00 | Byte 01 | Byte 02 | Byte 03 | Byte 04 | Byte 05 | Byte 06 | Byte 07 | Byte 08 | Byte 09 | Byte 10 | Byte 11 | Byte 12 | Byte 13 | Byte 14 | Byte 15 | Byte 16 |
+//
+
+const
+  OPSTACK_TCP_FLAG_OLCB_MESSAGE = $8000;        //  Link Message = 0
+  OPSTACK_TCP_FLAG_CHAINING     = $4000;
+  // $2000, $1000 reserved
+  OPSTACK_TCP_FLAG_MULTI_PART   = $0C00;        // $0000 = Single part, $0020 = First part, $0030 = center part, $0040 = last part
+  // Rest are reserved
+
+const
+  MAX_OLCB_TCP_MESSAGE_PREAMBLE = 14;      // 2 - MTI, 6 - Source ID, 6 - Dest ID
+  MIN_OLCB_TCP_MESSAGE_PREAMBLE = 8;       // 2 - MTI, 6 - Source ID
+  MAX_HEADER_ONLY_LEN = 17;
+  MAX_HEADER_CONTRIBUTION_TO_SIZE_FIELD_LEN = 12;
+  MAX_OLCB_DEFINED_MESSAGE_LEN = 253;
+
+  MAX_OLCB_TCP_MESSAGE_ARRAY = MAX_HEADER_ONLY_LEN + MAX_OLCB_DEFINED_MESSAGE_LEN + MAX_OLCB_TCP_MESSAGE_PREAMBLE;
+
+  MAX_OLCB_TCP_SEND_BUFFERS = 4;        // Need to make this a USER VARIABLE
+
+type
+  TOPStackTcpMessageArray = array[MAX_OLCB_TCP_MESSAGE_ARRAY] of byte;
+  POPStackTcpMessageArray = ^TOPStackTcpMessageArray;
+  
+type
+  TTcpCaptureTime = array[2] of DWord;
+
+type
+  TOPStackTcpIncomingMessage = record
+    DataArray: TOPStackTcpMessageArray;
+    ReceiveState: Word;
+    iMessage: DWord;
+    MessageSize: DWord;
+    CaptureTime: TTcpCaptureTime;
+  end;
+  POPStackTcpIncomingMessage = ^TOPStackTcpIncomingMessage;
+
+  TOPStackTcpOutgoingMessages = record
+    Buffers: array[0..MAX_OLCB_TCP_SEND_BUFFERS-1] of TOPStackTcpMessageArray;
+    Head, Tail: Integer;
+    Count: Integer;
+  end;
+  
+implementation
+
+end.

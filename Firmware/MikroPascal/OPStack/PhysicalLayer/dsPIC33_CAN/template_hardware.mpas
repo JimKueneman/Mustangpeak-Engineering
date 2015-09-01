@@ -1,0 +1,363 @@
+unit template_hardware;
+
+
+{$I Options.inc}
+
+{.$DEFINE TRACK_CAN_LOCK}
+
+uses
+  opstack_debug,
+  opstack_gridconnect,
+  dsPIC33_CAN,
+  opstack_buffers,
+  opstack_defines,
+  opstack_canstatemachinesbuffers;
+
+
+procedure Hardware_Initialize;
+procedure Hardware_SearchandDestroyAbandonMessagesInMessageStacks;
+// The OPStack calls these functions to control and/or send messages through the hardware layer
+procedure Hardware_DisableInterrupts;
+procedure Hardware_EnableInterrupts;
+
+procedure OutgoingCriticalMessage(AMessage: POPStackMessage; FreeMessage: Boolean);  // Called _back_ from within the IncomingMessageDispatch if we can't allocate buffers, unknown MTI's etc.  For CAN this is expected to be immediatly replied back to the sender as these are very high priority CAN headers
+procedure OutgoingMessage(AMessage: POPStackMessage; FreeMessage: Boolean);          // Expects that IsOutgoingBufferAvailable was called and returned True to ensure success in transmitting
+procedure ProcessHardwareMessages;
+function IsOutgoingBufferAvailable: Boolean;
+
+procedure ReceivedOnFilter0(OpenLCBCanBuffer: POpenLCBCanBuffer);
+procedure ReceivedOnFilter1(OpenLCBCanBuffer: POpenLCBCanBuffer);
+procedure ReceivedOnFilter2(OpenLCBCanBuffer: POpenLCBCanBuffer);
+procedure ReceivedOnFilter3(OpenLCBCanBuffer: POpenLCBCanBuffer);
+procedure ReceivedOnFilter4(OpenLCBCanBuffer: POpenLCBCanBuffer);
+procedure ReceivedOnFilter5(OpenLCBCanBuffer: POpenLCBCanBuffer);
+procedure ReceivedOnFilter6(OpenLCBCanBuffer: POpenLCBCanBuffer);
+
+procedure Hardware_Print;
+
+
+{$IFNDEF FPC}
+// Callback to push received messages into the OPStack
+procedure OPStackCANStatemachine_OPStackMessageToOpenLCBCanBuffer(AMessage: POPStackMessage; OpenLCBCanBuffer: POpenLCBCanBuffer); external;
+function OPStackCANStatemachine_OpenLCBCanBufferToOPStackBuffer(OpenLCBCanBuffer: POpenLCBCanBuffer; var OPStackMessage: POPStackMessage; var DestNode: POpenLCBNode): Boolean;  external;
+procedure OPStackCANStatemachine_ProcessMessages; external;
+procedure IncomingMessageDispatch(OlcbMessage: POPStackMessage; DestNode: POpenLCBNode); external;
+function OPStackNode_FindByAlias(AliasID: Word): POpenLCBNode; external;
+{$ENDIF}
+
+var
+  OPStack_TimerInterruptEnable : sbit; sfr; external;
+
+{$IFDEF TRACK_CAN_LOCK}
+var
+   MaxTime: Word;
+{$ENDIF}
+
+implementation
+
+type
+  THardware = record
+    InterruptDisableCount: Integer;                                             // Allows stacked calls to Disable/Enable Interrupts (if used)
+    OutgoingTxBuffer: TOpenLCBCanBuffer;
+    OutgoingHighPriortyTxBuffer: TOpenLCBCanBuffer;
+    OutgoingBufferOverrun,
+    OutgoingHighPriorityBufferOverrun: Boolean;
+  end;
+
+var
+  Hardware: THardware;
+
+procedure Hardware_Print;
+begin
+  if Hardware.OutgoingBufferOverrun then
+    DebugLine('OutgoingBufferOverrun = True')
+  else
+    DebugLine('OutgoingBufferOverrun = False');
+  if Hardware.OutgoingHighPriorityBufferOverrun then
+    DebugLine('OutgoingHighPriorityBufferOverrun = True')
+  else
+    DebugLine('OutgoingHighPriorityBufferOverrun = False');
+  IntToStr(Hardware.InterruptDisableCount, s1);
+  DebugLine('InterruptDisableCount = ' + s1);
+end;
+
+// *****************************************************************************
+//  procedure Hardware_Initialize
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+procedure Hardware_Initialize;
+begin
+  dsPIC33_CAN_Initialize;
+  OPStackCANStatemachineBuffers_Initialize;
+  Hardware.InterruptDisableCount := 0;
+  Hardware.OutgoingBufferOverrun := False;
+  Hardware.OutgoingHighPriorityBufferOverrun := False;
+  
+  {$IFDEF TRACK_CAN_LOCK}
+  MaxTime := 0;
+  {$ENDIF}
+end;
+
+ // *****************************************************************************
+//  procedure Hardware_SearchandDestroyAbandonMessagesInMessageStacks
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+procedure Hardware_SearchandDestroyAbandonMessagesInMessageStacks;
+begin
+  OPStackCANStatemachineBuffers_SearchAndDestroyAbandonOutgoingDatagramMessages;
+  OPStackCANStatemachineBuffers_SearchAndDestroyAbandonIncomingDatagramMessages;
+  OPStackCANStatemachineBuffers_SearchAndDestroyAbandonOutgoingMultiFrameMessages;
+  OPStackCANStatemachineBuffers_SearchAndDestroyAbandonIncomingMultiFrameMessages;
+  OPStackCANStatemachineBuffers_SearchAndDestroyAbandonOutgoingMultiFrameStringMessages;
+  OPStackCANStatemachineBuffers_SearchAndDestroyAbandonIncomingMultiFrameStringMessages;
+  {$IFDEF SUPPORT_STREAMS}
+  OPStackCANStatemachineBuffers_SearchAndDestroyAbandonStreamMessages;
+  {$ENDIF}
+end;
+
+// *****************************************************************************
+//  procedure Hardware_Initialize
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+procedure CopyOpenLCBCanBuffers(SourceBuffer, DestBuffer: POpenLCBCanBuffer);
+begin
+  DestBuffer^.MTI := SourceBuffer^.MTI;
+  DestBuffer^.PayloadCount := SourceBuffer^.PayloadCount;
+  DestBuffer^.Payload := SourceBuffer^.Payload;
+end;
+
+// *****************************************************************************
+//  procedure Hardware_DisableInterrupts
+//    Parameters:
+//    Result:
+//    Description:   called when lists or similar are being maniuplated that
+//                   could be in an interterminate state if an interrupt driven
+//                   system is called in the middle of the manipulation. Use this
+//                   function to disable asyncronous access to library variable
+//                   during this call
+// *****************************************************************************
+procedure Hardware_DisableInterrupts;
+begin
+  // Disable Any interrupts here
+  Inc(Hardware.InterruptDisableCount);
+  if Hardware.InterruptDisableCount = 1 then
+  begin
+    OPStack_TimerInterruptEnable := 0;      // Disable the OPStackTimer so it won't add to the time we are blind to the CAN interrupt
+    dsPIC33_CAN_GlobalInterruptCAN_Event(False);
+    {$IFDEF TRACK_CAN_LOCK}
+    TMR3 := 0;
+    {$ENDIF}
+  end;
+end;
+
+// *****************************************************************************
+//  procedure Hardware_EnableInterrupts
+//    Parameters:
+//    Result:
+//    Description:   called when lists or similar are being maniuplated that
+//                   could be in an interterminate state if an interrupt driven
+//                   system is called in the middle of the manipulation. Use this
+//                   function to re enable asyncronous access to library variable
+//                   during this call
+// *****************************************************************************
+procedure Hardware_EnableInterrupts;
+var
+  Timer: real;
+begin
+  Dec(Hardware.InterruptDisableCount);
+  if Hardware.InterruptDisableCount <= 0 then
+  begin
+  
+    {$IFDEF TRACK_CAN_LOCK}
+    if TMR3 > MaxTime then
+    begin
+      LATB3_bit := 1;
+      MaxTime := TMR3;
+    end;
+    {$ENDIF}
+          
+    // Enable any Interrupts here
+    dsPIC33_CAN_GlobalInterruptCAN_Event(True);
+    Hardware.InterruptDisableCount := 0;
+    OPStack_TimerInterruptEnable := 1;
+    
+    {$IFDEF TRACK_CAN_LOCK}
+    if TMR3 > MaxTime then
+    begin
+      Timer := 14.285714e-3*MaxTime;  // Time per Timer Tick
+      FloatToStr(Timer, s1);
+      DebugLine('Disabled Time: ' + s1 + 'us' );
+      LATB3_bit := 0;
+    end;
+    {$ENDIF}
+    
+  end;
+end;
+
+// *****************************************************************************
+//  procedure OutgoingCriticalMessage
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+procedure OutgoingCriticalMessage(AMessage: POPStackMessage; FreeMessage: Boolean);
+var
+  OpenLCBCanBuffer: TOpenLCBCanBuffer;
+begin
+  if not dsPIC33_CAN_Transmitting_Channel_2 then
+  begin
+    if AMessage^.MessageType and MT_MASK = MT_SIMPLE then
+    begin
+      OPStackCANStatemachine_OPStackMessageToOpenLCBCanBuffer(AMessage, @OpenLCBCanBuffer);
+      dsPIC33_StartCANHighPriorityMessageEngine(@OpenLCBCanBuffer, True);
+      if FreeMessage then
+        OPStackBuffers_DeAllocateMessage(AMessage);
+    end;
+  end else
+  begin
+    Hardware.OutgoingHighPriorityBufferOverrun := True;
+  end
+end;
+
+// *****************************************************************************
+//  procedure OutgoingMessage
+//    Parameters:
+//    Result:
+//    Description:   called to send a message on the physical layer, must call
+//                   IsOutgoingBufferAvailable before to ensure a buffer is
+//                   available to use
+// *****************************************************************************
+procedure OutgoingMessage(AMessage: POPStackMessage; FreeMessage: Boolean);
+var
+  OpenLCBCanBuffer: TOpenLCBCanBuffer;
+begin
+  if IsOutgoingBufferAvailable then
+  begin
+    case AMessage^.MessageType and MT_MASK of
+      MT_SIMPLE :
+          begin
+            OPStackCANStatemachine_OPStackMessageToOpenLCBCanBuffer(AMessage, @OpenLCBCanBuffer);
+            dsPIC33_StartTransmission(@OpenLCBCanBuffer, True);
+            if FreeMessage then
+              OPStackBuffers_DeAllocateMessage(AMessage);
+          end;
+      {$IFDEF SUPPORT_STREAMS}
+      MT_STREAM   : 
+          begin
+            if not OPStackCANStatemachineBuffers_AddOutgoingStreamMessage(AMessage) then
+              OPStackBuffers_DeAllocateMessage(AMessage)     // CAN can't handle a full Datagram Message so we need to parse it up into MT_SIMPLE frames
+          end;
+      {$ENDIF}
+      MT_DATAGRAM : 
+          begin  // TODO:  When this fails the outgoing message is lost.  The opstackcore handes the incoming message and expectis it to be able to be sent.... Not easy trying to not release the original incomnig message to not loose it
+            if not OPStackCANStatemachineBuffers_AddOutgoingDatagramMessage(AMessage) then  // CAN can't handle a full Datagram Message so we need to parse it up into MT_SIMPLE frames
+              OPStackBuffers_DeAllocateMessage(AMessage);
+          end;
+      MT_MULTIFRAME_STRING :
+          begin // TODO:  When this fails the outgoing message is lost.  The opstackcore handes the incoming message and expectis it to be able to be sent.... Not easy trying to not release the original incomnig message to not loose it
+            if not OPStackCANStatemachineBuffers_AddOutgoingMultiFrameStringMessage(AMessage) then   // CAN can't handle a full Datagram Message so we need to parse it up into MT_SIMPLE frames
+              OPStackBuffers_DeAllocateMessage(AMessage)
+          end;
+      MT_MULTIFRAME : 
+          begin // TODO:  When this fails the outgoing message is lost.  The opstackcore handes the incoming message and expectis it to be able to be sent.... Not easy trying to not release the original incomnig message to not loose it
+            if OPStackCANStateMachineBuffer_AddOutgoingMultiFrameMessage(AMessage) then   // CAN can't handle a full Multi Message so we need to parse it up into MT_SIMPLE frames
+              OPStackBuffers_DeAllocateMessage(AMessage)
+          end
+    else
+       OPStackBuffers_DeAllocateMessage(AMessage);
+    end;
+  end else
+  begin
+    Hardware.OutgoingBufferOverrun := True;
+    OPStackBuffers_DeAllocateMessage(AMessage);
+  end;
+end;
+
+// *****************************************************************************
+//  procedure IsOutgoingBufferAvailable
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+function IsOutgoingBufferAvailable: Boolean;
+begin
+  Result := not dsPIC33_CAN_Transmitting_Channel_0 or not dsPIC33_CAN_Transmitting_Channel_1
+end;
+
+// *****************************************************************************
+//  procedure ProcessHardwareMessages
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+procedure ProcessHardwareMessages;
+begin
+  OPStackCANStatemachine_ProcessMessages;
+end;
+
+// *****************************************************************************
+//  procedure ReceivedOnFilter0
+//    Parameters:
+//    Result:
+//    Description: CAN Layer message on Filter 0
+// *****************************************************************************
+procedure ReceivedOnFilter0(OpenLCBCanBuffer: POpenLCBCanBuffer);
+var
+  OPStackMessagePtr: POPStackMessage;
+  OPStackMessage: TOPStackMessage;
+  Buffer: TSimpleBuffer;
+  DestNode: POpenLCBNode;
+begin
+  DestNode := nil;
+  OPStackBuffers_ZeroMessage(@OPStackMessage);
+  OPStackBuffers_ZeroSimpleBuffer(@Buffer, True);
+  OPStackMessage.Buffer := @Buffer;
+  OPStackMessagePtr := @OPStackMessage;
+  if OPStackCANStatemachine_OpenLCBCanBufferToOPStackBuffer(OpenLCBCanBuffer, OPStackMessagePtr, DestNode) then
+    IncomingMessageDispatch(OPStackMessagePtr, DestNode);
+end;
+
+// *****************************************************************************
+//  procedure ReceivedOnFilter1
+//    Parameters:
+//    Result:
+//    Description: OpenLCB Layer message on Filter 1
+//                 In the new library the split is handled internally to it
+// *****************************************************************************
+procedure ReceivedOnFilter1(OpenLCBCanBuffer: POpenLCBCanBuffer);
+begin
+  ReceivedOnFilter0(OpenLCBCanBuffer);
+end; 
+
+procedure ReceivedOnFilter2(OpenLCBCanBuffer: POpenLCBCanBuffer);
+begin
+// Unused
+end; 
+
+procedure ReceivedOnFilter3(OpenLCBCanBuffer: POpenLCBCanBuffer);
+begin
+// Unused
+end; 
+
+procedure ReceivedOnFilter4(OpenLCBCanBuffer: POpenLCBCanBuffer);
+begin
+// Unused
+end; 
+
+procedure ReceivedOnFilter5(OpenLCBCanBuffer: POpenLCBCanBuffer);
+begin
+// Unused
+end; 
+
+procedure ReceivedOnFilter6(OpenLCBCanBuffer: POpenLCBCanBuffer);
+begin
+// Unused
+end;
+
+end.

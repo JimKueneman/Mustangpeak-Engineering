@@ -1,0 +1,550 @@
+unit OLCB_CabBridge;
+
+
+{$IFDEF FPC}
+interface
+{$ENDIF}
+
+{$I Options.inc}
+
+uses
+  Float16,
+  opstack_types,
+  opstack_defines,
+  template_node,
+  opstack_api,
+  OLCB_CabBridgeDefines,
+  opstack_utilities;
+
+{$IFNDEF FPC}
+procedure OpenLCBCabBridge_Initialize;
+procedure PrintNodeInfo(NodeInfo: PNodeInfo);
+{$IFDEF SUPPORT_CAB_INPUT_BUFFER}
+procedure PrintIncomingMsg(var IncomingMsg: TCabMessage);
+{$ENDIF}
+procedure WriteUARTByte(DataByte: Byte; TxReg: ^Word; StatusReg: ^Word; Wait: Boolean);
+procedure WriteByte(DataByte: Byte; Wait: Boolean);
+procedure FlushUartReceiver;
+procedure EnableCabBusTimer(Time: Word);
+procedure DisableCabBusTimer;
+procedure CabBus_UART_TX_Interrupt;
+function NceKeyPressToString(KeyPress: Byte): string[64];
+function NMRAExtractSpeedStep(SpeedStep: Byte; NMRA_SpeedDirByte: Byte): Byte;
+function NMRAExtractIsDirForward(SpeedStep: Byte; NMRA_SpeedDirByte: Byte): Boolean;
+function NMRAExtractIsDirReverse(SpeedStep: Byte; NMRA_SpeedDirByte: Byte): Boolean;
+function NCE_CabMessageToTrainAddress(Count: Integer; var CabMessage: TCabMessageArray): Word;
+procedure ZeroizeNceCabData(CabData: PCab);
+function Cab_Allocate: PCab;
+procedure Cab_Free(CabData: PCab);
+function CreateCabNode(CabID: Word): POpenLCBNode;
+function CreateCab(CabID: Word): POpenLCBNode;
+function FindCab(CabID: Word): POpenLCBNode;
+function CabNodeAssignedAndPermitted(CabNode: POpenLCBNode): Boolean;
+// Xpressnet Functions
+function InsertXpressnetHiBitParity(DataByte: Word): Word;
+
+function OPStackNode_Allocate(iNodeIndex: Integer): POpenLCBNode; external;
+{$ENDIF}
+
+function ToggleFunction(Node: POpenLCBNode; var Functions: DWord; FunctionAddress: Byte; var NewValue: Word): Boolean;
+function ChangeSpeed(Speed: THalfFloat; DeltaInRealSpeed: {$IFDEF FPC}single{$ELSE}real{$ENDIF}): Word;
+
+{$IFNDEF FPC}
+var
+  CabBus_RS485_Select              : sbit; sfr; external;
+  CabBus_RS485_Select_Direction    : sbit; sfr; external;
+{$ENDIF}
+
+implementation
+
+{$IFNDEF FPC}
+procedure PrintNodeInfo(NodeInfo: PNodeInfo);
+begin
+  WordToHex(NodeInfo^.AliasID, s1 + LF);
+  UART1_Write_Text('Alias: 0x' + s1 + LF);
+  LongWordToHex( (NodeInfo^.ID[1] shl 16) or NodeInfo^.ID[0], s1);
+  UART1_Write_Text('Node ID: 0x' + s1 + LF);
+end;
+
+{$IFDEF SUPPORT_CAB_INPUT_BUFFER}
+procedure PrintIncomingMsg(var IncomingMsg: TCabMessage);
+var
+  i: Integer;
+begin
+  UART1_Write_Text('Incoming Message' +LF);
+  ByteToStr(IncomingMsg.Count, s1);
+  UART1_Write_Text('Count: ' + s1 + LF);
+  if IncomingMsg.Full then
+    UART1_Write_Text('Full = True'+ LF)
+  else
+    UART1_Write_Text('Full = False'+ LF);
+  UART1_Write_Text('Data = ');
+  for i := 0 to IncomingMsg.Count - 1 do
+  begin
+    ByteToStr(IncomingMsg.DataBytes[i], s1);
+    if i <  IncomingMsg.Count - 1 then
+      UART1_Write_Text('0x' + s1 + ', ')
+    else
+      UART1_Write_Text('0x' + s1);
+  end;
+  UART1_Write_Text(LF);
+end;
+{$ENDIF}
+
+// ****************************************************************************
+// *****************************************************************************
+procedure OpenLCBCabBridge_Initialize;
+var
+  i, j: Integer;
+begin
+  CabBus_RS485_Select := 0;                // Default in Receive
+  CabBus_RS485_Select_Direction := 0;      // Output
+  for i := 0 to USER_MAX_NODE_COUNT - 1 do
+    ZeroizeNceCabData( @CabArray[i]);
+  CabBridge.Discovering := True;             // Start out discovering
+  CabBridge.CurrentCabID := ID_MIN_DEVICE_NCE;
+  CabBridge.iStateMachine := STATE_BRIDGE_USER_START;
+  CabBridge.DiscoverTimer := 0;
+  CabBridge.iAssignedCabCount := 0;
+  CabBridge.iOutGoingCount := 0;
+  CabBridge.iOutGoingByteIndex := 0;
+  for i := 0 to USER_MAX_NODE_COUNT - 2 do   // no space for physical node
+  begin
+    CabBridge.AssignedCabs[i] := nil;
+  end;
+  CabBridge.iAssignedCab := 0;  
+  CabBridge.ExistingCab := nil;  
+  CabBridge.LastPortRead := 0;         
+  CabBridge.iIncomingCount := 0;
+  CabBridge.iIncomingStateMachine := 0;
+  CabBridge.iIncomingByteIndex := 0;
+end;
+
+// ****************************************************************************
+// *****************************************************************************
+procedure WriteUARTByte(DataByte: Byte; TxReg: ^Word; StatusReg: ^Word; Wait: Boolean);
+begin
+  TxReg^ := DataByte;
+  StatusReg^.UTXEN := 1;          // Force the Register in to the TSR so the Idle check is not "too fast" to start
+  if Wait then
+  begin
+    while StatusReg^.TRMT = 1 do;   // Wait for the UART to start transmitting
+    while StatusReg^.TRMT = 0 do;   // Wait for the UART to finsh transmitting to make sure the ENceBus timing is met
+  end
+end;
+
+// ****************************************************************************
+// *****************************************************************************
+procedure WriteByte(DataByte: Byte; Wait: Boolean);
+begin
+  CabBus_RS485_Select := 1;      // Select the 485 chip to transmit mode
+  WriteUARTByte(DataByte, @U2TXREG, @U2STA, Wait);
+  CabBus_RS485_Select := 0;      // Select the 485 chip to receive mode
+end;
+
+// ****************************************************************************
+// *****************************************************************************
+procedure FlushUartReceiver;
+var
+  Temp: Word;
+begin
+  while (URXDA_U2STA_bit = 1) do Temp := U2RXREG;             // Flush the RX Buffer
+  U2RXIF_Bit := 0;                                            // Reset the hardware RX statemachine
+end;
+
+// ****************************************************************************
+// *****************************************************************************
+procedure EnableCabBusTimer(Time: Word);
+begin
+  TON_T4CON_bit := 0;      // Turn off
+  T4IE_bit := 0;           // Disable the Interrupt
+  PR4 := Time;             //
+  TMR4 := 0;                        
+  T4IF_bit := 0;           // Clear T1IF
+  T4IE_bit := 1;           // Enable the Interrupt
+  TON_T4CON_bit := 1;      // Turn on
+end;
+
+// ****************************************************************************
+// *****************************************************************************
+procedure DisableCabBusTimer;
+begin
+  TON_T4CON_bit := 0;      // Turn off
+  T4IE_bit := 0;           // Disable the Interrupt
+end;
+
+// ****************************************************************************
+// *****************************************************************************
+procedure CabBus_UART_TX_Interrupt;
+begin
+  while TRMT_U2STA_bit = 0 do;      // bug in module, may fire too early
+  CabBus_RS485_Select := 0;         // Get ready to receive
+  U2TXIE_bit := 0;                  // Disable the Interrupt till the next time
+end;
+
+// ****************************************************************************
+// *****************************************************************************
+function NceKeyPressToString(KeyPress: Byte): string[64];
+begin
+  case KeyPress of
+    NCE_CAB_SELECT_LOCO       : Result := 'Select Loco';
+    NCE_CAB_ENTER             : Result := 'Enter';
+    NCE_CAB_DIR_TOGGLE        : Result := 'Direction Toggle';
+    NCE_HORN_KEY_DOWN         : Result := 'Horn Key Down';
+    NCE_CAB_ONE_STEP_FASTER   : Result := 'One Step Faster';
+    NCE_CAB_ONE_STEP_SLOWER   : Result := 'One Step Slower';
+    NCE_CAB_EMERGENCY_STOP    : Result := 'Emergency Stop';
+    NCE_CAB_BELL              : Result := 'Cab Bell';
+    NCE_CAB_TOGGLE_F0_0       : Result := '0/Toggle F0';
+    NCE_CAB_TOGGLE_F1_1       : Result := '1/Toggle F1';
+    NCE_CAB_TOGGLE_F2_2       : Result := '2/Toggle F2';
+    NCE_CAB_TOGGLE_F3_3       : Result := '3/Toggle F3';
+    NCE_CAB_TOGGLE_F4_4       : Result := '4/Toggle F4';
+    NCE_CAB_TOGGLE_F5_5       : Result := '5/Toggle F5';
+    NCE_CAB_TOGGLE_F6_6       : Result := '6/Toggle F6';
+    NCE_CAB_TOGGLE_F7_7       : Result := '7/Toggle F7';
+    NCE_CAB_TOGGLE_F8_8       : Result := '8/Toggle F8';
+    NCE_CAB_9                 : Result := '9';
+    NCE_HORN_KEY_UP           : Result := 'Horn Key Up';
+    NCE_CAB_FIVE_STEPS_FASTER : Result := '5 Speed Steps Faster';
+    NCE_CAB_FIVE_STEPS_SLOWER : Result := '5 Speed Steps Slower';
+    NCE_CAB_SELECT_MACRO      : Result := 'Macro';
+    NCE_CAB_DIR_FORWARD       : Result := 'Forward Direction';
+    NCE_CAB_DIR_REVERSE       : Result := 'Reverse Direction'
+  else
+    Result := 'Unknown Command';
+  end;
+end;
+
+// ****************************************************************************
+// *****************************************************************************
+function NCE_CabMessageToTrainAddress(Count: Integer; var CabMessage: TCabMessageArray): Word;
+var
+  i: Integer;
+  AddressStr: string[CAB_MAX_DATA_BYTE];
+begin
+  Result := 0;
+  AddressStr := '';
+  for i := 0 to Count - 1 do
+    AddressStr := AddressStr + Char( CabMessage[i] and $0F or $30);   // Make them ASCII
+  Result := StrToWord(AddressStr);
+  if (AddressStr[0] = '0') or (Result > 127) then
+    Result := Result or $C000;
+end;
+
+// ****************************************************************************
+// *****************************************************************************
+procedure ZeroizeNceCabData(CabData: PCab);
+var
+  i, j: Integer;
+begin
+  CabData^.State := 0;
+  {$IFDEF SUPPORT_CAB_INPUT_BUFFER}
+  CabData^.UserInputBuffer.Count := 0;
+  CabData^.UserInputBuffer.Full := False;
+  for j := 0 to CAB_MAX_DATA_BYTE - 1 do
+    CabData^.UserInputBuffer.DataBytes[j] := 0;
+  {$ENDIF}
+  CabData^.iStateMachine := 0;
+  CabData^.ID := 0;
+
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+function Cab_Allocate: PCab;
+var
+  i: Integer;
+begin
+  Result := nil;
+  i := 0;
+  while i < USER_MAX_NODE_COUNT do
+  begin
+    if CabArray[i].State and CS_ALLOCATED = 0 then
+    begin
+      Result := @CabArray[i];
+      ZeroizeNceCabData(Result);
+      CabArray[i].State := CabArray[i].State or CS_ALLOCATED;
+      Exit;
+    end;
+    Inc(i)
+  end
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+procedure Cab_Free(CabData: PCab);
+begin
+if CabData <> nil then
+  CabData^.State := CabData^.State and not CS_ALLOCATED
+end;
+
+// ****************************************************************************
+// *****************************************************************************
+function CreateCabNode(CabID: Word): POpenLCBNode;
+var
+  CabData: PCab;
+begin
+  Result := nil;
+  CabData := Cab_Allocate;
+  if CabData <> nil then
+  begin
+    Result := OPStackNode_Allocate(-1);
+    if Result <> nil then
+    begin
+      Result^.UserData := CabData;
+      CabData^.ID := CabID;
+    end else
+    begin
+      Cab_Free(CabData)
+    end
+  end
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+function CreateCab(CabID: Word): POpenLCBNode;
+var
+  CabData: PCab;
+begin
+  Result := CreateCabNode(CabID);
+  if Result <> nil then
+  begin
+    CabData := PCab( Result^.UserData);
+    CabBridge.AssignedCabs[CabBridge.iAssignedCabCount] := Result;
+    Inc(CabBridge.iAssignedCabCount);
+    Exit;
+  end;
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+function FindCab(CabID: Word): POpenLCBNode;
+var
+  i: Integer;
+begin
+  Result := nil;
+  i := 0;
+  while i < CabBridge.iAssignedCabCount do
+  begin
+    if PCab( CabBridge.AssignedCabs[i]^.UserData)^.ID = CabID then
+    begin
+      Result := CabBridge.AssignedCabs[i];
+      Exit;
+    end;
+    Inc(i);
+  end
+end;
+
+// *****************************************************************************
+//
+// function InsertHiBitParity(DataByte: Byte): Byte;
+//
+//  Parameters:
+//                DataByte:  Byte to count '1's in
+//
+//  Returns:
+//                DataByte with the parity bit (inclusive) in the MSB
+//
+//  Description:
+//              Adds the parity bit to B7.  It is an inclusive parity only on
+//  address bytes
+//
+// *****************************************************************************
+function InsertXpressnetHiBitParity(DataByte: Word): Word;
+begin
+  Result := 0;
+  if DataByte.B0 = 1 then Inc(Result);
+  if DataByte.B1 = 1 then Inc(Result);
+  if DataByte.B2 = 1 then Inc(Result);
+  if DataByte.B3 = 1 then Inc(Result);
+  if DataByte.B4 = 1 then Inc(Result);
+  if DataByte.B5 = 1 then Inc(Result);
+  if DataByte.B6 = 1 then Inc(Result);
+  // This is inclusive parity so if there are an even number of 1's (mod 2 = 0) then
+  // adding the parity bit will make the number of 1's odd
+  if Result mod 2 <> 0 then
+    Result := DataByte or %10000000
+  else
+    Result := DataByte
+end;
+
+// *****************************************************************************
+//
+// procedure WriteXpressNetByte(DataByte: Word; SetAddressBit: Boolean);
+//
+//   Parameters:
+//              DataByte:      The Byte to send
+//              SetAddressBit: True if the 9th bit should be set to signify it as an address
+//
+//   Returns:
+//      None
+//
+//  Description:
+//                The workhorse function that places the data onto the
+//    UART Xpressnet bus RS485 but in RS485 format
+//
+// *****************************************************************************
+procedure WriteXpressNetByte(DataByte: Word; SetAddressBit: Boolean; TxReg: ^Word; StatusReg: ^Word);
+begin
+  {$IFNDEF DISABLE_XPRESSNET_UART_WRITE}
+  if SetAddressBit then
+   DataByte := DataByte or $0100
+  else
+    DataByte := DataByte and $00FF;
+
+  TxReg^ := DataByte;
+  StatusReg^.UTXEN := 1;          // Force the Register in to the TSR so the Idle check is not "too fast" to start
+  while StatusReg^.TRMT = 1 do;   // Wait for the UART to start transmitting
+  while StatusReg^.TRMT = 0 do;   // Wait for the UART to finsh transmitting to make sure the ExpressNet timing is met
+  {$ENDIF}
+end;
+
+// *****************************************************************************
+//
+// function ExtractSpeedStep
+//
+//  Parameters
+//              SpeedStep   :  The speed step format of the byte
+//              NMRA_SpeedDirByte:  The NMRA coded speed type
+//  Result:
+//              The raw speed step 0-14, 0-28, 0-128
+//
+//  Description:
+//
+// *****************************************************************************
+function NMRAExtractSpeedStep(SpeedStep: Byte; NMRA_SpeedDirByte: Byte): Byte;
+begin
+  Result := NMRA_SpeedDirByte;
+  case SpeedStep of
+    14 :
+      begin
+        Result := Result and %00001111;
+        if Result < 2 then
+          Result := 0
+        else
+          Dec(Result)
+      end;
+    28 :
+      begin
+        Result := (Result and %00011111) shl 1;
+        Result.0 := Result.5;
+        Result.5 := 0;
+        if Result < 4 then
+          Result := 0
+        else
+          Result := Result - 3
+      end;
+    128 :
+      begin
+        Result := Result and %01111111;
+        if Result < 2 then
+          Result := 0
+        else
+          Dec(Result)
+      end;
+  end;
+end;
+
+// *****************************************************************************
+// function NMRAExtractIsDirForward
+//
+//  Parameters:
+//              XpressNetSpeed   :  The speed step format of the byte
+//              NMRA_SpeedDirByte:  The NMRA coded speed type
+//  Result:
+//              True if the direction is forward
+//
+//  Description:
+// *****************************************************************************
+function NMRAExtractIsDirForward(SpeedStep: Byte; NMRA_SpeedDirByte: Byte): Boolean;
+begin
+  Result := False;
+  case SpeedStep of
+    14,
+    28  : Result := NMRA_SpeedDirByte.5 = 1;
+    128 : Result := NMRA_SpeedDirByte.7 = 1 ;
+  end;
+end;
+
+// *****************************************************************************
+// function NMRAExtractIsDirReverse
+//
+//  Parameters:
+//              XpressNetSpeed   :  The speed step format of the byte
+//              NMRA_SpeedDirByte:  The NMRA coded speed type
+//  Result:
+//              True if the direction is forward
+//
+//  Description:
+// *****************************************************************************
+function NMRAExtractIsDirReverse(SpeedStep: Byte; NMRA_SpeedDirByte: Byte): Boolean;
+begin
+  Result := False;
+  case SpeedStep of
+    14,
+    28  : Result := NMRA_SpeedDirByte.5 = 0;
+    128 : Result := NMRA_SpeedDirByte.7 = 0 ;
+  end;
+end;
+
+function CabNodeAssignedAndPermitted(CabNode: POpenLCBNode): Boolean;
+begin
+  Result := False;
+  if CabNode <> 0 then
+    if CabNode^.State and NS_PERMITTED <> 0 then
+      Result := True;
+end;
+{$ENDIF}
+
+// ****************************************************************************
+// *****************************************************************************
+function ChangeSpeed(Speed: THalfFloat; DeltaInRealSpeed: {$IFDEF FPC}single{$ELSE}real{$ENDIF}): Word;
+var
+  IsReverse: Boolean;
+  SpeedReal:real;
+begin
+  IsReverse := Speed and $8000 <> 0;
+  SpeedReal := HalfToFloat( Speed and not $8000);
+
+  SpeedReal := SpeedReal + (DeltaInRealSpeed);
+  if SpeedReal > 100.0 then
+    SpeedReal := 100.0
+  else
+  if SpeedReal < 0.0 then
+    SpeedReal := 0.0;
+
+  Result := FloatToHalf(SpeedReal);
+  if IsReverse then
+    Result := Result or $8000;
+end;
+
+function ToggleFunction(Node: POpenLCBNode; var Functions: DWord; FunctionAddress: Byte; var NewValue: Word): Boolean;
+var
+  Mask: DWord;
+begin
+  Result := False;
+  Mask := $00000001;
+  Mask := Mask shl FunctionAddress;
+  if (Functions and Mask) <> 0 then
+  begin
+    if TrySendTractionFunctionSet(Node^.Info, Node^.TrainData.ControllerLink, FunctionAddress, 0) then
+    begin
+      Mask := not Mask;
+      Functions := Functions and Mask;
+      NewValue := 0;
+      Result := True
+    end;
+  end else
+  begin
+    if TrySendTractionFunctionSet(Node^.Info, Node^.TrainData.ControllerLink, FunctionAddress, 1) then
+    begin
+      Functions := Functions or Mask;
+      NewValue := 1;
+      Result := True
+    end;
+  end;
+end;
+
+
+end.

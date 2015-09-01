@@ -1,0 +1,254 @@
+unit Tftp_Server;
+
+uses dspic_additional_string_library,def_io,lib1_enc600_V3_5_b,df_lib_SPI1;
+
+function  UDP_Data_In(len_U : word): word;
+
+const TFTP_Port = 69;
+
+implementation
+      
+// TFTP commands
+const TFTP_RRQ: word = 1;
+      TFTP_WRQ: word = 2;
+      TFTP_DAT: word = 3;
+      TFTP_ACK: word = 4;
+      TFTP_ERR: word = 5;
+
+const msg61 = 'File not found.';far;
+const msg62 = 'config.bin';far;
+const msg63 = 'firmware.bin';far;
+const msg64 = 'webpage.bin';far;
+const msg66 = 'data_flash.bin';far;
+const msg67 = 'File could not be written.';far;
+
+// Variables for MMC routines
+var FileName_   : string[32]; // TLongFileName; //  <-- do not use "TLongFileName" !!!!!!!
+    NrBlocksToSend, LastBlockSize: word;
+    FileSize    : DWord;
+    df_start_page : word;
+
+procedure Str2Lower(var txt_in : string[1472]);
+var i,j,buf : word;
+begin
+  j := Str_Len(txt_in);
+  if j > 1472 then
+    begin
+      j := 512;
+      txt_in[1472] := 0;
+    end;
+  i := 0;
+  while i < j do
+    begin
+      buf := txt_in[i];
+      if buf >= 'A' then
+      if buf <= 'Z' then txt_in[i] := buf + 32;
+      inc(i);
+    end;
+end;
+
+procedure Get_FileName;
+begin
+  CopyEthMem_CPToRam(word(@FileName_),32);
+  FileName_[32] := 0;
+  Str2Lower(FileName_);
+end;
+
+function PrepareBlockToSend(BlockNr, Size: word): word;
+begin
+
+  // send new block
+  Eth_putbyte(hi(TFTP_DAT));
+  Eth_putbyte(lo(TFTP_DAT));
+  Eth_putbyte(hi(BlockNr));
+  Eth_putbyte(lo(BlockNr));
+
+  // place data into the databuffer
+  if Size > 0 then
+  begin
+    if df_start_page < 4096 then DF_ContArrayToETH((df_start_page * 512),size);
+    inc(df_start_page);
+  end;
+
+  Result := size + 4;
+
+end;
+
+function CmpFlashStringWithMem(Faddr : dword; Maddr_ : word) : byte;
+var ptf : ^far const byte;
+    ptf1 : ^byte;
+    aa,bb : byte;
+begin
+  ptf := Faddr;
+  ptf1 := Maddr_;
+  while true do
+    begin
+      aa := ptf^;
+      bb := ptf1^;
+      result := bb - aa;
+      if result <> 0 then exit;
+      if aa = 0 then exit;
+      inc(ptf);
+      inc(ptf1);
+    end;
+end;
+
+function Handle_RRQ: word;
+label ok_data_;
+begin
+  Result := 0;
+  Get_FileName;
+
+  if (CmpFlashStringWithMem(dword(@msg62),word(@FileName_)) = 0) then
+    begin
+       df_start_page := 0;
+       FileSize := (512*12);
+       goto ok_data_;
+    end;
+  if (CmpFlashStringWithMem(dword(@msg66),word(@FileName_)) = 0) then
+    begin
+      df_start_page := 0;
+      FileSize := (512*4096);
+      goto ok_data_;
+    end;
+
+  // not exist
+  Eth_putbyte(hi(TFTP_ERR));
+  Eth_putbyte(lo(TFTP_ERR));
+  Eth_putbyte(0);
+  Eth_putbyte(0);
+  Result := 5 + CopyFlashStringToEthMem_CP(dword(@msg61));
+  Eth_putbyte(0);
+  exit;
+
+ok_data_:
+  NrBlocksToSend := dword(FileSize div 512);
+  LastBlockSize  := dword(FileSize mod 512);
+  inc(NrBlocksToSend);
+  // send first block
+  if NrBlocksToSend > 1 then Result := PrepareBlockToSend(1, 512)
+  else Result := PrepareBlockToSend(1, LastBlockSize);
+end;
+
+function Handle_ACK(BlockNr: word): word;
+begin
+  Result := 0;
+
+  inc(BlockNr);  // get next block
+
+  if BlockNr <= NrBlocksToSend then
+    begin
+      if BlockNr < NrBlocksToSend then Result := PrepareBlockToSend(BlockNr, 512)
+      else
+        begin
+          Result := PrepareBlockToSend(BlockNr, LastBlockSize); // send last block
+        end;
+    end
+  else
+    begin // last ACK has arrived
+      //
+    end;
+end;
+
+function Handle_WRQ: word;
+label end_data_;
+begin
+  Result := 0;
+  
+  Get_FileName;
+
+  if (CmpFlashStringWithMem(dword(@msg62),word(@FileName_)) = 0) then  // config.bin
+    begin
+      df_start_page := 0;
+      goto end_data_;
+    end;
+  if (CmpFlashStringWithMem(dword(@msg63),word(@FileName_)) = 0) then  // firmware.bin
+    begin
+      df_start_page := 12;
+      goto end_data_;
+    end;
+  if (CmpFlashStringWithMem(dword(@msg64),word(@FileName_)) = 0) then  // webpage.bin
+    begin
+      df_start_page := 12+516;
+      goto end_data_;
+    end;
+    
+  Eth_putbyte(hi(TFTP_ERR));
+  Eth_putbyte(lo(TFTP_ERR));
+  Eth_putbyte(0);
+  Eth_putbyte(0);
+  Result := 5 + CopyFlashStringToEthMem_CP(dword(@msg67));
+  Eth_putbyte(0); // no extra error message
+  exit;
+
+end_data_:
+  // give acknowledge
+  Eth_putbyte(hi(TFTP_ACK));
+  Eth_putbyte(lo(TFTP_ACK));
+  Eth_Putbyte(0);  // blocknumber 0
+  Eth_Putbyte(0);
+  Result := 4;
+  exit;
+end;
+
+function Handle_DAT_DF(BlockNr ,len: word): word;
+begin
+  Result := 0;
+
+  // get data
+  if len > 0 then
+    begin
+      DF_BufferWriteArrayETH_CP(2);
+      DF_BufferToPage(df_start_page,2);
+      inc(df_start_page);
+    end;
+      
+  // give acknowledge
+  Eth_putbyte(hi(TFTP_ACK));
+  Eth_putbyte(lo(TFTP_ACK));
+  Eth_Putbyte(Hi(BlockNr));
+  Eth_Putbyte(Lo(BlockNr));
+  Result := 4;
+end;
+
+function UDP_Data_In(len_U : word) : word;
+var BlockNr: word;
+    Command: word;
+begin
+    
+  Hi(Command) := Eth_GetByte;
+  Lo(Command) := Eth_GetByte;
+
+  case command of
+    TFTP_RRQ: //
+      begin  // read request received
+        Result := Handle_RRQ;
+      end;
+
+    TFTP_WRQ: //
+      begin  // write request received
+        Result := Handle_WRQ;
+      end;
+
+    TFTP_DAT: //
+      begin  // data received
+        Hi(BlockNr) := Eth_GetByte;
+        Lo(BlockNr) := Eth_GetByte;
+        Result := Handle_DAT_DF(BlockNr, len_U - 4);
+      end;
+
+    TFTP_ACK: //
+      begin  // acknowledge received
+        Hi(BlockNr) := Eth_GetByte;
+        Lo(BlockNr) := Eth_GetByte;
+        Result := Handle_ACK(BlockNr);
+      end;
+
+    TFTP_ERR: //
+      begin  // error received
+        Result := 0;
+      end;
+  end;
+end;
+
+end.

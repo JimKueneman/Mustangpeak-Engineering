@@ -1,0 +1,213 @@
+unit Termal_Library_My2P;
+
+uses OneWire_base2P,Lib_Delays_LIO,def_io;
+
+function GetTemp2P(var romcode : array[1..8] of byte; var temp : real) : boolean;
+function GetTempSkipCode2P(family : byte; var temp : real) : boolean;
+function GetTempDec2P(var romcode : array[1..8] of byte; var temp : Integer) : boolean;
+function GetTempDecSkipCode2P(family : byte; var temp : Integer) : boolean;
+function GetRomCode2P(var romcode : array[1..8] of byte) : boolean;
+procedure ConvertTemp2P(var romcode : array[1..8] of byte);
+procedure ConvertTempAll2P;
+procedure ConvertTempPullUp2P(var romcode : array[1..8] of byte);
+procedure ConvertTempAllPullUp2P;
+function BusFree2P : boolean;
+            
+implementation
+
+function GetTemp2P(var romcode : array[1..8] of byte; var temp : real) : boolean;
+var i,CRC : byte;
+    romdata : array [1..9] of byte;
+    buf : integer;
+    temp_buf : real;
+begin
+  CRC := 0;
+  temp := 0;
+  result := false;
+  Ow_Reset_2P;       // OneWire reset signal
+  Ow_Write_2P($55);   // Issue command to DS18x20
+  for i := 1 to 8 do Ow_Write_2P(romcode[i]);
+  Ow_Write_2P($BE);   // Issue command to DS18x20
+  delay_120us_;
+  for i := 1 to 9 do romdata[i] := Ow_Read_2P;  // Get result
+  for i := 1 to 8 do CRC := Table2P[CRC xor romdata[i]];
+  if CRC = romdata[9] then
+    begin
+      if romcode[1] = $28 then     // DS18B20
+        begin
+          buf := (romdata[2] * 256) + romdata[1];
+          temp_buf := buf / 16.0;
+        end
+      else                           // DS1820,DS18S20
+        begin
+          buf := ((romdata[2] * 256) + romdata[1]) div 2;
+          temp_buf := buf - 0.25 + (romdata[8] - romdata[7])/(romdata[8]);
+        end;
+      if temp_buf <> 85.00 then
+        begin
+          temp := temp_buf;
+          result := true;
+        end;
+    end;
+end;
+
+function GetTempSkipCode2P(family : byte; var temp : real) : boolean;
+var i,CRC : byte;
+    romdata : array [1..9] of byte;
+    buf : integer;
+    temp_buf : real;
+begin
+  CRC := 0;
+  temp := 0;
+  result := false;
+  Ow_Reset_2P;       // OneWire reset signal
+  Ow_Write_2P($CC);   // Issue command to DS18x20
+  Ow_Write_2P($BE);   // Issue command to DS18x20
+  delay_120us_;
+  for i := 1 to 9 do romdata[i] := Ow_Read_2P;  // Get result
+  for i := 1 to 8 do CRC := Table2P[CRC xor romdata[i]];
+  if CRC = romdata[9] then
+    begin
+      if family = $28 then     // DS18B20
+        begin
+          buf := (romdata[2] * 256) + romdata[1];
+          temp_buf := buf / 16.0;
+        end
+      else                           // DS1820,DS18S20
+        begin
+          buf := ((romdata[2] * 256) + romdata[1]) div 2;
+          temp_buf := buf - 0.25 + (romdata[8] - romdata[7])/(romdata[8]);
+        end;
+      if temp_buf <> 85.00 then
+        begin
+          temp := temp_buf;
+          result := true;
+        end;
+    end;
+end;
+
+function GetTempDec2P(var romcode : array[1..8] of byte; var temp : Integer) : boolean;
+var i,CRC : byte;
+    romdata : array [1..9] of byte;
+    buf,temp_buf : Integer;
+begin
+  CRC := 0;
+  temp := 0;
+  result := false;
+  Ow_Reset_2P;       // OneWire reset signal
+  Ow_Write_2P($55);   // Issue command to DS18x20
+  for i := 1 to 8 do Ow_Write_2P(romcode[i]);
+  Ow_Write_2P($BE);   // Issue command to DS18x20
+  delay_120us_;
+  for i := 1 to 9 do romdata[i] := Ow_Read_2P;  // Get result
+  for i := 1 to 8 do CRC := Table2P[CRC xor romdata[i]];
+  if CRC = romdata[9] then
+    begin
+      if romcode[1] = $28 then     // DS18B20
+        begin
+          buf := (romdata[2] * 256) + romdata[1];
+          temp_buf := longint((buf * 25) div 4);
+        end
+      else                           // DS1820,DS18S20
+        begin
+          buf := ((romdata[2] * 256) + romdata[1]) div 2;
+          temp_buf := (buf * 100) - 25 + ((romdata[8] - romdata[7])*100) div romdata[8];
+        end;
+      if temp_buf <> 8500 then
+        begin
+          temp := temp_buf;
+          result := true;
+        end;
+    end;
+end;
+
+function GetTempDecSkipCode2P(family : byte; var temp : Integer) : boolean;
+var i,CRC : byte;
+    romdata : array [1..9] of byte;
+    buf,temp_buf : Integer;
+begin
+  CRC := 0;
+  temp := 0;
+  result := false;
+  Ow_Reset_2P;       // OneWire reset signal
+  Ow_Write_2P($CC);   // Issue command to DS18x20
+  Ow_Write_2P($BE);   // Issue command to DS18x20
+  delay_120us_;
+  for i := 1 to 9 do romdata[i] := Ow_Read_2P;  // Get result
+  for i := 1 to 8 do CRC := Table2P[CRC xor romdata[i]];
+  if CRC = romdata[9] then
+    begin
+      if family = $28 then     // DS18B20
+        begin
+          buf := (romdata[2] * 256) + romdata[1];
+          temp_buf := longint((buf * 25) div 4);
+        end
+      else                           // DS1820,DS18S20
+        begin
+          buf := ((romdata[2] * 256) + romdata[1]) div 2;
+          temp_buf := (buf * 100) - 25 + ((romdata[8] - romdata[7])*100) div romdata[8];
+        end;
+      if temp_buf <> 8500 then
+        begin
+          temp := temp_buf;
+          result := true;
+        end;
+    end;
+end;
+
+function GetRomCode2P(var romcode : array[1..8] of byte) : boolean;
+var i,CRC : byte;
+begin
+  result := true;
+  CRC := 0;
+  Ow_Reset_2P;
+  Ow_Write_2P($33);
+  delay_120us_;
+  for i := 1 to 8 do romcode[i] := Ow_Read_2P;  // Get romcode
+  for i := 1 to 7 do CRC := Table2P[CRC xor romcode[i]];
+  if CRC <> romcode[8] then
+    begin
+      result := false;
+      for i := 1 to 8 do romcode[i] := 0;
+    end;
+end;
+
+procedure ConvertTemp2P(var romcode : array[1..8] of byte);
+var i : byte;
+begin
+  Ow_Reset_2P;
+  Ow_Write_2P($55);   // Issue command to DS18x20
+  for i := 1 to 8 do Ow_Write_2P(romcode[i]);
+  Ow_Write_2P($44);
+end;
+
+procedure ConvertTempAll2P;
+begin
+  Ow_Reset_2P;
+  Ow_Write_2P($CC);
+  Ow_Write_2P($44);
+end;
+
+procedure ConvertTempPullUp2P(var romcode : array[1..8] of byte);
+var i : byte;
+begin
+  Ow_Reset_2P;
+  Ow_Write_2P($55);   // Issue command to DS18x20
+  for i := 1 to 8 do Ow_Write_2P(romcode[i]);
+  Ow_Write_PullUp_2P($44);
+end;
+
+procedure ConvertTempAllPullUp2P;
+begin
+  Ow_Reset_2P;
+  Ow_Write_2P($CC);
+  Ow_Write_PullUp_2P($44);
+end;
+
+function BusFree2P : boolean;
+begin
+  if Ow_Read_2P = $FF then result := true
+  else result := false;
+end;
+
+end.

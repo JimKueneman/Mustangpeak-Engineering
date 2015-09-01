@@ -1,0 +1,17 @@
+unit enc_lib_user;
+
+uses dspic_additional_string_library,def_io,lib1_enc600_V3_5_b,
+     Tftp_Server,df_lib_SPI1;
+
+function Eth_UserUDP(var dest_ip_addr_U : IpHeader; var dest_port_U, source_port_U, len_U : word) : word;
+
+implementation
+
+function Eth_UserUDP(var dest_ip_addr_U : IpHeader; var dest_port_U, source_port_U, len_U : word) : word;
+begin
+  result := 0;
+  if source_port_U = TFTP_Port then
+  if len_U > 2 then Result := UDP_Data_In(len_U);
+end;
+
+end.

@@ -1,0 +1,669 @@
+program General_Framework;
+
+uses dspic_additional_string_library,lib_Delays_LIO,def_io,lib1_enc600_V3_5_b,
+     enc_lib_user,lib2_enc600_V3_5_b,SNMP_Library,SNMP_OID,df_lib_SPI1,crc16_lib,
+     Tftp_Server,HTTP_Server,config,OneWire_base2P,DS2438_temp_hum; // Don't touch this lines !!!!!
+    
+procedure Oscillator_Failure; org $06;
+begin
+  INTCON1.1 := 0;
+  reset;
+end;
+
+procedure Address_Error; org $08;
+begin
+  INTCON1.3 := 0;
+  reset;
+end;
+
+procedure Stack_Error; org $0A;
+begin
+  INTCON1.2 := 0;
+  reset;
+end;
+
+procedure Math_Error; org $0C;
+begin
+  INTCON1.4 := 0;
+  reset;
+end;
+
+procedure Int_ovf_UART1;  // must be called at 1 ms
+begin
+  if inc(UART1_ovf) > 9 then // UART1_Timeout 9ms
+    begin
+      UART1_ovf := 0;
+      if UART1_len <> 0 then UART1_data_available := true;
+    end;
+end;
+
+procedure Int_ovf_UART2;  // must be called at 1 ms
+begin
+  if inc(UART2_ovf) > 9 then // UART1_Timeout 9ms
+    begin
+      UART2_ovf := 0;
+      if UART2_len <> 0 then UART2_data_available := true;
+    end;
+end;
+
+procedure Timer1Int; org $1A; // interrupt at 1ms
+begin
+  IFS0.T1IF := 0;   // Clear TMR1IF
+  CounterTask;  // must be called at 1ms
+  if inc(CC10ms) > 9 then
+    begin
+      CC10ms := 0;
+      inc(sysUpTime);
+    end;
+  if inc(CC100ms) > 99 then
+    begin
+      CC100ms := 0;
+      if inc(CC500ms) > 4 then
+        begin
+          CC500ms := 0;
+          LED1 := not LED1;
+        end;
+      inc(CC1s);
+      inc(CC5s);
+    end;
+  Int_ovf_UART1;
+  Int_ovf_UART2;
+end;
+
+procedure Uart1Int; org $2A; // Uart1 interrupt, 19200bps, KNX
+label next1;
+begin
+next1:
+  if UART1_len > 127 then UART1_len := 127;
+  UART1_buf[UART1_len] := Uart1_Read;
+  inc(UART1_len);
+  UART1_ovf := 0;
+  if U1STA.URXDA <> 0 then goto next1;
+  IFS0.U1RXIF := 0;
+end;
+
+procedure Uart2Int; org $50; // Uart2 interrupt, 19200bps, RS485
+label next1;
+begin
+next1:
+  if UART2_len > 127 then UART2_len := 127;
+  UART2_buf[UART2_len] := Uart2_Read;
+  inc(UART2_len);
+  UART2_ovf := 0;
+  if U2STA.URXDA <> 0 then goto next1;
+  IFS1.U2RXIF := 0;
+end;
+
+procedure Interrupt_Init;
+begin
+  T1CON := $0000;             // Timer1 internal clock FCY, prescaler 1:1
+  TMR1 := 0;                  // Clear TMR1
+//  PR1 := 39999;             // interrupt at 1ms, 80MHz
+  PR1 := 19999;               // interrupt at 1ms, 40MHz
+  T1CON.15 := 1;              // Timer1 ON
+  IPC0  := $2444;             // Interrupt priority level = 2
+  IFS0.T1IF  := 0;            // Clear TMR1IF
+  IEC0.T1IE  := 1;            // Enable Timer1 interrupts
+  
+  IFS0.U1RXIF := 0;           // UART1, 19200bps, KNX
+  IEC0.U1RXIE := 1;
+  
+  IFS1.U2RXIF := 0;           // UART2, 19200bps, RS485
+  IEC1.U2RXIE := 1;
+end;
+
+Procedure Init;
+var i : word;
+Begin
+  CLRWDT;
+
+  CLKDIV := CLKDIV and $FF3F;
+  PLLFBD := 18;  // 20 MIPS
+//  PLLFBD := 38;  // 40 MIPS
+
+  delayms(100);
+  
+  AD1PCFGL := 0xFFFF;
+{
+  nop;
+  AD1PCFGL.7 := 0; // AN3 is MCU AN7
+  nop;
+  AD1PCFGL.6 := 0; // AN2 is MCU AN6
+  nop;
+  AD1PCFGL.5 := 0; // AN1 is MCU AN5
+  nop;
+  AD1PCFGL.4 := 0; // AN0 is MCU AN4
+}
+
+  RS485_TX := 0;
+  nop;
+  RS485_TX_dir := 0;
+  nop;
+  
+  RELAY1 := 0;
+  nop;
+  RELAY1_dir := 0;
+  nop;
+  RELAY2 := 0;
+  nop;
+  RELAY2_dir := 0;
+  nop;
+  RELAY3 := 0;
+  nop;
+  RELAY3_dir := 0;
+  nop;
+  RELAY4 := 0;
+  nop;
+  RELAY4_dir := 0;
+  
+  Unlock_IOLOCK();
+
+  PPS_Mapping(7, _INPUT, _SDI2);      // Ethernet
+  PPS_Mapping(22, _OUTPUT, _SDO2);
+  PPS_Mapping(9, _OUTPUT, _SCK2OUT);
+
+  PPS_Mapping(19, _INPUT, _SDI1);      // AT45DB161D
+  PPS_Mapping(20, _OUTPUT, _SDO1);
+  PPS_Mapping(21, _OUTPUT, _SCK1OUT);
+  
+  PPS_Mapping(15, _INPUT, _U1RX);       // Uart1 RX, KNX
+  PPS_Mapping(18, _OUTPUT, _U1TX);      // Uart1 TX, KNX
+
+  PPS_Mapping(11, _INPUT, _U2RX);       // Uart2 RX, RS485
+  PPS_Mapping(25, _OUTPUT, _U2TX);      // Uart2 TX, RS485
+{
+  PPS_Mapping(2, _OUTPUT, _OC1);
+  PPS_Mapping(3, _OUTPUT, _OC2);
+  PPS_Mapping(16, _OUTPUT, _OC3);
+  PPS_Mapping(17, _OUTPUT, _OC4);
+}
+  Lock_IOLOCK();
+
+  LED1 := 0;
+  nop;
+  LED1_dir := 0;
+    
+  reset_flag := 0;
+
+  UART1_len := 0;
+  UART1_ovf := 0;
+  UART1_data_available := false;
+  
+  Uart1_Init(19200);
+  
+  i := 0;
+  while i < 8 do
+    begin
+      Uart1_Read;
+      inc(i);
+    end;
+
+  UART2_len := 0;
+  UART2_ovf := 0;
+  UART2_data_available := false;
+
+  Uart2_Init(19200);
+
+  i := 0;
+  while i < 8 do
+    begin
+      Uart2_Read;
+      inc(i);
+    end;
+    
+  Interrupt_Init;
+{
+  TMR2 := 0;
+  PR2 := 100;
+  T2CON := $8020;   // start TMR2 prescaler 64
+    
+  OC1CON := 6;  // PWM1 Init 3.3KHz
+  OC1R := 0;
+  OC1RS := 0;
+
+  OC2CON := 6;  // PWM2 Init 3.3KHz
+  OC2R := 0;
+  OC2RS := 0;
+  
+  OC3CON := 6;  // PWM3 Init 3.3KHz
+  OC3R := 0;
+  OC3RS := 0;
+  
+  OC4CON := 6;  // PWM4 Init 3.3KHz
+  OC4R := 0;
+  OC4RS := 0;
+}
+End;
+
+procedure Uart1_Write_String(var str_in : string[128]);
+var i,j : word;
+    buf : byte;
+begin
+  j := 0;
+  i := 0;
+  while i < 128 do
+    begin
+      buf := str_in[i];
+      if buf = 0 then break; // end of string
+      Uart1_Write(buf);
+      if inc(j) > 15 then
+        begin
+          j := 0;
+          Do_EthernetProc(1);   // process incomming ethernet packets at every 16 bytes sent
+        end;
+      inc(i);
+    end;
+  Do_EthernetProc(1);
+  Uart1_Write($0D);
+  Uart1_Write($0A);
+end;
+
+procedure handler_Uart;
+var buf : string[128];
+    len : word;
+begin
+  if UART1_data_available = true then
+    begin
+      if Uart1_len >= 128 then Uart1_len := 128;
+      len := Uart1_len;
+      Mem_Cpy(@buf,@UART1_buf,Uart1_len);
+
+      UART1_ovf := 0;
+      Uart1_len := 0;
+      UART1_data_available := false;
+
+    end;
+  if UART2_data_available = true then
+    begin
+      if Uart2_len >= 128 then Uart2_len := 128;
+      len := Uart2_len;
+      Mem_Cpy(@buf,@UART2_buf,Uart2_len);
+
+      UART2_ovf := 0;
+      Uart2_len := 0;
+      UART2_data_available := false;
+
+    end;
+end;
+
+procedure Convert1(tmp : integer; var SNMP_string_result_ : string[10]);
+begin
+  Int2StrWithZeros(tmp,SNMP_string_result_);
+  if SNMP_string_result_[0] = '-' then
+    begin
+      Str_Cut_Left(SNMP_string_result_,2);
+      Str_AppendPre(SNMP_string_result_,'-');
+      Str_Insert_Chr(SNMP_string_result_,'.',3);
+    end
+  else
+    begin
+      Str_Cut_Left(SNMP_string_result_,2);
+      Str_Insert_Chr(SNMP_string_result_,'.',2);
+    end;
+end;
+
+procedure Convert2(tns : word; var SNMP_string_result_ : string[10]);
+begin
+  Word2StrWithZeros(tns,SNMP_string_result_);
+  Str_Cut_Left(SNMP_string_result_,1);
+  Str_Insert_Chr(SNMP_string_result_,'.',2);
+end;
+
+procedure Convert2SNMPstring;
+var i : word;
+begin
+  i := 0;
+  while i < 8 do
+    begin
+      Convert1(tmp[i],SNMP_string_result_temp[i]);
+      Convert2(hum[i],SNMP_string_result_hum[i]);
+      inc(i);
+    end;
+end;
+
+procedure Convert2SNMPstring1;
+var i : word;
+begin
+  i := 0;
+  while i < 4 do
+    begin
+//      Convert2(IO_[i],SNMP_string_result1[i]);
+      Word2Str(IO_[i],SNMP_string_result1[i]);
+      inc(i);
+    end;
+end;
+
+procedure ADC1_Init_;
+begin
+  AD1CON1 := $04E0;
+  AD1CON2 := 0;
+  AD1CON3 := $0707;
+  AD1CON4 := 0;
+  AD1CSSL := 0;
+  AD1CON1.15 := 1;
+end;
+
+function ADC1_Read_(ch : word) : word;
+begin
+  AD1CHS0 := ch;
+  AD1CON1.1 := 1;
+  while AD1CON1.0 = 0 do ;
+  AD1CON1.0 := 0;
+  result := ADC1BUF0;
+end;
+
+function get_adc(ch : byte) : dword;
+var i,j : word;
+begin
+  result := 0;
+  
+  j := 0;
+  while j < 16 do
+    begin
+      i := 0;
+      while i < 16 do
+        begin
+          result := result + Adc1_Read_(ch);
+          inc(i);
+        end;
+      Do_EthernetProc(1);
+      handler_Uart;
+      inc(j);
+    end;
+    
+  result := result div 256;
+end;
+
+procedure convert_voltage;
+begin
+{  IO_[0] := Dword((get_adc(4)*(330*1100)) div 409600);
+  if IO_[0] < 10 then IO_[0] := 0;
+  IO_[1] := Dword((get_adc(5)*(330*1100)) div 409600);
+  if IO_[1] < 10 then IO_[1] := 0;
+  IO_[2] := Dword((get_adc(6)*(330*1100)) div 409600);
+  if IO_[2] < 10 then IO_[2] := 0;
+  IO_[3] := Dword((get_adc(7)*(330*1100)) div 409600);
+  if IO_[3] < 10 then IO_[3] := 0; }
+end;
+
+procedure Convert_DS2438_Voltage;
+var i : word;
+begin
+  i := 0;
+  while i < 8 do
+    begin
+      if Rom_Code_Stored[i][1] = $26 then DS2438ConvertVoltage(Rom_Code_Stored[i]);
+      inc(i);
+    end;
+end;
+
+procedure convert_temperature;
+var i : word;
+begin
+  i := 0;
+  while i < 8 do
+    begin
+      t_err[i] := 0;
+      tmp[i] := 0;
+      hum[i] := 0;
+      if Rom_Code_Stored[i][1] = $28 then
+        begin
+          if GetTempDec2P(Rom_Code_Stored[i], tmp[i]) = false then
+            begin
+              delay_us(100);
+              if GetTempDec2P(Rom_Code_stored[i], tmp[i]) = false then t_err[i] := 1;
+            end;
+        end
+      else
+      if Rom_Code_Stored[i][1] = $26 then
+        begin
+          if DS2438GetTempHum(Rom_Code_Stored[i], tmp[i], hum[i]) = false then
+            begin
+              delay_us(100);
+              if DS2438GetTempHum(Rom_Code_Stored[i], tmp[i], hum[i]) = false then t_err[i] := 1;
+            end;
+        end
+      else t_err[i] := 1;
+      if tmp[i] > 9999 then tmp[i] := 9999;
+      if hum[i] > 9999 then hum[i] := 9999;
+      Do_EthernetProc(1);
+      handler_Uart;
+      inc(i);
+    end;
+  Convert_DS2438_Voltage;
+  i := 0;
+  while i < 100 do
+    begin
+      Do_EthernetProc(1);
+      handler_Uart;
+      delayms(1);
+      inc(i);
+    end;
+  ConvertTempAll2P; // this will include DS2438
+end;
+
+procedure Sync_NTP;
+begin
+  if NTP_Sync = false then
+    begin
+      Ntp_query;
+      TickCounter2 := 0;
+      while TickCounter2 < 3000 do
+        begin
+          Do_EthernetProc(1);
+          Process_DHCP;
+          if NTP_Sync <> 0 then break;
+        end;
+    end;
+end;
+
+function CompareConfigCRC : boolean;
+var crc,crc1 : word;
+begin
+  result := false;
+  crc := DF_ContArrayCRC(0,510);
+
+  Lo(crc1) := DF_ContRead(510);
+  Hi(crc1) := DF_ContRead(511);
+
+  if crc = crc1 then result := true;
+end;
+
+function check_jumper : word;
+begin
+  result := 0;
+  TRISB.0 := 1;
+  TRISB.1 := 1;
+  CNPU1.CN4PUE := 1;
+  CNPU1.CN5PUE := 1;
+  nop;
+  if PORTB.0 = 0 then exit; // jumper detected
+  if PORTB.1 = 0 then exit; // jumper detected
+  TRISB.0 := 0;
+  TRISB.1 := 1;
+  nop;
+  LATB.0 := 1;
+  nop;
+  result.0 := PORTB.1;
+  LATB.0 := 0;
+  nop;
+  result.1 := not(PORTB.1);
+  nop;
+  LATB.0 := 1;
+  nop;
+  result.2 := PORTB.1;
+  LATB.0 := 0;
+  nop;
+  result.3 := not(PORTB.1);
+  TRISB.0 := 1;
+end;
+
+procedure handler_1sec;
+begin
+  if CC1s > 9 then
+    begin
+      CC1s := 0;
+
+      convert_voltage;
+      Convert2SNMPstring1;
+      
+      if IO_[0] <> 0 then RELAY1 := 1
+      else RELAY1 := 0;
+      if IO_[1] <> 0 then RELAY2 := 1
+      else RELAY2 := 0;
+      if IO_[2] <> 0 then RELAY3 := 1
+      else RELAY3 := 0;
+      if IO_[3] <> 0 then RELAY4 := 1
+      else RELAY4 := 0;
+{
+      if IO_[0] > 100 then IO_[0] := 100;
+      OC1R := IO_[0];
+      OC1RS := IO_[0];
+      if IO_[1] > 100 then IO_[1] := 100;
+      OC2R := IO_[1];
+      OC2RS := IO_[1];
+      if IO_[2] > 100 then IO_[2] := 100;
+      OC3R := IO_[2];
+      OC3RS := IO_[2];
+      if IO_[3] > 100 then IO_[3] := 100;
+      OC4R := IO_[3];
+      OC4RS := IO_[3];
+}
+    end;
+end;
+
+procedure handler_5sec;
+begin
+  if CC5s > 49 then
+    begin
+      CC5s := 0;
+        
+      convert_temperature;
+      Convert2SNMPstring;
+      
+      if settodefault <> 0 then
+        begin
+          Eth_SetParameters(0);
+          delayms(100);
+          reset;
+        end;
+          
+      if save_config1 <> 0 then
+        begin
+          save_config1 := 0;
+          Save_Configuration1;
+        end;
+        
+      if save_config <> 0 then
+        begin
+          Save_Configuration;
+          delayms(100);
+          reset;
+        end;
+          
+      if reset_flag <> 0 then reset;
+      
+      if inc(cnt_wdt_ip) > 5 then  // 30sec
+        begin
+          cnt_wdt_ip := 0;
+          if wdt_ip[0] <> 255 then
+            begin
+              if PingCache[0].Time > 4000 then inc(lost_ping_cnt)
+              else lost_ping_cnt := 0;
+              if lost_ping_cnt > 59 then reset;  // 30min reset
+              Eth_SendPing(Eth_SendARP(wdt_ip),0);
+            end;
+        end;
+            
+      if pass <> 0 then
+      if access_config <> 0 then
+      if inc(unlock_cnt) > 119 then
+        begin
+          access_config := 0; // dissable access after 10min
+          unlock_cnt := 0;
+        end;
+      config_default := check_jumper;
+    end;
+end;
+
+begin
+  Init;
+
+  ADC1_Init_;
+  
+  delayms(10);
+
+  Spi1_Init_Advanced(_SPI_MASTER, _SPI_8_BIT, _SPI_PRESCALE_SEC_2, _SPI_PRESCALE_PRI_1,
+                     _SPI_SS_DISABLE, _SPI_DATA_SAMPLE_MIDDLE, _SPI_CLK_IDLE_LOW, _SPI_IDLE_2_ACTIVE);
+  // AT45DB161D on SPI1
+  if DF_Init = false then reset;
+
+  // Ethernet on SPI2
+  Spi2_Init_Advanced(_SPI_MASTER, _SPI_8_BIT, _SPI_PRESCALE_SEC_2, _SPI_PRESCALE_PRI_1,
+                     _SPI_SS_DISABLE, _SPI_DATA_SAMPLE_MIDDLE, _SPI_CLK_IDLE_LOW, _SPI_IDLE_2_ACTIVE);
+
+  Init_SNMP_var;
+
+  config_default := check_jumper;
+
+  if config_default = 15 then Eth_SetParameters(0)
+  else
+    begin
+      if CompareConfigCRC <> 0 then Eth_SetParameters(1)
+      else Eth_SetParameters(0);
+    end;
+
+//  Eth_SetParameters(0);
+  
+  Read_Stored_Rom_Code;
+
+  Convert_DS2438_Voltage;
+  delayms(100);
+  ConvertTempAll2P; // this will include DS2438
+
+  Eth_Init_;
+
+  UDP_Wait := 1500;
+
+  if DHCP_flag__ <> 0 then DHCP_Enable := true;
+
+  Wait_for_LAN;
+
+  UDP_Wait := 500;
+
+  Mac2Str(eth_mac,mac_);
+
+  convert_temperature;
+  Convert2SNMPstring;
+
+  convert_voltage;
+  Convert2SNMPstring1;
+      
+  TCP_Open_Port(HTTP_Port);
+  UDP_Open_Port(SNMP_Port);
+  UDP_Open_Port(TFTP_Port);
+  TCP_Open_Port(Config_Port);
+  UDP_Open_Port(45678);
+  
+  if wdt_ip[0] <> 255 then
+    begin
+      Eth_SendPing(Eth_SendARP(wdt_ip),0);
+      Wait_With_Eth(100);
+      Eth_SendPing(Eth_SendARP(wdt_ip),0);
+      Wait_With_Eth(100);
+    end;
+
+  CC1s := 0;
+  CC5s := 0;
+  cnt_wdt_ip := 0;
+
+  while (PORTB.0 = 0) or (config_default = 15) do
+    begin
+      Do_EthernetProc(1);
+      Process_DHCP;
+      handler_1sec;
+      handler_5sec;
+      handler_Uart;
+    end;
+  reset;
+end.

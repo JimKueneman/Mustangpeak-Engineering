@@ -1,0 +1,207 @@
+program ENC624J600_Exampe;
+
+{ Declarations section }
+
+
+uses
+  lib1_enc600_V3_5_b,
+  helperfunctions,
+  protocol_defines,
+  protocol_ping,
+  protocol_ntp,
+  protocol_arp;
+
+var ENC_CS : sbit at LATD.1;           // SPI2 ENC424J600
+    ENC_CS_dir : sbit at TRISD.1;
+    ENC_INT : sbit at PORTD.0;
+    ENC_INT_dir : sbit at TRISD.0;
+    
+    TimerEnableBit: sbit at T2CON.B15;
+    
+procedure Interrupt_Timer2(); iv IVT_ADDR_T2INTERRUPT; ics ICS_AUTO;
+begin
+  T2IF_bit := 0;
+  Inc(OneSecondCounter);
+  if OneSecondCounter > 9 then
+  begin
+    OneSecondCounter := 0;
+    LATB6_bit := not LATB6_bit;
+    Eth_Arp_Timer_1s;
+    Eth_Ping_Timer_1s;
+    Eth_CounterTask;
+  end;
+end;
+
+procedure Interrupt_PinChange(); iv IVT_ADDR_CNINTERRUPT; ics ICS_AUTO;
+begin
+  CNIF_bit := 0;
+  LATB6_bit := not LATB6_bit;
+end;
+
+procedure MapAndPrint(var TestIP: IPHeader);
+var
+  Slot: ^TArpSlot;
+begin
+  Slot := Eth_Arp_MapMacAddress(TestIP);
+  if Slot <> nil then
+    Eth_PrintArpCacheSlot(Slot)
+  else
+    UART1_Write_Text('Mapping Failed' + CRLF);
+  UART1_Write_Text(CRLF);
+end;
+
+procedure PingAndPrint(var TestIP: IPHeader);
+var
+  Slot: ^TPingSlot;
+begin
+  Slot := Eth_SendPing(TestIP);
+  if Slot <> nil then
+  begin
+    Eth_PrintPingCacheSlot(Slot);
+    Slot^.Valid := False;
+  end else
+    UART1_Write_Text('Ping Failed' + CRLF);
+  UART1_Write_Text(CRLF);
+end;
+
+procedure NtpRequest;
+var
+  NtpIP: IPHeader;
+begin
+  NtpIP[0] := 192; NtpIP[1] := 168; NtpIP[2] := 0; NtpIP[3] := 200;            // Local Ntp Server with ntpd
+  Eth_SendNtpRequest(NtpIP);
+end;
+
+var
+  TestIP: IPHeader;
+
+begin
+  { Main program }
+  
+  // Global variables to be pulled into an Intialization section somewhere eventually
+  OneSecondCounter := 0;
+  
+  
+  // Setting output frequency to 140MHz
+  PLLFBD := 68;             // PLL multiplier M=70
+  CLKDIV := 0x0000;         // PLL prescaler N1=2, PLL postscaler N2=2
+  while OSCCON.0 = 1 do;                                                        // wait for it to take effect
+
+  ANSELA := 0x00;           // Convert all I/O pins to digital
+  ANSELB := 0x00;
+  ANSELC := 0x00;
+  ANSELD := 0x00;
+  ANSELE := 0x00;
+  ANSELG := 0x00;
+  
+  PPS_Mapping(70, _OUTPUT, _SCK1OUT);                                           // Set RP70 to the SPI1 Clock Receive RD6
+  PPS_Mapping(69, _OUTPUT, _SDO1);                                              // Set RP69 to the SPI1 SDO           RD5
+  PPS_Mapping(68, _INPUT, _SDI1);                                               // Set RP68 to the SPI1 SDI           RD4
+
+  CNIED0_bit := 1;        // Pin Change  interrupt
+
+  
+  SPI1_Init_Advanced(_SPI_MASTER,                // 10Mhz
+                           _SPI_8_BIT,
+                           _SPI_PRESCALE_SEC_2,      // _SPI_PRESCALE_SEC_7,
+                           _SPI_PRESCALE_PRI_4,      //_SPI_PRESCALE_PRI_1,
+                           _SPI_SS_DISABLE,
+                           _SPI_DATA_SAMPLE_MIDDLE,  //_SPI_DATA_SAMPLE_END,
+                           _SPI_CLK_IDLE_LOW,       // _SPI_CLK_IDLE_LOW,
+                           _SPI_IDLE_2_ACTIVE);
+  SPI_Set_Active(@SPI1_Read, @SPI1_Write); // Sets the SPI1 module active
+  Delay_ms(100);
+  
+  PPS_Mapping(100, _INPUT, _U1RX);                                      // Set RPI100 to the UART Receive
+  PPS_Mapping(101, _OUTPUT, _U1TX);                                     // Set RP101 to the UART Transmit
+  UART1_Init(230400);                       // Initialize UART module a
+  Delay_ms(100);                            // Wait for UART module to stabilize
+  
+
+  // Timer 2 at 100ms
+  TCS_T2CON_bit := 0;       // internal cycle clock
+  T2IP_0_bit := 1;          // Timer 2 Interrupt Priority = 5   (1 means off)
+  T2IP_1_bit := 0;
+  T2IP_2_bit := 1;
+  TCKPS_0_T2CON_bit := 1;   // 256 Prescaler
+  TCKPS_1_T2CON_bit := 1;
+  PR2 := 27344;             // Clock ticks every (1/140MHz * 2 * 256 * 27344 = 100.00091ms interrupts
+  T2IF_bit := 0;            // Clear T2IF
+  T2IE_bit := 1;            // Enable the Interrupt
+  TON_T2CON_bit := 1;       // Turn on 100ms Timer
+  
+  // Test IO
+  LATB6_bit := 0;
+  LATB7_bit := 0;
+  TRISB6_bit := 0; // Output
+  TRISB7_bit := 0; // Output
+
+    
+  eth_ip_addr[0] := 192; eth_ip_addr[1] := 168; eth_ip_addr[2] := 0; eth_ip_addr[3] := 44;
+  eth_dns_addr[0] := 192; eth_dns_addr[1] := 168; eth_dns_addr[2] := 0; eth_dns_addr[3] :=1;
+  eth_mask[0] := 255; eth_mask[1] := 255; eth_mask[2] := 255; eth_mask[3] := 0;
+  eth_gateway[0] := 192; eth_gateway[1] := 168; eth_gateway[2] := 0; eth_gateway[3] := 1;
+  eth_ntp_addr[0] := 132; eth_ntp_addr[1] := 163; eth_ntp_addr[2] := 4; eth_ntp_addr[3] := 100;
+  eth_mac[0] := 0xA0; eth_mac[1] := 0x27; {Don't set the bottom bits} eth_mac[2] := 0x6F; eth_mac[3] := 0xFA; eth_mac[4] := 0xD6; eth_mac[5] := 0xA5;
+  
+  UART1_Write_Text('Initializing LAN!'+CRLF);
+  use_user_MAC := True;
+  Eth_Init_;
+  UART1_Write_Text('Wait for LAN!'+CRLF);
+  if Wait_for_LAN(False) then
+  begin
+    Eth_EnableReception(True);
+    UART1_Write_Text('Ethernet Ready!'+CRLF);
+  end else
+    UART1_Write_Text('Ethernet Failed!'+CRLF);
+
+
+
+  while true do
+  begin
+    Eth_DoPacket;
+    delay_us(50);     // it is possible to call TOO fast and overwhelm the ENC... 1.2u between SPI calls was too fast...
+    if UART1_Data_Ready = 1 then
+    begin
+      case UART1_Read of
+        '1' : begin
+                TestIP[0] := 192; TestIP[1] := 168; TestIP[2] := 0; TestIP[3] := 200;
+                MapAndPrint(TestIP);
+              end;
+        '2' : begin
+                TestIP[0] := 192; TestIP[1] := 168; TestIP[2] := 0; TestIP[3] := 247;     // XP VM
+                MapAndPrint(TestIP);
+              end;
+        '3' : begin
+                TestIP[0] := 192; TestIP[1] := 168; TestIP[2] := 0; TestIP[3] := 2;      // Time Capsule
+                MapAndPrint(TestIP);
+              end;
+        '4' : begin
+                TestIP[0] := 192; TestIP[1] := 168; TestIP[2] := 0; TestIP[3] := 1;
+                MapAndPrint(TestIP);
+              end;
+        '5' : begin
+                TestIP[0] := 192; TestIP[1] := 168; TestIP[2] := 0; TestIP[3] := 233;   // Does not exist
+                MapAndPrint(TestIP);
+              end;
+        '6' : begin
+                TestIP[0] := 132; TestIP[1] := 163; TestIP[2] := 4; TestIP[3] := 101;   // NIST Time Server
+                MapAndPrint(TestIP);
+              end;
+        '7' : begin
+                NtpRequest;
+              end;
+        'q' : begin
+                TestIP[0] := 192; TestIP[1] := 168; TestIP[2] := 0; TestIP[3] := 200;
+                PingAndPrint(TestIP);
+              end;
+        'c' : begin
+                Eth_PrintArpCache;
+              end;
+        'd' : begin
+                Eth_PrintPingCache;
+              end;
+      end;
+    end
+  end;
+end.

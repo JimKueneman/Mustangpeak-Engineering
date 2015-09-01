@@ -1,0 +1,3795 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="http://openlcb.org/trunk/prototypes/xml/xslt/cdi.xsl"?>
+<cdi xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://openlcb.org/trunk/specs/schema/cdi.xsd">
+	<identification>
+		<manufacturer>Throttle-Up (SoundTraxx)</manufacturer>
+		<model>Tsunami Steam</model>
+		<hardwareVersion/>
+		<softwareVersion/>
+		<map>
+			<relation>
+				<property>Model</property>
+				<value>TSU-750 Light Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-750 Medium Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-750 Heavy Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-750 Lt Logging Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-750 DRGW C-Class Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-750 DRGW K-Class Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-750 SP Cab Forward Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-1000 Light Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-1000 Medium Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-1000 Heavy Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-1000 Lt Logging Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-1000 DRGW C-Class Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-1000 DRGW K-Class Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-1000 SP Cab Forward Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-1000 Southern Steam</value>
+			</relation>
+			<relation>
+				<property>Model</property>
+				<value>TSU-4664N Challenger</value>
+			</relation>
+		</map>
+	</identification>
+	<acdi/>
+	<segment space="253" origin="256">
+		<name>DCC Controls</name>
+		<description>DCC-specific control items</description>
+		<int>
+			<name>Programming Mode</name>
+			<map>
+				<relation>
+					<property>1</property>
+					<value>Register Mode</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Paged Mode</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Direct Bit Mode</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Direct Byte Mode</value>
+				</relation>
+			</map>
+		</int>
+		<int size="2">
+			<name>DCC Address</name>
+		</int>
+		<int>
+			<name>Speed Steps</name>
+		</int>
+		<int>
+			<name>Single Index CV Address</name>
+		</int>
+		<int size="2">
+			<name>Double Index CV Addresses</name>
+		</int>
+	</segment>
+	<segment origin="4278190081" space="253">
+		<name>Raw Access</name>
+		<group replication="256">
+			<name>CVs</name>
+			<description>Raw CV access</description>
+			<repname>CV</repname>
+			<int size="1">
+				<min>0</min>
+				<max>255</max>
+			</int>
+		</group>
+	</segment>
+	<segment space="253">
+		<name>Detailed Decoder Access</name>
+		<int origin="4278190081">
+			<name>Primary Address (1-127)</name>
+		</int>
+		<int origin="4278190082">
+			<name>Start Voltage (0-255)</name>
+		</int>
+		<int origin="4278190083">
+			<name>Acceleration Rate (0-255)</name>
+		</int>
+		<int origin="4278190084">
+			<name>Braking Rate (0-255)</name>
+		</int>
+		<int origin="4278190087">
+			<name>Manufacturer Version ID</name>
+		</int>
+		<int origin="4278190088">
+			<name>Manufacturer ID</name>
+		</int>
+		<int origin="4278190090">
+			<name>BEMF Cutout (0-127 or 128-255)</name>
+		</int>
+		<int origin="4278190091">
+			<name>Packet Time Out Value (0-255)</name>
+		</int>
+		<bit size="8" mask="1" origin="4278190092">
+			<name>Power Source Conversion Type</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No alternate power source available</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Analog power supply</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190093">
+			<name>Analog Mode Function Status - F1</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Off</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>On</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190093">
+			<name>Analog Mode Function Status - F2</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Off</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>On</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190093">
+			<name>Analog Mode Function Status - F3</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Off</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>On</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190093">
+			<name>Analog Mode Function Status - F4</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Off</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>On</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190093">
+			<name>Analog Mode Function Status - F5</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Off</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>On</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190093">
+			<name>Analog Mode Function Status - F6</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Off</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>On</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190093">
+			<name>Analog Mode Function Status - F7</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Off</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>On</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190093">
+			<name>Analog Mode Function Status - F8</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Off</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>On</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190094">
+			<name>Analog Mode Function Status - F0(f)</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190094">
+			<name>Analog Mode Function Status - F0(r)</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190094">
+			<name>Analog Mode Function Status - F9</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190094">
+			<name>Analog Mode Function Status - F10</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190094">
+			<name>Analog Mode Function Status - F11</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190094">
+			<name>Analog Mode Function Status - F12</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="7" origin="4278190095">
+			<name>CV Unlock Register (0-7)</name>
+		</bit>
+		<bit size="8" mask="7" origin="4278190096">
+			<name>CV Lock ID Code (0-7)</name>
+		</bit>
+		<int origin="4278190097" size="2">
+			<name>Extended Address (0001-9999)</name>
+		</int>
+		<bit size="8" mask="127" origin="4278190099">
+			<name>Consist Address (0-127)</name>
+			<description>Stores consist address. Range 0-127 (direction set in bit 7)</description>
+		</bit>
+		<bit size="8" mask="128" origin="4278190099">
+			<name>Loco Direction In Consist</name>
+			<description>A consist address over 127 will also set this bit</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Normal</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Reversed</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190101">
+			<name>Consist Address Active For F1</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Locomotive Address Only</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Respond to Consist Address</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190101">
+			<name>Consist Address Active For F2</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Locomotive Address Only</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Respond to Consist Address</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190101">
+			<name>Consist Address Active For F3</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Locomotive Address Only</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Respond to Consist Address</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190101">
+			<name>Consist Address Active For F4</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Locomotive Address Only</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Respond to Consist Address</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190101">
+			<name>Consist Address Active For F5</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Locomotive Address Only</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Respond to Consist Address</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190101">
+			<name>Consist Address Active For F6</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Locomotive Address Only</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Respond to Consist Address</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190101">
+			<name>Consist Address Active For F7</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Locomotive Address Only</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Respond to Consist Address</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190101">
+			<name>Consist Address Active For F8</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Locomotive Address Only</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Respond to Consist Address</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190102">
+			<name>Consist Address Active For FL in Forward</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Locomotive Address Only</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Respond to Consist Address</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190102">
+			<name>Consist Address Active For FL in Reverse</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Locomotive Address Only</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Respond to Consist Address</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="127" origin="4278190103">
+			<name>Consist Acceleration Adjustment</name>
+		</bit>
+		<bit size="8" mask="128" origin="4278190103">
+			<name>Consist Acceleration Adjustment Sign</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Adjustment Added</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Adjustment Subtracted</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="127" origin="4278190104">
+			<name>Consist Deceleration Adjustment</name>
+		</bit>
+		<bit size="8" mask="128" origin="4278190104">
+			<name>Consist Deceleration Adjustment Sign</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Adjustment Added</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Adjustment Subtracted</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="31" origin="4278190105">
+			<name>Speed Table Selection</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Disabled, Speed Curves not used</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Disabled, Speed Curves not used</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Linear Speed Curve (Straight Line)</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Logarithmic Curve 1</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Logarithmic Curve 2</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Logarithmic Curve 3</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>Logarithmic Curve 4</value>
+				</relation>
+				<relation>
+					<property>7</property>
+					<value>Logarithmic Curve 5</value>
+				</relation>
+				<relation>
+					<property>8</property>
+					<value>Logarithmic Curve 6</value>
+				</relation>
+				<relation>
+					<property>9</property>
+					<value>Logarithmic Curve 7</value>
+				</relation>
+				<relation>
+					<property>10</property>
+					<value>Exponential Curve 1</value>
+				</relation>
+				<relation>
+					<property>11</property>
+					<value>Exponential Curve 2</value>
+				</relation>
+				<relation>
+					<property>12</property>
+					<value>Exponential Curve 3</value>
+				</relation>
+				<relation>
+					<property>13</property>
+					<value>Exponential Curve 4</value>
+				</relation>
+				<relation>
+					<property>14</property>
+					<value>Exponential Curve 5</value>
+				</relation>
+				<relation>
+					<property>15</property>
+					<value>Exponential Curve 6</value>
+				</relation>
+				<relation>
+					<property>16</property>
+					<value>User Defined Speed Table</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190109">
+			<name>Locomotive's Normal Direction of Motion</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Forward</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Reverse</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190109">
+			<name>Speed Steps</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>14</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>28/128</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190109">
+			<name>Alternate Power Source Enable</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>NMRA Digital Only</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Alternate Power Source Enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190109">
+			<name>Use Speed Table</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Use Start Voltage (Vstart)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Use Speed Table</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190109">
+			<name>Extended Address Mode</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Use 2 digit address (primary address)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Use 4 digit address (extended address)</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190110">
+			<name>CV Lock Enable</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Normal operation (no locking)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Enable CV Lock as set in CVs 15 and 16</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190110">
+			<name>CV Clear (CVCLR)</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Normal operation</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Reset all CVs to default values at next power cycle</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190110">
+			<name>Function Group 2 and 3 Exchange</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Normal</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Exchange Group 2 (F5-F8) and Group 3 (F9-F12)</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190113">
+			<name>FL(f) controls Headlight</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190113">
+			<name>FL(f) controls Backup Light</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190113">
+			<name>FL(f) controls output Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190113">
+			<name>FL(f) controls output Bell</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190113">
+			<name>FL(f) controls output FX5</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190113">
+			<name>FL(f) controls output FX6</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190113">
+			<name>FL(f) controls output Dynamo</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190113">
+			<name>FL(f) controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190114">
+			<name>FL(r) controls Headlight</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190114">
+			<name>FL(r) controls Backup Light</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190114">
+			<name>FL(r) controls output Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190114">
+			<name>FL(r) controls output Bell</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190114">
+			<name>FL(r) controls output FX5</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190114">
+			<name>FL(r) controls output FX6</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190114">
+			<name>FL(r) controls output Dynamo</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190114">
+			<name>FL(r) controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190115">
+			<name>F1 controls Headlight</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190115">
+			<name>F1 controls Backup Light</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190115">
+			<name>F1 controls output Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190115">
+			<name>F1 controls output Bell</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190115">
+			<name>F1 controls output FX5</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190115">
+			<name>F1 controls output FX6</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190115">
+			<name>F1 controls output Dynamo</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190115">
+			<name>F1 controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190116">
+			<name>F2 controls Headlight</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190116">
+			<name>F2 controls Backup Light</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190116">
+			<name>F2 controls output Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190116">
+			<name>F2 controls output Bell</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190116">
+			<name>F2 controls output FX5</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190116">
+			<name>F2 controls output FX6</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190116">
+			<name>F2 controls output Dynamo</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190116">
+			<name>F2 controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190117">
+			<name>F3 controls output Bell</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190117">
+			<name>F3 controls output FX5</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190117">
+			<name>F3 controls output FX6</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190117">
+			<name>F3 controls output Dynamo</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190117">
+			<name>F3 controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190117">
+			<name>F3 controls output Steam-Release</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190117">
+			<name>F3 controls output Water-Stop</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190117">
+			<name>F3 controls output Dimming</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190118">
+			<name>F4 controls output Bell</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190118">
+			<name>F4 controls output FX5</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190118">
+			<name>F4 controls output FX6</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190118">
+			<name>F4 controls output Dynamo</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190118">
+			<name>F4 controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190118">
+			<name>F4 controls output Steam-Release</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190118">
+			<name>F4 controls output Water-Stop</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190118">
+			<name>F4 controls output Dimming</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190119">
+			<name>F5 controls output Bell</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190119">
+			<name>F5 controls output FX5</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190119">
+			<name>F5 controls output FX6</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190119">
+			<name>F5 controls output Dynamo</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190119">
+			<name>F5 controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190119">
+			<name>F5 controls output Steam-Release</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190119">
+			<name>F5 controls output Water-Stop</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190119">
+			<name>F5 controls output Dimming</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190120">
+			<name>F6 controls output Bell</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190120">
+			<name>F6 controls output FX5</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190120">
+			<name>F6 controls output FX6</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190120">
+			<name>F6 controls output Dynamo</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190120">
+			<name>F6 controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190120">
+			<name>F6 controls output Steam-Release</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190120">
+			<name>F6 controls output Water-Stop</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190120">
+			<name>F6 controls output Dimming</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190121">
+			<name>F7 controls output Dynamo</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190121">
+			<name>F7 controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190121">
+			<name>F7 controls output Steam-Release</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190121">
+			<name>F7 controls output Water-Stop</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190121">
+			<name>F7 controls output Dimming</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190121">
+			<name>F7 controls output Mute</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190121">
+			<name>F7 controls output Injector</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190121">
+			<name>F7 controls output Brake-Squeal</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190122">
+			<name>F8 controls output Dynamo</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190122">
+			<name>F8 controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190122">
+			<name>F8 controls output Steam-Release</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190122">
+			<name>F8 controls output Water-Stop</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190122">
+			<name>F8 controls output Dimming</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190122">
+			<name>F8 controls output Mute</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190122">
+			<name>F8 controls output Injector</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190122">
+			<name>F8 controls output Brake-Squeal</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190123">
+			<name>F9 controls output Dynamo</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190123">
+			<name>F9 controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190123">
+			<name>F9 controls output Steam-Release</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190123">
+			<name>F9 controls output Water-Stop</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190123">
+			<name>F9 controls output Dimming</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190123">
+			<name>F9 controls output Mute</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190123">
+			<name>F9 controls output Injector</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190123">
+			<name>F9 controls output Brake-Squeal</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190124">
+			<name>F10 controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190124">
+			<name>F10 controls output Steam-Release</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190124">
+			<name>F10 controls output Water-Stop</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190124">
+			<name>F10 controls output Dimming</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190124">
+			<name>F10 controls output Mute</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190124">
+			<name>F10 controls output Injector</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190124">
+			<name>F10 controls output Brake-Squeal</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190124">
+			<name>F10 controls output Coupler</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190125">
+			<name>F11 controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190125">
+			<name>F11 controls output Steam-Release</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190125">
+			<name>F11 controls output Water-Stop</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190125">
+			<name>F11 controls output Dimming</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190125">
+			<name>F11 controls output Mute</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190125">
+			<name>F11 controls output Injector</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190125">
+			<name>F11 controls output Brake-Squeal</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190125">
+			<name>F11 controls output Coupler</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190126">
+			<name>F12 controls output Short-Whistle</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190126">
+			<name>F12 controls output Steam-Release</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190126">
+			<name>F12 controls output Water-Stop</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190126">
+			<name>F12 controls output Dimming</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190126">
+			<name>F12 controls output Mute</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190126">
+			<name>F12 controls output Injector</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190126">
+			<name>F12 controls output Brake-Squeal</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190126">
+			<name>F12 controls output Coupler</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>No</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Yes</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="127" origin="4278190127">
+			<name>Analog Whistle Control (0-255)</name>
+		</bit>
+		<bit size="8" mask="15" origin="4278190129">
+			<name>Headlight F0(f) Effect Selection</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>On/Off</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Dimmable light</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Mars light</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Pyle Gyralite</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Oscillating light</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Single flash strobe</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>Double flash strobe</value>
+				</relation>
+				<relation>
+					<property>7</property>
+					<value>D312 rotary beacon</value>
+				</relation>
+				<relation>
+					<property>8</property>
+					<value>Prime Stratolite</value>
+				</relation>
+				<relation>
+					<property>9</property>
+					<value>Type I ditch light</value>
+				</relation>
+				<relation>
+					<property>10</property>
+					<value>Type II ditch light</value>
+				</relation>
+				<relation>
+					<property>11</property>
+					<value>FRED (end of train flasher)</value>
+				</relation>
+				<relation>
+					<property>12</property>
+					<value>Engine exhaust flicker</value>
+				</relation>
+				<relation>
+					<property>13</property>
+					<value>Firebox flicker</value>
+				</relation>
+				<relation>
+					<property>14</property>
+					<value>Smart firebox flicker</value>
+				</relation>
+				<relation>
+					<property>15</property>
+					<value>Dyno-light</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190129">
+			<name>Headlight F0(f) Phase Selection</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Use phase A (normal)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Use phase B (opposite)</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190129">
+			<name>Headlight F0(f) Grade Crossing Logic</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Enabled when horn is ON</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190129">
+			<name>Headlight F0(f) Rule 17 Mode</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Disabled (Headlight mapping)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Enabled (FX5 mapping)</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190129">
+			<name>Headlight F0(f) Light Type</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Incandescent lamp</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>LED</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="15" origin="4278190130">
+			<name>Backup Light F0(r) Effect Selection</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>On/Off</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Dimmable light</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Mars light</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Pyle Gyralite</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Oscillating light</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Single flash strobe</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>Double flash strobe</value>
+				</relation>
+				<relation>
+					<property>7</property>
+					<value>D312 rotary beacon</value>
+				</relation>
+				<relation>
+					<property>8</property>
+					<value>Prime Stratolite</value>
+				</relation>
+				<relation>
+					<property>9</property>
+					<value>Type I ditch light</value>
+				</relation>
+				<relation>
+					<property>10</property>
+					<value>Type II ditch light</value>
+				</relation>
+				<relation>
+					<property>11</property>
+					<value>FRED (end of train flasher)</value>
+				</relation>
+				<relation>
+					<property>12</property>
+					<value>Engine exhaust flicker</value>
+				</relation>
+				<relation>
+					<property>13</property>
+					<value>Firebox flicker</value>
+				</relation>
+				<relation>
+					<property>14</property>
+					<value>Smart firebox flicker</value>
+				</relation>
+				<relation>
+					<property>15</property>
+					<value>Dyno-light</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190130">
+			<name>Backup Light F0(r) Phase Selection</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Use phase A (normal)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Use phase B (opposite)</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190130">
+			<name>Backup Light F0(r) Grade Crossing Logic</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Enabled when horn is ON</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190130">
+			<name>Backup Light F0(r) Rule 17 Mode</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Disabled (Backup Light mapping)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Enabled (FX6 mapping)</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190130">
+			<name>Backup Light F0(r) Light Type</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Incandescent lamp</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>LED</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="15" origin="4278190131">
+			<name>FX5 Effect Selection</name>
+			<description>Don't show this for the TSU-750 models</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>On/Off</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Dimmable light</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Mars light</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Pyle Gyralite</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Oscillating light</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Single flash strobe</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>Double flash strobe</value>
+				</relation>
+				<relation>
+					<property>7</property>
+					<value>D312 rotary beacon</value>
+				</relation>
+				<relation>
+					<property>8</property>
+					<value>Prime Stratolite</value>
+				</relation>
+				<relation>
+					<property>9</property>
+					<value>Type I ditch light</value>
+				</relation>
+				<relation>
+					<property>10</property>
+					<value>Type II ditch light</value>
+				</relation>
+				<relation>
+					<property>11</property>
+					<value>FRED (end of train flasher)</value>
+				</relation>
+				<relation>
+					<property>12</property>
+					<value>Engine exhaust flicker</value>
+				</relation>
+				<relation>
+					<property>13</property>
+					<value>Firebox flicker</value>
+				</relation>
+				<relation>
+					<property>14</property>
+					<value>Smart firebox flicker</value>
+				</relation>
+				<relation>
+					<property>15</property>
+					<value>Dyno-light</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190131">
+			<name>FX5 Phase Selection</name>
+			<description>Don't show this for the TSU-750 models</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Use phase A (normal)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Use phase B (opposite)</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190131">
+			<name>FX5 Grade Crossing Logic</name>
+			<description>Don't show this for the TSU-750 models</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Enabled when horn is ON</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190131">
+			<name>FX5 Rule 17 Mode</name>
+			<description>Don't show this for the TSU-750 models</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Disabled (FX5 mapping)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Enabled (Headlight mapping)</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190131">
+			<name>FX5 Light Type</name>
+			<description>Don't show this for the TSU-750 models</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Incandescent lamp</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>LED</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="15" origin="4278190132">
+			<name>FX6 Effect Selection</name>
+			<description>Don't show this for the TSU-750 models</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>On/Off</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Dimmable light</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Mars light</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Pyle Gyralite</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Oscillating light</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Single flash strobe</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>Double flash strobe</value>
+				</relation>
+				<relation>
+					<property>7</property>
+					<value>D312 rotary beacon</value>
+				</relation>
+				<relation>
+					<property>8</property>
+					<value>Prime Stratolite</value>
+				</relation>
+				<relation>
+					<property>9</property>
+					<value>Type I ditch light</value>
+				</relation>
+				<relation>
+					<property>10</property>
+					<value>Type II ditch light</value>
+				</relation>
+				<relation>
+					<property>11</property>
+					<value>FRED (end of train flasher)</value>
+				</relation>
+				<relation>
+					<property>12</property>
+					<value>Engine exhaust flicker</value>
+				</relation>
+				<relation>
+					<property>13</property>
+					<value>Firebox flicker</value>
+				</relation>
+				<relation>
+					<property>14</property>
+					<value>Smart firebox flicker</value>
+				</relation>
+				<relation>
+					<property>15</property>
+					<value>Dyno-light</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190132">
+			<name>FX6 Phase Selection</name>
+			<description>Don't show this for the TSU-750 models</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Use phase A (normal)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Use phase B (opposite)</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="32" origin="4278190132">
+			<name>FX6 Grade Crossing Logic</name>
+			<description>Don't show this for the TSU-750 models</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Enabled when horn is ON</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190132">
+			<name>FX6 Rule 17 Mode</name>
+			<description>Don't show this for the TSU-750 models</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Disabled (FX6 mapping)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Enabled (Backup Light mapping)</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190132">
+			<name>FX6 Light Type</name>
+			<description>Don't show this for the TSU-750 models</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Incandescent lamp</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>LED</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="15" origin="4278190139">
+			<name>Hyperlight Flash Rate (0-15)</name>
+			<description>0 is fast, 15 is slow, 4 is recommended for start</description>
+		</bit>
+		<bit size="8" mask="15" origin="4278190140">
+			<name>Grade Crossing Hold Time (0-15)</name>
+			<description>0-15 seconds</description>
+		</bit>
+		<bit size="8" mask="127" origin="4278190141">
+			<name>F11 Braking Rate (0-127)</name>
+			<description>Additional braking when Fll activated (combined with CV4)</description>
+		</bit>
+		<bit size="8" mask="128" origin="4278190141">
+			<name>F11 Braking Sign</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Add value to baseline braking rate (increases braking delay)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Subtract value from baseline braking rate (decreases braking delay)</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190142">
+			<name>Transponding Control</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Normal</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>External Compatibility Mode</value>
+				</relation>
+			</map>
+		</bit>
+		<int origin="4278190143">
+			<name>Analog Mode Motor Start Voltage (0-255)</name>
+		</int>
+		<int origin="4278190144">
+			<name>Analog Mode Max Motor Voltage (0-255)</name>
+		</int>
+		<int origin="4278190146">
+			<name>Forward Trim (0-255)</name>
+		</int>
+		<int origin="4278190175">
+			<name>Reverse Trim (0-255)</name>
+		</int>
+		<int origin="4278190185">
+			<name>User Identifier #1 (0-255)</name>
+		</int>
+		<int origin="4278190186">
+			<name>User Identifier #2 (0-255)</name>
+		</int>
+		<bit size="8" mask="1" origin="4278190192">
+			<name>Air Pump 2 Enable</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Single Air Pump</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Dual Air Pumps</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="48" origin="4278190192">
+			<name>Slip Rate Control</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Zero Slip Rate</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Slow Slip Rate</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Medium Slip Rate</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Fast Slip Rate</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="64" origin="4278190192">
+			<name>Articulated Exhaust Control</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>(Normal) Rod Engine Chuff</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Articulated Exhaust Chuff</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190192">
+			<name>Cam Enable</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Auto Exhaust Chuff</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Cam Synchronized Exhaust</value>
+				</relation>
+			</map>
+		</bit>
+		<int origin="4278190193">
+			<name>Quiet Mode Timeout Period</name>
+		</int>
+		<bit size="8" mask="15" origin="4278190194">
+			<name>Bell Ring Rate</name>
+		</bit>
+		<bit size="8" mask="7" origin="4278190195">
+			<name>Whistle Select</name>
+			<description>(Light Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Colorado &amp; Southern #74 (Road Mix)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Colorado &amp; Southern #74 (Yard Mix)</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Baldwin Class B-4G Consolidation</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Heisler</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Westside Lumber Co. Shay #14</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Peanut Whistle</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>D&amp;RGW Single Chime</value>
+				</relation>
+				<relation>
+					<property>7</property>
+					<value>Reading 6-Chime</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="56" origin="4278190195">
+			<name>Alternate Whistle Select</name>
+			<description>(Light Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Colorado &amp; Southern #74 (Road Mix)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Colorado &amp; Southern #74 (Yard Mix)</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Baldwin Class B-4G Consolidation</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Heisler</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Westside Lumber Co. Shay #14</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Peanut Whistle</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>D&amp;RGW Single Chime</value>
+				</relation>
+				<relation>
+					<property>7</property>
+					<value>Reading 6-Chime</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="7" origin="4278190195">
+			<name>Whistle Select</name>
+			<description>(Medium Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>USRA 6-Chime</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Baltimore &amp; Ohio 3-Chime</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Colorado &amp; Southern #801</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Pennsylvania RR Banshee</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Lehigh Valley</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Nathan 5-Chime (Road Mix)</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>Nathan 5-Chime (Yard Mix)</value>
+				</relation>
+				<relation>
+					<property>7</property>
+					<value>Santa Fe Freight</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="56" origin="4278190195">
+			<name>Alternate Whistle Select</name>
+			<description>(Medium Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>USRA 6-Chime</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Baltimore &amp; Ohio 3-Chime</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Colorado &amp; Southern #801</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Pennsylvania RR Banshee</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Lehigh Valley</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Nathan 5-Chime (Road Mix)</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>Nathan 5-Chime (Yard Mix)</value>
+				</relation>
+				<relation>
+					<property>7</property>
+					<value>Santa Fe Freight</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="7" origin="4278190195">
+			<name>Whistle Select</name>
+			<description>(Heavy Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Frisco #1522</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Norfolk &amp; Western #1218</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Union Pacific #4018</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Southern Pacific #4449 (Whistle)</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Southern Pacific #4449 (Horn)</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>USRA 6-Chime</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>Southern Pacific 6-Chime</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="56" origin="4278190195">
+			<name>Alternate Whistle Select</name>
+			<description>(Heavy Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Frisco #1522</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Norfolk &amp; Western #1218</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Union Pacific #4018</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Southern Pacific #4449 (Whistle)</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Southern Pacific #4449 (Horn)</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>USRA 6-Chime</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>Southern Pacific 6-Chime</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="7" origin="4278190195">
+			<name>Whistle Select</name>
+			<description>(Lt Logging Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Westside Lumber Co. Shay #14</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Westside Lumber Co. Shay #12</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Heisler</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Peanut Whistle</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>D&amp;RGW Single Chime</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="56" origin="4278190195">
+			<name>Alternate Whistle Select</name>
+			<description>(Lt Logging Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Westside Lumber Co. Shay #14</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Westside Lumber Co. Shay #12</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Heisler</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Peanut Whistle</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>D&amp;RGW Single Chime</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="7" origin="4278190195">
+			<name>Whistle Select</name>
+			<description>(DRGW C-Class Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>C-19 #340 (Yard Mix)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>C-19 #340 (Road Mix)</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>D&amp;RGW Single Chime</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Westside Lumber Co. Shay #14</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Peanut Whistle</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="56" origin="4278190195">
+			<name>Alternate Whistle Select</name>
+			<description>(DRGW C-Class Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>C-19 #340 (Yard Mix)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>C-19 #340 (Road Mix)</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>D&amp;RGW Single Chime</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Westside Lumber Co. Shay #14</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Peanut Whistle</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="7" origin="4278190195">
+			<name>Whistle Select</name>
+			<description>(DRGW K-Class Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>K-27 #463</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>K-36 #487</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>K-36 #488</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>K-36 #489</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>K-36 #489 (with broken chime)</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>K-37 #497</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="56" origin="4278190195">
+			<name>Alternate Whistle Select</name>
+			<description>(DRGW K-Class Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>K-27 #463</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>K-36 #487</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>K-36 #488</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>K-36 #489</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>K-36 #489 (with broken chime)</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>K-37 #497</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="7" origin="4278190195">
+			<name>Whistle Select</name>
+			<description>(SP Cab Forward Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Southern Pacific 6-Chime</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Southern Pacific #4449 (Whistle)</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Southern Pacific #4449 (Airhorn)</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Frisco #1522</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Norfolk &amp; Western #1218</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>USRA 6-Chime</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="56" origin="4278190195">
+			<name>Alternate Whistle Select</name>
+			<description>(SP Cab Forward Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Southern Pacific 6-Chime</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Southern Pacific #4449 (Whistle)</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Southern Pacific #4449 (Airhorn)</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Frisco #1522</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Norfolk &amp; Western #1218</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>USRA 6-Chime</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="7" origin="4278190195">
+			<name>Whistle Select</name>
+			<description>(Southern Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Norfolk &amp; Western Class J</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Norfolk &amp; Western Class A</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Crosby 3-Chime</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Lunkenheimer 3-Chime</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Southern Railway Single Chime</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Southern Railway 3-Chime</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>ETW&amp;NC</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="56" origin="4278190195">
+			<name>Alternate Whistle Select</name>
+			<description>(Southern Steam) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Norfolk &amp; Western Class J</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Norfolk &amp; Western Class A</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Crosby 3-Chime</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Lunkenheimer 3-Chime</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Southern Railway Single Chime</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Southern Railway 3-Chime</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>ETW&amp;NC</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="7" origin="4278190195">
+			<name>Whistle Select</name>
+			<description>(4-6-6-4 Challenger) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>UP Challenger #3985</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>UP Big Boy #4018</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Norfolk &amp; Western #1218</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Southern Pacific 6-Chime</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>USRA 6-chime</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>D&amp;RGW 5-Chime</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>D&amp;RGW Single Chime</value>
+				</relation>
+				<relation>
+					<property>7</property>
+					<value>Santa Fe Freight</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="56" origin="4278190195">
+			<name>Alternate Whistle Select</name>
+			<description>(4-6-6-4 Challenger) Show these whistles for the models (productID) listed below</description>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>UP Challenger #3985</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>UP Big Boy #4018</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Norfolk &amp; Western #1218</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Southern Pacific 6-Chime</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>USRA 6-chime</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>D&amp;RGW 5-Chime</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>D&amp;RGW Single Chime</value>
+				</relation>
+				<relation>
+					<property>7</property>
+					<value>Santa Fe Freight</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="128" origin="4278190195">
+			<name>Alternate Whistle Enable</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Short Whistle Function</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Alternate Whistle</value>
+				</relation>
+			</map>
+		</bit>
+		<int origin="4278190196">
+			<name>Engine Exhaust Control</name>
+		</int>
+		<bit size="8" mask="255" origin="4278190208">
+			<name>Master Volume Control</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190209">
+			<name>Whistle Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190210">
+			<name>Bell Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190211">
+			<name>Exhaust Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190212">
+			<name>Air Pump Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190213">
+			<name>Dynamo Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190214">
+			<name>Blower Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190215">
+			<name>Rod Clank Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190216">
+			<name>Steam Release Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190217">
+			<name>Coupler Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190218">
+			<name>Glad Hand Release Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190219">
+			<name>Brake Squeal Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190220">
+			<name>Brake Release Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190221">
+			<name>Snifter Valve Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190222">
+			<name>Power Reverse Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190223">
+			<name>Pop Valve Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190225">
+			<name>Blower Draft Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190226">
+			<name>Water Stop Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190227">
+			<name>Injector Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190228">
+			<name>Fireman Shovel Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190229">
+			<name>Fireman Wrench Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190230">
+			<name>Fireman Oil Can Volume</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190231">
+			<name>Fireman Grease Gun Volume</name>
+		</bit>
+		<bit size="8" mask="7" origin="4278190233">
+			<name>Equalizer Control</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Flat (off)</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Tiny Speaker (under 1 inch)</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Small Speaker (1-2 inches)</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Medium Speaker (2-4 inches)</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Large Speaker (over 4 inches)</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Edgeport Speaker</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>Boom Box</value>
+				</relation>
+				<relation>
+					<property>7</property>
+					<value>User Adjustable</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="255" origin="4278190234">
+			<name>62 Hz Cut/Boost</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190235">
+			<name>125 Hz Cut/Boost</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190236">
+			<name>250 Hz Cut/Boost</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190237">
+			<name>500 Hz Cut/Boost</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190238">
+			<name>1K Hz Cut/Boost</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190239">
+			<name>2K Hz Cut/Boost</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190240">
+			<name>4K Hz Cut/Boost</name>
+		</bit>
+		<bit size="8" mask="7" origin="4278190241">
+			<name>Reverb Control</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>Reverb Disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>Additional Reverb for Whistle</value>
+				</relation>
+				<relation>
+					<property>2</property>
+					<value>Light Reverb in Exhaust</value>
+				</relation>
+				<relation>
+					<property>3</property>
+					<value>Medium Reverb in Exhaust</value>
+				</relation>
+				<relation>
+					<property>4</property>
+					<value>Heavy Reverb in Exhaust</value>
+				</relation>
+				<relation>
+					<property>5</property>
+					<value>Reserved (5)</value>
+				</relation>
+				<relation>
+					<property>6</property>
+					<value>Reserved (6)</value>
+				</relation>
+				<relation>
+					<property>7</property>
+					<value>User Adjustable</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="255" origin="4278190242">
+			<name>Reverb Output Level</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190243">
+			<name>Reverb Delay</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190244">
+			<name>Reverb Gain</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190249">
+			<name>Whistle Reverb Level</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190250">
+			<name>Bell Reverb Level</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190251">
+			<name>Exhaust Reverb Level</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190252">
+			<name>Air Pump Reverb Level</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190257">
+			<name>Throttle Gain</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190258">
+			<name>Motor Load Gain</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190259">
+			<name>Attack Time Constant</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190260">
+			<name>Release Time Constant</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190261">
+			<name>Exhaust Low Volume Limit</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190262">
+			<name>Exhaust High Volume Limit</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190263">
+			<name>Side Rod Clank Low Volume Limit</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190264">
+			<name>Side Rod Clank High Volume Limit</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190265">
+			<name>DDE Filter Initial Frequency</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190266">
+			<name>DDE Filter Control Gain</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190267">
+			<name>DDE Filter Damping</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190268">
+			<name>DDE Tracking Coefficient</name>
+		</bit>
+		<bit size="8" mask="127" origin="4278190273">
+			<name>Bell-On Set Point</name>
+		</bit>
+		<bit size="8" mask="127" origin="4278190274">
+			<name>Bell-Off Set Point</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190275">
+			<name>Grade Crossing Whistle Sensitivity</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190276">
+			<name>Brake Squeal Sensitivity</name>
+		</bit>
+		<bit size="8" mask="1" origin="4278190277">
+			<name>Automatic Grade Crossing Whistle Enable (Analog Mode)</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190277">
+			<name>Automatic Whistle Signal Enable (Analog Mode)</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190277">
+			<name>Automatic Bell Enable (Analog Mode)</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190277">
+			<name>Automatic Brake Squeal Enable (Analog Mode)</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190277">
+			<name>Automatic Steam Blow Down Enable (Analog Mode)</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="1" origin="4278190278">
+			<name>Automatic Grade Crossing Whistle Enable</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="2" origin="4278190278">
+			<name>Automatic Whistle Signal Enable</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="4" origin="4278190278">
+			<name>Automatic Bell Enable</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="8" origin="4278190278">
+			<name>Automatic Brake Squeal Enable</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="16" origin="4278190278">
+			<name>Automatic Steam Blow Down Enable</name>
+			<map>
+				<relation>
+					<property>0</property>
+					<value>disabled</value>
+				</relation>
+				<relation>
+					<property>1</property>
+					<value>enabled</value>
+				</relation>
+			</map>
+		</bit>
+		<bit size="8" mask="255" origin="4278190281">
+			<name>Probability Fireman Shovels Coal</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190282">
+			<name>Probability Fireman Fills the Tender</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190283">
+			<name>Probability Fireman Turns His Wrench</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190284">
+			<name>Probability Fireman Uses His Grease Gun</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190285">
+			<name>Probability Fireman Uses His Oil Can</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190286">
+			<name>Probability Fireman Uses the Injector</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190287">
+			<name>Probability Fireman Uses the Blower</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190288">
+			<name>Probability Pop Valve Blows Off</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190289">
+			<name>Motor Kp Coefficient (0-255)</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190290">
+			<name>Motor Ki Coefficient (0-255)</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190292">
+			<name>Motor Control Intensity (0-255)</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190293">
+			<name>Motor Control Sample Period (0-31)</name>
+		</bit>
+		<bit size="8" mask="255" origin="4278190294">
+			<name>Motor Control Sample Aperture Time (0-255)</name>
+		</bit>
+	</segment>
+</cdi>

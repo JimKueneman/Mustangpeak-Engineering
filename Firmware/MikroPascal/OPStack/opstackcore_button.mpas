@@ -1,0 +1,48 @@
+unit opstackcore_button;
+
+
+{$IFDEF FPC}
+interface
+{$ENDIF}
+
+{$I Options.inc}
+
+uses
+  opstack_node,
+  opstackcore_basic,
+  opstack_defines;
+
+procedure RemoteButtonMessage(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+function RemoteButtonHandler(Node: POpenLCBNode; var MessageToSend, NextMessage: POPStackMessage): Boolean;
+procedure RemoteButtonReply(Node: POpenLCBNode; NextMessage: POPStackMessage);
+
+
+implementation
+
+//******************************************************************************
+// procedure RemoteButtonMessage
+// Parameters:
+//    AMessage: The incoming OPStack Message
+//    DestNode: The node the message is meant for
+// Description:
+//    Takes incoming Traction Protocol and posts it to be disected and handled
+//    later in the Reply
+//******************************************************************************
+procedure RemoteButtonMessage(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+begin
+  OPStackNode_IncomingMessageLink(DestNode, AMessage)
+end;
+
+function RemoteButtonHandler(Node: POpenLCBNode; var MessageToSend, NextMessage: POPStackMessage): Boolean;
+begin
+  Result := False;
+  MessageToSend := nil;
+  UnLinkDeAllocateAndTestForMessageToSend(Node, MessageToSend, NextMessage);
+end;
+
+procedure RemoteButtonReply(Node: POpenLCBNode; NextMessage: POPStackMessage);
+begin
+  UnLinkDeAllocateAndTestForMessageToSend(Node, nil, NextMessage);
+end;
+
+end.

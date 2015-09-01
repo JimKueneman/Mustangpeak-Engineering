@@ -1,0 +1,134 @@
+<html><head>
+<title>SMSC</title>
+<link rel="stylesheet" type="text/css" href="c.css" />
+<script type="text/javascript">
+var req; 
+try {
+if ( !window.XMLHttpRequest ) {
+req = new ActiveXObject("Microsoft.XMLHTTP");
+} else {
+req = new XMLHttpRequest(); 
+}
+} catch (e) { }
+function timer()
+{
+try {
+req.open("GET", "v.txt", true);
+req.onreadystatechange = function() {
+if (req.readyState == 4) {
+var data = eval("(" + req.responseText + ")");
+for (var key in data) {
+var fKey = key.substr(1);
+console.log(fKey); 
+var cl = '';
+if(fKey > 64 && fKey < 99) {
+cl = 'status' + data[key];
+key = fKey - 64;
+if(key < 10) {key = 'v0' + key;} else {key = 'v' + key}}
+var el = document.getElementById(key);
+if(null != el) {
+if(cl.length > 5) {
+el.className = cl;
+} else {
+el.innerHTML = data[key];
+}}}}};
+req.setRequestHeader("If-Modified-Since", "Sat, 1 Jan 2000 00:00:00 GMT");
+req.send(null);
+} catch (e) { }}
+</script>
+<style>
+.ss {font-weight: bold;} 
+.status0 { background-color: #0000FF; color: #FFFFFF;}
+.status2 { background-color: #FF0000; color: #FFFFFF;}
+</style>
+</head><body onLoad="timer();setInterval(function () {timer()}, 5000);">
+<div id="w"><div id="c">
+<div id="t"><center>Smart Monitoring & System Control</center></div>
+<form name="SMCS">
+<h2>Monitored Data</h2>
+<fieldset>
+<legend>Temperature</legend>
+<div class="s">
+<div class="l" id="v17"> </div>
+<span id="v01"></span>&nbsp;&deg;C</div>
+<div class="s">
+<div class="l" id="v18"> </div>
+<span id="v02"></span>&nbsp;&deg;C</div>
+<div class="s">
+<div class="l" id="v19"> </div>
+<span id="v03"></span>&nbsp;&deg;C</div>
+<div class="s">
+<div class="l" id="v20"> </div>
+<span id="v04"></span>&nbsp;&deg;C</div>
+<div class="s">
+<div class="l" id="v21"> </div>
+<span id="v05"></span>&nbsp;&deg;C</div>
+<div class="s">
+<div class="l" id="v22"> </div>
+<span id="v06"></span>&nbsp;&deg;C</div>
+<div class="s">
+<div class="l" id="v23"> </div>
+<span id="v07"></span>&nbsp;&deg;C</div>
+<div class="s">
+<div class="l" id="v24"> </div>
+<span id="v08"></span>&nbsp;&deg;C</div>
+</fieldset>
+<br>
+<fieldset>
+<legend>Humidity</legend>
+<div class="s">
+<div class="l" id="v25"> </div>
+<span id="v09"></span>&nbsp;%</div>
+<div class="s">
+<div class="l" id="v26"> </div>
+<span id="v10"></span>&nbsp;%</div>
+<div class="s">
+<div class="l" id="v27"> </div>
+<span id="v11"></span>&nbsp;%</div>
+<div class="s">
+<div class="l" id="v28"> </div>
+<span id="v12"></span>&nbsp;%</div>
+<div class="s">
+<div class="l" id="v29"> </div>
+<span id="v13"></span>&nbsp;%</div>
+<div class="s">
+<div class="l" id="v30"> </div>
+<span id="v14"></span>&nbsp;%</div>
+<div class="s">
+<div class="l" id="v31"> </div>
+<span id="v15"></span>&nbsp;%</div>
+<div class="s">
+<div class="l" id="v32"> </div>
+<span id="v16"></span>&nbsp;%</div>
+</fieldset>
+<br>
+<fieldset>
+<legend>Inputs/Outputs State</legend>
+<div class="s">
+<div class="l" id="v51"> </div>
+<span id="v41"></span> </div>
+<div class="s">
+<div class="l" id="v52"> </div>
+<span id="v42"></span> </div>
+<div class="s">
+<div class="l" id="v53"> </div>
+<span id="v43"></span> </div>
+<div class="s">
+<div class="l" id="v54"> </div>
+<span id="v44"></span> </div>
+</fieldset>
+<br>
+<fieldset>
+<legend>Info</legend>
+<div class="s">
+<div class="l">Config Port</div>8080</div>
+<div class="s">
+<div class="l">Firmware</div>
+<span id="SysDescr"></span></div>
+<div class="s">
+<div class="l">(c) 2013</div>microelemente.ro</div>
+</fieldset>
+<br>
+<center><a href="http://www.mozilla.com/firefox/">Recommended with Mozilla Firefox</a></center>
+</form></div></div>
+</body></html>

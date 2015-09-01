@@ -1,0 +1,736 @@
+unit opstack_defines;
+
+{$IFDEF FPC}
+interface
+{$ENDIF}
+
+{$I Options.inc}
+
+
+uses
+  {$IFDEF SUPPORT_TRACTION}Float16,{$ENDIF}
+  template_node,
+  opstack_types,
+  opstack_nodedefines,
+  template_buffers;
+
+const
+  LF = #13+#10;
+  
+const
+  TIMEOUT_MAX_BUS_LOGIN = 5;                                                    // Number of 100ms time tick to wait for a node to send a RID to signal a duplicate Alais
+  TIMEOUT_ABANDON_RESOURCE = 10;                                                 // Number of seconds before a resource (message/buffer/etc) is delared abandon and needs to be released, must be greater than TIMEOUT_MESSAGE_REPLY_WAIT or you won't get the exptected results
+  TIMEOUT_MESSAGE_REPLY_WAIT = 3;                                               // Number of seconds before deciding the other node is not going to reply
+
+const
+  MTI_OLCB_MSG                              = $08000000;                        //
+
+  MTI_CAN_CID0                              = $7000;                            // First 12 Bits of 48 bit Node ID
+  MTI_CAN_CID1                              = $6000;                            // 2rd 12 Bits of 48 bit Node ID
+  MTI_CAN_CID2                              = $5000;                            // 3nd 12 Bits of 48 bit Node ID
+  MTI_CAN_CID3                              = $4000;                            // Last 12 Bits of 48 bit Node ID
+  MTI_CAN_CID4                              = $3000;                            // non-OpenLCB Protocol
+  MTI_CAN_CID5                              = $2000;                            // non-OpenLCB Protocol
+  MTI_CAN_CID6                              = $1000;                            // non-OpenLCB Protocol
+  MTI_CAN_CID_MASK                          = $7000;
+
+  MTI_CAN_RID                               = $0700;                            // Reserve ID
+  MTI_CAN_AMD                               = $0701;                            // Alias Map Definition
+  MTI_CAN_AME                               = $0702;                            // Alias Mapping Enquiry
+  MTI_CAN_AMR                               = $0703;                            // Alias Map Reset Frame
+
+  MTI_MASK                              = $FFFF;
+  MTI_FRAME_TYPE_MASK                   = $F000;
+  MTI_FRAME_TYPE_CAN_GENERAL            = $9000;
+  MASK_SOURCE_ALIAS                     = $00000FFF;                            // Masks out just the Source Alias Address
+
+
+  MTI_ADDRESSED_MASK                 = $0008;
+  MTI_SIMPLE_PROTOCOL_MASK           = $0010;
+  MTI_EVENT_PRESENT_MASK             = $0002;
+
+  MTI_INITIALIZATION_COMPLETE        = $0100;                                // Databytes = Full Node ID
+  MTI_VERIFY_NODE_ID_NUMBER_DEST     = $0488;                                // Databytes = Destination Alias
+  MTI_VERIFY_NODE_ID_NUMBER          = $0490;                                //
+  MTI_VERIFIED_NODE_ID_NUMBER        = $0170;                                // {Optional Full Node ID}
+  MTI_OPTIONAL_INTERACTION_REJECTED  = $0068;                                // Databytes = Destination Alias, Error, {Optional Info}
+  MTI_TERMINATE_DUE_TO_ERROR         = $00A8;                                // Databytes = Destination Alias, Error, {Optional Info}
+  MTI_PROTOCOL_SUPPORT_INQUIRY       = $0828;                                // Databytes = Destination Alias
+  MTI_PROTOCOL_SUPPORT_REPLY         = $0668;                                // Databytes = Destination Alias, Protocol Flags
+  MTI_CONSUMER_IDENTIFY              = $08F4;                                // Databytes = EventID
+  MTI_CONSUMER_IDENTIFIED_RANGE      = $04A4;                                // Databytes = EventID with Mask
+  MTI_CONSUMER_IDENTIFIED_UNKNOWN    = $04C7;                                // Databytes = EventID
+  MTI_CONSUMER_IDENTIFIED_SET        = $04C4;                                // Databytes = EventID
+  MTI_CONSUMER_IDENTIFIED_CLEAR      = $04C5;                                // Databytes = EventID
+  MTI_CONSUMER_IDENTIFIED_RESERVED   = $04C6;                                // Databytes = EventID
+  MTI_PRODUCER_IDENTIFY              = $0914;                                // Databytes = EventID
+  MTI_PRODUCER_IDENTIFIED_RANGE      = $0524;                                // Databytes = EventID with Mask
+  MTI_PRODUCER_IDENTIFIED_UNKNOWN    = $0547;                                // Databytes = EventID
+  MTI_PRODUCER_IDENTIFIED_SET        = $0544;                                // Databytes = EventID
+  MTI_PRODUCER_IDENTIFIED_CLEAR      = $0545;                                // Databytes = EventID
+  MTI_PRODUCER_IDENTIFIED_RESERVED   = $0546;                                // Databytes = EventID
+  MTI_EVENTS_IDENTIFY_DEST           = $0968;                                // Databytes = Destination Alias
+  MTI_EVENTS_IDENTIFY                = $0970;                                //
+  MTI_EVENT_LEARN                    = $0594;                                // Databytes = EventID
+  MTI_PC_EVENT_REPORT                = $05B4;                                // Databytes = EventID  (Infamouse PCER)
+  MTI_TRACTION_PROTOCOL              = $05EA;                                // Databytes = Protocol (Train Protocol, DCC, etc), Operation, control
+  MTI_TRACTION_REPLY                 = $05E8;                                // Databytes = Reply data/information
+  MTI_TRACTION_PROXY_PROTOCOL        = $01EA;                                // Databytes = Protocol (Train Protocol, DCC, etc), Operation, control
+  MTI_TRACTION_PROXY_REPLY           = $01E8;                                // Databytes = Reply data/information
+  MTI_XPRESSNET                      = $0820;
+  MTI_REMOTE_BUTTON_REQUEST          = $0948;
+  MTI_REMOTE_BUTTON_REPLY            = $0949;
+  MTI_SIMPLE_TRAIN_NODE_INFO_REQUEST = $0DA8;
+  MTI_SIMPLE_TRAIN_NODE_INFO_REPLY   = $09C8;
+  MTI_SIMPLE_NODE_INFO_REQUEST       = $0DE8;                                // Databytes = Destination Alias
+  MTI_SIMPLE_NODE_INFO_REPLY         = $0A08;                                // Databytes = Destination Alias, ACDI Data
+  MTI_DATAGRAM                       = $1C48;
+  MTI_FRAME_TYPE_CAN_DATAGRAM_ONLY_FRAME = $A000;
+  MTI_FRAME_TYPE_CAN_DATAGRAM_FRAME_START= $B000;
+  MTI_FRAME_TYPE_CAN_DATAGRAM_FRAME      = $C000;
+  MTI_FRAME_TYPE_CAN_DATAGRAM_FRAME_END  = $D000;
+  MTI_DATAGRAM_OK_REPLY              = $0A28;                                // Databytes = Destination Alias
+  MTI_DATAGRAM_REJECTED_REPLY        = $0A48;
+  MTI_STREAM_INIT_REQUEST            = $0CC8;
+  MTI_STREAM_INIT_REPLY              = $0868;
+  MTI_FRAME_TYPE_CAN_STREAM_SEND     = $F000;
+  MTI_STREAM_SEND                    = $1F88;
+  MTI_STREAM_PROCEED                 = $0888;
+  MTI_STREAM_COMPLETE                = $08A8;
+
+const
+  PIV_PROTOCOL_ID_PROTOCOL: TPIVProtocolValueArray            = ($80, $00, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_DATAGRAM: TPIVProtocolValueArray            = ($40, $00, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_STREAM: TPIVProtocolValueArray              = ($20, $00, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_CONFIGURATION: TPIVProtocolValueArray       = ($10, $00, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_RESERVATION: TPIVProtocolValueArray         = ($08, $00, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_PRODUCER_CONSUMER: TPIVProtocolValueArray   = ($04, $00, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_IDENTIFICATION: TPIVProtocolValueArray      = ($02, $00, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_TEACH_LEARN: TPIVProtocolValueArray         = ($01, $00, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_REMOTE_BUTTON: TPIVProtocolValueArray       = ($00, $80, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_ACDI: TPIVProtocolValueArray                = ($00, $40, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_DISPLAY: TPIVProtocolValueArray             = ($00, $20, $00, $00, $00, $00);
+  PIV_PROTOCOL_SNIP: TPIVProtocolValueArray                   = ($00, $10, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_CDI: TPIVProtocolValueArray                 = ($00, $08, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_TRACTION: TPIVProtocolValueArray            = ($00, $04, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_FDI: TPIVProtocolValueArray                 = ($00, $02, $00, $00, $00, $00);
+  PIV_PROTOCOL_ID_TRACTION_PROXY: TPIVProtocolValueArray      = ($00, $01, $00, $00, $00, $00);
+  PIV_PROTOCOL_SIMPLE_TRAIN_NODE_INFO: TPIVProtocolValueArray = ($00, $00, $80, $00, $00, $00);
+  PIV_PROTOCOL_FUNCTION_CONFIGURATION: TPIVProtocolValueArray = ($00, $00, $40, $00, $00, $00);
+
+const
+  DATAGRAM_TYPE_MEMORY_CONFIGURATION        = $20;                              // Memory Configuration Protocol
+//  DATAGRAM_TYPE_BOOTLOADER                  = $40;                              // MAKING A GUESS ON A NUMBER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  DATAGRAM_TYPE_TWO_BYTE_CMD_MASK           = $E0;                              // Next two bytes are command bytes and not data
+  DATAGRAM_TYPE_SIX_BYTE_CMD_MASK           = $F0;                              // Next six bytes are command bytes and not data
+
+
+type
+  TDatagramErrorCode = array[0..1] of Byte;
+  PDatagramErrorCode = ^TDatagramErrorCode;
+
+const
+  DATAGRAM_RESULT_OKAY                                    : TDatagramErrorCode = ($00, $00);
+  // Errors that will cause sender to not retry
+  DATAGRAM_RESULT_REJECTED_PERMANENT_ERROR                : TDatagramErrorCode = ($10, $00);
+  DATAGRAM_RESULT_REJECTED_INFORMATION_LOGGED             : TDatagramErrorCode = ($10, $10);
+  DATAGRAM_RESULT_REJECTED_SOURCE_NOT_PERMITTED           : TDatagramErrorCode = ($10, $20);
+  DATAGRAM_RESULT_REJECTED_SOURCE_DATAGRAMS_NOT_ACCEPTED  : TDatagramErrorCode = ($10, $40);
+  // Error that should cause sender to retry
+  DATAGRAM_RESULT_REJECTED_BUFFER_FULL                    : TDatagramErrorCode = ($20, $00);
+  // Error that was a transport problem
+  DATAGRAM_RESULT_REJECTED_OUT_OF_ORDER                   : TDatagramErrorCode = ($60, $00);
+
+  DATAGRAM_RESULT_REJECTED_NO_RESEND_MASK                 = $1000;
+  DATAGRAM_RESULT_REJECTED_RESEND_MASK                    = $2000;
+  DATAGRAM_RESULT_REJECTED_TRANSPORT_ERROR_MASK           = $4000;
+
+  DATAGRAM_OK_ACK_REPLY_PENDING                            = $80;
+  DATAGRAM_OK_ACK_REPLY_PENDING_INFINATE                   = $00;               // 2^0 = ;
+  DATAGRAM_OK_ACK_REPLY_PENDING_2s                         = $01;               // 2^1 = 2;
+  DATAGRAM_OK_ACK_REPLY_PENDING_4s                         = $02;               // 2^2 = 4;
+  DATAGRAM_OK_ACK_REPLY_PENDING_8s                         = $03;               // 2^3 = 8;
+  DATAGRAM_OK_ACK_REPLY_PENDING_16s                        = $04;               // 2^4 = 16;
+  DATAGRAM_OK_ACK_REPLY_PENDING_36s                        = $05;               // 2^5 = 32;
+  DATAGRAM_OK_ACK_REPLY_PENDING_64s                        = $06;               // 2^6 = 64;
+  DATAGRAM_OK_ACK_REPLY_PENDING_128s                       = $07;               // 2^7 = 128;
+  DATAGRAM_OK_ACK_REPLY_PENDING_256s                       = $06;               // 2^6 = 256;
+
+
+  STREAM_REPLY_CONTENT_TYPE                               = $01;                // LSB = 1 = first 6 bytes in data are UID of data type in stream
+  STREAM_REPLY_UNEXPECTED_ERROR                           = $02;                // Bit 2 = 1 the Stream was Rejected, Out of order, or other "should not happen" error
+  STREAM_REPLY_PERMANENT_ERROR                            = $40;                // Bit 6 = 1 = if STREAM_REPLY_ACCEPT = 1 then this is the error type where 1 = permanent
+  STREAM_REPLY_ACCEPT                                     = $80;                // MSB = 1 = Accept
+
+  STREAM_REPLY_ERROR_LOGGED                               = $01;                // Error was logged
+  STREAM_REPLY_INVALID_REQUEST                            = $20;                // if Error is permanent then these are the possible reasons
+  STREAM_REPLY_SOURCE_NOT_PERMITTED                       = $40;                // if Error is permanent then these are the possible reasons
+  STREAM_REPLY_STREAM_NOT_ACCEPTED                        = $80;                // if Error is permanent then these are the possible reasons
+
+  STREAM_REPLY_BUFFER_FULL                                = $20;                // if Error is permanent then these are the possible reasons
+  STREAM_REPLY_INTERNAL_ERROR                             = $40;                // if Error is not permanent then these are the possible reasons
+
+const
+  MCP_CDI                             = $03;                                    // Address space = CDI ($FF) access Mask
+  MCP_ALL                             = $02;                                    // Address space = All ($FE) access Mask
+  MCP_CONFIGURATION                   = $01;                                    // Address space = Basic Configuration ($FD) access Mask
+  MCP_NONE                            = $00;                                    // Use the optional {Space} byte in the datagram to defin the address space
+
+  MCP_COMMAND_MASK                    = $C0;                                    // Upper 2 bits are the command type
+
+  // Upper 2 bits 0 = Write Command
+  MCP_COMMAND_WRITE                   = $00;                                    // MemoryConfigurationProtocol - Write Memory Mask
+  MCP_COMMAND_WRITE_STREAM            = $20;                                    // MemoryConfigurationProtocol - Write Memory Mask with Streams
+  MCP_COMMAND_WRITE_UNDER_MASK        = $08;                                    // MemoryConfigurationProtocol - Write Memory under mask Mask
+  MCP_COMMAND_WRITE_REPLY_OK          = $10;
+  MCP_COMMAND_WRITE_REPLY_FAIL        = $18;
+
+  // Upper 2 bits 1 = Read Command
+  MCP_COMMAND_READ                    = $40;                                    // MemoryConfigurationProtocol - Read Memory Mask
+  MCP_COMMAND_READ_STREAM             = $60;                                    // MemoryConfigurationProtocol - Read Memory with Streams
+  MCP_COMMAND_READ_REPLY_OK           = $50;                                    // MemoryConfigurationProtocol - Read Reply Mask [Does not include the Address Space Mask "or" it with the the Address space masks below]
+  MCP_COMMAND_READ_REPLY_FAIL         = $58;
+  MCP_COMMAND_READ_STREAM_REPLY       = $30;
+
+  // Upper 2 bits 2 = Operation Command
+  MCP_OPERATION                       = $80;                                    // MemoryConfigurationProtocol - Operation Mask
+
+  // Bit 0..2 are to define address space
+  MCP_COMMAND_REPLY_FAIL              = 3;                                      // Bit 3 set mean the result is a failed result if it is a Command Reply
+  MCP_COMMAND_WRITE_UNDER_MASK_BIT    = 3;                                      // Bit 3 set means write under mask for an in coming command
+  MCP_REPLY_COMMAND_BIT               = 4;                                      // Bit 4 set means it is a reply to a Command
+  MCP_STREAM_COMMAND_BIT              = 5;                                      // Bit 5 set means it is a Stream Command
+  // Bit 6..7 define the Command
+
+  MCP_OP_GET_CONFIG                  = $80;                                     // MemoryConfigurationProtocol Operation - Get Configuration
+  MCP_OP_GET_CONFIG_REPLY            = $82;                                     // MemoryConfigurationProtocol Operation - Get Configuration Reply
+  MCP_OP_GET_ADD_SPACE_INFO          = $84;                                     // MemoryConfigurationProtocol Operation - Get Add Space Info
+  MCP_OP_GET_ADD_SPACE_INFO_REPLY    = $86;                                     // MemoryConfigurationProtocol Operation - Get Add Space Info Reply
+  MCP_OP_LOCK                        = $88;                                     // MemoryConfigurationProtocol Operation - Lock Node
+  MCP_OP_LOCK_REPLY                  = $8A;                                     // MemoryConfigurationProtocol Operation - Lock Node Reply
+  MCP_OP_GET_UNIQUEID                = $8C;                                     // MemoryConfigurationProtocol Operation - Get Unique ID Key
+  MCP_OP_GET_UNIQUEID_REPLY          = $8E;                                     // MemoryConfigurationProtocol Operation - Get Unique ID Key Reply
+
+  MCP_OP_GET_ADD_SPACE_INFO_REPLY_PRESENT = $01;
+
+  MCP_OP_FREEZE                      = $A0;                                     // MemoryConfigurationProtocol Operation - Freeze Node
+  MCP_OP_INDICATE                    = $A4;                                     // MemoryConfigurationProtocol Operation - Indicate
+  MCP_OP_UPDATE_COMPLETE             = $A8;                                     // MemoryConfigurationProtocol Operation - Update Complete
+  MCP_OP_RESETS                      = $A9;                                     // MemoryConfigurationProtocol Operation - Resets
+
+const
+  NULL_EVENT_ID              : TEventID = (0, 0, 0, 0, 0, 0, 0, 0);
+  EVENT_EMERGENCY_STOP       : TEventID = ($01, $00, $00, $00, $00, $00, $FF, $FF);
+  EVENT_NEW_LOG_ENTRY        : TEventID = ($01, $00, $00, $00, $00, $00, $FF, $F8);
+  EVENT_IDENT_BUTTON_PRESSED : TEventID = ($01, $00, $00, $00, $00, $00, $FE, $00);
+  EVENT_DUPLICATE_ID_DETECTED: TEventID = ($01, $10, $00, $00, $00, $00, $02, $01);
+  EVENT_IS_TRAIN             : TEventID = ($01, $01, $00, $00, $00, $00, $03, $03);
+  EVENT_IS_PROXY             : TEventID = ($01, $01, $00, $00, $00, $00, $03, $04);
+  EVENT_DELIVERS_CLOCK       : TEventID = ($01, $01, $00, $00, $00, $00, $05, $01);
+
+const
+  TS_WAITING_FOR_CONTROLLER_NOTIFY   = $01;
+  TS_SEND_PROXY_ALLOCATE_REPLY       = $02;
+  TS_CONSIST                         = $04;
+
+
+  TRACTION_PROXY_ALLOCATE            = $01;
+  TRACTION_PROXY_ATTACH              = $02;
+  TRACTION_PROXY_ATTACH_REPLY        = $02;
+  TRACTION_PROXY_DETACH              = $03;
+  TRACTION_PROXY_MANAGE              = $80;
+  TRACTION_PROXY_MANAGE_REPLY        = $80;
+  TRACTION_PROXY_MANAGE_RESERVE      = $01;
+  TRACTION_PROXY_MANAGE_RELEASE      = $02;
+
+  TRACTION_PROXY_TECH_ID_DCC              = $01;
+  TRACTION_PROXY_TECH_ID_DC               = $02;
+  TRACTION_PROXY_TECH_ID_MARKLIN_DIG      = $03;
+  TRACTION_PROXY_TECH_ID_MARKLIN_DELTA    = $04;
+  TRACTION_PROXY_TECH_ID_MARKLIN_DIG_ESU  = $05;
+  TRACTION_PROXY_TECH_ID_SELECTRIX        = $06;
+  TRACTION_PROXY_TECH_ID_MTH_DCS          = $07;
+  TRACTION_PROXY_TECH_ID_LIONEL_TMCC      = $08;
+
+  TRACTION_PROXY_MANAGE_RESERVE_REPLY_OK   = $00;    // Failed is not 0
+  TRACTION_PROXY_MANAGE_RESERVE_REPLY_FAIL = $FF;    // Failed
+
+  //
+
+  TRACTION_FLAGS_ALIAS_INCLUDED       = $01;
+
+  TRACTION_SPEED_DIR                  = $00;
+  TRACTION_FUNCTION                   = $01;
+  TRACTION_E_STOP                     = $02;
+
+  TRACTION_QUERY_SPEED                = $10;
+  TRACTION_QUERY_FUNCTION             = $11;
+
+  TRACTION_CONTROLLER_CONFIG          = $20;
+  TRACTION_CONTROLLER_CONFIG_ASSIGN   = $01;
+  TRACTION_CONTROLLER_CONFIG_RELEASE  = $02;
+  TRACTION_CONTROLLER_CONFIG_QUERY    = $03;
+  TRACTION_CONTROLLER_CONFIG_NOTIFY   = $04;
+
+  TRACTION_CONSIST                    = $30;
+  TRACTION_CONSIST_ATTACH             = $01;
+  TRACTION_CONSIST_DETACH             = $02;
+  TRACTION_CONSIST_QUERY              = $03;
+
+  TRACTION_MANAGE                     = $40;
+  TRACTION_MANAGE_RESERVE             = $01;
+  TRACTION_MANAGE_RELEASE             = $02;
+
+  TRACTION_MANAGE_RESERVE_REPLY_OK   = $00;    // Failed is not 0
+  TRACTION_MANAGE_RESERVE_REPLY_FAIL = $FF;    // Failed
+
+  TRACTION_CONTROLLER_ASSIGN_REPLY_OK   = $00;    // Failed is not 0
+  TRACTION_CONTROLLER_ASSIGN_REPLY_FAIL = $FF;    // Failed is not 0
+
+  TRACTION_CONTROLLER_NOTIFY_REPLY_OK   = $00;    // Failed is not 0
+  TRACTION_CONTROLLER_NOTIFY_REPLY_FAIL = $FF;    // Failed is not 0
+
+  TRACTION_CONTROLLER_ASSIGN_REPLY_FAIL_CONTROLLER_DENIED = $01;
+  TRACTION_CONTROLLER_ASSIGN_REPLY_FAIL_TRAIN_DENIED      = $02;
+
+  TRACTION_MANAGE_QUERY_REPLY        = $03;
+
+const
+  CDI_MAX_URL_LEN           = 63;
+  CDI_MAX_USERNAME_LEN      = 63;
+  CDI_MAX_USERDESC_LEN      = 64;
+  
+  CDI_OFFSET                = 0;
+  CDI_VERSION               = CDI_OFFSET;                                       // 0
+  CDI_NAME                  = CDI_VERSION + 1;                                  // 1
+  CDI_DESCRIPTION           = CDI_NAME + CDI_MAX_USERNAME_LEN;                  // 64
+  CDI_FDI_URL               = CDI_DESCRIPTION + CDI_MAX_USERDESC_LEN;           // 128
+  CDI_TRAIN_URL             = CDI_FDI_URL + CDI_MAX_URL_LEN;                    // 192
+
+  STNIP_MAX_STR_LEN         = 33;    // 32 Characters + 1 Null
+  STNIP_OFFSET              = 512;
+  STNIP_OFFSET_VERSION      = STNIP_OFFSET;                                     // 512
+  STNIP_OFFSET_ROADNAME     = STNIP_OFFSET_VERSION + 1;                         // 513
+  STNIP_OFFSET_CLASS        = STNIP_OFFSET_ROADNAME + STNIP_MAX_STR_LEN;        // 546
+  STNIP_OFFSET_ROADNUMBER   = STNIP_OFFSET_CLASS + STNIP_MAX_STR_LEN;           // 579
+  STNIP_OFFSET_TRAINNAME    = STNIP_OFFSET_ROADNUMBER + STNIP_MAX_STR_LEN;      // 612
+  STNIP_OFFSET_MANUFACTURER = STNIP_OFFSET_TRAINNAME + STNIP_MAX_STR_LEN;       // 645
+  STNIP_OFFSET_OWNER        = STNIP_OFFSET_MANUFACTURER + STNIP_MAX_STR_LEN;    // 678
+  STNIP_LEGACY_TECHNOLOGY   = STNIP_OFFSET_OWNER + STNIP_MAX_STR_LEN;           // 711
+  STNIP_OFFSET_TRAIN_ID     = STNIP_LEGACY_TECHNOLOGY + 1;                      // 712
+  STNIP_OFFSET_SHORT_LONG   = STNIP_OFFSET_TRAIN_ID + 2;                        // 714
+  STNIP_OFFSET_SPEEDSTEPS   = STNIP_OFFSET_SHORT_LONG + 1;                      // 715
+  STNIP_OFFSET_PERSISTENT   = STNIP_OFFSET_SPEEDSTEPS + 1;                      // 716
+  STNIP_OFFSET_CONSIST      = STNIP_OFFSET_PERSISTENT + 1;                      // 717
+  
+  FUNCTION_CONFIGURATION_OFFSET = 1024;                                         // 1024
+  CV_CONFIGURATION_OFFSET       = 1280;                                         // 1280
+  
+  SIZE_CONFIGURATION            = 1636;
+
+type
+  TSTNIP_StringBuffer = string[STNIP_MAX_STR_LEN];
+  PSTNIP_StringBuffer = ^TSTNIP_StringBuffer;
+
+// Various Statemachine defines
+const
+  STATE_NODE_START                       = 0;
+  STATE_NODE_GENERATE_NODE_ALIAS         = 1;
+  STATE_RANDOM_NUMBER_GENERATOR          = 2;
+  STATE_NODE_TRANSMIT_CID                = 3;
+  STATE_NODE_NEXT_CDI                    = 4;
+  STATE_NODE_WAITSTATE                   = 5;
+  STATE_NODE_SEND_LOGIN_RID              = 6;
+
+  STATE_NODE_SEND_LOGIN_AMD              = 8;
+  STATE_NODE_INITIALIZED                 = 9;
+  STATE_NODE_LOGIN_IDENTIFY_EVENTS       = 10;
+  STATE_NODE_PERMITTED                   = 11;
+  STATE_NODE_INHIBITED                   = 12;
+  STATE_NODE_DUPLICATE_FULL_ID           = 13;
+  STATE_NODE_TAKE_OFFLINE                = 14;
+  STATE_NODE_OFFLINE                     = 15;
+
+const
+  MAX_ETHERNET_MESSAGE = 1500;
+
+
+// Nodes
+const
+  MAX_SIMPLE_BYTES = 8;
+  MAX_DATAGRAM_BYTES = 72;             // 64 Data bytes + 8 Bytes for DG Header
+  USER_MAX_MULTI_FRAME_BYTES = 16;     //
+
+type
+  TNodeID = array[0..1] of DWORD;                                               // WARNING READ THIS:::::   The Bottom 3 Bytes = [0] and the Top 3 Bytes = [1] The ID is not continious across the both DWords the upper nibble of the bottom DWord is not used
+  PNodeID = ^TNodeID;
+
+  // = array[0..0] of Byte;
+ // PDataArray = ^TDataArray;
+  TSimpleDataArray = array[0..MAX_SIMPLE_BYTES-1] of Byte;
+  PSimpleDataArray = ^TSimpleDataArray;
+  TDatagramDataArray = array[0..MAX_DATAGRAM_BYTES-1] of Byte;
+  PDatagramDataArray = ^TDatagramDataArray;
+  TStreamDataArray = array[0..USER_MAX_STREAM_BYTES-1] of Byte;
+  PStreamDataArray = ^TStreamDataArray;
+  TMultiFrameStringDataArray = array[0..USER_MAX_MULTIFRAME_STRING_BYTES] of Byte;
+  PMultiFrameStringDataArray = ^TMultiFrameStringDataArray;
+  TMultiFrameArray = array[0..USER_MAX_MULTI_FRAME_BYTES] of Byte;              // This is common mulit-frame buffer for those pesky multi frame messages that are only a few frames long such as the Traction QuerySpeed, this gives us flexibility in lengthing it in the future if needed
+  PMultiFrameArray = ^TMultiFrameArray;
+  
+  TMultiFrameStringDataArrayAsString = string[USER_MAX_MULTIFRAME_STRING_BYTES];
+  PMultiFrameStringDataArrayAsString = ^TMultiFrameStringDataArrayAsString;
+
+
+  TSimpleData = record
+    Count: Word;
+    Bytes: TSimpleDataArray;
+  end;
+
+  TDatagramData = record
+    Count: Word;
+    Bytes: TDatagramDataArray;
+  end;
+
+  TStreamData = record
+    Count: Word;
+    Bytes: TStreamDataArray;
+  end;
+
+// Events
+const
+  NULL_NODE_ID: TNodeID = (0, 0);
+
+const
+  EVENT_STATE_CLEAR                 = $00;
+  EVENT_STATE_VALID                 = $01;
+  EVENT_STATE_INVALID               = $02;
+  EVENT_STATE_UNKNOWN               = $03;
+
+// Message types
+
+const
+  MT_MASK               = $00FF;                                                     // Strips off the CAN and Allocated flags
+  MT_UNALLOCATED        = $0000;
+  MT_SIMPLE             = $0001;                                                     // Message Type Identifiers
+  MT_DATAGRAM           = $0002;
+  MT_STREAM             = $0004;
+  MT_MULTIFRAME_STRING  = $0008;
+  MT_MULTIFRAME         = $0010;
+
+  MT_CAN_TYPE           = $4000;                                                     // It is a CAN MTI
+  MT_ALLOCATED          = $8000;                                                     // Buffer was allocated from the Pool, do not set this manually !!!!!
+
+
+const
+  // :X19170640N0501010107015555;#0  Example.....
+  // ^         ^                  ^
+  // 0         10                28
+  MAX_GRID_CONNECT_LEN = 29;
+  GRID_CONNECT_HEADER_OFFSET_HI = 2;
+  GRID_CONNECT_HEADER_OFFSET_LO = 4;
+  GRID_CONNECT_DATA_OFFSET = 11;
+
+type
+  TGridConnectString = array[0..MAX_GRID_CONNECT_LEN-1] of char;
+  PGridConnectString = ^TGridConnectString;
+
+
+// *****************************************************************************
+// Node
+// *****************************************************************************
+
+const                                                                           // NodeState the node empty and ready to allocate
+  NS_EMPTY                = $00;                                                // NodeState the node is not allocated
+  NS_ALLOCATED            = $01;                                                // NodeState the node is allocated
+  NS_PERMITTED            = $02;                                                // NodeState CAN Frame Layer is permitted (Node ID's resolved with bus)
+  NS_INITIALIZED          = $04;                                                // NodeState Message Layer has sent its first Initialize Complete Message
+  {$IFDEF SUPPORT_VIRTUAL_NODES}NS_VIRTUAL              = $08; {$ENDIF}                                               // NodeState If is a virtual node
+  NS_RELEASING            = $10;                                                // Node is tagged to send and AMD and be removed from the bus (while this is set what happens??)
+
+  // MsgFlags in order of precidence (= 0 highest precidence)
+  MF_DUPLICATE_NODE_ID        = $0001;                                          // MsgFlag, a Duplicate Node ID was detected, critical fault
+  MF_DUPLICATE_ALIAS          = $0002;                                          // MsgFlag, a Duplicate Alias was Detected, critical fault
+  MF_DUPLICATE_ALIAS_RID      = $0004;                                          // MsgFlag, a Duplicate Alias was Detected during a CID message, not a fault just need to respond to claim the Alias
+  MF_ALIAS_MAP_ENQUIRY        = $0008;                                          // MsgFlag, an AMD message need to be responded to
+  MF_VERIFY_NODE_ID           = $0010;                                          // MsgFlag, a Verify Node ID message needs to be responded to
+
+type
+  // Each Byte contains the state of up to 4 Events, as each event can have 3 state (2 bits)
+  // The Index of the 2 bits block is mapped to the index into the defined array of Event ID values
+  TNodeEventStateArray = array[0..USER_MAX_EVENTS_BYTES] of Byte;               // Holds the current state (set, clear, unknown) of each Event.  Used when Consumer/Producer Indentifed messages need to be sent
+  // Each Byte contains the state of up to 8 Events, as each event can have 1 state (1 bits)
+  // The Index of the 1 bits block is mapped to the index into the defined array of Event ID values
+  TNodeEventArray =  array[0..USER_MAX_PCER_BYTES] of Byte;                     // This flags if the Event State should be sent
+  // Each Byte contains the state of up to 8 Events, as each event can have 1 state (1 bits)
+  // The Index of the 1 bits block is mapped to the index into the defined array of Event ID values
+  TNodePCERArray  = array[0..USER_MAX_PCER_BYTES] of Byte;                      // Holds a flag for if an Event requires a PCER message to be sent becuase that event has changed state
+
+  TNodeInfo = record
+    ID: TNodeID;                                                                // Unique 48 Bit ID for Node
+    AliasID: Word;                                                              // 12 Bit Alias ID
+  end;
+  PNodeInfo = ^TNodeInfo;
+
+ {
+const
+  NULL_NODE_INFO: TNodeInfo = (
+    ID : (0, 0);
+    AliasID: 0;
+  );
+  }
+
+type
+  TOpenLCBNodeLoginInfo = record
+    TimeCounter_100ms: Byte;                                                    // Number of timer ticks into the time waiting for a RID response from another node for our RID broadcasts
+    iCID: Byte;                                                                 // Which of the 4 CIDs we are broadcasting
+    Seed: TNodeID;                                                              // Seed for Random Number Generator in case we have to reseed because of a duplicate ID
+  end;
+
+  TNodeEvents = record
+    ProducedState,
+    ConsumedState  : TNodeEventStateArray;
+    Produced,
+    Consumed  : TNodeEventArray;                                                // Flags if the Event message should be sent
+    PCER      : TNodePCERArray;                                                 // Flags if the PCER for the event should be sent
+  end;
+
+const
+  ABS_ALLOCATED            = $01;                                               // Array Buffer State Flag = Allocated Buffer
+
+type
+  TSimpleBuffer = record
+    State: Byte;                                                                // See ABS_xxxx flags
+    DataBufferSize: Word;                                                       // Number of bytes in the DataBuffer
+    DataArray: TSimpleDataArray;
+  end;
+  PSimpleBuffer = ^TSimpleBuffer;
+
+  TDatagramBuffer = record
+    State: Byte;                                                                // See ABS_xxxx flags
+    DataBufferSize: Word;                                                       // Number of bytes in the DataArray
+    DataArray: TDatagramDataArray;
+    // *******
+    iStateMachine: Byte;
+    CurrentCount: Word;                                                         // Current index of the number of bytes sent/received
+    ResendCount: Byte;                                                          // Number of tries to resend the datagram if sending is rejected
+    AckFlags: Byte;                                                             // If $80 set then the reply datagram will NOT be sent, only the ACK with the flags will
+  end;
+  PDatagramBuffer = ^TDatagramBuffer;
+
+  {$IFDEF SUPPORT_STREAMS}
+const
+  MAX_STREAM_TYPE_ID = 6;
+
+type
+  TStreamTypeID = array[0..MAX_STREAM_TYPE_ID-1] of Byte;
+  PStreamTypeID = ^TStreamTypeID;
+
+  TStreamBuffer = record
+    State: Byte;                                                                // See ABS_xxxx flags
+    DataBufferSize: Word;                                                       // Number of bytes in the DataArray that are valid, for streams this is the negotiated buffer size
+    DataArray: TStreamDataArray;
+    // *******
+    SourceStreamID,
+    DestStreamID: Byte;
+    StreamTypeID: TStreamTypeID;
+    CurrentCount: DWord;                                                         // Current index of the number of bytes sent/received
+    TotalMessageSize: DWord;                                                    // The total number of bytes to send in the interaction
+    NegotiatedBufferSize: Word;
+    NextActiveStream: PByte;
+  end;
+  PStreamBuffer = ^TStreamBuffer;
+  {$ENDIF}
+
+  TMultiFrameStringBuffer = record
+    State: Byte;                                                                // See ABS_xxxx flags
+    DataBufferSize: Word;                                                       // Number of bytes in the DataArray
+    DataArray: TMultiFrameStringDataArray;
+    // *******
+    CurrentCount: Word;                                                         // Current index of the number of bytes sent/received
+  end;
+  PMultiFrameStringBuffer = ^TMultiFrameStringBuffer;
+
+  TMultiFrameBuffer = record
+    State: Byte;                                                                // See ABS_xxxx flags
+    DataBufferSize: Word;                                                       // Number of bytes in the DataArray
+    DataArray: TMultiFrameArray;
+    // *******
+    CurrentCount: Word;                                                         // Current index of the number of bytes sent/received
+  end;
+  PMultiFrameBuffer = ^TMultiFrameBuffer;
+
+type
+  TOPStackMessage = record                                                      // Used as the "base class" for all the message records, allows this class to be overlayed the other to fake inheritance
+    MessageType: Word;                                                          // MT_xxx Constant the identifies the type of message, bottom 4 bits are the type of message u
+    Source: TNodeInfo;
+    Dest: TNodeInfo;
+    FramingBits: Byte;                                                          // The upper 4 bits sent in the Destination (when used for the message)
+    NextIncoming: ^TOPStackMessage;
+    NextOutgoing: ^TOPStackMessage;
+    MTI: Word;
+    Buffer: PSimpleBuffer;                                                      // This can be nil, CANBuffer, Datagram Buffer, or StreamBuffer based on the lower 4 bits of MessageType
+    WatchDog_1s: Word;                                                          // Watches for a abandon message, incremented every 1s
+  end;
+  POPStackMessage = ^TOPStackMessage;
+
+  {$IFDEF SUPPORT_TRACTION}
+  TFunctionStatesArray = array[29] of Word;
+  
+const
+  NULL_FUCTION_STATE_ARRAY: TFunctionStatesArray = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                    0, 0, 0, 0, 0, 0, 0, 0, 0);
+type
+  PFarNullFunctionStateArray = ^const Word;
+  
+type
+  TTrainData = record
+    State: Word;                                                                // Train State (see Train State (TS_xxxx) constants
+    SpeedDir: THalfFloat;                                                       // Speed and direction (encoded in the sign)
+  //  Functions: DWord;                                                           // F0..F28 Does this go in the configuration space?
+    Address: Word;                                                              // DCC Address
+    SpeedSteps: Byte;                                                           // 14, 28, 128  Does this go in the configuration space?
+    Lock,                                                                       // For the nodes lock management
+    ControllerLink,                                                             // Controller (throttle) running the train or other linking needs
+    ScratchNode: TNodeInfo;                                                     // Temp Info
+    Timer: Byte;
+  end;
+  PTrainData = ^TTrainData;
+  {$ENDIF}
+
+type
+  TOpenLCBNode = record
+    iIndex: Byte;                                                               // Index in the main array
+    State: Byte;                                                                // See the NS_xxxx flags; State of the Node
+    Events: TNodeEvents;
+    Info: TNodeInfo;                                                            // Information about a Node
+    Login: TOpenLCBNodeLoginInfo;                                               // Login Information
+    Flags: Word;                                                                // Message Flags for messages passed to the Node through a simple set bit (no complex reply data needed like destination Alias), see the MF_xxxx flags
+    iStateMachine: Byte;                                                        // Statemachine index for the main bus login
+    IncomingMessages: POPStackMessage;                                          // Linked List of Messages incoming to process for the node
+    OutgoingMessages: POPStackMessage;                                          // Linked List of Messages outgoing from the node, mainly for Datagrams and Streams
+    UserData: ^Byte;                                                            // Pointer to User Data
+    iUserStateMachine: Byte;                                                    // For user (application level) statemachine
+    UserWatchdog_1s: Word;                                                      // For user
+    {$IFDEF SUPPORT_TRACTION}TrainData: TTrainData;{$ENDIF}                     // Realtime information about the Train Node
+  end;
+  POpenLCBNode = ^TOpenLCBNode;
+
+type
+  TNodePool = record
+    Pool: array[0..USER_MAX_NODE_COUNT-1] of TOpenLCBNode;                      // Node [0] is ALWAYS the physical node
+    AllocatedList: array[0..USER_MAX_NODE_COUNT-1] of POpenLCBNode;             // Node List sorted by Alias
+    AllocatedCount: Integer;                                                    // Number of Nodes Allocated
+    iActiveNode: Integer;                                                       // The node that is "active" which means it is the one that the main statemachine is giving a time slice to execute
+  end;
+  PNodePool = ^TNodePool;
+
+  TOPStackEthernetMessage = array[0..MAX_ETHERNET_MESSAGE-1] of byte;
+  POPStackEthernetMessage = ^TOPStackEthernetMessage;
+  
+const
+  DATAGRAM_PROCESS_ERROR_OK                  = $00;
+  DATAGRAM_PROCESS_ERROR_BUFFER_FULL         = $02;
+  DATAGRAM_PROCESS_ERROR_OUT_OF_ORDER        = $03;
+  DATAGRAM_PROCESS_ERROR_SOURCE_NOT_ACCEPTED = $04;
+  DATAGRAM_PROCESS_ERROR_QUIET_FAIL          = $05;
+
+const
+  STATE_DATAGRAM_PROCESS                       = 0;
+  STATE_DATAGRAM_SEND_ACK                      = 1;
+  STATE_DATAGRAM_SEND                          = 2;
+  STATE_DATAGRAM_SEND_REPLY_ACK                = 3;
+  STATE_DATAGRAM_WAITFOR                       = 4;
+  STATE_DATAGRAM_DONE                          = 5;
+
+const
+  STATE_CONFIG_MEM_STREAM_START                    = 0;
+  STATE_CONFIG_MEM_STREAM_INIT                     = 1;
+  STATE_CONFIG_MEM_STREAM_WAIT_FOR_INIT_REPLY      = 2;
+  STATE_CONFIG_MEM_STREAM_SEND                     = 3;
+  STATE_CONFIG_MEM_STREAM_WAIT_FOR_PROCEED         = 4;
+  STATE_CONFIG_MEM_STREAM_SEND_COMPLETE            = 5;
+  STATE_CONFIG_MEM_STREAM_COMPLETE                 = 6;
+
+const
+
+  DEFAULT_SPEED_STEPS = 28;
+
+  const
+  _28_STEP_TABLE: array[0..28] of Byte = (
+    %00000000,    // Stop
+    %00000010,    // Step 1
+    %00010010,    // Step 2
+    %00000011,    // Step 3
+    %00010011,    // Step 4
+    %00000100,    // Step 5
+    %00010100,    // Step 6
+    %00000101,    // Step 7
+    %00010101,    // Step 8
+    %00000110,    // Step 9
+    %00010110,    // Step 10
+    %00000111,    // Step 11
+    %00010111,    // Step 12
+    %00001000,    // Step 13
+    %00011000,    // Step 14
+    %00001001,    // Step 15
+    %00011001,    // Step 16
+    %00001010,    // Step 17
+    %00011010,    // Step 18
+    %00001011,    // Step 19
+    %00011011,    // Step 20
+    %00001100,    // Step 21
+    %00011100,    // Step 22
+    %00001101,    // Step 23
+    %00011101,    // Step 24
+    %00001110,    // Step 25
+    %00011110,    // Step 26
+    %00001111,    // Step 27
+    %00011111     // Step 28
+  );
+
+  _14_STEP_TABLE: array[0..14] of Byte = (
+    %00000000,    // Stop
+    %00000010,    // Step 1
+    %00000011,    // Step 3
+    %00000100,    // Step 5
+    %00000101,    // Step 7
+    %00000110,    // Step 9
+    %00000111,    // Step 11
+    %00001000,    // Step 13
+    %00001001,    // Step 15
+    %00001010,    // Step 17
+    %00001011,    // Step 19
+    %00001100,    // Step 21
+    %00001101,    // Step 23
+    %00001110,    // Step 25
+    %00001111     // Step 27
+  );
+
+  NMRA_LONGADDRESS_MASK_BYTE         = $C0;
+  NMRA_LONGADDRESS_MASK_WORD         = $C000;
+
+const
+  TRAIN_PROXY_ACTION_NONE     = 0;
+  TRAIN_PROXY_ACTION_SPEEDDIR = 1;
+  TRAIN_PROXY_ACTION_FUNCTION = 2;
+  TRAIN_PROXY_ACTION_ESTOP    = 3;
+  
+procedure OPStackDefines_Initialize;
+  
+var
+  s1: string[128];
+  NodePool: TNodePool;
+  NULL_NODE_INFO: TNodeInfo;
+
+
+implementation
+
+procedure OPStackDefines_Initialize;
+begin
+  NULL_NODE_INFO.AliasID := 0;
+  NULL_NODE_INFO.ID := NULL_NODE_ID;
+end;
+
+end.

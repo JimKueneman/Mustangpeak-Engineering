@@ -1,0 +1,1051 @@
+unit opstack_buffers;
+
+{$I Options.inc}
+
+{.$DEFINE TRACK_BUFFERS}
+{.$DEFINE PRINT_CAN_STATEMACHINE_BUFFERS}
+{$DEFINE PRINT_BUFFERS}
+
+uses
+  opstack_debug,
+  opstack_types,
+  opstack_defines,
+  Float16,
+  template_buffers;
+
+type
+  TSimpleBufferPool = record
+    Pool: array[0..USER_MAX_SIMPLE_ARRAY_BUFFERS-1] of TSimpleBuffer;
+    Count: Word;
+    MaxCount: Word;
+    ReleasedByAbandonmentCount: Word;
+    iNextPotentialFree: Word;
+  end;
+  PSimpleBufferPool = ^TSimpleBufferPool;
+
+  TDatagramBufferPool = record
+    Pool: array[0..USER_MAX_DATAGRAM_ARRAY_BUFFERS-1] of TDatagramBuffer;
+    Count: Word;
+    MaxCount: Word;
+    ReleasedByAbandonmentCount: Word;
+    iNextPotentialFree: Word;
+  end;
+  PDatagramBufferPool = ^TDatagramBufferPool;
+
+  {$IFDEF SUPPORT_STREAMS}
+  TStreamBufferPool = record
+    Pool: array[0..USER_MAX_STREAM_ARRAY_BUFFERS-1] of TStreamBuffer;
+    Count: Word;
+    MaxCount: Word;
+    ReleasedByAbandonmentCount: Word;
+    iNextPotentialFree: Word;
+  end;
+  PStreamBufferPool = ^TStreamBufferPool;
+  {$ENDIF}
+
+  TMultiFrameStringBufferPool = record
+    Pool: array[0..USER_MAX_MULTIFRAME_STRING_ARRAY_BUFFERS-1] of TMultiFrameStringBuffer;
+    Count: Word;
+    MaxCount: Word;
+    ReleasedByAbandonmentCount: Word;
+    iNextPotentialFree: Word;
+  end;
+  PMultiFrameStringBufferPool = ^TMultiFrameStringBufferPool;
+
+  TMultiFramePool = record
+    Pool: array[0..USER_MAX_MULTIFRAME_ARRAY_BUFFERS-1] of TMultiFrameBuffer;
+    Count: Word;
+    MaxCount: Word;
+    ReleasedByAbandonmentCount: Word;
+    iNextPotentialFree: Word;
+  end;
+  PMultiFramePool = ^TMultiFramePool;
+
+  TOPStackMessagePool = record
+    Pool: array[0..USER_MAX_MESSAGE_ARRAY_BUFFERS-1] of TOPStackMessage;
+    Count: Word;
+    MaxCount: Word;
+    ReleasedByAbandonmentCount: Word;
+    iNextPotentialFree: Word;
+  end;
+
+{$IFDEF SUPPORT_TRACTION_PROXY}
+// This buffer allows a train command to come in from another node where it needs be proxied to the command station.  This may not happen immediately so we need to buffer it
+type
+
+  { TTrainProxyBuffer }
+
+  TTrainProxyBuffer = record
+    Proxy: TNodeInfo;
+    Train: TNodeInfo;
+    TrainID: Word;     // Train To Proxy
+    SpeedSteps: Byte;
+    Action: Byte;             // See TRAIN_PROXY_ACTION_XXXX constants
+    NewSpeed: THalfFloat;
+    NewFunctionAddress: DWord;
+    NewFunctionValue: Word;
+    iStateMachine: Byte;
+    Watchdog_1s: Byte;
+    Next: ^TTrainProxyBuffer;
+  end;
+  PTrainProxyBuffer = ^TTrainProxyBuffer;
+
+  TTrainProxyBufferArray = array[0..USER_MAX_TRAIN_PROXY_BUFFERS-1] of TTrainProxyBuffer;
+
+  TTrainProxyPool = record
+    Pool: TTrainProxyBufferArray;
+    Stack: PTrainProxyBuffer;
+    Count: Integer;
+    MaxCount: Integer;
+    ReleasedByTimeoutCount: Word;
+  end;
+{$ENDIF}
+
+
+procedure OPStackBuffers_Initialize;
+procedure OPStackBuffers_WatchdogTimer_1s;
+
+// Allocate Message helpers
+function OPStackBuffers_AllocateOPStackMessage(var AMessage: POPStackMessage; MTI: Word;  var Source: TNodeInfo; var Dest: TNodeInfo; IsCAN: Boolean): Boolean;
+function OPStackBuffers_AllocateDatagramMessage(var AMessage: POPStackMessage; var Source: TNodeInfo; var Dest: TNodeInfo; DestFlags: Byte): Boolean;
+function OPStackBuffers_Allocate_MultiFrameString_Message(var AMessage: POPStackMessage; MTI: Word;  var Source: TNodeInfo; var Dest: TNodeInfo): Boolean;
+function OPStackBuffers_AllocateMultiFrameMessage(var AMessage: POPStackMessage; MTI: Word;  var Source: TNodeInfo; var Dest: TNodeInfo): Boolean;
+{$IFDEF SUPPORT_STREAMS}
+function OPStackBuffers_AllcoateStreamMessage(var AMessage: POPStackMessage; MTI: Word;  var Source: TNodeInfo; var Dest: TNodeInfo; IsOutgoing: Boolean): Boolean;
+{$ENDIF}
+procedure OPStackBuffers_DeAllocateMessage(AMessage: POPStackMessage);
+
+// Traction Proxy Message Stack, allows incoming messages to external nodes to buffer an outgoing message heading for the Proxy Node and the track.
+// These buffers are self protected from being abandon.  The Train Proxy hanlder statemachine will end the effort, clean up and release the buffer
+{$IFDEF SUPPORT_TRACTION_PROXY}
+function OPStackBuffer_TrainProxyAllocate(var ATrain, AProxy: TNodeInfo; TrainID: Word; SpeedSteps: Byte; Action: Byte; NewSpeed: THalfFloat; NewFunctionAddress: DWord; NewFunctionValue: Word): PTrainProxyBuffer;
+procedure OPStackBuffer_TrainProxyAddToStack(TrainProxy: PTrainProxyBuffer);
+procedure OPStackBuffer_TrainRemoveAndFreeFirstOnStack;
+{$ENDIF}
+
+procedure OPStackBuffers_SearchandDestroyAbandonMessagesInMessageStack(var Root: POPStackMessage);
+
+// Load Message helpers
+procedure OPStackBuffers_LoadMessage(AMessage: POPStackMessage; MTI: Word; var Source: TNodeInfo; var Dest: TNodeInfo; FramingBits: Byte);
+procedure OPStackBuffers_LoadOptionalInteractionRejected(AMessage: POPStackMessage; var Source: TNodeInfo; var Dest: TNodeInfo; RejectedMTI: Word; IsPermenent: Boolean);
+
+// Zero buffer helpers
+procedure OPStackBuffers_ZeroMessage(AMessage: POPStackMessage);
+procedure OPStackBuffers_ZeroSimpleBuffer(ABuffer: PSimpleBuffer; ZeroArray: Boolean);
+procedure OPStackBuffers_ZeroDatagramBuffer(ABuffer: PDatagramBuffer; ZeroArray: Boolean);
+{$IFDEF SUPPORT_STREAMS}
+procedure OPStackBuffers_ZeroStreamBuffer(ABuffer: PStreamBuffer; ZeroArray: Boolean);
+{$ENDIF}
+procedure OPStackBuffers_ZeroMultiFrameStringBuffer(ABuffer: PMultiFrameStringBuffer; ZeroArray: Boolean);
+procedure OPStackBuffers_ZeroMultiFrameBuffer(ABuffer: PMultiFrameBuffer; ZeroArray: Boolean);
+
+{$IFDEF SUPPORT_STREAMS}
+function AllocateStreamSourceID: Byte;
+function AllocateStreamDestID: Byte;
+{$ENDIF}
+
+// Copy buffer helpers
+procedure OPStackBuffers_CopyData(DestData, SourceData: PSimpleBuffer);
+procedure OPStackBuffers_CopyDataArray(DestData: PSImpleBuffer; SourceDataArray: PSimpleDataArray; Count: Word; ClearDestSize: Boolean);
+procedure OPStackBuffers_CopyDataArrayWithSourceOffset(DestData: PSimpleBuffer; SourceDataArray: PSimpleDataArray; Count: Word; SourceOffset: Word);
+
+{$IFDEF PRINT_BUFFERS}
+procedure OPStackBuffers_PrintBuffers;
+  {$IFDEF PRINT_CAN_STATEMACHINE_BUFFERS}
+  procedure OPStackCANStatemachineBuffers_PrintBuffers; external;
+  {$ENDIF}
+{$ENDIF}
+
+procedure PrintOPStackMessage(OPStackMessage: POPStackMessage);
+
+var
+  SimpleBufferPool: TSimpleBufferPool;
+  DatagramBufferPool: TDatagramBufferPool;
+  {$IFDEF SUPPORT_STREAMS}
+  StreamBufferPool: TStreamBufferPool;
+  StreamSourceID: Byte;
+  StreamDestID: Byte;
+  {$ENDIF}
+  MultiFrameStringBufferPool: TMultiFrameStringBufferPool;
+  MultiFramePool: TMultiFramePool;
+  OPStackMessagePool: TOPStackMessagePool;
+  {$IFDEF SUPPORT_TRACTION_PROXY}
+  TrainProxyPool: TTrainProxyPool;
+  {$ENDIF}
+
+implementation
+
+{$IFDEF PRINT_BUFFERS}
+
+procedure OPStackBuffers_PrintBuffers;
+begin
+  DebugLine('Buffer State...');
+  
+  DebugLine('Simple Buffers: ');
+  WordToStr(USER_MAX_SIMPLE_ARRAY_BUFFERS, s1);
+  DebugLine('  Number: '+ s1);
+  WordToStr(SimpleBufferPool.Count, s1);
+  DebugLine('  Count: '+ s1);
+  WordToStr(SimpleBufferPool.MaxCount, s1);
+  DebugLine('  Max  : '+ s1);
+  WordToStr(SimpleBufferPool.ReleasedByAbandonmentCount, s1);
+  DebugLine('  Abandon  : '+ s1);
+  
+  DebugLine('Datagram Buffers: ');
+  WordToStr(USER_MAX_DATAGRAM_ARRAY_BUFFERS, s1);
+  DebugLine('  Number: '+ s1);
+  WordToStr(DatagramBufferPool.Count, s1);
+  DebugLine('  Count: '+ s1);
+  WordToStr(DatagramBufferPool.MaxCount, s1);
+  DebugLine('  Max  : '+ s1);
+  WordToStr(DatagramBufferPool.ReleasedByAbandonmentCount, s1);
+  DebugLine('  Abandon  : '+ s1);
+  
+  {$IFDEF SUPPORT_STREAMS}
+  DebugLine('Stream Buffers: ');
+  WordToStr(USER_MAX_STREAM_ARRAY_BUFFERS, s1);
+  DebugLine('  Number: '+s1);
+  WordToStr(StreamBufferPool.Count, s1);
+  DebugLine('  Count: '+s1);
+  WordToStr(StreamBufferPool.MaxCount, s1);
+  DebugLine('  Max  : '+s1);
+  WordToStr(StreamBufferPool.ReleasedByAbandonmentCount, s1);
+  DebugLine('  Abandon  : '+s1);
+  {$ENDIF}
+  
+  DebugLine('MultiFrame String Buffers: ');
+  WordToStr(USER_MAX_MULTIFRAME_STRING_ARRAY_BUFFERS, s1);
+  DebugLine('  Number: '+s1);
+  WordToStr(MultiFrameStringBufferPool.Count, s1);
+  DebugLine('  Count: '+s1);
+  WordToStr(MultiFrameStringBufferPool.MaxCount, s1);
+  DebugLine('  Max  : '+s1);
+  WordToStr(MultiFrameStringBufferPool.ReleasedByAbandonmentCount, s1);
+  DebugLine('  Abandon  : '+s1);
+  
+  DebugLine('MultiFrame Buffers: ');
+  WordToStr(USER_MAX_MULTIFRAME_ARRAY_BUFFERS, s1);
+  DebugLine('  Number: '+s1);
+  WordToStr(MultiFramePool.Count, s1);
+  DebugLine('  Count: '+s1);
+  WordToStr(MultiFramePool.MaxCount, s1);
+  DebugLine('  Max  : '+s1);
+  WordToStr(MultiFramePool.ReleasedByAbandonmentCount, s1);
+  DebugLine('  Abandon  : '+s1);
+  
+  DebugLine('Message Pool Buffers: ');
+  WordToStr(USER_MAX_MESSAGE_ARRAY_BUFFERS, s1);
+  DebugLine('  Number: '+s1);
+  WordToStr(OPStackMessagePool.Count, s1);
+  DebugLine('  Count: '+s1);
+  WordToStr(OPStackMessagePool.MaxCount, s1);
+  DebugLine('  Max  : '+s1);
+  WordToStr(OPStackMessagePool.ReleasedByAbandonmentCount, s1);
+  DebugLine('  Abandon  : '+s1);
+  {$IFDEF PRINT_CAN_STATEMACHINE_BUFFERS}
+  OPStackCANStatemachineBuffers_PrintBuffers;
+  {$ENDIF}
+end;
+{$ENDIF}
+
+
+procedure OPStackBuffers_Initialize;
+var
+  j: Integer;
+begin
+  for j := 0 to USER_MAX_SIMPLE_ARRAY_BUFFERS-1  do
+    OPStackBuffers_ZeroSimpleBuffer(@SimpleBufferPool.Pool[j], True);
+  SimpleBufferPool.Count := 0;
+  SimpleBufferPool.MaxCount := 0;
+  SimpleBufferPool.ReleasedByAbandonmentCount := 0;
+  SimpleBufferPool.iNextPotentialFree := 0;
+
+  for j := 0 to USER_MAX_DATAGRAM_ARRAY_BUFFERS-1  do
+    OPStackBuffers_ZeroDatagramBuffer(@DatagramBufferPool.Pool[j], True);
+  DatagramBufferPool.Count := 0;
+  DatagramBufferPool.MaxCount := 0;
+  DatagramBufferPool.ReleasedByAbandonmentCount := 0;
+  DatagramBufferPool.iNextPotentialFree := 0;
+
+  for j := 0 to USER_MAX_MULTIFRAME_STRING_ARRAY_BUFFERS-1  do
+    OPStackBuffers_ZeroMultiFrameStringBuffer(@MultiFrameStringBufferPool.Pool[j], True);
+  MultiFrameStringBufferPool.Count := 0;
+  MultiFrameStringBufferPool.MaxCount := 0;
+  MultiFrameStringBufferPool.ReleasedByAbandonmentCount := 0;
+
+  {$IFDEF SUPPORT_STREAMS}
+  for j := 0 to USER_MAX_STREAM_ARRAY_BUFFERS-1  do
+    OPStackBuffers_ZeroStreamBuffer(@StreamBufferPool.Pool[j], True);
+  MultiFrameStringBufferPool.Count := 0;
+  StreamBufferPool.MaxCount := 0;
+  StreamSourceID := 0;
+  StreamDestID := 0;
+  MultiFrameStringBufferPool.ReleasedByAbandonmentCount := 0;
+  MultiFrameStringBuffer....?? What??
+  {$ENDIF}
+  
+  for j := 0 to USER_MAX_MULTIFRAME_ARRAY_BUFFERS-1 do
+    OPStackBuffers_ZeroMultiFrameBuffer(@MultiFramePool.Pool[j], True);
+  MultiFramePool.Count := 0;
+  MultiFramePool.MaxCount := 0;
+  MultiFramePool.ReleasedByAbandonmentCount := 0;
+  MultiFramePool.iNextPotentialFree := 0;
+  
+  for j := 0 to USER_MAX_MESSAGE_ARRAY_BUFFERS-1  do
+    OPStackBuffers_ZeroMessage(@OPStackMessagePool.Pool[j]);
+  OPStackMessagePool.Count := 0;
+  OPStackMessagePool.MaxCount := 0;
+  OPStackMessagePool.ReleasedByAbandonmentCount := 0;
+  OPStackMessagePool.iNextPotentialFree := 0;
+
+  {$IFDEF SUPPORT_TRACTION_PROXY}
+  for j := 0 to USER_MAX_TRAIN_PROXY_BUFFERS-1 do
+  begin
+    TrainProxyPool.Pool[j].TrainID := 0;
+    TrainProxyPool.Pool[j].SpeedSteps := 0;
+    TrainProxyPool.Pool[j].Action := TRAIN_PROXY_ACTION_NONE;
+    TrainProxyPool.Pool[j].NewFunctionAddress := 0;
+    TrainProxyPool.Pool[j].NewFunctionValue := 0;
+    TrainProxyPool.Pool[j].NewSpeed := 0;
+    TrainProxyPool.Pool[j].iStateMachine := 0;
+    TrainProxyPool.Pool[j].Next := nil;
+  end;
+  TrainProxyPool.Stack := nil;
+  TrainProxyPool.Count := 0;
+  TrainProxyPool.MaxCount := 0;
+  TrainProxyPool.ReleasedByTimeoutCount := 0;
+  {$ENDIF}
+end;
+
+procedure OPStackBuffers_WatchdogTimer_1s;
+var
+  i: Integer;
+begin
+  i := 0;
+  while i < USER_MAX_MESSAGE_ARRAY_BUFFERS do
+  begin
+    Inc(OPStackMessagePool.Pool[i].WatchDog_1s);
+    Inc(i)
+  end;
+  {$IFDEF SUPPORT_TRACTION_PROXY}
+  i := 0;
+  while i < USER_MAX_TRAIN_PROXY_BUFFERS - 1 do
+  begin
+    Inc(TrainProxyPool.Pool[i].Watchdog_1s);
+    Inc(i)
+  end;
+  {$ENDIF}
+end;
+
+function AllocateSimpleBuffer(var Buffer: PSimpleBuffer): Boolean;
+var
+  Count: Integer;
+begin
+  Result := False;
+  Buffer := nil;
+  if SimpleBufferPool.Count < USER_MAX_SIMPLE_ARRAY_BUFFERS then
+  begin
+    Count := 0;
+    while Count < USER_MAX_SIMPLE_ARRAY_BUFFERS do
+    begin
+      if SimpleBufferPool.Pool[SimpleBufferPool.iNextPotentialFree].State and ABS_ALLOCATED = 0 then
+      begin
+        Buffer := @SimpleBufferPool.Pool[SimpleBufferPool.iNextPotentialFree];
+        OPStackBuffers_ZeroSimpleBuffer(Buffer, False);
+        SimpleBufferPool.Pool[SimpleBufferPool.iNextPotentialFree].State := ABS_ALLOCATED;
+        Inc(SimpleBufferPool.Count);
+        if SimpleBufferPool.Count > SimpleBufferPool.MaxCount then
+          SimpleBufferPool.MaxCount := SimpleBufferPool.Count;
+        Result := True;
+        {$IFDEF TRACK_BUFFERS}DebugLine('Alloc Simple');{$ENDIF}
+        Count := USER_MAX_SIMPLE_ARRAY_BUFFERS                                  // All done
+      end;
+      Inc(SimpleBufferPool.iNextPotentialFree);
+      if SimpleBufferPool.iNextPotentialFree >= USER_MAX_SIMPLE_ARRAY_BUFFERS then
+        SimpleBufferPool.iNextPotentialFree := 0;
+      Inc(Count)
+    end;
+  end;
+end;
+
+function AllocateDatagramBuffer(var Buffer: PDatagramBuffer): Boolean;
+var
+  Count: Integer;
+begin
+  Result := False;
+  if DatagramBufferPool.Count < USER_MAX_DATAGRAM_ARRAY_BUFFERS then
+  begin
+    Count := 0;
+    while Count < USER_MAX_DATAGRAM_ARRAY_BUFFERS do
+    begin
+      if DatagramBufferPool.Pool[DatagramBufferPool.iNextPotentialFree].State and ABS_ALLOCATED = 0 then
+      begin
+        Buffer := @DatagramBufferPool.Pool[DatagramBufferPool.iNextPotentialFree];
+        OPStackBuffers_ZeroDatagramBuffer(Buffer, False);
+        DatagramBufferPool.Pool[DatagramBufferPool.iNextPotentialFree].State := ABS_ALLOCATED;
+        Inc(DatagramBufferPool.Count);
+        if DatagramBufferPool.Count > DatagramBufferPool.MaxCount then
+          DatagramBufferPool.MaxCount := DatagramBufferPool.Count;
+        Result := True;
+        {$IFDEF TRACK_BUFFERS}DebugLine('Alloc Datagram');{$ENDIF}
+        Count := USER_MAX_DATAGRAM_ARRAY_BUFFERS                                // All done
+      end;
+      Inc(DatagramBufferPool.iNextPotentialFree);
+      if DatagramBufferPool.iNextPotentialFree >= USER_MAX_DATAGRAM_ARRAY_BUFFERS then
+        DatagramBufferPool.iNextPotentialFree := 0;
+      Inc(Count)
+    end;
+  end;
+end;
+
+{$IFDEF SUPPORT_STREAMS}
+function AllocateStreamBuffer(var Buffer: PStreamBuffer): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  if StreamBufferPool.Count < USER_MAX_STREAM_ARRAY_BUFFERS then
+  begin
+  end;
+end;
+{$ENDIF}
+
+function AllocateMultiFrameStringBuffer(var Buffer: PMultiFrameStringBuffer): Boolean;
+var
+  Count: Integer;
+begin
+  Result := False;
+  if MultiFrameStringBufferPool.Count < USER_MAX_MULTIFRAME_STRING_ARRAY_BUFFERS then
+  begin
+    Count := 0;
+    while Count < USER_MAX_MULTIFRAME_STRING_ARRAY_BUFFERS do
+    begin
+      if MultiFrameStringBufferPool.Pool[MultiFrameStringBufferPool.iNextPotentialFree].State and ABS_ALLOCATED = 0 then
+      begin
+        Buffer := @MultiFrameStringBufferPool.Pool[MultiFrameStringBufferPool.iNextPotentialFree];
+        OPStackBuffers_ZeroMultiFrameStringBuffer(Buffer, False);
+        MultiFrameStringBufferPool.Pool[MultiFrameStringBufferPool.iNextPotentialFree].State := ABS_ALLOCATED;
+        Inc(MultiFrameStringBufferPool.Count);
+        if MultiFrameStringBufferPool.Count > MultiFrameStringBufferPool.MaxCount then
+          MultiFrameStringBufferPool.MaxCount := MultiFrameStringBufferPool.Count;
+        Result := True;
+        {$IFDEF TRACK_BUFFERS}DebugLine('Alloc MultiFrameString Buffer');{$ENDIF}
+        Count := USER_MAX_MULTIFRAME_STRING_ARRAY_BUFFERS                                // All done
+      end;
+      Inc(MultiFrameStringBufferPool.iNextPotentialFree);
+      if MultiFrameStringBufferPool.iNextPotentialFree >= USER_MAX_MULTIFRAME_STRING_ARRAY_BUFFERS then
+        MultiFrameStringBufferPool.iNextPotentialFree := 0;
+      Inc(Count)
+    end;
+  end;
+end;
+
+
+function AllocateMultiFrameBuffer(var Buffer: PMultiFrameBuffer): Boolean;
+var
+  Count: Integer;
+begin
+  Result := False;
+  if MultiFramePool.Count < USER_MAX_MULTIFRAME_ARRAY_BUFFERS then
+  begin
+    Count := 0;
+    while Count < USER_MAX_MULTIFRAME_ARRAY_BUFFERS do
+    begin
+      if MultiFramePool.Pool[MultiFramePool.iNextPotentialFree].State and ABS_ALLOCATED = 0 then
+      begin
+        Buffer := @MultiFramePool.Pool[MultiFramePool.iNextPotentialFree];
+        OPStackBuffers_ZeroMultiFrameBuffer(Buffer, False);
+        MultiFramePool.Pool[MultiFramePool.iNextPotentialFree].State := ABS_ALLOCATED;
+        Inc(MultiFramePool.Count);
+        if MultiFramePool.Count > MultiFramePool.MaxCount then
+          MultiFramePool.MaxCount := MultiFramePool.Count;
+        Result := True;
+        {$IFDEF TRACK_BUFFERS}DebugLine('Alloc Multiframe');{$ENDIF}
+        Count := USER_MAX_MULTIFRAME_ARRAY_BUFFERS                                // All done
+      end;
+      Inc(MultiFramePool.iNextPotentialFree);
+      if MultiFramePool.iNextPotentialFree >= USER_MAX_MULTIFRAME_ARRAY_BUFFERS then
+        MultiFramePool.iNextPotentialFree := 0;
+      Inc(Count)
+    end;
+  end;
+end;
+
+procedure DeAllocateSimpleBuffer(Buffer: PSimpleBuffer);
+begin
+  if Buffer^.State and ABS_ALLOCATED  <> 0 then                                 // Only effect the pool if the buffer was allocated from the pool
+  begin
+    {$IFDEF TRACK_BUFFERS}DebugLine('Dealloc Simple');{$ENDIF}
+    Dec(SimpleBufferPool.Count);
+    Buffer^.State := 0
+  end
+end;
+
+procedure DeAllocateDatagramBuffer(Buffer: PDatagramBuffer);
+begin
+  if Buffer^.State and ABS_ALLOCATED <> 0 then                                  // Only effect the pool if the buffer was allocated from the pool
+  begin
+    {$IFDEF TRACK_BUFFERS}DebugLine('Dealloc Datagram');{$ENDIF}
+    Dec(DatagramBufferPool.Count);
+    Buffer^.State := 0
+  end
+end;
+
+{$IFDEF SUPPORT_STREAMS}
+procedure DeAllocateSteamBuffer(Buffer: PStreamBuffer);
+begin
+  if Buffer^.State and ABS_ALLOCATED <> 0 then                                  // Only effect the pool if the buffer was allocated from the pool
+  begin
+    {$IFDEF TRACK_BUFFERS}DebugLine('Dealloc Stream');{$ENDIF}
+    Dec(StreamBufferPool.Count);
+    Buffer^.State := 0
+  end
+end;
+{$ENDIF}
+
+procedure DeAllocateAcdiSnipBuffer(Buffer: PMultiFrameStringBuffer);
+begin
+  if Buffer^.State and ABS_ALLOCATED <> 0 then                                  // Only effect the pool if the buffer was allocated from the pool
+  begin
+    {$IFDEF TRACK_BUFFERS}DebugLine('Dealloc Snip');{$ENDIF}
+    Dec(MultiFrameStringBufferPool.Count);
+    Buffer^.State := 0
+  end
+end;
+
+procedure DeAllocateMultiFrameBuffer(Buffer: PMultiFrameBuffer);
+begin
+  if Buffer^.State and ABS_ALLOCATED <> 0 then                                  // Only effect the pool if the buffer was allocated from the pool
+  begin
+    {$IFDEF TRACK_BUFFERS}DebugLine('Dealloc MultiFrame');{$ENDIF}
+    Dec(MultiFramePool.Count);
+    Buffer^.State := 0
+  end
+end;
+
+function NextFreeOPStackMessage(var OPStackMessage: POPStackMessage): Boolean;
+var
+  Count: Integer;
+begin
+  Result := False;
+  OPStackMessage := nil;
+  if OPStackMessagePool.Count < USER_MAX_MESSAGE_ARRAY_BUFFERS then
+  begin
+    Count := 0;
+    while Count < USER_MAX_MESSAGE_ARRAY_BUFFERS do
+    begin
+     {$IFDEF TRACK_BUFFERS}DebugLine('Alloc Message');{$ENDIF}
+      if OPStackMessagePool.Pool[OPStackMessagePool.iNextPotentialFree].MessageType and MT_ALLOCATED = 0 then
+      begin
+        OPStackMessage := @OPStackMessagePool.Pool[OPStackMessagePool.iNextPotentialFree];
+        OPStackBuffers_ZeroMessage(OPStackMessage);
+        Inc(OPStackMessagePool.Count);
+        if OPStackMessagePool.Count > OPStackMessagePool.MaxCount then
+          OPStackMessagePool.MaxCount := OPStackMessagePool.Count;
+        OPStackMessage^.MessageType := MT_ALLOCATED;
+        Result := True;
+        Count := USER_MAX_MESSAGE_ARRAY_BUFFERS                                // All done
+      end;
+      Inc(OPStackMessagePool.iNextPotentialFree);
+      if OPStackMessagePool.iNextPotentialFree >= USER_MAX_MESSAGE_ARRAY_BUFFERS then
+        OPStackMessagePool.iNextPotentialFree := 0;
+      Inc(Count)
+    end;
+  end;
+end;
+
+function OPStackBuffers_AllocateOPStackMessage(var AMessage: POPStackMessage;
+  MTI: Word; var Source: TNodeInfo; var Dest: TNodeInfo; IsCAN: Boolean
+  ): Boolean;
+var
+  SimpleBuffer: PSimpleBuffer;
+begin
+  Result := False;
+  if NextFreeOPStackMessage(AMessage) then
+  begin
+    AMessage^.MessageType := MT_SIMPLE or MT_ALLOCATED;
+    if IsCAN then
+    begin
+      {$IFDEF TRACK_BUFFERS}DebugLine('CAN: ');{$ENDIF}
+      AMessage^.MessageType := AMessage^.MessageType or MT_CAN_TYPE;
+    end;
+    if AllocateSimpleBuffer(SimpleBuffer) then
+    begin
+      OPStackBuffers_LoadMessage(AMessage, MTI, Source, Dest, 0);
+      AMessage^.Buffer := PSimpleBuffer( SimpleBuffer);
+      Result := True
+    end else
+    begin
+      OPStackBuffers_DeAllocateMessage(AMessage);
+      AMessage := nil;
+    end;
+  end
+end;
+
+function OPStackBuffers_AllocateDatagramMessage(var AMessage: POPStackMessage; var Source: TNodeInfo; var Dest: TNodeInfo; DestFlags: Byte): Boolean;
+var
+  DatagramBuffer: PDatagramBuffer;
+begin
+  Result := False;
+  if NextFreeOPStackMessage(AMessage) then
+  begin
+    AMessage^.MessageType := MT_DATAGRAM or MT_ALLOCATED;
+    if AllocateDatagramBuffer(DatagramBuffer) then
+    begin
+      OPStackBuffers_LoadMessage(AMessage, MTI_DATAGRAM, Source, Dest, DestFlags);
+      AMessage^.Buffer := PSimpleBuffer( PByte( DatagramBuffer));
+      Result := True
+    end else
+    begin
+      OPStackBuffers_DeAllocateMessage(AMessage);
+      AMessage := nil;
+    end;
+  end;
+end;
+
+{$IFDEF SUPPORT_STREAMS}
+function OPStackBuffers_AllcoateStreamMessage(var AMessage: POPStackMessage; MTI: Word; SourceNodeAlias: Word; var SourceNodeID: TNodeID; DestAlias: Word; var DestNodeID: TNodeID; IsOutgoing: Boolean): Boolean;
+var
+  StreamBuffer: PStreamBuffer;
+begin
+  Result := False;
+  if NextFreeOPStackMessage(AMessage) then
+  begin
+    AMessage^.MessageType := MT_STREAM or MT_ALLOCATED;
+    if AllocateStreamBuffer(StreamBuffer) then
+    begin
+      OPStackBuffers_LoadMessage(AMessage, MTI, SourceNodeAlias, SourceNodeID, DestAlias, DestNodeID, 0);
+      if IsOutgoing then
+        StreamBuffer^.State := StreamBuffer^.State or ABS_STREAM_OUTGOING;
+      AMessage^.Buffer := PSimpleBuffer( PByte( StreamBuffer));
+      Result := True
+    end else
+    begin
+      OPStackBuffers_DeAllocateMessage(AMessage);
+      AMessage := nil;
+    end;
+  end;
+end;
+{$ENDIF}
+
+function OPStackBuffers_Allocate_MultiFrameString_Message(
+  var AMessage: POPStackMessage; MTI: Word; var Source: TNodeInfo;
+  var Dest: TNodeInfo): Boolean;
+var
+  MultiFrameStringBuffer: PMultiFrameStringBuffer;
+begin
+  Result := False;
+  if NextFreeOPStackMessage(AMessage) then
+  begin
+    AMessage^.MessageType := MT_MULTIFRAME_STRING or MT_ALLOCATED;
+    if AllocateMultiFrameStringBuffer(MultiFrameStringBuffer) then
+    begin
+      OPStackBuffers_LoadMessage(AMessage, MTI, Source, Dest, 0);
+      AMessage^.Buffer := PSimpleBuffer( PByte( MultiFrameStringBuffer));
+      Result := True
+    end else
+    begin
+      OPStackBuffers_DeAllocateMessage(AMessage);
+      AMessage := nil;
+    end;
+  end;
+end;
+
+function OPStackBuffers_AllocateMultiFrameMessage(
+  var AMessage: POPStackMessage; MTI: Word; var Source: TNodeInfo;
+  var Dest: TNodeInfo): Boolean;
+var
+  MultiFrameBuffer: PMultiFrameBuffer;
+begin
+  Result := False;
+  if NextFreeOPStackMessage(AMessage) then
+  begin
+    AMessage^.MessageType := MT_MULTIFRAME or MT_ALLOCATED;
+    if AllocateMultiFrameBuffer(MultiFrameBuffer) then
+    begin
+      OPStackBuffers_LoadMessage(AMessage, MTI, Source, Dest, 0);
+      AMessage^.Buffer := PSimpleBuffer( PByte( MultiFrameBuffer));
+      Result := True
+    end else
+    begin
+      OPStackBuffers_DeAllocateMessage(AMessage);
+      AMessage := nil;
+    end;
+  end;
+end;
+
+{$IFDEF SUPPORT_TRACTION_PROXY}
+function OPStackBuffer_TrainProxyAllocate(var ATrain, AProxy: TNodeInfo;
+  TrainID: Word; SpeedSteps: Byte; Action: Byte; NewSpeed: THalfFloat;
+  NewFunctionAddress: DWord; NewFunctionValue: Word): PTrainProxyBuffer;
+var
+  i: Integer;
+begin
+  Result := nil;
+  for i := 0 to USER_MAX_TRAIN_PROXY_BUFFERS - 1 do
+  begin
+    if TrainProxyPool.Pool[i].Action = TRAIN_PROXY_ACTION_NONE then
+    begin
+      TrainProxyPool.Pool[i].Train := ATrain;
+      TrainProxyPool.Pool[i].Proxy := AProxy;
+      TrainProxyPool.Pool[i].Action := Action;
+      TrainProxyPool.Pool[i].TrainID := TrainID;
+      TrainProxyPool.Pool[i].SpeedSteps := SpeedSteps;
+      TrainProxyPool.Pool[i].NewSpeed := NewSpeed;
+      TrainProxyPool.Pool[i].NewFunctionAddress := NewFunctionAddress;
+      TrainProxyPool.Pool[i].NewFunctionValue := NewFunctionValue;
+      TrainProxyPool.Pool[i].iStateMachine := 0;
+      TrainProxyPool.Pool[i].Watchdog_1s := 0;
+      TrainProxyPool.Pool[i].Next := nil;
+      Inc(TrainProxyPool.Count);
+      if TrainProxyPool.Count > TrainProxyPool.MaxCount then
+        TrainProxyPool.MaxCount := TrainProxyPool.Count;
+      Result := @TrainProxyPool.Pool[i];
+      Exit;
+    end;
+  end;
+end;
+
+procedure OPStackBuffer_TrainProxyAddToStack(TrainProxy: PTrainProxyBuffer);
+var
+  NextProxy: PTrainProxyBuffer;
+begin
+  if TrainProxy <> nil then
+  begin
+    if TrainProxyPool.Stack = nil then
+      TrainProxyPool.Stack := TrainProxy
+    else begin
+      NextProxy := nil;
+      repeat
+        if NextProxy = nil then
+          NextProxy := TrainProxyPool.Stack
+        else
+          NextProxy := NextProxy^.Next;
+      until NextProxy^.Next = nil;
+      NextProxy^.Next := TrainProxy;
+    end;
+  end;
+end;
+
+procedure OPStackBuffer_TrainRemoveAndFreeFirstOnStack;
+var
+  OldProxy: PTrainProxyBuffer;
+begin
+  if TrainProxyPool.Stack <> nil then
+  begin
+    OldProxy := TrainProxyPool.Stack;
+    TrainProxyPool.Stack := OldProxy^.Next;          // Could another buffer or nil, either is valid
+    OldProxy^.Action := TRAIN_PROXY_ACTION_NONE;     // Released
+    Dec(TrainProxyPool.Count);
+    if TrainProxyPool.Count < 0 then
+      TrainProxyPool.Count := 0;
+  end;
+end;
+
+{$ENDIF}
+
+procedure OPStackBuffers_DeAllocateMessage(AMessage: POPStackMessage);
+begin
+  if AMessage = nil then Exit;
+  if AMessage^.MessageType and MT_ALLOCATED <> 0 then                           // Only deallocate if we allocated it
+  begin
+    if AMessage^.Buffer <> nil then
+    begin
+      case (AMessage^.MessageType and MT_MASK) of
+        MT_SIMPLE    : DeAllocateSimpleBuffer(PSimpleBuffer( AMessage^.Buffer));
+        MT_DATAGRAM  : DeAllocateDatagramBuffer(PDatagramBuffer( PByte(AMessage^.Buffer)));
+        {$IFDEF SUPPORT_STREAMS}
+        MT_STREAM    : DeAllocateSteamBuffer(PStreamBuffer( PByte( AMessage^.Buffer)));
+        {$ENDIF}
+        MT_MULTIFRAME_STRING  : DeAllocateAcdiSnipBuffer(PMultiFrameStringBuffer( PByte( AMessage^.Buffer)));
+        MT_MULTIFRAME : DeAllocateMultiFrameBuffer(PMultiFrameBuffer( PByte( AMessage^.Buffer)));
+      end;
+    end;
+    AMessage^.MessageType := MT_UNALLOCATED;
+    Dec(OPStackMessagePool.Count);
+    {$IFDEF TRACK_BUFFERS}DebugLine('Dealloc Message');{$ENDIF}
+  end;
+end;
+
+procedure OPStackBuffers_LoadOptionalInteractionRejected(
+  AMessage: POPStackMessage; var Source: TNodeInfo; var Dest: TNodeInfo;
+  RejectedMTI: Word; IsPermenent: Boolean);
+begin
+  OPStackBuffers_LoadMessage(AMessage, MTI_OPTIONAL_INTERACTION_REJECTED, Source, Dest, 0);
+  AMessage^.MessageType := MT_SIMPLE;
+  AMessage^.Buffer^.DataBufferSize := 4;
+  if IsPermenent then
+  begin
+    AMessage^.Buffer^.DataArray[0] := $10;
+    AMessage^.Buffer^.DataArray[1] := $00;
+  end else
+  begin
+    AMessage^.Buffer^.DataArray[0] := $20;
+    AMessage^.Buffer^.DataArray[1] := $00;
+  end;
+  AMessage^.Buffer^.DataArray[2] := Hi( RejectedMTI);
+  AMessage^.Buffer^.DataArray[3] := Lo( RejectedMTI);
+end;
+
+procedure ZeroBuffer(ABuffer: PSimpleBuffer; DataBufferSize: Word);
+var
+  i: Integer;
+  BufferPtr: PByte;
+begin
+  ABuffer^.State := 0;
+  ABuffer^.DataBufferSize := 0;
+  BufferPtr := @ABuffer^.DataArray[0];
+  for i := 0 to DataBufferSize - 1 do
+  begin
+    BufferPtr^ := 0;
+    Inc(BufferPtr);
+  end;
+end;
+
+procedure OPStackBuffers_ZeroSimpleBuffer(ABuffer: PSimpleBuffer; ZeroArray: Boolean);
+var
+  i: Integer;
+begin
+  ABuffer^.State := 0;
+  ABuffer^.DataBufferSize := 0;
+  if ZeroArray then
+  begin
+    for i := 0 to MAX_SIMPLE_BYTES - 1 do
+      ABuffer^.DataArray[i] := 0;
+  end;
+end;
+
+procedure OPStackBuffers_ZeroDatagramBuffer(ABuffer: PDatagramBuffer; ZeroArray: Boolean);
+var
+  i: Integer;
+begin
+  if ZeroArray then
+  begin
+    for i := 0 to MAX_DATAGRAM_BYTES - 1 do
+      ABuffer^.DataArray[i] := 0;
+  end;
+  ABuffer^.State := 0;
+  ABuffer^.DataBufferSize := 0;
+  ABuffer^.CurrentCount := 0;
+  ABuffer^.ResendCount := 0;
+  ABuffer^.iStateMachine := 0;
+  ABuffer^.AckFlags := 0;
+end;
+
+{$IFDEF SUPPORT_STREAMS}
+procedure OPStackBuffers_ZeroStreamBuffer(ABuffer: PStreamBuffer; ZeroArray: Boolean);
+var
+  i: Integer;
+begin
+  if ZeroArray then
+  begin
+    for i := 0 to USER_MAX_STREAM_BYTES - 1 do
+      ABuffer^.DataArray[i] := 0;
+  end;
+  ABuffer^.State := 0;
+  ABuffer^.DataBufferSize := 0;
+  ABuffer^.CurrentCount := 0;
+  ABuffer^.SourceStreamID := 0;
+  ABuffer^.DestStreamID := 0;
+  for i := 0 to MAX_STREAM_TYPE_ID - 1 do
+    ABuffer^.StreamTypeID[i] := 0;
+  ABuffer^.TotalMessageSize := 0;
+  ABuffer^.NextActiveStream := nil;
+  ABuffer^.NegotiatedBufferSize := USER_MAX_STREAM_BYTES;
+end;
+{$ENDIF}
+
+procedure OPStackBuffers_ZeroMultiFrameStringBuffer( ABuffer: PMultiFrameStringBuffer; ZeroArray: Boolean);
+var
+  i: Integer;
+begin
+  if ZeroArray then
+  begin
+    for i := 0 to USER_MAX_MULTIFRAME_STRING_BYTES - 1 do
+      ABuffer^.DataArray[i] := 0;
+  end;
+  ABuffer^.State := 0;
+  ABuffer^.DataBufferSize := 0;
+  ABuffer^.CurrentCount := 0;
+end;
+
+procedure OPStackBuffers_ZeroMultiFrameBuffer(ABuffer: PMultiFrameBuffer; ZeroArray: Boolean);
+var
+  i: Integer;
+begin
+  if ZeroArray then
+  begin
+    for i := 0 to USER_MAX_MULTI_FRAME_BYTES - 1 do
+      ABuffer^.DataArray[i] := 0;
+  end;
+  ABuffer^.State := 0;
+  ABuffer^.DataBufferSize := 0;
+  ABuffer^.CurrentCount := 0;
+end;
+
+procedure OPStackBuffers_SearchandDestroyAbandonMessagesInMessageStack(var Root: POPStackMessage);
+var
+  Prev, Current: POPStackMessage;
+begin
+  if Root <> nil then
+  begin
+    Prev := nil;
+    Current := Root;
+    repeat
+      if Current^.WatchDog_1s > TIMEOUT_ABANDON_RESOURCE then
+      begin
+        if Prev = nil then       // Still playing with the Node^.IncomingMessage position
+        begin
+          Root := Current^.NextIncoming;
+          Inc(OPStackMessagePool.ReleasedByAbandonmentCount);
+          OPStackBuffers_DeAllocateMessage(Current);
+          Current := Root;
+        end else
+        begin
+          Prev^.NextIncoming := Current^.NextIncoming;   // Clip the current out of the list, Prev does not change
+          Inc(OPStackMessagePool.ReleasedByAbandonmentCount);
+          OPStackBuffers_DeAllocateMessage(Current);
+          Current := Current^.NextIncoming;
+        end;
+      end else
+      begin
+        Prev := Current;
+        Current := Current^.NextIncoming;
+      end;
+    until Current = nil;
+  end;
+end;
+
+procedure OPStackBuffers_LoadMessage(AMessage: POPStackMessage; MTI: Word;
+  var Source: TNodeInfo; var Dest: TNodeInfo; FramingBits: Byte);
+begin
+  AMessage^.MTI := MTI;
+  AMessage^.Dest := Dest;
+  AMessage^.Source := Source;
+  AMessage^.FramingBits := FramingBits;
+end;
+
+procedure OPStackBuffers_ZeroMessage(AMessage: POPStackMessage);
+begin
+  AMessage^.MessageType := 0;
+  AMessage^.MTI := 0;
+  AMessage^.NextIncoming := nil;
+  AMessage^.NextOutgoing := nil;
+  AMessage^.Dest.AliasID := 0;
+  AMessage^.Dest.ID := NULL_NODE_ID;
+  AMessage^.Source.AliasID := 0;
+  AMessage^.Source.ID := NULL_NODE_ID;
+  AMessage^.Buffer := nil;
+  AMessage^.FramingBits := 0;
+  AMessage^.WatchDog_1s := 0;
+end;
+
+{$IFDEF SUPPORT_STREAMS}
+function AllocateStreamSourceID: Byte;
+begin
+  if StreamSourceID = 0 then
+    Inc(StreamSourceID);
+  Result := StreamSourceID;
+  Inc(StreamSourceID);
+end;
+
+function AllocateStreamDestID: Byte;
+begin
+  if StreamDestID = 0 then
+    Inc(StreamDestID);
+  Result := StreamDestID;
+  Inc(StreamDestID);
+end;
+{$ENDIF}
+
+procedure OPStackBuffers_CopyData(DestData, SourceData: PSimpleBuffer);
+var
+  i: Integer;
+begin
+  i := 0;
+  DestData^.DataBufferSize := SourceData^.DataBufferSize;
+  while i < SourceData^.DataBufferSize do
+  begin
+    DestData^.DataArray[i] := SourceData^.DataArray[i];
+    Inc(i)
+  end
+end;
+
+procedure OPStackBuffers_CopyDataArray(DestData: PSImpleBuffer; SourceDataArray: PSimpleDataArray; Count: Word; ClearDestSize: Boolean);
+var
+  i: Integer;
+begin
+  if ClearDestSize then
+    DestData^.DataBufferSize := 0;
+  i := 0;
+  while i < Count do
+  begin
+    DestData^.DataArray[DestData^.DataBufferSize] := SourceDataArray^[i];
+    Inc(DestData^.DataBufferSize);
+    Inc(i)
+  end
+end;
+
+procedure OPStackBuffers_CopyDataArrayWithSourceOffset(DestData: PSimpleBuffer; SourceDataArray: PSimpleDataArray; Count: Word; SourceOffset: Word);
+begin
+  DestData^.DataBufferSize := 0;
+  while DestData^.DataBufferSize < (Count - SourceOffset) do
+  begin
+    DestData^.DataArray[DestData^.DataBufferSize] := SourceDataArray^[DestData^.DataBufferSize+SourceOffset];
+    Inc(DestData^.DataBufferSize);
+  end
+end;
+
+procedure PrintOPStackMessage(OPStackMessage: POPStackMessage);
+begin
+  WordToStr(OPStackMessage^.MessageType, s1);
+  DebugLine('MessageType: ' + s1);
+  WordToHex(OPStackMessage^.Source.AliasID, s1);
+  DebugStr('Source Alias: 0x' + s1);
+  DebugStr('SourceID: ');
+  ByteToHex(Higher( OPStackMessage^.Source.ID[1]), s1);
+  DebugStr('0x' + s1);
+  ByteToHex(Hi( OPStackMessage^.Source.ID[1]), s1);
+  DebugStr('0x' + s1);
+  ByteToHex(Lo( OPStackMessage^.Source.ID[1]), s1);
+  DebugStr('0x' + s1);
+  ByteToHex(Higher( OPStackMessage^.Source.ID[0]), s1);
+  DebugStr('0x' + s1);
+  ByteToHex(Hi( OPStackMessage^.Source.ID[0]), s1);
+  DebugStr('0x' + s1);
+  ByteToHex(Lo( OPStackMessage^.Source.ID[0]), s1);
+  DebugStr('0x' + s1);
+  DebugLine('');
+  WordToHex(OPStackMessage^.Dest.AliasID, s1);
+  DebugStr('Dest Alias: 0x' + s1);
+  DebugStr('DestID: ');
+  ByteToHex(Higher( OPStackMessage^.Dest.ID[1]), s1);
+  DebugStr('0x' + s1);
+  ByteToHex(Hi( OPStackMessage^.Dest.ID[1]), s1);
+  DebugStr('0x' + s1);
+  ByteToHex(Lo( OPStackMessage^.Dest.ID[1]), s1);
+  DebugStr('0x' + s1);
+  ByteToHex(Higher( OPStackMessage^.Dest.ID[0]), s1);
+  DebugStr('0x' + s1);
+  ByteToHex(Hi( OPStackMessage^.Dest.ID[0]), s1);
+  DebugStr('0x' + s1);
+  ByteToHex(Lo( OPStackMessage^.Dest.ID[0]), s1);
+  DebugStr('0x' + s1);
+  DebugLine('');
+  ByteToHex(OPStackMessage^.FramingBits, s1);
+  DebugLine('FramingBits: 0x' + s1);
+  LongWordToHex(OPStackMessage^.NextIncoming, s1);
+  DebugLine('NextIncoming: 0x' + s1);
+  LongWordToHex(OPStackMessage^.NextOutgoing, s1);
+  DebugLine('NextOutgoing: 0x' + s1);
+  WordToHex(OPStackMessage^.MTI, s1);
+  DebugLine('MTI: 0x' + s1);
+  ByteToHex(OPStackMessage^.Buffer^.State, s1);
+  DebugLine('Buffer.State: 0x' + s1);
+  ByteToStr(OPStackMessage^.Buffer^.DataBufferSize, s1);
+  DebugLine('Buffer.DataBufferSize: ' + s1);
+  ByteToStr(OPStackMessage^.WatchDog_1s, s1);
+  DebugLine('Buffer.WatchDog_1s: ' + s1);
+end;
+
+end.

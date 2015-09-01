@@ -1,0 +1,75 @@
+unit def_io;
+
+uses dspic_additional_string_library,Lib_Delays_LIO;
+
+var ow2p_in : sbit at PORTA.10;
+var ow2p_in_lat : sbit at LATA.10;
+var ow2p_in_dir : sbit at TRISA.10;
+var ow2p_out_lat : sbit at LATA.7;
+var ow2p_out_dir : sbit at TRISA.7;
+
+var ENC_CS : sbit at LATC.7;           // SPI2 ENC424J600
+    ENC_CS_dir : sbit at TRISC.7;
+    ENC_INT : sbit at PORTB.8;
+    ENC_INT_dir : sbit at TRISB.8;
+
+var DF_CS : sbit at LATB.5;            // SPI1 AT45DB161D Flash
+var DF_CS_dir : sbit at TRISB.5;
+
+var LED1 : sbit at LATB.13;
+var LED1_dir : sbit at TRISB.13;
+
+var RS485_TX : sbit at LATB.10;
+var RS485_TX_dir : sbit at TRISB.10;
+
+    RELAY4 : sbit at LATC.1;
+    RELAY4_dir : sbit at TRISC.1;
+
+    RELAY3 : sbit at LATC.0;
+    RELAY3_dir : sbit at TRISC.0;
+    
+    RELAY2 : sbit at LATB.3;
+    RELAY2_dir : sbit at TRISB.3;
+    
+    RELAY1 : sbit at LATB.2;
+    RELAY1_dir : sbit at TRISB.2;
+    
+var DHCP_flag__ : byte;
+    sysDescr : string[16];                  // sysDescr, string
+    sysObjectID : string[32];               // sysObjectID, OID
+    sysUpTime : dword;                      // sysUpTime, timeticks
+    sysName : string[32];                   // sysName, string
+    ip_,gat_,mask_,dns_,wdt_ip : array[4] of byte;
+    tr1_ip,re1_ip,vo1_ip : array[4] of byte;
+    mac_ : string[12];
+        
+    save_config,save_config1,unlock_cnt,settodefault : byte;
+    CC100ms,CC10ms,CC1s,CC5s,CC500ms : word;
+    reset_flag,lost_ping_cnt,cnt_wdt_ip,config_default : byte;
+
+    Rom_Code,Rom_Code_Stored,Rom_Code_New : array[8] of array[1..8] of byte;
+    Match_Rom_Code : array[8] of byte;
+    Sensors_Name : array[8] of string[15];
+    IO_Name : array[4] of string[15];
+    t_err : array[8] of byte;
+
+    board_type : byte;
+    
+    Nb_dev : word;
+
+    tmp : array[8] of integer;
+    hum : array[8] of word;
+    SNMP_string_result_temp,SNMP_string_result_hum : array[8] of string[8];
+    SNMP_string_SN : array[8] of string[16];
+    
+    IO_ : array[4] of word;
+    SNMP_string_result1 : array[4] of string[16];
+
+    UART1_buf,UART2_buf : string[128];
+    UART1_len,UART2_len : word;
+    UART1_ovf,UART2_ovf : word;
+    UART1_data_available,UART2_data_available : boolean;
+    
+implementation
+
+end.

@@ -1,0 +1,823 @@
+unit protocol_udp;
+
+{$DEFINE DEBUG_STRING}
+
+uses
+  dspic_additional_string_library,
+  Lib_Delays_LIO,
+  definitions_ENC600,
+  lib1_enc600_V3_5_b,
+  enc_lib_user,
+  HelperFunctions,
+  port_utilities,
+  packet_utilities,
+  protocol_defines,
+  protocol_arp;
+  
+const
+  UDP_CACHE_LEN = 2;
+  UDP_MAX_DATA_LEN = 1472;
+  
+type
+  TUdpSlot = record
+    Broadcast: Boolean;                           // set if the message is to be broadcast to the entire sub-net (DestIP/DestMAC are not used)
+    DestIP : IpHeader;                            // Target IP for the message (only the first 3 bytes are used in Broadcast the 4th will be set to $FF
+    DestMac: MacHeader;                           // Target Mac for the message (if not Broadcast)
+    DestPort: Word;                               // Destination Port for the message
+    SourceIP: IPHeader;                           // Source Mac for the message
+    SourceMac: MacHeader;                         // Source IP for the message (if not Broadcast)
+    SourcePort,                                   // Source Port for the message
+    DataLen : Word;                               // number of bytes in the DataArray
+    DataArray : array[UDP_MAX_DATA_LEN] of byte;  // raw message bytes to send via etherent
+    WaitForResult: Boolean;                       // Waits until the target message replies. Note UDP is not reliable so the target may not reply or the message may never get there.  Mutually exclusvie with Broadcast
+    ValidatewithARP: Boolean;                     // If true the call will auto fill the MAC address via an ARP call, Mutually exclusvie with Broadcast
+    // Used internally if WaitForResult is true
+    Valid: Boolean;
+    Timer: DWord;
+  end;
+  
+  TUdpSlotReceive = record
+    DestIP : IpHeader;                            // Target IP for the message (only the first 3 bytes are used in Broadcast the 4th will be set to $FF
+    DestMac: MacHeader;                           // Target Mac for the message (if not Broadcast)
+    DestPort: Word;                               // Destination Port for the message
+    SourceIP: IPHeader;                           // Source Mac for the message
+    SourceMac: MacHeader;                         // Source IP for the message (if not Broadcast)
+    SourcePort,                                   // Source Port for the message
+    DataLen : Word;                               // number of bytes in the DataArray
+  end;
+  
+var
+  UdpCache : array[UDP_CACHE_LEN] of TUdpSlot;
+  
+// User Functions **************************************************************
+procedure Eth_Udp_Init;
+function Eth_SendUdpMessage(UdpSlot: ^TUdpSlot): Boolean;
+function Eth_AllocateUdpSlot: ^TUdpSlot;
+procedure Eth_FreeUdpSlot(UdpSlot: ^TUdpSlot);
+function Eth_OpenUdpPort(Port: Word): Boolean;
+procedure Eth_CloseUdpPort(Port: Word);
+procedure Eth_Udp_Timer_1s;
+procedure Eth_Udp_ReplyHandler;
+
+procedure Eth_Udp_PrintSlotReceive(Slot: ^TUdpSlotReceive);
+procedure Eth_Udp_PrintPorts;
+
+// External Functions **********************************************************
+procedure Do_EthernetProc(n : word); external;
+procedure Eth_EnableTimer_1s(Enable: Boolean); external;
+procedure Eth_Ntp_ReceiveHandler(Slot: ^TUdpSlotReceive); external;
+
+// defined in protocol_dhcp.mpas
+var
+  DHCP_count_1,
+  DHCP_count_2 : word; external;
+  DHCP_count_3 : dword; external;
+  DHCP_Lease_Time : dword; external;
+  DHCPServerID : IpHeader; external;
+  DHCP_State : byte; external;
+  
+// defined in protocol_dns.mpas
+var
+  DNSHeader : DNS_HEADER; external;
+  DNSAnswerHeader : DNS_ANSWER_HEADER; external;
+  DNS_TR_ID : word; external;
+  DNS_resp: Boolean; external;
+  
+// defined in protocol_ntp.mpas
+var
+  NTP_Sync: Boolean; external;
+  NTP_Time : dWord;  external;
+  NTP_Sec,
+  NTP_ReSync : Word;  external;
+  Offset_Time : longint; external;
+  Offset_clock_err : short; external;
+
+implementation
+
+
+var
+  Udp_Counter: Word;    // Unique increasing index for UDP messages sent
+  UdpPorts : array[PORT_CACHE_LEN] of word;
+ 
+// *****************************************************************************
+// *****************************************************************************
+function Eth_FindUdpPort(Port: Word; var iLastEmpty: Integer): Integer;
+begin
+  iLastEmpty := -1;
+  Result := 0;
+  while Result < PORT_CACHE_LEN do
+  begin
+    if UdpPorts[Result] = Port then
+      Exit;
+    if UdpPorts[Result] = 0 then
+      iLastEmpty := Result;
+    Inc(Result)
+  end;
+  Result := -1;  // If we got there then it was not found
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+function Eth_OpenUdpPort(Port: Word): Boolean;
+var
+  i, iLastEmpty: Integer;
+begin
+  Result := False; 
+  iLastEmpty := -1;                                                             // Expect the worse
+  if Eth_FindUdpPort(Port, iLastEmpty) > -1 then
+    Result := True
+  else begin
+    if iLastEmpty > -1 then
+    begin
+      UdpPorts[iLastEmpty] := Port;
+      Result := True;
+    end;
+  end;
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+procedure Eth_CloseUdpPort(Port: Word);
+var
+  iOpenPort, iLastEmpty: Integer;
+begin
+  iOpenPort := Eth_FindUdpPort(Port, iLastEmpty);
+  if iOpenPort > -1 then
+    UdpPorts[iOpenPort] := 0;
+end;
+  
+// *****************************************************************************
+// *****************************************************************************
+procedure Eth_Udp_EraseSlot(UdpSlot: ^TUdpSlot);
+var
+  j: Integer;
+begin
+  Udp_Counter := 1000;                                                          // Start at 1000 for no particular reason
+  UdpSlot^.Broadcast := False;
+  UdpSlot^.WaitForResult := False;
+  UdpSlot^.ValidatewithARP := False;
+  UdpSlot^.DestPort := 0;
+  UdpSlot^.SourcePort := 0;
+  UdpSlot^.DataLen := 0;
+  UdpSlot^.Valid := False;
+  UdpSlot^.Timer := 0;
+  memset(@UdpSlot^.DestIP[0], #0, 4);
+  memset(@UdpSlot^.DestMac[0], #0, 6);
+  memset(@UdpSlot^.SourceIP[0], #0, 4);
+  memset(@UdpSlot^.SourceMac[0], #0, 6);
+  for j := 0 to UDP_MAX_DATA_LEN - 1 do
+    UdpSlot^.DataArray[j] := 0;
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+procedure Eth_Udp_EraseSlotReceive(UdpSlot: ^TUdpSlotReceive);
+begin
+  UdpSlot^.DestPort := 0;
+  UdpSlot^.SourcePort := 0;
+  UdpSlot^.DataLen := 0;
+  memset(@UdpSlot^.DestIP[0], #0, 4);
+  memset(@UdpSlot^.DestMac[0], #0, 6);
+  memset(@UdpSlot^.SourceIP[0], #0, 4);
+  memset(@UdpSlot^.SourceMac[0], #0, 6);
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+procedure Eth_Udp_EraseCache;
+var
+  i: Integer;
+begin
+  i := 0;
+  while i < UDP_CACHE_LEN do
+  begin
+    Eth_Udp_EraseSlot(@UdpCache[i]);
+    Inc(i);
+  end;
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+procedure Eth_Udp_Init;
+begin
+  Eth_Udp_EraseCache;
+  memset(@UdpPorts[0], #0, SizeOf(Word)*PORT_CACHE_LEN);
+end;
+
+// *****************************************************************************
+// Waits for the response to an ARP message previously sent to the node referenced
+// in the Arp variable. On return either the CachedMAC is valid (result = true)
+// or it timed out and the request was not answered.  In that case CachedMAC
+// is undefined (result = false).
+// Parameters:
+//        Udp        : [IN] Udp record that may be waiting for an Udp reply message
+//cachedmac: [out] mac address associated with the targetip of result = true, else undefined
+// *****************************************************************************
+function UdpWaitFor(Udp: ^TUdpSlot): Boolean;
+var
+  LocalTime: DWord;
+begin  {$IFDEF DEBUG_STRING}UART1_Write_Text('UdpWaitFor' + CRLF);{$ENDIF}
+  Result := False;
+  Eth_EnableTimer_1s(False);                                                    // This may not be an atomic increase so stall the timer and grab a copy
+  LocalTime := Udp^.Timer;                                                      // Grab a copy of the timeout time
+  Eth_EnableTimer_1s(True);
+  while LocalTime < UDP_Wait do                                                 // Loop till done....  Timer is reset when the message is sent
+  begin
+    Do_EthernetProc(n);                                                         // Pump messages looking for the ARP Reply, this can get reentrant so be careful
+    if Udp^.Valid = True then
+    begin
+      Result := True;
+      Break;
+    end;
+    Eth_EnableTimer_1s(False);                                                  // This may not be an atomic increase so stall the timer and grab a copy
+    LocalTime := Udp^.Timer;                                                    // Update the local time with a new value
+    Eth_EnableTimer_1s(True);
+  end;
+  if Result = False then
+    Eth_FreeUdpSlot(Udp)                                                        // If we failed then release the UdpSlot
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+procedure Eth_FreeUdpSlot(UdpSlot: ^TUdpSlot);
+begin
+  if UdpSlot <> nil then
+    UdpSlot^.Valid := False;
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+function Eth_SendUdpMessage(UdpSlot: ^TUdpSlot): Boolean;
+var
+  Arp: ^TArpSlot;
+  cksum_ip,
+  cksum_udp,
+  TotalLen : word;
+  Align : byte;
+begin
+  Result := False;
+  if UdpSlot^.Broadcast then
+  begin   {$IFDEF DEBUG_STRING}UART1_Write_Text('Udp Broadcast' + CRLF);{$ENDIF}
+    UdpSlot^.DestMac[0] := $FF;
+    UdpSlot^.DestMac[1] := $FF;
+    UdpSlot^.DestMac[2] := $FF;
+    UdpSlot^.DestMac[3] := $FF;
+    UdpSlot^.DestMac[4] := $FF;
+    UdpSlot^.DestMac[5] := $FF;
+    UdpSlot^.DestIP[3] := $FF;
+  end else
+  if UdpSlot^.ValidatewithARP then   // Broadcast can not validate with ARP
+  begin     {$IFDEF DEBUG_STRING}UART1_Write_Text('Udp with ARP' + CRLF);{$ENDIF}
+    Arp := Eth_Arp_MapMacAddress(UdpSlot^.DestIP);
+    if Arp <> nil then
+      memcpy(@UdpSlot^.DestMac[0], @Arp^.Mac, 6)
+    else begin  {$IFDEF DEBUG_STRING}UART1_Write_Text('Udp with ARP failed ARP' + CRLF);{$ENDIF}
+      Exit      // No ARP reply, fail out
+    end;
+  end;
+  
+  
+  // MAC Layer
+  {$IFDEF DEBUG_STRING}UART1_Write_Text('DestMac ' + MACAddressToStr(UdpSlot^.DestMac) + CRLF);{$ENDIF}
+  {$IFDEF DEBUG_STRING}UART1_Write_Text('SourceMac ' + MACAddressToStr(eth_mac) + CRLF);{$ENDIF}
+  CopyRamToEthMem(@UdpSlot^.DestMac[0], TXSTART,6);                             // Load the Destination MAC
+  CopyRamToEthMem(@UdpSlot^.SourceMac[0], TXSTART+6, 6);                        // Load the Source MAC
+  WriteToEthMem(TXSTART+12,$08);                                                // EtherType = Ethernet protocol vIP4 ($8000)
+  Eth_PutByte($00);
+  
+  // IP Layer
+  Eth_PutByte($45);                                                             // Version = 4 (IPV4), Heder Size = 5 - 32 bit words (5*4=20 bytes)
+  Eth_PutByte($00);                                                             // DSCP/ECN
+  TotalLen := UdpSlot^.DataLen + 28;
+  Eth_PutByte(Hi(TotalLen));                                                    // Hi Total length
+  Eth_PutByte(Lo(TotalLen));                                                    // Lo Total length  
+  Inc(Udp_Counter);
+  Eth_PutByte(Hi(Udp_Counter));                                                 // Hi Identification
+  Eth_PutByte(Lo(Udp_Counter));                                                 // Lo Identification
+  Eth_PutByte($00);                                                             // Flags/Fragment Offset
+  Eth_PutByte($00);                                                             // Fragment Offset
+  Eth_PutByte($80);                                                             // Time to live   (only allow 128 hops before the packet dies)
+  Eth_PutByte($11);                                                             // UDP Protocol
+  Eth_PutByte($00);                                                             // Hi Clear Checksum until all the bytes are there to do the checksum on
+  Eth_PutByte($00);                                                             // Lo Clear Checksum until all the bytes are there to do the checksum on
+  cksum_ip := Eth_Cksum(TXSTART+LEN_MAC_HEADER,20);
+  WriteToEthMem(TXSTART+24,Hi(cksum_ip));
+  Eth_PutByte(Lo(cksum_ip));
+  {$IFDEF DEBUG_STRING}UART1_Write_Text('DestIP ' + IPAddressToStr(UdpSlot^.DestIP) + CRLF);{$ENDIF}
+  {$IFDEF DEBUG_STRING}UART1_Write_Text('SourceIP ' + IPAddressToStr(eth_ip_addr) + CRLF);{$ENDIF}
+  CopyRamToEthMem(@UdpSlot^.SourceIP[0], TXSTART+26, 4);                       // Source IP Address
+  CopyRamToEthMem(@UdpSlot^.DestIP[0], TXSTART+30, 4);                          // Destination IP Address
+  
+  // UDP Layer
+  WriteToEthMem(TXSTART+34,Hi(UdpSlot^.SourcePort));                            // Hi Source Port
+  Eth_PutByte(Lo(UdpSlot^.SourcePort));                                         // Lo Source Port
+  Eth_PutByte(Hi(UdpSlot^.DestPort));                                           // Hi Destination Port
+  Eth_PutByte(Lo(UdpSlot^.DestPort));                                           // Lo Destination Port
+  TotalLen := UdpSlot^.DataLen + 8;
+  Eth_PutByte(Hi(TotalLen));                                                    // Hi Length of UDP part of message
+  Eth_PutByte(Lo(TotalLen));                                                    // Lo Length of UDP part of message
+  Eth_PutByte($00);                                                             // Zero the Checksum to do the calculation
+  Eth_PutByte($00);                                                             // Zero the Checksum to do the calculation
+  CopyRamToEthMem(@UdpSlot^.DataArray, TXSTART+42, UdpSlot^.DataLen);
+  
+  // Psudo IP Header for UDP Checksum
+  Align := TotalLen and $01;                                                    // Length must be a multiple of 2 per the spec
+  WriteToEthMem(TXSTART+UdpSlot^.DataLen+42,$00);                               // Zero the word past the actual message; Create the IP Psudo header in the space above the real message
+  Eth_PutByte($00);                                                             // Zero
+  CopyEthMemToEthMem(TXSTART+26, TXSTART+UdpSlot^.DataLen+Align+42, 8);         // Copy the Source IP AND the Dest IP in one block from the earlier message
+  WriteToEthMem(TXSTART+UdpSlot^.DataLen+Align+42+8, $00);                      // "Zeros" field
+  Eth_PutByte($11);                                                             // Protocol (UDP = $11)
+  Eth_PutByte(Hi(TotalLen));                                                    // Hi UDP Length
+  Eth_PutByte(Lo(TotalLen));                                                    // Lo UDP Length
+  cksum_udp := Eth_Cksum(TXSTART+34, TotalLen+Align+12);                        // Check sum of Psudo IP and UDP (note that the order is BACKWARDS but the check sum will calculate the same
+  if cksum_udp = 0 then 
+    cksum_udp := $FFFF;                                                         // Checksum can't be $0000
+  WriteToEthMem(TXSTART+40,Hi(cksum_udp));                                      // Write in the checksum
+  Eth_PutByte(Lo(cksum_udp));
+  TotalLen := UdpSlot^.DataLen + 42;
+  Eth_SendPacket(TotalLen);                                                     // Ship it...
+  
+  {$IFDEF DEBUG_STRING}UART1_Write_Text('Udp Sent' + CRLF);{$ENDIF}
+  
+  if (UdpSlot^.Broadcast = False) and (UdpSlot^.WaitForResult = True) then
+  begin // Broadcast can't wait for result as there could be 243 results...or 0
+    {$IFDEF DEBUG_STRING}UART1_Write_Text('Udp Waiting' + CRLF);{$ENDIF}
+    Eth_EnableTimer_1s(False);
+    UdpSlot^.Timer := 0;
+    Eth_EnableTimer_1s(True);
+    UdpSlot^.Valid := Waiting;                                                  // Set it up for waiting
+    if UdpWaitFor(UdpSlot) then                                                 // Wait for the reply
+      Result := True;                                                           // Yup, Success in the wait
+    {$IFDEF DEBUG_STRING}UART1_Write_Text('Udp Waiting Over' + CRLF);{$ENDIF}
+  end else
+    Result := True;
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+function Eth_AllocateUdpSlot: ^TUdpSlot;
+var
+  i: Integer;
+begin
+  i := 0;
+  while i < UDP_CACHE_LEN do
+  begin
+    if UdpCache[i].Valid = False then
+    begin
+      Result := @UdpCache[i];
+      Eth_Udp_EraseSlot(Result);
+      Break
+    end
+  end
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+procedure Eth_Udp_Timer_1s;
+var
+  i: Integer;
+begin
+  i := 0;
+  while i < UDP_CACHE_LEN do
+  begin
+    if UdpCache[i].Timer <> $FFFFFFFF then
+      Inc(UdpCache[i].Timer);                                                   // Stall at the max value
+    Inc(i)
+  end;
+end;
+
+// *****************************************************************************
+// *****************************************************************************
+procedure Eth_Udp_PrintPorts;
+var
+  i: Integer;
+  s1: string[16];
+begin
+  i := 0;
+  while i < PORT_CACHE_LEN do
+  begin
+    WordToStr(UdpPorts[i], s1);
+    UART1_Write_Text('Port: ' + s1 + CRLF);
+    Inc(i);
+  end;
+end;
+
+//******************************************************************************
+//* Name    : Eth_Udp_ReplyHandler                                                   *
+//* Purpose : Process incomming UDP packets                                    *
+//******************************************************************************
+procedure Eth_Udp_ReplyHandler;
+var 
+  Align,
+  end_loop : byte;
+  
+  IpCheckSum,
+  UdpCheckSum,
+  UdpLength,
+  PacketLength: Word;
+  Slot: TUdpSlotReceive;
+  iLastEmpty: Integer;
+  PseudoOffset: Word;
+  {$IFDEF DEBUG_STRING}s1: string[128];{$ENDIF}
+begin  {$IFDEF DEBUG_STRING}UART1_Write_Text('Udp Reply Handler' + CRLF);{$ENDIF}
+
+  Eth_Udp_EraseSlotReceive(@Slot);
+  Hi( Slot.DestPort) := ReadFromEthMem(AddrPacket+OFFSET_UDP_DEST_PORT);        // Pull out the Destination Port directly from the RX buffer
+  Lo( Slot.DestPort) := Eth_GetByte;
+  
+  {$IFDEF DEBUG_STRING}Eth_Udp_PrintPorts;{$ENDIF}
+  if Eth_FindUdpPort(Slot.DestPort, iLastEmpty) < 0 then                        // Is a Port we have opened?
+  begin  {$IFDEF DEBUG_STRING}WordToStr(Slot.DestPort, s1); UART1_Write_Text('Port not found: '+ s1 + CRLF);{$ENDIF}
+    if policy = Reject then                                                     // If not are we suppose reply with a Reject message?
+      Eth_Reject;
+    Exit;
+  end;
+
+  Hi(IpChecksum) := ReadFromEthMem(AddrPacket+OFFSET_IP4_HEADER_CHECKSUM);      // Read in the CheckSum for the IP Header directly from the RX buffer
+  Lo(IpChecksum) := Eth_GetByte;
+  Hi(UdpCheckSum) := ReadFromEthMem(AddrPacket+OFFSET_UDP_CHECKSUM);            // Read in the CheckSum for the UDP Header and Data directly from the RX buffer
+  Lo(UdpCheckSum) := Eth_GetByte;
+  
+  Hi(PacketLength) := ReadFromEthMem(AddrPacket+OFFSET_IP4_TOTAL_LEN);          // Read in the Length from the IP Header  directly from the RX buffer
+  Lo(PacketLength) := Eth_GetByte;
+  
+  CopyEthMemToEthMem(AddrPacket, TXSTART, PacketLength+LEN_MAC_HEADER);         // Copy the packet from the RX buffer into the Working RX Buffer including the MAC address header
+  WriteToEthMem(TXSTART+OFFSET_IP4_HEADER_CHECKSUM, $00);                       // Write 0's to the IP Checksum so we can recalculate and validate the checksum
+  Eth_PutByte($00);
+  
+  {$IFDEF DEBUG_STRING}UART1_Write_Text('Checking IP Checksum' + CRLF);{$ENDIF}
+  if IpChecksum <> Eth_Cksum(TXSTART+LEN_MAC_HEADER, LEN_IP_HEADER) then        // Recalculate the IP Header checksum and test against what was sent, if equal move on
+    Exit;
+  
+  {$IFDEF DEBUG_STRING}UART1_Write_Text('Checking Header Lengths' + CRLF);{$ENDIF}
+  if PacketLength <= 28 then                                                    // Not possible for the length of a UDP packet to be less than 28 bytes (20 for IP header 8 for the UDP header with 0 for data)
+    Exit;
+  
+  Align := PacketLength and $01;                                                // Needs to be a factor of 2 in length per the spec for the Checksum
+  
+  WriteToEthMem(TXSTART+OFFSET_UDP_CHECKSUM,$00);                               // Zero out the UDP Checksum Word
+  Eth_PutByte($00);
+  
+  // Build the Psudo IP Header past the end of the packet
+  PseudoOffset := PacketLength+LEN_MAC_HEADER;
+  WriteToEthMem(TXSTART+PseudoOffset, $00);                                     // Move past the packet; Need to build the Psudo IP header to calculate the UDP Checksum...
+  Eth_PutByte($00);
+  PseudoOffset := PseudoOffset + Align;
+  CopyEthMemToEthMem(TXSTART+26, TXSTART+PseudoOffset, 8);                      // Copy over the IP addresses to the Psudo IP Header
+  WriteToEthMem(TXSTART+PseudoOffset+OFFSET_PSEUDO_UDP_IP4_ZEROS, $00);         // Zeros Field
+  Eth_PutByte(PROTOCOL_UDP);                                                    // UDP Protocol
+  UdpLength := PacketLength - LEN_IP_HEADER;                                    // Subtract off the IP Header Length to the just the UDP bytes length
+  Eth_PutByte(Hi(UdpLength));                                                   // Length of the Psudo IP Header
+  Eth_PutByte(Lo(UdpLength));
+  
+  {$IFDEF DEBUG_STRING}UART1_Write_Text('Checking UDP Checksum' + CRLF);{$ENDIF}
+  if UdpChecksum <> Eth_Cksum(TXSTART+OFFSET_UDP_SOURCE_PORT, UdpLength+Align+12) then               // See if the UDP Checksum is valid
+    Exit;
+  
+  // IT IS NOT CLEAR WHY HE KEEPS PULLING FROM THE RX BUFFER AND NOT FROM THE
+  // COPY IN TH TXSTART AREA......
+  Slot.DataLen := UdpLength - 8;                                                // Strip off the UDP header and all we have is data Bytes left
+  
+  Hi(Slot.SourcePort) := ReadFromEthMem(AddrPacket+34);
+  Lo(Slot.SourcePort) := Eth_GetByte;
+  
+  CopyEthMemToRam(AddrPacket+6, @Slot.SourceMAC[0], 6);                         // Copy over the MAC of the node this packet came from
+  CopyEthMemToRam(AddrPacket, @Slot.DestMAC[0], 6);                             // Copy over the MAC of the node this packet is going to.. It Should be the MAC of this node
+  
+  CopyEthMemToRam(AddrPacket+26, @Slot.SourceIP[0], 4);                         // Copy over the IP of the node this packet came from
+  CopyEthMemToRam(AddrPacket+30, @Slot.DestIP[0], 4);                           // Copy over the Destination IP, which should be the IP of this node
+  
+  {$IFDEF DEBUG_STRING}Eth_Udp_PrintSlotReceive(@Slot);{$ENDIF}
+  
+  
+  // NTP Reply Handler
+  if (Slot.SourcePort = NTP_PORT) and (Slot.DestPort = NTP_PORT) then                     // Is it an NTP reply?
+  begin
+    Eth_Ntp_ReceiveHandler(@Slot);
+    Exit;
+  end;
+  
+  // DCHP Reply Handler
+  if (Slot.SourcePort = DHCP_SEND_PORT) and (Slot.DestPort = DHCP_RECEIVE_PORT) then
+  begin
+    Align := ReadFromEthMem(AddrPacket + 42);
+    if (DHCP_State = 1) and (Align = BOOT_REPLY) then
+      begin
+        CopyEthMemToRam(AddrPacket + (42 + 16),@tmp_ip_addr,4);
+        Align := ReadFromEthMem(AddrPacket + (41 + 240));
+        end_loop := 0;
+        while end_loop = 0 do
+          begin
+             Align := Eth_GetByte;
+
+             case Align of
+
+               DHCP_MESSAGE_TYPE :
+                 begin
+                   Align := Eth_GetByte;                    // Skip len
+                   // Len must be 1.
+                   if Align = 1 then
+                     begin
+                       Align := Eth_GetByte;        // Get type
+                       if Align <> DHCP_OFFER then Exit;
+                     end
+                   else Exit;
+                 end;
+
+               DHCP_SERVER_IDENTIFIER :
+                 begin
+                   Align := Eth_GetByte;                         // Get len
+                   // Len must be 4.
+                   if Align = 4 then CopyEthMem_CPToRam(@DHCPServerID, 4)
+                   else Exit;
+                 end;
+
+               DHCP_END_OPTION : end_loop := 1
+
+               else
+                 begin
+                   // Ignore all unsupport tags.
+                   Align := Eth_GetByte;     // Get option len
+                   while Align <> 0 do       // Ignore option values
+                     begin
+                       Eth_GetByte;
+                       dec(Align);
+                     end;
+                 end;
+             end;
+          end;
+        DHCP_State := 2;
+      end
+    else
+    if (DHCP_State = 2) and (Align = BOOT_REPLY) then
+      begin
+        CopyEthMemToRam(AddrPacket + (42 + 16),@tmp_ip_addr,4);
+        Align := ReadFromEthMem(AddrPacket + (41 + 240));
+        end_loop := 0;
+        while end_loop = 0 do
+          begin
+             Align := Eth_GetByte;
+
+             case Align of
+
+               DHCP_MESSAGE_TYPE :
+                 begin
+                   Align := Eth_GetByte;                    // Skip len
+                   // Len must be 1.
+                   if Align = 1 then
+                     begin
+                       Align := Eth_GetByte;        // Get type
+                       if Align <> DHCP_ACK then Exit;
+                     end
+                   else Exit;
+                 end;
+
+               DHCP_SUBNET_MASK :
+                 begin
+                   Align := Eth_GetByte;                     // Skip len
+                   // Len must be 4.
+                   if Align = 4 then CopyEthMem_CPToRam(@tmp_mask_addr, 4)
+                   else Exit;
+                 end;
+
+               DHCP_GATEWAY :
+                 begin
+                   Align := Eth_GetByte;
+                   // Len must be >= 4.
+                   if Align >= 4 then CopyEthMem_CPToRam(@tmp_gat_addr, 4)
+                   else Exit;
+
+                   {*
+                    * Discard any other router addresses.
+                    *}
+                   Align := Align - 4;
+                   while Align <> 0 do
+                     begin
+                       Eth_getByte;
+                       dec(Align);
+                     end;
+                 end;
+
+               DHCP_DNS :
+                 begin
+                   Align := Eth_GetByte;
+                   // Len must be >= 4.
+                   if Align >= 4 then CopyEthMem_CPToRam(@tmp_dns_addr, 4)
+                   else Exit;
+
+                   {*
+                    * Discard any other router addresses.
+                    *}
+                   Align := Align - 4;
+                   while Align <> 0 do
+                     begin
+                       Eth_getByte;
+                       dec(Align);
+                     end;
+                 end;
+
+               DHCP_IP_LEASE_TIME :
+                 begin
+                   Align := Eth_GetByte;
+                   // Len must be 4.
+                   if Align = 4 then
+                     begin
+                       CopyEthMem_CPToRam_Inv(@DHCP_Lease_Time,4);
+                       if DHCP_Lease_Time > (3600*6) then DHCP_Lease_Time := (3600*6); // 6 ore
+                     end
+                   else Exit;
+                 end;
+
+               DHCP_END_OPTION : end_loop := 1
+
+               else
+                 begin
+                   // Ignore all unsupport tags.
+                   Align := Eth_GetByte;     // Get option len
+                   while Align <> 0 do       // Ignore option values
+                     begin
+                       Eth_GetByte;
+                       dec(Align);
+                     end;
+                 end;
+             end;
+          end;
+        DHCP_State := 3;
+      end;
+    Exit;
+  end;
+    
+  // DNS Reply Handler
+  if (Slot.SourcePort = 53) and (Slot.DestPort = 23456) then
+  begin
+    Hi(DNSHeader.TransactionID) := ReadFromEthMem(AddrPacket + 42);
+    Lo(DNSHeader.TransactionID) := Eth_GetByte;
+
+    // Throw this packet away if it isn't in response to our last query
+    If DNSHeader.TransactionID <> DNS_TR_ID Then Exit;
+
+    Hi(DNSHeader.Flags) := Eth_GetByte;
+    Lo(DNSHeader.Flags) := Eth_GetByte;
+    Hi(DNSHeader.Questions) := Eth_GetByte;
+    Lo(DNSHeader.Questions) := Eth_GetByte;
+    Hi(DNSHeader.Answers) := Eth_GetByte;
+    Lo(DNSHeader.Answers) := Eth_GetByte;
+    Hi(DNSHeader.AuthoritativeRecords) := Eth_GetByte;
+    Lo(DNSHeader.AuthoritativeRecords) := Eth_GetByte;
+    Hi(DNSHeader.AdditionalRecords) := Eth_GetByte;
+    Lo(DNSHeader.AdditionalRecords) := Eth_GetByte;
+
+    // Remove all questions
+    While DNSHeader.Questions <> 0 do
+      begin
+        while Eth_GetByte <> 0 do ;
+        Eth_GetByte;
+        Eth_GetByte;
+        Eth_GetByte;// Question class
+        Eth_GetByte;
+        dec(DNSHeader.Questions);
+      end;
+
+    // Scan through answers
+    While DNSHeader.Answers <> 0 do
+      begin
+          Hi(DNSAnswerHeader.ResponseName):= Eth_GetByte;                // Response name
+        Lo(DNSAnswerHeader.ResponseName):= Eth_GetByte;
+        Hi(DNSAnswerHeader.ResponseType):= Eth_GetByte;                // Response type
+        Lo(DNSAnswerHeader.ResponseType):= Eth_GetByte;
+        Hi(DNSAnswerHeader.ResponseClass):= Eth_GetByte;        // Response class
+        Lo(DNSAnswerHeader.ResponseClass):= Eth_GetByte;
+        Highest(DNSAnswerHeader.ResponseTTL):= Eth_GetByte;                // Time to live
+        Higher(DNSAnswerHeader.ResponseTTL):= Eth_GetByte;
+        Hi(DNSAnswerHeader.ResponseTTL):= Eth_GetByte;
+        Lo(DNSAnswerHeader.ResponseTTL):= Eth_GetByte;
+        Hi(DNSAnswerHeader.ResponseLen):= Eth_GetByte;                // Response length
+        Lo(DNSAnswerHeader.ResponseLen):= Eth_GetByte;
+
+       // Make sure that this is a 4 byte IP address, response type A or MX, class 1
+               // Check if this is Type A or MX
+        If (DNSAnswerHeader.ResponseType = $0001) And
+        (DNSAnswerHeader.ResponseClass = $0001) And
+        (DNSAnswerHeader.ResponseLen = $0004) Then
+          begin
+            CopyEthMem_CPToRam(@resp_ip_addr, 4);
+            DNS_resp := True;
+            Exit;
+          end
+        Else
+          begin
+            While DNSAnswerHeader.ResponseLen <> 0 do
+              begin
+                Eth_GetByte;
+                dec(DNSAnswerHeader.ResponseLen);
+              end;
+          end;
+        dec(DNSHeader.Answers);
+      end;
+
+    // Remove all Authoritative Records
+    While DNSHeader.AuthoritativeRecords <> 0 do
+      begin
+          Hi(DNSAnswerHeader.ResponseName):= Eth_GetByte;                // Response name
+        Lo(DNSAnswerHeader.ResponseName):= Eth_GetByte;
+        Hi(DNSAnswerHeader.ResponseType):= Eth_GetByte;                // Response type
+        Lo(DNSAnswerHeader.ResponseType):= Eth_GetByte;
+        Hi(DNSAnswerHeader.ResponseClass):= Eth_GetByte;        // Response class
+        Lo(DNSAnswerHeader.ResponseClass):= Eth_GetByte;
+        Highest(DNSAnswerHeader.ResponseTTL):= Eth_GetByte;                // Time to live
+        Higher(DNSAnswerHeader.ResponseTTL):= Eth_GetByte;
+        Hi(DNSAnswerHeader.ResponseTTL):= Eth_GetByte;
+        Lo(DNSAnswerHeader.ResponseTTL):= Eth_GetByte;
+        Hi(DNSAnswerHeader.ResponseLen):= Eth_GetByte;                // Response length
+        Lo(DNSAnswerHeader.ResponseLen):= Eth_GetByte;
+
+       // Make sure that this is a 4 byte IP address, response type A or MX, class 1
+               // Check if this is Type A or MX
+        If (DNSAnswerHeader.ResponseType = $0001) And
+        (DNSAnswerHeader.ResponseClass = $0001) And
+        (DNSAnswerHeader.ResponseLen = $0004) Then
+          begin
+            CopyEthMem_CPToRam(@resp_ip_addr, 4);
+            DNS_resp := True;
+            Exit;
+          end
+        Else
+          begin
+            While DNSAnswerHeader.ResponseLen <> 0 do
+              begin
+                Eth_GetByte;
+                dec(DNSAnswerHeader.ResponseLen);
+              end;
+          end;
+        dec(DNSHeader.AuthoritativeRecords);
+      end;
+
+    // Remove all Additional Records
+    While DNSHeader.AdditionalRecords <> 0 do
+      begin
+          Hi(DNSAnswerHeader.ResponseName):= Eth_GetByte;                // Response name
+        Lo(DNSAnswerHeader.ResponseName):= Eth_GetByte;
+        Hi(DNSAnswerHeader.ResponseType):= Eth_GetByte;                // Response type
+        Lo(DNSAnswerHeader.ResponseType):= Eth_GetByte;
+        Hi(DNSAnswerHeader.ResponseClass):= Eth_GetByte;        // Response class
+        Lo(DNSAnswerHeader.ResponseClass):= Eth_GetByte;
+        Highest(DNSAnswerHeader.ResponseTTL):= Eth_GetByte;                // Time to live
+        Higher(DNSAnswerHeader.ResponseTTL):= Eth_GetByte;
+        Hi(DNSAnswerHeader.ResponseTTL):= Eth_GetByte;
+        Lo(DNSAnswerHeader.ResponseTTL):= Eth_GetByte;
+        Hi(DNSAnswerHeader.ResponseLen):= Eth_GetByte;                // Response length
+        Lo(DNSAnswerHeader.ResponseLen):= Eth_GetByte;
+
+       // Make sure that this is a 4 byte IP address, response type A or MX, class 1
+               // Check if this is Type A or MX
+        If (DNSAnswerHeader.ResponseType = $0001) And
+        (DNSAnswerHeader.ResponseClass = $0001) And
+        (DNSAnswerHeader.ResponseLen = $0004) Then
+          begin
+            CopyEthMem_CPToRam(@resp_ip_addr, 4);
+            DNS_resp := True;
+            Exit;
+          end
+        Else
+          begin
+            While DNSAnswerHeader.ResponseLen <> 0 do
+              begin
+                Eth_GetByte;
+                dec(DNSAnswerHeader.ResponseLen);
+              end;
+          end;
+        dec(DNSHeader.AdditionalRecords);
+      end;
+    Exit;
+  end;
+  {
+  WriteToEthMem(TXSTART+41,$00); // put tx pointer
+  Align := ReadFromEthMem(AddrPacket + 41); // put rx pointer to start of UDP data.
+  PacketLen := Eth_UserUDP(dest_ip_addr1, dest_port1, source_port1, Slot.DataLen);
+  if PacketLen = 0 then 
+    Exit;
+  Eth_MacSwap;
+  Eth_IpSwap;
+  Eth_SendUDP(dest_port1, source_port1, PacketLen);      }
+end;
+
+procedure Eth_Udp_PrintSlotReceive(Slot: ^TUdpSlotReceive);
+var
+  s2: string[128];
+begin
+  UART1_Write_Text('Dest MAC: ' + MACAddressToStr(Slot^.DestMac) + CRLF);
+  UART1_Write_Text('Dest IP: ' + IPAddressToStr(Slot^.DestIP) + CRLF);
+  WordToStr(Slot^.DestPort, s2);
+  UART1_Write_Text('Dest Port: ' + s2 + CRLF);
+  
+  UART1_Write_Text('Source MAC: ' + MACAddressToStr(Slot^.SourceMac) + CRLF);
+  UART1_Write_Text('Source IP: ' + IPAddressToStr(Slot^.SourceIP) + CRLF);
+  WordToStr(Slot^.SourcePort, s2);
+  UART1_Write_Text('Source Port: ' + s2 + CRLF);
+  
+  WordToStr(Slot^.DataLen, s2);
+  UART1_Write_Text('DataLen: ' + s2 + CRLF);
+end;
+
+     
+end.

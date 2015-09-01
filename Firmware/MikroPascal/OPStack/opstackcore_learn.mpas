@@ -1,0 +1,23 @@
+unit opstackcore_learn;
+
+// TODO:  Implement Learning
+
+{$IFDEF FPC}
+interface
+{$ENDIF}
+
+{$I Options.inc}
+
+uses
+  opstack_defines;
+
+procedure Learn(AMessage: POPStackMessage; DestNode: POpenLCBNode);
+
+implementation
+
+procedure Learn(AMessage: POPStackMessage; DestNode: POpenLCBNode);
+begin
+
+end;
+
+end.

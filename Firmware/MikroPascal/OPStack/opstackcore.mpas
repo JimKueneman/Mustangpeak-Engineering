@@ -1,0 +1,699 @@
+unit opstackcore;
+
+// TODOs
+//   2) Check for Abandon Datagrams/Streams then Free
+//   3) ACDI Read and Write not implemented correctly
+//   4) FDI not implemented correctly
+//   5) Do something with MTI_STREAM_INIT_REPLY error code results
+//   6) Handle Optional Interaction Rejected messages.... Buffer them??????
+//
+// 12/10/2014
+//    TODO: Optimized message buffers to be circular for higher probability of finding a free one fast, last bottle neck is finding a matching node when a message in received OPStackCANStatemachine_OpenLCBCanBufferToOPStackBuffer
+
+
+{$I Options.inc}
+
+{.$DEFINE TRACE_MAIN_STATEMACHINE}
+
+uses
+  opstack_api,
+  template_hardware,
+  template_configuration,
+  opstack_utilities,
+  opstack_defines,
+  opstack_buffers,
+  opstack_types,
+  opstack_node,
+  template_node,
+  {$IFDEF SUPPORT_VIRTUAL_NODES}
+  template_vnode,
+  {$ENDIF}
+  template_event_callbacks,
+  opstack_events,
+  opstackcore_events,
+  opstackcore_can,
+  opstackcore_pip,
+  opstackcore_basic,
+  opstackcore_button,
+  {$IFDEF SUPPORT_STREAMS}opstackcore_stream,{$ENDIF}
+  {$IFDEF SUPPORT_TRACTION}opstackcore_traction, opstackcore_stnip,{$ENDIF}
+  {$IFDEF SUPPORT_TRACTION_PROXY}opstackcore_traction_proxy,{$ENDIF}
+  opstackcore_snip,
+  opstackcore_datagram,
+  opstack_events,
+  opstack_debug;
+
+// User callable functions
+procedure OPStackCore_Initialize;                                               // Call once on program startup
+function OPStackCore_Process: POpenLCBnode;                                     // Call as often as possible
+procedure OPStackCore_Timer;                                                    // Call every 100ms
+procedure OPStackCore_Enable(DoEnable: Boolean);                                // Enable Process Statemachine
+function OPStackCore_IsRunning: Boolean;
+
+// Callback from the Hardware when a message is received do not call directly
+procedure IncomingMessageDispatch(OlcbMessage: POPStackMessage; DestNode: POpenLCBNode);
+
+var
+  OPStack: TOPStack;
+
+implementation
+
+// *****************************************************************************
+//  procedure OPStackCore_Initialize
+//     Parameters:
+//     Returns:
+//     Description:
+// *****************************************************************************
+procedure OPStackCore_Initialize;
+begin
+  OPStack.State := 0;
+  OPStack._1sCounter := 0;
+  Api_Initialize;
+  OPStackDefines_Initialize;
+  TemplateConfiguration_Initialize;
+  Hardware_Initialize;
+  OPStackNode_Initialize;
+  OPStackBuffers_Initialize;
+  OPStackCoreDatagram_Initialize;
+  {$IFDEF SUPPORT_STREAMS}
+  OPStackCoreStream_Initialize;
+  {$ENDIF}
+  OPStackNode_Allocate(0);        // Allocate the hardware Node
+end;
+
+// *****************************************************************************
+//  procedure CheckAndDeallocateMessage
+//     Parameters:
+//     Returns:
+//     Description:
+// *****************************************************************************
+procedure CheckAndDeallocateMessage(AMessage: POPStackMessage);
+begin
+  if AMessage^.MessageType and  MT_ALLOCATED <> 0 then
+    OPStackBuffers_DeAllocateMessage(AMessage);
+end;
+
+// *****************************************************************************
+//  procedure IncomingMessageDispatch
+//     Parameters:  AMessage: Pointer to a OPStackMessage that has been allocated on the stack and will be gone after the function returns
+//                  DestNode: Pointer to a OpenLCB Node if the message contained a
+//                            destination ID (Alias or NodeID). If message is unaddressed
+//                            contains nil
+//                  SourceNode : Pointer to a OpenLCB Node if the source alias from
+//                               the message mactches.  This may be a problem so it
+//                               need to be looked at here.
+//     Returns:
+//     Description:
+// *****************************************************************************
+procedure IncomingMessageDispatch(OlcbMessage: POPStackMessage; DestNode: POpenLCBNode);
+var
+  NodeID: TNodeID;
+begin
+  // If the Node is being Released then don't do anything
+  if DestNode <> nil then
+    if DestNode^.State and NS_RELEASING <> 0 then
+      Exit;
+
+  // If it is a CAN message then handle it
+  if OlcbMessage^.MessageType and MT_CAN_TYPE <> 0 then
+  begin
+    case OlcbMessage^.MTI of
+        MTI_CAN_AME : AliasMappingEnquiry(OlcbMessage, DestNode);
+        MTI_CAN_AMD : AliasMappingDefinition(OlcbMessage, DestNode);
+        MTI_CAN_AMR : AliasMappingReset(OlcbMessage, DestNode);
+    end; {case}
+    Exit;
+  end;
+
+  // It is a OLCB message
+  case (OlcbMessage^.MessageType) and MT_MASK of
+    MT_SIMPLE,                                        //  HOW CAN I PUT DATAGRAMS AND STREAMS INTO THIS SAME FORMAT, THEY ARE ODD BALLS NOW
+    MT_MULTIFRAME,
+    MT_MULTIFRAME_STRING :
+        begin
+          if OlcbMessage^.MTI and MTI_ADDRESSED_MASK = MTI_ADDRESSED_MASK then   // Handle Simple Messages that may be addressed to one of our nodes
+          begin
+            if DestNode <> nil then                                           // If it is addressed and the DestNode = nil then it is not for us
+            begin                                                             // We send all messages in to test for Releasing so this test is necessary
+              case OlcbMessage^.MTI of
+                MTI_SIMPLE_NODE_INFO_REQUEST,
+                MTI_SIMPLE_NODE_INFO_REPLY         : begin SimpleNodeInfoMessage(DestNode, OlcbMessage); Exit; end;   // Exit and Don't free the Message
+                MTI_VERIFY_NODE_ID_NUMBER_DEST     : begin VerifyNodeIdByDestination(DestNode, OlcbMessage); end;     // Sets Flag(s) to be processed in main loop
+                MTI_EVENTS_IDENTIFY_DEST           : begin IdentifyEvents(DestNode, OlcbMessage); end;                // Sets Flag(s) to be processed in main loop
+                MTI_PROTOCOL_SUPPORT_INQUIRY,
+                MTI_PROTOCOL_SUPPORT_REPLY         : begin ProtocolSupportMessage(DestNode, OlcbMessage); Exit; end;   // Don't free the Message
+                MTI_DATAGRAM_OK_REPLY              : begin DatagramOkReplyHandler(DestNode, OlcbMessage); end;         // Updates internal states
+                MTI_DATAGRAM_REJECTED_REPLY        : begin DatagramRejectedReplyHandler(DestNode, OlcbMessage); end;   // Updates internal states
+                {$IFDEF SUPPORT_TRACTION}
+                MTI_SIMPLE_TRAIN_NODE_INFO_REQUEST,
+                MTI_SIMPLE_TRAIN_NODE_INFO_REPLY   : begin SimpleTrainNodeInfoMessage(DestNode, OlcbMessage);  Exit; end;   // Don't free the Message
+                MTI_TRACTION_PROTOCOL,
+                MTI_TRACTION_REPLY                 : begin TractionProtocolMessage(DestNode, OlcbMessage); Exit; end;   // Don't free the Message
+                {$ENDIF}
+                {$IFDEF SUPPORT_TRACTION_PROXY}
+                MTI_TRACTION_PROXY_PROTOCOL,
+                MTI_TRACTION_PROXY_REPLY           : begin TractionProxyProtocolMessage(DestNode, OlcbMessage); Exit; end;   // Don't free the Message
+                {$ENDIF}
+                MTI_REMOTE_BUTTON_REQUEST,
+                MTI_REMOTE_BUTTON_REPLY            : begin RemoteButtonMessage(DestNode, OlcbMessage); Exit; end;   // Don't free the Message
+                {$IFDEF SUPPORT_STREAMS}
+                MTI_STREAM_INIT_REQUEST            : begin StreamInitRequest(DestNode, OlcbMessage); end;            // Allocates Buffer to be processed in main loop
+                MTI_STREAM_INIT_REPLY              : begin StreamInitReply(DestNode, OlcbMessage); end;              // Allocates Buffer to be processed in main loop
+                MTI_STREAM_PROCEED                 : begin StreamProceed(DestNode, OlcbMessage); end;                // Allocates Buffer to be processed in main loop
+                MTI_STREAM_COMPLETE                : begin StreamComplete(DestNode, OlcbMessage); end;               // Allocates Buffer to be processed in main loop
+                {$ENDIF}
+                MTI_OPTIONAL_INTERACTION_REJECTED  : begin {TODO: What to do if one of the messages is Rejected!} end
+              else
+                OptionalInteractionRejected(OlcbMessage^.Dest, OlcbMessage^.Source, OlcbMessage^.MTI, True);         // Unknown message, permenent error
+              end; {case}
+            end                                                      // It is not for of or our nodes
+          end else
+          begin                                                               // Is not an Addressed message so handle it, the handler must decide what to do with DestNode = nil
+            case OlcbMessage^.MTI of
+                MTI_VERIFY_NODE_ID_NUMBER       : begin VerifyNodeId(DestNode, OlcbMessage); end;              // Sets Flag(s) to be processed in main loop
+                MTI_CONSUMER_IDENTIFY           : begin IdentifyConsumers(OlcbMessage); end;                   // Sets Flag(s) to be processed in main loop
+                MTI_PRODUCER_IDENTIFY           : begin IdentifyProducers(OlcbMessage); end;                   // Sets Flag(s) to be processed in main loop
+                MTI_EVENT_LEARN                 : begin LearnEvent(OlcbMessage); end;                          // Sets Flag(s) to be processed in main loop
+                MTI_EVENTS_IDENTIFY             : begin IdentifyEvents(nil, OlcbMessage); end;                 // Sets Flag(s) to be processed in main loop
+
+                MTI_CONSUMER_IDENTIFIED_RANGE,
+                MTI_CONSUMER_IDENTIFIED_CLEAR,
+                MTI_CONSUMER_IDENTIFIED_RESERVED,
+                MTI_CONSUMER_IDENTIFIED_SET,
+                MTI_CONSUMER_IDENTIFIED_UNKNOWN : begin if OnConsumerIdentifiedEvent <> nil then OnConsumerIdentifiedEvent(@OlcbMessage^.Source, OlcbMessage^.MTI, PEventID( PByte(@OlcbMessage^.Buffer^.DataArray[0]))); end;
+                MTI_PRODUCER_IDENTIFIED_RANGE,
+                MTI_PRODUCER_IDENTIFIED_CLEAR,
+                MTI_PRODUCER_IDENTIFIED_RESERVED,
+                MTI_PRODUCER_IDENTIFIED_SET,
+                MTI_PRODUCER_IDENTIFIED_UNKNOWN : begin if OnProducerIdentifiedEvent <> nil then OnProducerIdentifiedEvent(@OlcbMessage^.Source, OlcbMessage^.MTI, PEventID( PByte(@OlcbMessage^.Buffer^.DataArray[0]))); end;
+                MTI_VERIFIED_NODE_ID_NUMBER     : begin if OnVerifiedNodeID <> nil then OnVerifiedNodeID(@OlcbMessage^.Source, OpenLCBUtilities_Load48BitNodeIDWithSimpleData(NodeID, OlcbMessage^.Buffer^.DataArray)); end;
+                MTI_INITIALIZATION_COMPLETE     : begin if OnInitializationComplete <> nil then OnInitializationComplete(@OlcbMessage^.Source,  OpenLCBUtilities_Load48BitNodeIDWithSimpleData(NodeID, OlcbMessage^.Buffer^.DataArray)); end;
+                MTI_PC_EVENT_REPORT             : begin if OnPcEventReportEvent <> nil then OnPcEventReportEvent(@OlcbMessage^.Source, PEventID( PByte(@OlcbMessage^.Buffer^.DataArray[0]))) end;
+             end
+          end
+        end;
+    {$IFDEF SUPPORT_STREAMS}
+    MT_STREAM,
+    {$ENDIF}
+    MT_DATAGRAM :
+        begin
+          if DestNode <> nil then
+          begin
+            OPStackNode_IncomingMessageLink(DestNode, OlcbMessage);
+            
+            DebugLine('Linked');
+            
+            Exit;   // Jump out, Don't Deallocate
+          end else
+            CheckAndDeallocateMessage(OlcbMessage);
+        end;
+    end;
+  CheckAndDeallocateMessage(OlcbMessage);
+end;
+
+// *****************************************************************************
+//  procedure ProcessMarkedForDelete
+//     Parameters:
+//     Returns:
+//     Description: YOU MUST CHECK IsOutgoingBufferAvailable BEFORE CALLING THIS FUNCTION
+// *****************************************************************************
+function CheckForMarkedToDelete(Node: POpenLCBNode; OPStackMessage: POPStackMessage): Boolean;
+var
+  DoDeallocate: Boolean;
+  i, j: Integer;
+begin
+  Result := False;
+  if IsOutgoingBufferAvailable then
+  begin
+    if OPStackNode_TestState(Node, NS_RELEASING) then
+    begin
+      OPStackMessage := nil;
+      DoDeallocate := False;
+
+      if OPStackNode_TestState(Node, NS_PERMITTED) then
+      begin
+        // Through the caller we are sure we don't have any pending messages or buffer to clear
+        if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI_CAN_AMR, Node^.Info, NULL_NODE_INFO, True) then
+        begin
+          OpenLCBUtilities_LoadSimpleDataWith48BitNodeID(@Node^.Info.ID, PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+          OPStackMessage^.Buffer^.DataBufferSize := 6;
+          OutgoingMessage(OPStackMessage, True); // Tell the network we are leaving
+          if OnNodeFinalizeEvent <> nil then
+            OnNodeFinalizeEvent(Node);
+          Node^.State := 0;                                                     // Not Allocated anymore
+          DoDeallocate := True;
+          Result := True;
+        end;
+      end else
+        DoDeallocate := True;                                                   // If it is not in the Permitted state then we are not allowed to send a AMR so just free it
+
+      if DoDeallocate then
+      begin
+        i := 0;
+        while i < NodePool.AllocatedCount do                                         // Search the Allocated List to remove it if it has made it into the list
+        begin
+          if NodePool.AllocatedList[i] = Node then                                   // Found the node
+          begin
+            NodePool.AllocatedList[i] := POpenLCBNode( nil);                         // Nil it in the Allocated List
+            j := i;
+            while j < NodePool.AllocatedCount - 1 do                                 // Now Pack the list, moving higher indexed Nodes down one
+            begin
+              NodePool.AllocatedList[j] := NodePool.AllocatedList[j + 1];
+              NodePool.AllocatedList[j + 1] := POpenLCBNode( nil);
+              Inc(j);
+            end;
+            Dec(NodePool.AllocatedCount);
+            Node^.State := NS_EMPTY;                                               // Do this last so item is not allocated in an interrupt half way through this
+            Break
+          end;
+          Inc(i);
+        end;
+      end;
+    end;
+  end;
+end;
+
+// *****************************************************************************
+//  procedure NodeRunMessageBufferReply
+//     Parameters: Node: Node that has a message to send
+//                 MessageToSend: The buffer to load if the function is successful in loading it
+//                                If loaded and needs sending return True to this function
+//     Returns:    True if a message was loaded and ready to send, this function does NOT actually send the message
+//     Description: Picks up Buffers pending in the node and loads a message to send
+// *****************************************************************************
+function NodeRunMessageBufferReply(Node: POpenLCBNode; var MessageToSend: POPStackMessage): Boolean;
+var
+  NextMessage: POPStackMessage;
+begin
+  
+  Result := False;
+  MessageToSend := nil;
+
+  // What is the next Outgoing Message that needs to be handled
+  NextMessage := OPStackNode_NextOutgoingMessage(Node);
+  if NextMessage <> nil then
+  begin
+    case NextMessage^.MTI of
+      MTI_DATAGRAM :
+          begin
+            Result := DatagramHandler(Node, MessageToSend, NextMessage);
+          end
+    else begin
+        OPStackNode_OutgoingMessageUnLink(Node, NextMessage);                   // We don't handle these messages
+        OPStackBuffers_DeAllocateMessage(NextMessage);
+      end;
+    end;
+  end;
+
+  // What is the next Incoming Message that needs to be handled
+  NextMessage := OPStackNode_NextIncomingMessage(Node);
+  if NextMessage <> nil then
+  begin
+    case NextMessage^.MTI of
+      MTI_SIMPLE_NODE_INFO_REQUEST         : begin Result := SimpleNodeInfoRequestHandler(Node, MessageToSend, NextMessage); Exit; end;
+      MTI_SIMPLE_NODE_INFO_REPLY           : begin SimpleNodeInfoRequestReply(Node, NextMessage); Exit; end;
+      MTI_PROTOCOL_SUPPORT_INQUIRY         : begin Result := ProtocolSupportInquiryHandler(Node, MessageToSend, NextMessage); Exit; end;
+      MTI_PROTOCOL_SUPPORT_REPLY           : begin ProtocolSupportReply(Node, NextMessage); Exit; end;
+      {$IFDEF SUPPORT_TRACTION}
+      MTI_TRACTION_PROTOCOL                : begin Result := TractionProtocolHandler(Node, MessageToSend, NextMessage); Exit; end;
+      MTI_TRACTION_REPLY                   : begin TractionProtocolReply(Node, NextMessage); Exit; end;
+      MTI_SIMPLE_TRAIN_NODE_INFO_REQUEST   : begin Result := SimpleTrainNodeInfoRequestHandler(Node, MessageToSend, NextMessage); Exit; end;
+      MTI_SIMPLE_TRAIN_NODE_INFO_REPLY     : begin SimpleTrainNodeInfoReply(Node, NextMessage); Exit; end;
+      {$ENDIF}
+      {$IFDEF SUPPORT_TRACTION_PROXY}
+      MTI_TRACTION_PROXY_PROTOCOL          : begin Result := TractionProxyProtocolHandler(Node, MessageToSend, NextMessage); Exit; end;
+      MTI_TRACTION_PROXY_REPLY             : begin TractionProxyProtocolReply(Node, NextMessage); Exit; end;
+      {$ENDIF}
+      MTI_REMOTE_BUTTON_REQUEST            : begin Result := RemoteButtonHandler(Node, MessageToSend, NextMessage); Exit; end;
+      MTI_REMOTE_BUTTON_REPLY              : begin RemoteButtonReply(Node, NextMessage); Exit; end;
+      {$IFDEF SUPPORT_STREAMS}
+      MTI_STREAM_INIT_REQUEST :
+          begin
+            StreamInitRequestReply(Node, MessageToSend, NextMessage);
+            Result := UnLinkDeAllocateAndTestForMessageToSend(Node, MessageToSend, NextMessage);
+          end;
+      MTI_STREAM_INIT_REPLY :
+          begin
+            StreamInitReplyReply(Node, MessageToSend, NextMessage);
+            Result := UnLinkDeAllocateAndTestForMessageToSend(Node, MessageToSend, NextMessage);
+          end;
+      MTI_STEAM_SEND :
+          begin
+            StreamSendReply(Node, MessageToSend, NextMessage);
+            Result := UnLinkDeAllocateAndTestForMessageToSend(Node, MessageToSend, NextMessage);
+          end;
+      MTI_STREAM_PROCEED :
+          begin
+            StreamProceedReply(Node, MessageToSend, NextMessage);
+            Result := UnLinkDeAllocateAndTestForMessageToSend(Node, MessageToSend, NextMessage);
+          end;
+      MTI_STREAM_COMPLETE :
+          begin
+            StreamCompleteReply(Node, MessageToSend, NextMessage);
+            Result := UnLinkDeAllocateAndTestForMessageToSend(Node, MessageToSend, NextMessage);
+          end;
+      {$ENDIF}
+      MTI_DATAGRAM :
+          begin
+            Result := DatagramHandler(Node, MessageToSend, NextMessage);
+          end
+    else begin
+        OPStackNode_IncomingMessageUnLink(Node, NextMessage);                           // We don't handle these messages
+        OPStackBuffers_DeAllocateMessage(NextMessage);
+      end;
+    end;
+  end;
+end;
+
+// *****************************************************************************
+//  procedure OPStackCore_Timer
+//     Parameters:
+//     Returns:
+//     Description:
+// *****************************************************************************
+procedure OPStackCore_Timer;
+var
+  i: Integer;
+  Node: POpenLCBNode;
+  Tick1s: Boolean;
+begin
+  if OPStack.State and OPS_PROCESSING <> 0 then
+  begin
+    // Only the Login gets the 100ms update no reason for higher resolution elsewhere
+    Tick1s := False;
+    Inc(OPStack._1sCounter);
+    if OPStack._1sCounter > 10 then      // 1s-1.1s
+    begin
+      OPstack._1sCounter := 0;
+      OPStackBuffers_WatchdogTimer_1s;
+      if OnTimer_1s <> nil then
+        OnTimer_1s();
+      Tick1s := True;
+    end;
+    
+    for i := 0 to NodePool.AllocatedCount - 1 do
+    begin
+      Node := NodePool.AllocatedList[i];
+      Inc(Node^.Login.TimeCounter_100ms);
+      if Tick1s then
+      begin
+        {$IFDEF SUPPORT_TRACTION}
+        TractionProtocolTimerTick_1s(Node);
+        {$ENDIF}
+        Inc(Node^.UserWatchdog_1s);
+      end;
+    end;
+  end;
+end;
+
+// *****************************************************************************
+//  procedure NodeRunStateMachine
+//     Parameters:
+//     Returns:
+//     Description:
+// *****************************************************************************
+procedure NodeRunStateMachine(Node: POpenLCBNode);
+var
+  OPStackMessage: POPStackMessage;
+  CAN_MTI: DWord;
+  i: Integer;
+begin
+  OPStackMessage := nil;
+  case Node^.iStateMachine of
+    STATE_NODE_START :
+      begin  {$IFDEF TRACE_MAIN_STATEMACHINE}DebugLine('STATE_NODE_START');{$ENDIF}
+      
+        Node^.Login.iCID := 0;
+        Node^.iStateMachine := STATE_NODE_TRANSMIT_CID;
+      end;
+    STATE_NODE_GENERATE_NODE_ALIAS :
+      begin {$IFDEF TRACE_MAIN_STATEMACHINE}DebugLine('STATE_NODE_GENERATE_NODE_ALIAS');{$ENDIF}
+        Node^.Info.AliasID := OpenLCBUtilities_CreateAliasID(Node^.Login.Seed, False);
+        Node^.Login.iCID := 0;
+        Node^.iStateMachine := STATE_NODE_TRANSMIT_CID;
+      end;
+    STATE_RANDOM_NUMBER_GENERATOR :
+      begin {$IFDEF TRACE_MAIN_STATEMACHINE}DebugLine('STATE_RANDOM_NUMBER_GENERATOR');{$ENDIF}
+        OpenLCBUtilities_PsudoRandomNumberGeneratorOnSeed(Node^.Login.Seed);
+        Node^.iStateMachine := STATE_NODE_GENERATE_NODE_ALIAS;
+      end;
+    STATE_NODE_TRANSMIT_CID :
+      begin {$IFDEF TRACE_MAIN_STATEMACHINE}DebugLine('STATE_NODE_TRANSMIT_CID');{$ENDIF}
+        Hardware_DisableInterrupts;
+        if IsOutgoingBufferAvailable then
+        begin
+          case Node^.Login.iCID of
+            0 : CAN_MTI := MTI_CAN_CID0;
+            1 : CAN_MTI := MTI_CAN_CID1;
+            2 : CAN_MTI := MTI_CAN_CID2;
+            3 : CAN_MTI := MTI_CAN_CID3;
+          end;
+          if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, CAN_MTI, Node^.Info, NULL_NODE_INFO, True) then
+          begin
+            OutgoingMessage(OPStackMessage, True);
+            Node^.iStateMachine := STATE_NODE_NEXT_CDI;
+          end
+        end;
+        Hardware_EnableInterrupts;
+      end;
+    STATE_NODE_NEXT_CDI :
+      begin {$IFDEF TRACE_MAIN_STATEMACHINE}DebugLine('STATE_NODE_NEXT_CDI');{$ENDIF}
+        if Node^.Login.iCID < 3 then
+        begin
+          Inc(Node^.Login.iCID);
+          Node^.iStateMachine := STATE_NODE_TRANSMIT_CID
+        end else
+        begin
+          Node^.iStateMachine := STATE_NODE_WAITSTATE;
+          Node^.Login.TimeCounter_100ms := 0;
+        end;
+      end;
+    STATE_NODE_WAITSTATE :
+      begin
+        if Node^.Login.TimeCounter_100ms > TIMEOUT_MAX_BUS_LOGIN then
+          Node^.iStateMachine := STATE_NODE_SEND_LOGIN_RID;
+      end;
+    STATE_NODE_SEND_LOGIN_RID :
+      begin {$IFDEF TRACE_MAIN_STATEMACHINE}DebugLine('STATE_NODE_SEND_LOGIN_RID');{$ENDIF}
+        Hardware_DisableInterrupts;
+        if OPStackNode_TestFlags(Node, MF_DUPLICATE_ALIAS, True) then
+        begin
+          Node^.iStateMachine := STATE_RANDOM_NUMBER_GENERATOR;
+        end else
+        begin
+          if IsOutgoingBufferAvailable then
+            if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI_CAN_RID, Node^.Info, NULL_NODE_INFO, True) then
+            begin
+              OutgoingMessage(OPStackMessage, True);
+              Node^.iStateMachine := STATE_NODE_SEND_LOGIN_AMD;
+            end
+        end;
+        Hardware_EnableInterrupts;
+      end;
+    STATE_NODE_SEND_LOGIN_AMD :
+      begin {$IFDEF TRACE_MAIN_STATEMACHINE}DebugLine('STATE_NODE_SEND_LOGIN_AMD');{$ENDIF}
+        Hardware_DisableInterrupts;
+        if OPStackNode_TestFlags(Node, MF_DUPLICATE_ALIAS, True) then
+        begin
+          Node^.iStateMachine := STATE_RANDOM_NUMBER_GENERATOR;
+        end else
+        begin
+          if IsOutgoingBufferAvailable then
+            if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI_CAN_AMD, Node^.Info, NULL_NODE_INFO, True) then
+            begin
+              OpenLCBUtilities_LoadSimpleDataWith48BitNodeID(@Node^.Info.ID, PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+              OPStackMessage^.Buffer^.DataBufferSize := 6;
+              OutgoingMessage(OPStackMessage, True);
+              OPStackNode_SetState(Node, NS_PERMITTED);
+              Node^.iStateMachine := STATE_NODE_INITIALIZED;
+            end
+        end;
+        Hardware_EnableInterrupts;
+      end;
+    STATE_NODE_INITIALIZED :
+      begin {$IFDEF TRACE_MAIN_STATEMACHINE}DebugLine('STATE_NODE_INITIALIZED');{$ENDIF}
+        Hardware_DisableInterrupts;
+        if OPStackNode_TestFlags(Node, MF_DUPLICATE_ALIAS, True) then
+        begin
+          Node^.iStateMachine := STATE_RANDOM_NUMBER_GENERATOR;
+        end else
+        begin
+          if IsOutgoingBufferAvailable then
+            if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI_INITIALIZATION_COMPLETE, Node^.Info, NULL_NODE_INFO, False) then
+            begin
+              OpenLCBUtilities_LoadSimpleDataWith48BitNodeID(@Node^.Info.ID, PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+              OPStackMessage^.Buffer^.DataBufferSize := 6;
+              OutgoingMessage(OPStackMessage, True);
+              OPStackNode_SetState(Node, NS_INITIALIZED);
+              Node^.iStateMachine := STATE_NODE_LOGIN_IDENTIFY_EVENTS;
+            end
+        end;
+        Hardware_EnableInterrupts;
+      end;
+    STATE_NODE_LOGIN_IDENTIFY_EVENTS :
+      begin {$IFDEF TRACE_MAIN_STATEMACHINE}DebugLine('STATE_NODE_LOGIN_IDENTIFY_EVENTS');{$ENDIF}
+        Hardware_DisableInterrupts;
+        // Fake an Identify Events to allow the AppCallbacks to be called
+        if IsOutgoingBufferAvailable then
+          if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI_EVENTS_IDENTIFY_DEST, NULL_NODE_INFO, Node^.Info, False) then  // Fake Source Node
+          begin
+            {$IFDEF SUPPORT_VIRTUAL_NODES}
+            if Node^.State and NS_VIRTUAL <> 0 then
+            begin
+              for i := 0 to USER_MAX_VNODE_SUPPORTED_EVENTS_CONSUMED - 1 do
+                AppCallback_InitializeEvents(Node, i, EVENT_TYPE_CONSUMED);
+              for i := 0 to USER_MAX_VNODE_SUPPORTED_EVENTS_PRODUCED - 1 do
+                AppCallback_InitializeEvents(Node, i, EVENT_TYPE_PRODUCED);
+
+              for i := 0 to USER_MAX_VNODE_SUPPORTED_DYNAMIC_EVENTS_CONSUMED - 1 do
+                AppCallback_InitializeDynamicEvents(Node, i, EVENT_TYPE_CONSUMED);
+              for i := 0 to USER_MAX_VNODE_SUPPORTED_DYNAMIC_EVENTS_PRODUCED - 1 do
+                AppCallback_InitializeDynamicEvents(Node, i, EVENT_TYPE_PRODUCED);
+
+            end else
+            {$ENDIF}
+            begin
+              for i := 0 to USER_MAX_SUPPORTED_EVENTS_CONSUMED - 1 do
+                AppCallback_InitializeEvents(Node, i, EVENT_TYPE_CONSUMED);
+              {$IFDEF SUPPORT_VIRTUAL_NODES}
+              for i := 0 to USER_MAX_VNODE_SUPPORTED_EVENTS_PRODUCED - 1 do
+                AppCallback_InitializeEvents(Node, i, EVENT_TYPE_PRODUCED);
+              {$ENDIF}
+              for i := 0 to USER_MAX_SUPPORTED_DYNAMIC_EVENTS_CONSUMED - 1 do
+                AppCallback_InitializeDynamicEvents(Node, i, EVENT_TYPE_CONSUMED);
+              for i := 0 to USER_MAX_SUPPORTED_DYNAMIC_EVENTS_PRODUCED - 1 do
+                AppCallback_InitializeDynamicEvents(Node, i, EVENT_TYPE_PRODUCED);
+            end;                        
+            IncomingMessageDispatch(OPStackMessage, Node);
+            Node^.iStateMachine := STATE_NODE_PERMITTED;
+          end;
+        Hardware_EnableInterrupts;
+      end;
+    STATE_NODE_PERMITTED :
+      begin
+        if IsOutgoingBufferAvailable then
+        begin
+          Hardware_DisableInterrupts;
+          if NodeRunMessageBufferReply(Node, OPStackMessage) then               // Run the buffered messages first to clear out replies and minimize buffer requirements
+            OutgoingMessage(OPStackMessage, True)
+          else
+          if NodeRunPCERFlagsReply(Node, OPStackMessage) then
+            OutgoingMessage(OPStackMessage, True)
+          else
+          if NodeRunFlagsReply(Node, OPStackMessage) then
+            OutgoingMessage(OPStackMessage, True)
+          else
+          if NodeRunEventFlagsReply(Node, OPStackMessage) then
+            OutgoingMessage(OPStackMessage, True)
+          else
+          if CheckForMarkedToDelete(Node, OPStackMessage) then                  // Handle vNodes marked to be deleted
+            OutgoingMessage(OPStackMessage, True);
+          Hardware_EnableInterrupts;
+        end;
+
+        Hardware_DisableInterrupts;
+        OPStackBuffers_SearchandDestroyAbandonMessagesInMessageStack(Node^.IncomingMessages);
+        Hardware_EnableInterrupts;
+        Hardware_DisableInterrupts;
+        OPStackBuffers_SearchandDestroyAbandonMessagesInMessageStack(Node^.OutgoingMessages);
+        Hardware_EnableInterrupts;
+        Hardware_DisableInterrupts;
+        Hardware_SearchandDestroyAbandonMessagesInMessageStacks;
+        Hardware_EnableInterrupts;
+     end;
+    STATE_NODE_INHIBITED :
+      begin {$IFDEF TRACE_MAIN_STATEMACHINE}DebugLine('STATE_NODE_INHIBITED');{$ENDIF}
+        Hardware_DisableInterrupts;
+        // Any buffers will time out and self release
+        if IsOutgoingBufferAvailable then
+          if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI_CAN_AMR, Node^.Info, NULL_NODE_INFO, True) then  // Fake Source Node
+          begin
+            OpenLCBUtilities_LoadSimpleDataWith48BitNodeID(@Node^.Info.ID, PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+            OPStackMessage^.Buffer^.DataBufferSize := 6;
+            OutgoingMessage(OPStackMessage, True);
+            OPStackNode_ClearState(Node, NS_PERMITTED);
+            OPStackNode_ClearFlags(Node);
+            Node^.iStateMachine := STATE_RANDOM_NUMBER_GENERATOR;
+          end;
+        Hardware_EnableInterrupts;
+      end;
+    STATE_NODE_DUPLICATE_FULL_ID :
+      begin {$IFDEF TRACE_MAIN_STATEMACHINE}DebugLine('STATE_NODE_DUPLICATE_FULL_ID');{$ENDIF}
+        Hardware_DisableInterrupts;
+        // Any buffers will time out and self release
+        if IsOutgoingBufferAvailable then
+          if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI_CAN_AMR, Node^.Info, NULL_NODE_INFO, True) then  // Fake Source Node
+          begin
+            OpenLCBUtilities_LoadSimpleDataWith48BitNodeID(@Node^.Info.ID, PSimpleDataArray(@OPStackMessage^.Buffer^.DataArray));
+            OPStackMessage^.Buffer^.DataBufferSize := 6;
+            OutgoingMessage(OPStackMessage, True);
+            OPStackNode_ClearState(Node, NS_PERMITTED);
+            OPStackNode_ClearFlags(Node);
+            Node^.iStateMachine := STATE_NODE_TAKE_OFFLINE;
+          end;
+        Hardware_EnableInterrupts;
+      end;
+    STATE_NODE_TAKE_OFFLINE :
+      begin {$IFDEF TRACE_MAIN_STATEMACHINE}DebugLine('STATE_NODE_TAKE_OFFLINE');{$ENDIF}
+        Hardware_DisableInterrupts;
+        if IsOutgoingBufferAvailable then
+          if OPStackBuffers_AllocateOPStackMessage(OPStackMessage, MTI_PC_EVENT_REPORT, Node^.Info, NULL_NODE_INFO, False) then  // Fake Source Node
+          begin
+            OPStackMessage^.Buffer^.DataBufferSize := 8;
+            PEventID( @OPStackMessage^.Buffer^.DataArray)^ := EVENT_DUPLICATE_ID_DETECTED;
+            OutgoingMessage(OPStackMessage, True);
+            Node^.iStateMachine := STATE_NODE_OFFLINE;
+          end;
+        Hardware_EnableInterrupts;
+      end;
+    STATE_NODE_OFFLINE :
+      begin
+        // Done until reboot
+      end
+  else
+     Node^.iStateMachine := STATE_NODE_INHIBITED;                                // We are confused, start over
+  end;
+end;
+
+// *****************************************************************************
+//  procedure OPStackCore_Process
+//     Parameters:
+//     Returns:
+//     Description:
+// *****************************************************************************
+function OPStackCore_Process: POpenLCBnode;
+begin
+  if OPStack.State and OPS_PROCESSING <> 0 then
+  begin
+    // Give the outgoing multiframe messages first crack at completing their frame sequences
+    Hardware_DisableInterrupts;
+    ProcessHardwareMessages;
+    Hardware_EnableInterrupts;
+    
+    // No run the node statemachines
+    Result := OPStackNode_NextNode;
+    if Result <> nil then
+    begin    
+      NodeRunStateMachine(Result);
+      Hardware_DisableInterrupts;
+      if OnStateMachineProcess <> nil then
+        OnStateMachineProcess(Result);       // Do I want to let this run with nil?  Why should there be a nil?  There shouldn't
+      Hardware_EnableInterrupts;
+    end;
+  end;
+end;
+
+procedure OPStackCore_Enable(DoEnable: Boolean);
+begin
+  if DoEnable then
+    OPStack.State := OPStack.State or OPS_PROCESSING
+  else
+    OPStack.State := OPStack.State and not OPS_PROCESSING;
+end;
+
+function OPStackCore_IsRunning: Boolean;
+begin
+  Result := OPStack.State and OPS_PROCESSING <> 0
+end;
+
+end.

@@ -1,0 +1,303 @@
+unit protocol_ping;
+
+{.$DEFINE DEBUG_STRING}
+
+uses
+  lib1_enc600_V3_5_b,
+  helperfunctions,
+  packet_utilities,
+  port_utilities,
+  protocol_defines,
+  protocol_arp;
+  
+const
+  PING_CACHE_LENGTH = 2;
+
+type
+  TPingSlot = Record
+    Valid           : Boolean;                                                  // True, False and $8000 for Waiting
+    Ip              : IpHeader;                                                 // IP address associated with this slot  (if Valid is True or Waiting then it is defined)
+    Mac             : MacHeader;                                                // MAC address associated with this slot (if Valid is not True this is undefined)
+    Time            : word;                                                     // Used to time out for Waiting and then to track the life time of the slot, always updated
+    RoundTripTime   : word;                                                     // Captures the time to make a round trip to the nearest second
+    RoundTripTTL    : byte;
+  end;
+
+var
+  PingCache : array[PING_CACHE_LENGTH] of TPingSlot;
+  
+function Eth_SendPing(var TargetIP: IpHeader): ^TPingSlot;
+Procedure Eth_PingEchoHandler;
+procedure Eth_PingReplyHandler;
+procedure Eth_Ping_EraseCache;
+procedure Eth_Ping_Timer_1s;
+procedure Eth_PrintPingCache;
+procedure Eth_PrintPingCacheSlot(Slot: ^TPingSlot);
+
+procedure Do_EthernetProc(n : word); external;
+procedure Eth_EnableTimer_1s(Enable: Boolean); external;
+
+implementation
+
+procedure Eth_Ping_Timer_1s;
+var
+  i: Integer;
+begin
+  i := 0;
+  while i < PING_CACHE_LENGTH do
+  begin
+    Inc(PingCache[i].Time);
+    Inc(i);
+  end;
+end;
+
+//******************************************************************************
+// Called from the target of a Ping we sent
+//******************************************************************************
+procedure Eth_PingReplyHandler;
+var 
+  i : byte;
+begin
+  i := 0;     {$IFDEF DEBUG_STRING}UART1_Write_Text('Ping Reply Handler' + CRLF);{$ENDIF}
+  while i < PING_CACHE_LENGTH do
+  begin
+    if PingCache[i].Valid = Waiting then
+    begin   {$IFDEF DEBUG_STRING}UART1_Write_Text('Ping Reply Waiting' + CRLF);{$ENDIF}
+      if (EthMemCompareWithRam(AddrPacket+26, @PingCache[i].ip[0], 4) <> 0) then
+      begin   {$IFDEF DEBUG_STRING}UART1_Write_Text('Ping Reply IP Compared' + CRLF);{$ENDIF}
+        Eth_EnableTimer_1s(False);                                                // Don't change the timer values in the middle of a comparison
+        PingCache[i].RoundTripTime := PingCache[i].Time;                          // Store the total number of 1s ticks it took to get here, Time will keep on ticking
+        Eth_EnableTimer_1s(True);                                                 // Don't change the timer values in the middle of a comparison
+        PingCache[i].RoundTripTTL := ReadFromEthMem(AddrPacket+22);               // Store the TTL from the incoming packet
+        PingCache[i].Valid := True;
+        Exit;
+      end;
+    end;
+    inc(i);
+  end;
+end;
+
+function PingWaitFor(Ping: ^TPingSlot): Boolean;
+var
+  LocalTime: DWord;
+begin
+  Result := False;
+  {$IFDEF DEBUG_STRING}UART1_Write_Text('PingWaitFor' + CRLF);{$ENDIF}
+  Eth_EnableTimer_1s(False);                                                    // This may not be an atomic increase so stall the timer and grab a copy
+  LocalTime := Ping^.Time;                                                      // Grab a copy of the timeout time
+  Eth_EnableTimer_1s(True);
+  while LocalTime < PING_Wait do                                                // Loop till done....  Timer is reset when the message is sent
+  begin
+    Do_EthernetProc(n);                                                         // Pump messages looking for the ARP Reply, this can get reentrant so be careful
+    if Ping^.Valid = True then
+    begin
+      Result := True;
+      Break;
+    end;
+    Eth_EnableTimer_1s(False);                                                  // This may not be an atomic increase so stall the timer and grab a copy
+    LocalTime := Ping^.Time;                                                    // Update the local time with a new value
+    Eth_EnableTimer_1s(True);
+  end;
+  if Result = False then
+    Ping^.Valid := False;                                                       // If we failed then release the slot
+end;
+
+//******************************************************************************
+//* Name    : Eth_SendPing                                                     *
+//* Purpose : Send ICMP request, used by library                               *
+//******************************************************************************
+function Eth_SendPing(var TargetIP: IPHeader): ^TPingSlot;
+var 
+  {$IFDEF DEBUG_STRING}s1: string[128];{$ENDIF}
+  i, cksum : word;
+  OldestSlot, 
+  EmptySlot: Integer;
+  ArpSlot: ^TArpSlot;
+Begin
+  Result := nil;
+  
+  ArpSlot := Eth_Arp_MapMacAddress(TargetIP);                                   // Make sure the target exists, or did exist and we have a cache
+  if ArpSlot = nil then
+  begin
+    {$IFDEF DEBUG_STRING}UART1_Write_Text('Ping; Arp = nil' + CRLF);{$ENDIF}
+    Exit;
+  end;
+    
+  {$IFDEF DEBUG_STRING}Eth_PrintArpCacheSlot(ArpSlot);{$ENDIF}
+
+  OldestSlot := -1;
+  EmptySlot := -1;
+  i := 0;
+  while i < PING_CACHE_LENGTH do
+  begin
+    if PingCache[i].Valid = False then
+    begin {$IFDEF DEBUG_STRING}UART1_Write_Text('Empty Ping Slot Found' + CRLF);{$ENDIF}
+      PingCache[i].Valid := Waiting;
+      memcpy(@PingCache[i].ip[0], @ArpSlot^.Ip[0], 4);
+      memcpy(@PingCache[i].mac[0], @ArpSlot^.Mac[0], 6);
+      Eth_EnableTimer_1s(False);                                                // Don't change the timer values in the middle of a comparison
+      PingCache[i].Time := 0;
+      PingCache[i].RoundTripTime := 0;
+      Eth_EnableTimer_1s(True);                                                 // Don't change the timer values in the middle of a comparison
+      PingCache[i].RoundTripTTL := 255;
+      EmptySlot := i;
+      Break;
+    end;
+    
+    if PingCache[i].Valid <> False then                                         // If the slot is Waiting or True then use it for the oldest slot test
+    begin   {$IFDEF DEBUG_STRING}UART1_Write_Text('Not Invalid Ping found, updating Oldest Slot' + CRLF);{$ENDIF}
+      if OldestSlot < 0 then
+        OldestSlot := i
+      else begin
+        Eth_EnableTimer_1s(False);                                              // Don't change the timer values in the middle of a comparison
+        if PingCache[i].Time > PingCache[OldestSlot].Time then
+          OldestSlot := i;
+        Eth_EnableTimer_1s(True);                                               // Don't change the timer values in the middle of a comparison
+      end;
+      {$IFDEF DEBUG_STRING}LongIntToStr(OldestSlot, s1); UART1_Write_Text('Ping OldestSlot: ' + s1 + CRLF);{$ENDIF}
+    end;
+
+    Inc(i)
+  end;
+  
+  if EmptySlot < 0 then
+    EmptySlot := OldestSlot;
+
+  // MAC Layer
+  CopyRamToEthMem(@ArpSlot^.Mac[0], TXSTART,6);                                 // Copy the destination MAC address into the transmit buffer
+  CopyRamToEthMem(@eth_mac, TXSTART+6, 6);                                      // Copy the source MAC address into the transmit buffer
+  WriteToEthMem(TXSTART+12, $08);                                               // Hi EtherType = Ethernet protocol vIP4 ($8000)
+  Eth_PutByte($00);                                                             // EtherType Lo
+  i := 60;                                                                      // Message Length, minus the MAC address header (that is 20 bytes without the 802.1Q tag else add 2)
+
+  // IP Layer (simplified version for ICMP)
+  Eth_PutByte($45);                                                             // Version = 4 (IPV4), Heder Size = 5 - 32 bit words (5*4=20 bytes)
+  Eth_PutByte($00);                                                             // DSCP/ECN
+  Eth_PutByte(Hi(i));                                                           // Hi Total length
+  Eth_PutByte(Lo(i));                                                           // Lo Total length
+  Eth_PutByte($AC);                                                             // Hi Identification    0xAC80, significance?  don't know yet
+  Eth_PutByte($80);                                                             // Lo Identification
+  Eth_PutByte($00);                                                             // Flags/Fragment Offset
+  Eth_PutByte($00);                                                             // Fragment Offset
+  Eth_PutByte($80);                                                             // Time to live   (only allow 128 hops before the packet dies)
+  Eth_PutByte($01);                                                             // ICMP Protocol
+  Eth_PutByte($00);                                                             // Hi Clear Checksum until all the bytes are there to do the checksum on
+  Eth_PutByte($00);                                                             // Lo Clear Checksum until all the bytes are there to do the checksum on
+  CopyRamToEthMem(@eth_ip_addr, TXSTART+26, 4);                                 // Copy our IP address to the transmit buffer
+  CopyRamToEthMem(@ArpSlot^.Ip[0], TXSTART+30, 4);                              // Copy the dest IP address to the transmit buffer
+  cksum := Eth_Cksum(TXSTART+14, 20);                                           // Calculate the checksum
+  WriteToEthMem(TXSTART+24, Hi(cksum));                                         // Hi Checksum
+  Eth_PutByte(Lo(cksum));                                                       // Lo Checksum
+  
+  
+  // Interenet Control Message Protocol (ICMP) Layer
+  WriteToEthMem(TXSTART+34, $08);                                               // Type of message is Echo Request (8)
+  Eth_PutByte($00);                                                             // Code is Echo Request (0)
+  Eth_PutByte($00);                                                             // Hi Zero checksum for later calculation
+  Eth_PutByte($00);                                                             // Lo Zero checksum for later calculation
+  Eth_PutByte($03);                                                             // Hi Identifier  (defined my implementer)
+  Eth_PutByte($00);                                                             // Lo Identifier
+  Eth_PutByte($14);                                                             // Hi Sequence number  (defined my implementer)
+  Eth_PutByte($0A);                                                             // Lo Sequence number
+  i := 48;                                                                      // Load up the payload
+     // TODO:  INSERT THE TIMESTAMP
+  while i < 80 do                                                               //
+    begin
+      Eth_PutByte(i);
+      inc(i);
+    end;
+  cksum := Eth_Cksum(TXSTART+34, 40);                                           // Calculate the checksum
+  WriteToEthMem(TXSTART+36, Hi(cksum));                                         // Hi Checksum
+  Eth_PutByte(Lo(cksum));                                                       // Lo Checksum
+  Eth_SendPacket(74);                                                           // Ship it...
+  {$IFDEF DEBUG_STRING}IntToStr(EmptySlot, s1); UART1_Write_Text('Slot being used: ' + s1 + CRLF);{$ENDIF}
+  PingCache[EmptySlot].Time := 0;                                               // Zero Time
+  {$IFDEF DEBUG_STRING}Eth_PrintPingCacheSlot(@PingCache[EmptySlot]);{$ENDIF}
+  if PingWaitFor(@PingCache[EmptySlot]) then                                    // Wait for the reply
+    Result := @PingCache[EmptySlot]
+End;
+
+//******************************************************************************
+// Responds to an ICPM message for Echo (Ping) sent from another node.
+//******************************************************************************
+Procedure Eth_PingEchoHandler;
+var 
+  cksum, 
+  PacketSize : word;
+Begin
+  Hi(PacketSize) := ReadFromEthMem(AddrPacket+16);                              // Hi Pull the length from the stored packet
+  Lo(PacketSize) := Eth_GetByte;                                                // Lo Pull the length from the stored packet
+  PacketSize := PacketSize + 14;                                                // Adds the MAC Layer header size to the packet size (assumes that 802.1Q tag is not used else add 2 more)
+  CopyEthMemToEthMem(AddrPacket+6, TXSTART, 6);                                 // Setup the Destination Hardware Address: the source that sent the packet is now the destination
+  CopyRamToEthMem(@eth_mac, TXSTART+6, 6);                                      // Setup the Source Hardware Address: the destination in the old received message could be a global FF.FF.FF.FF.FF.FF so transfer our local copy to the ENC as the source
+  CopyEthMemToEthMem(AddrPacket+12, TXSTART+12, 14);                            // Copy the Ethertype to the TX Buffer
+  CopyRamToEthMem(@eth_ip_addr, TXSTART+26, 4);                                 // Copy our nodes IP address to the source area in the header
+  CopyEthMemToEthMem(AddrPacket+26, TXSTART+30, 4);                             // Copy the source IP from the received message to the dest IP in the message to transmit
+  EthMemSet(TXSTART+34, 0, 4);                                                  // Zero out the  Type of Message, Code, and Checksum bytes (Type and Code are 0 for Ping Reply)
+  CopyEthMemToEthMem(AddrPacket+38, TXSTART+38, PacketSize-38);                 // Copy the Header Data/Payload Data back to the TX buffer (this is the time info the source sent to compare later)
+  cksum := Eth_Cksum(TXSTART+34, PacketSize-34);                                // Calculate the Checksum
+  WriteToEthMem(TXSTART+36, Hi(cksum));                                         // Store the checksum in the Tx buffer
+  Eth_PutByte(Lo(cksum));                                                       // ...
+  Eth_SendPacket(PacketSize);                                                   // Ship it
+End;
+
+procedure Eth_Ping_EraseCache;
+var j : byte;
+begin
+  j := 0;
+  while j < PING_CACHE_LENGTH do
+    begin
+      PingCache[j].Valid := False;
+      memset(@PingCache[j].Ip, 0, 4);
+      memset(@PingCache[j].Mac, 0, 6);
+      PingCache[j].Time := 0;
+      PingCache[j].RoundTripTime := 0;
+      PingCache[j].RoundTripTTL := 0;
+      inc(j);
+    end;
+end;
+
+procedure Eth_PrintPingCache;
+var
+  j : byte;
+begin
+  j := 0;
+  while j < ARP_CACHE_LEN do
+  begin
+    Eth_PrintPingCacheSlot(@PingCache[j]);
+    inc(j);
+  end;
+end;
+
+procedure Eth_PrintPingCacheSlot(Slot: ^TPingSlot);
+var
+  s2: string[10];
+  LocalTime: DWord;
+begin
+  LongWordToStr(Slot^.Valid, s2);
+  UART1_Write_Text('State: ' + s2 + CRLF);
+
+  UART1_Write_Text('IP: ' + IPAddressToStr(Slot^.ip) + CRLF);
+
+  UART1_Write_Text('MAC: ' + MACAddressToStr(Slot^.mac) + CRLF);
+
+  Eth_EnableTimer_1s(False);
+  LocalTime := Slot^.Time;
+  Eth_EnableTimer_1s(True);
+  LongWordToStr(LocalTime, s2);
+  UART1_Write_Text('Time: ' + s2 + CRLF);
+
+  Eth_EnableTimer_1s(False);
+  LocalTime := Slot^.RoundTripTime;
+  Eth_EnableTimer_1s(True);
+  LongWordToStr(LocalTime, s2);
+  UART1_Write_Text('RoundTripTime: ' + s2 + CRLF);
+
+  Eth_EnableTimer_1s(False);
+  LocalTime := Slot^.RoundTripTTL;
+  Eth_EnableTimer_1s(True);
+  LongWordToStr(LocalTime, s2);
+  UART1_Write_Text('RoundTripTTL: ' + s2 + CRLF);
+end;
+
+end.

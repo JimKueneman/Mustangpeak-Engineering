@@ -1,0 +1,364 @@
+unit lib2_enc600_V3_5_b;
+
+//{$DEFINE RxInt}
+
+
+uses 
+  dspic_additional_string_library,
+  Lib_Delays_LIO,
+  definitions_ENC600,
+  lib1_enc600_V3_5_b,
+  enc_lib_user, 
+  def_io,
+  port_utilities,
+  packet_utilities,
+  protocol_defines,
+  protocol_dns,
+  protocol_ntp,
+  protocol_tcp,
+  protocol_udp,
+  protocol_dhcp,
+  protocol_arp,
+  protocol_ping;
+     
+// Initialization Functions
+Procedure Eth_Init_;
+function Wait_for_LAN(Announce: Boolean): Boolean;
+procedure Wait_With_Eth(n : word);
+procedure Eth_EnableReception(Enable: Boolean);
+
+// Interrupt Timer functions
+procedure Eth_CounterTask;
+
+// Loop Processing functions
+procedure Eth_DoPacket;
+
+procedure Do_EthernetProc(n : word);
+
+procedure Eth_EnableTimer_1s(Enable: Boolean);
+
+var ENC_CS : sbit; sfr; external;
+    ENC_CS_dir : sbit; sfr; external;
+    ENC_INT : sbit; sfr; external;
+    ENC_INT_dir : sbit; sfr; external;
+    TimerEnableBit: sbit; sfr; external;
+    
+implementation
+
+procedure Eth_EnableTimer_1s(Enable: Boolean);
+begin
+  if Enable then
+    TimerEnableBit := 1
+  else
+    TimerEnableBit := 0;
+end;
+
+
+//******************************************************************************
+//* Name    : Eth_CounterTask                                                      *
+//* Purpose : Increment all Counters                                           *
+//******************************************************************************
+procedure Eth_CounterTask;
+var i : byte;
+begin
+  inc(TickCounter1);
+  inc(TickCounter10);
+  if inc(count_100) > 99 then
+    begin
+      Inc(LongTmr);
+      inc(DHCP_count_1);
+      count_100 := 0;
+    end;
+  if inc(NTP_Sec) > (999 + offset_clock_err) then  // 1 sec
+    begin
+      NTP_Sec := 0;
+      i := 0;
+      
+      while i < PORT_CACHE_LEN do
+      begin
+        inc(Socket[i].Exp_Time);
+        inc(i);
+      end;
+      
+      inc(NTP_Time);
+      inc(NTP_ReSync);
+      inc(DHCP_count_2);
+      
+      if DHCP_State = 3 then
+      begin
+        if inc(DHCP_count_3) > DHCP_Lease_Time then
+        begin
+          DHCP_count_3 := 0;
+          DHCP_state := 0;
+          DHCP_count_2 := 294;
+        end;
+      end;
+      
+      if NTP_ReSync > 1230 then
+        begin
+          NTP_Sync := False; // resyncronizations at 20 min
+          NTP_ReSync := 0;
+        end;
+    end;
+end;
+
+procedure Eth_EnableReception(Enable: Boolean);
+begin
+  // enables reception
+  if Enable then
+    Eth_BSF(ECON1_, 0x0001)    //RXEN
+  else
+    Eth_BCF(ECON1_, 0x0001);
+end;
+
+//******************************************************************************
+//* Name    : Eth_Init                                                         *
+//* Purpose : Init Ethernet module                                             *
+//******************************************************************************
+Procedure Eth_Init_;
+var buf : word;
+Begin
+  DisableInt;
+  NTP_Time := 3534364800; // 2012
+  LongTmr := 12001;
+  EnableInt;
+  NTP_Sync := False;
+  Offset_Time := 0;
+  NTP_Sec := 0;
+  NTP_ReSync := 0;
+  TickCounter1 := 0;
+  TickCounter10 := 0;
+  count_100 := 0;
+  offset_clock_err := 0;
+  DNS_resp := False;
+  TimeRec.Str := ' ';
+  
+  ENC_INT_dir := 1;
+  ENC_CS := 1;
+  nop;
+  ENC_CS_dir := 0;
+  delayms(10);
+  Eth_UnSelect;
+  delayms(10);
+  Eth_SendSystemReset;
+  
+  Eth_WriteReg(ERXST_,RXSTART);
+  Eth_WriteReg(ERXTAIL_,$5FFE);
+  Eth_WriteReg(EUDAST_,$6000);
+  Eth_WriteReg(EUDAND_,$6001);
+
+  Eth_WriteReg(ERXRDPT_,RXSTART);
+  NextPacket := RXSTART;
+  Eth_WriteReg(ETXST_,TXSTART);
+
+  Eth_WriteReg(EGPRDPT_, GPSTART);
+  
+  Eth_WriteReg(MAMXF_, MAX_PACKET);    // Set the maximum packet length to 1518
+  Eth_WriteReg(MABBIPG_,$15);
+
+  if use_user_MAC <> 0 then
+    begin
+      Lo(buf) := eth_mac[0];
+      Hi(buf) := eth_mac[1];
+      Eth_WriteReg(MAADR1_,buf);
+      Lo(buf) := eth_mac[2];
+      Hi(buf) := eth_mac[3];
+      Eth_WriteReg(MAADR2_,buf);
+      Lo(buf) := eth_mac[4];
+      Hi(buf) := eth_mac[5];
+      Eth_WriteReg(MAADR3_,buf);
+    end
+  else
+    begin
+      buf := Eth_ReadReg(MAADR1_);
+      eth_mac[0] := Lo(buf);
+      eth_mac[1] := Hi(buf);
+      buf := Eth_ReadReg(MAADR2_);
+      eth_mac[2] := Lo(buf);
+      eth_mac[3] := Hi(buf);
+      buf := Eth_ReadReg(MAADR3_);
+      eth_mac[4] := Lo(buf);
+      eth_mac[5] := Hi(buf);
+    end;
+
+  buf := Eth_ReadReg(MACON2_);
+  buf := buf or $0001;
+  Eth_WriteReg(MACON2_, buf);
+  
+  // Advertise: IEEE 802.3, capable of 10Base-T half-duplex,  capable of 10Base-T full-duplex, 
+  // capable of 100Base-TX half-duplex, capable of 100Base-TX full-duplex, 
+  // Local device supports symmetric PAUSE only (Normal Flow Control mode)
+  Eth_WritePHYReg(PHANA_,$05E1);
+
+{$IFDEF RxInt}
+  Eth_BSF(EIE_, 0x0040);      // PKTIE enabled
+  Eth_BSF(EIE_, 0x0008);      // TXIE enabled
+  Eth_BSF(EIE_, 0x8000);      // Int Enable
+{$ENDIF}
+  
+  tcp_counter := 1000;
+  ACK_No := $42844A80;
+  SEQ_No := $42844A80;
+  Eth_Udp_Init;
+  Eth_Arp_EraseCache;
+  Eth_Ping_EraseCache;
+  EraseSockets;
+  Firewall(False, False, False);
+  memset(@TCP_Opened_Ports, 0, PORT_CACHE_LEN*2); // clear ports word format
+  memset(@UDP_Opened_Ports, 0, PORT_CACHE_LEN*2); // clear ports word format
+  Eth_Policy(Drop);
+  delayms(10);
+
+  DHCP_count_1 := 10;
+  DHCP_count_2 := 0;
+  DHCP_count_3 := 0;
+  DHCP_Lease_Time := (3600*6); // 6 ore
+  DHCP_State := 0;
+
+  udp_broadcast := False;
+  broadcast_packet := False;
+  dynamic_var_addr := $1000;
+  
+  use_user_MAC := False;
+  
+  TCP_Wait := 10;   // Seconds
+  UDP_Wait := 10;   // Seconds
+  ARP_Wait := 10;   // Seconds
+  PING_Wait := 10;
+  
+  opened_socket := 255;
+End;
+
+//******************************************************************************
+//* Name    : Eth_DoPacket                                                     *
+//* Purpose : Process incomming Ethernet packets, without TCP/IP Stack         *
+//******************************************************************************
+procedure Eth_DoPacket;
+begin
+  ClrWdt;
+  Eth_UserProcess_Main;
+{$IFDEF RxInt}
+  if ENC_INT <> 0 then        // interrupts enabled then don't do anything, let the user deal with it in the interrupt
+    Exit;
+{$ENDIF}
+  if (Eth_ReadReg(EIR_) and $0040) <> 0 then     // PKTIF : RX Packet Pending Interrupt Flag?
+  begin
+    broadcast_packet := False;
+    case Eth_ReadPacket of
+      ETH_ARP :
+          begin   //   UART1_Write_Text('ARP'+CRLF);
+            if EthMemCompareWithRam(AddrPacket+38, @eth_ip_addr, 4) then      // Our address?
+              begin
+                case ReadFromEthMem(AddrPacket+21) of
+                  ETH_ARP_REQ : Eth_Arp_RequestHandler;
+                  ETH_ARP_RES : Eth_Arp_ResponseHandler;
+                end;
+              end;
+          end;
+      ETH_IP :
+          begin    //   UART1_Write_Text('IP'+CRLF);
+            if EthMemCompareWithRam(AddrPacket+30,@eth_ip_addr,4) then
+            begin
+              case ReadFromEthMem(AddrPacket+23) of
+                ETH_IP_ICMP :
+                    begin //  UART1_Write_Text('ETH_IP_ICMP'+CRLF);
+                      case ReadFromEthMem(AddrPacket+34) of
+                        ETH_IP_ICMP_ECHO : 
+                            begin
+                               if FICMP = False then
+                                 Eth_PingEchoHandler;
+                            end;
+                        ETH_IP_ICMP_REPLY : 
+                            begin
+                              Eth_PingReplyHandler;
+                            end;
+                      end;
+                    end;
+                ETH_IP_UDP :
+                    begin  //  UART1_Write_Text('ETH_IP_UDP'+CRLF);
+                      if FUDP = False then
+                        Eth_Udp_ReplyHandler;
+                    end;
+                ETH_IP_TCP :
+                    begin // UART1_Write_Text('ETH_IP_TCP'+CRLF);
+                      if FTCP = False then
+                        Eth_TcpHandler;
+                    end;
+              end;
+              Exit;
+            end;
+
+            if udp_broadcast <> 0 then
+  //          if EthMemCompareWithRam(AddrPacket+30,@eth_ip_addr,3) then
+                if ReadFromEthMem(AddrPacket+33) = 255 then
+                  if ReadFromEthMem(AddrPacket+23) = ETH_IP_UDP then
+                    if FUDP = False then
+                    begin
+                      broadcast_packet := True;
+                      Eth_Udp_ReplyHandler;
+                    end;
+          end;
+    end;
+  end;
+end;
+
+//******************************************************************************
+//* Name    : Do_EthernetProc                                                  *
+//* Purpose : Process all Ethernet packets                                     *
+//******************************************************************************
+procedure Do_EthernetProc(n : word);
+var i : word;
+begin
+  i := 0;
+  while i < n do
+    begin
+      Eth_DoPacket;
+      Eth_UserProcess;
+      Eth_ProcessTcpStack;
+      inc(i);
+  end;
+end;
+
+//******************************************************************************
+//* Name    : Wait_for_LAN                                                     *
+//* Purpose : Wait for LAN  
+//   DO NOT have the reception of the module inabled while waiting.bit..bit.bit.
+//******************************************************************************
+function Wait_for_LAN(Announce: Boolean): Boolean;
+var 
+  contorw : word;
+begin
+  Result := False;
+  contorw := 0;
+  while contorw < 60000 do
+  begin
+    ClrWdt;
+    Delay_ms(1);
+    if Check_Link <> 0 then
+    begin
+      if Announce <> 0 then
+      begin
+        memset(@dest_ip_addr, $FF, 4);       // Send to every hardware device
+        memset(@dest_mac, $FF, 6);           // Send it to every IP address
+    //    Eth_SendPing(True, 8);             // TODO: Need to smartly update protocol_ping.mpas to deal with an Ping Broadcast....
+      end;
+      Result := True;
+      break;
+    end;
+    inc(contorw);
+  end;
+end;
+
+procedure Wait_With_Eth(n : word);
+var i : word;
+begin
+  i := 0;
+  while i < n do
+    begin
+      delay_1ms_;
+      Do_EthernetProc(1);
+      inc(i);
+    end;
+end;
+
+end.

@@ -1,0 +1,223 @@
+unit SNMP_OID;
+
+const OID_number = 192;
+
+const OID : array[OID_number] of string[32] =
+(
+      '.1.3.6.1.2.1.1.1.0',                  // sysDescr, string, read only
+      '.1.3.6.1.2.1.1.2.0',                  // sysObjectID, OID, read only
+      '.1.3.6.1.2.1.1.3.0',                  // sysUpTime, timeticks, read only
+      '.1.3.6.1.2.1.1.5.0',                  // sysName, string, read write
+
+      '.1.3.6.1.4.1.17095.1.1.1.1.0',        // IP, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.2.0',        // MASK, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.3.0',        // GATEWAY, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.4.0',        // NTP, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.5.0',        // DNS, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.6.0',        // WDT IP, IP type, read write
+      '.1.3.6.1.4.1.17095.1.1.1.7.0',        // MAC, string, 12 bytes, read only
+      '.1.3.6.1.4.1.17095.1.1.1.8.0',        // DHCP, read write
+      '.1.3.6.1.4.1.17095.1.1.1.9.0',        // pass, read write
+      '.1.3.6.1.4.1.17095.1.1.1.10.0',       // save config (0 or 1, 1 - save config), read write
+
+      '.1.3.6.1.4.1.17095.1.1.2.1.0',        // DS18B20 sensor01 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.2.0',        // DS18B20 sensor02 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.3.0',        // DS18B20 sensor03 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.4.0',        // DS18B20 sensor04 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.5.0',        // DS18B20 sensor05 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.6.0',        // DS18B20 sensor06 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.7.0',        // DS18B20 sensor07 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.8.0',        // DS18B20 sensor08 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.9.0',        // DS18B20 sensor09 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.10.0',       // DS18B20 sensor10 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.11.0',       // DS18B20 sensor11 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.12.0',       // DS18B20 sensor12 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.13.0',       // DS18B20 sensor13 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.14.0',       // DS18B20 sensor14 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.15.0',       // DS18B20 sensor15 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.16.0',       // DS18B20 sensor16 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.17.0',       // DS18B20 sensor17 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.18.0',       // DS18B20 sensor18 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.19.0',       // DS18B20 sensor19 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.20.0',       // DS18B20 sensor20 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.21.0',       // DS18B20 sensor21 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.22.0',       // DS18B20 sensor22 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.23.0',       // DS18B20 sensor23 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.24.0',       // DS18B20 sensor24 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.25.0',       // DS18B20 sensor25 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.26.0',       // DS18B20 sensor26 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.27.0',       // DS18B20 sensor27 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.28.0',       // DS18B20 sensor28 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.29.0',       // DS18B20 sensor29 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.30.0',       // DS18B20 sensor30 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.31.0',       // DS18B20 sensor31 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.32.0',       // DS18B20 sensor32 name, string 15 chars, read write
+      '.1.3.6.1.4.1.17095.1.1.2.33.0',       // save config1 names (0 or 1, 1 - save config1), read write
+      
+      '.1.3.6.1.4.1.17095.1.2.1.1.0',        // DS18B20 sensor01, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.2.0',        // DS18B20 sensor02, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.3.0',        // DS18B20 sensor03, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.4.0',        // DS18B20 sensor04, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.5.0',        // DS18B20 sensor05, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.6.0',        // DS18B20 sensor06, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.7.0',        // DS18B20 sensor07, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.8.0',        // DS18B20 sensor08, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.9.0',        // DS18B20 sensor09, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.10.0',       // DS18B20 sensor10, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.11.0',       // DS18B20 sensor11, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.12.0',       // DS18B20 sensor12, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.13.0',       // DS18B20 sensor13, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.14.0',       // DS18B20 sensor14, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.15.0',       // DS18B20 sensor15, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.16.0',       // DS18B20 sensor16, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.17.0',       // DS18B20 sensor17, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.18.0',       // DS18B20 sensor18, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.19.0',       // DS18B20 sensor19, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.20.0',       // DS18B20 sensor20, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.21.0',       // DS18B20 sensor21, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.22.0',       // DS18B20 sensor22, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.23.0',       // DS18B20 sensor23, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.24.0',       // DS18B20 sensor24, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.25.0',       // DS18B20 sensor25, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.26.0',       // DS18B20 sensor26, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.27.0',       // DS18B20 sensor27, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.28.0',       // DS18B20 sensor28, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.29.0',       // DS18B20 sensor29, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.30.0',       // DS18B20 sensor30, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.31.0',       // DS18B20 sensor31, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.2.1.32.0',       // DS18B20 sensor32, integer*100, read only
+      
+      '.1.3.6.1.4.1.17095.1.2.2.1.0',        // DS18B20 sensor01, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.2.0',        // DS18B20 sensor02, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.3.0',        // DS18B20 sensor03, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.4.0',        // DS18B20 sensor04, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.5.0',        // DS18B20 sensor05, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.6.0',        // DS18B20 sensor06, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.7.0',        // DS18B20 sensor07, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.8.0',        // DS18B20 sensor08, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.9.0',        // DS18B20 sensor09, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.10.0',       // DS18B20 sensor10, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.11.0',       // DS18B20 sensor11, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.12.0',       // DS18B20 sensor12, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.13.0',       // DS18B20 sensor13, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.14.0',       // DS18B20 sensor14, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.15.0',       // DS18B20 sensor15, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.16.0',       // DS18B20 sensor16, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.17.0',       // DS18B20 sensor17, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.18.0',       // DS18B20 sensor18, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.19.0',       // DS18B20 sensor19, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.20.0',       // DS18B20 sensor20, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.21.0',       // DS18B20 sensor21, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.22.0',       // DS18B20 sensor22, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.23.0',       // DS18B20 sensor23, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.24.0',       // DS18B20 sensor24, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.25.0',       // DS18B20 sensor25, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.26.0',       // DS18B20 sensor26, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.27.0',       // DS18B20 sensor27, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.28.0',       // DS18B20 sensor28, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.29.0',       // DS18B20 sensor29, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.30.0',       // DS18B20 sensor30, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.31.0',       // DS18B20 sensor31, string, read only
+      '.1.3.6.1.4.1.17095.1.2.2.32.0',       // DS18B20 sensor32, string, read only
+
+      '.1.3.6.1.4.1.17095.1.2.3.1.0',        // DS18B20 sensor01 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.2.0',        // DS18B20 sensor02 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.3.0',        // DS18B20 sensor03 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.4.0',        // DS18B20 sensor04 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.5.0',        // DS18B20 sensor05 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.6.0',        // DS18B20 sensor06 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.7.0',        // DS18B20 sensor07 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.8.0',        // DS18B20 sensor08 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.9.0',        // DS18B20 sensor09 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.10.0',       // DS18B20 sensor10 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.11.0',       // DS18B20 sensor11 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.12.0',       // DS18B20 sensor12 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.13.0',       // DS18B20 sensor13 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.14.0',       // DS18B20 sensor14 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.15.0',       // DS18B20 sensor15 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.16.0',       // DS18B20 sensor16 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.17.0',       // DS18B20 sensor17 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.18.0',       // DS18B20 sensor18 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.19.0',       // DS18B20 sensor19 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.20.0',       // DS18B20 sensor20 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.21.0',       // DS18B20 sensor21 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.22.0',       // DS18B20 sensor22 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.23.0',       // DS18B20 sensor23 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.24.0',       // DS18B20 sensor24 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.25.0',       // DS18B20 sensor25 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.26.0',       // DS18B20 sensor26 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.27.0',       // DS18B20 sensor27 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.28.0',       // DS18B20 sensor28 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.29.0',       // DS18B20 sensor29 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.30.0',       // DS18B20 sensor30 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.31.0',       // DS18B20 sensor31 serial number, string, read only
+      '.1.3.6.1.4.1.17095.1.2.3.32.0',       // DS18B20 sensor32 serial number, string, read only
+      
+      '.1.3.6.1.4.1.17095.1.2.4.1.0',        // DS18B20 sensor01, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.2.0',        // DS18B20 sensor02, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.3.0',        // DS18B20 sensor03, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.4.0',        // DS18B20 sensor04, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.5.0',        // DS18B20 sensor05, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.6.0',        // DS18B20 sensor06, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.7.0',        // DS18B20 sensor07, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.8.0',        // DS18B20 sensor08, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.9.0',        // DS18B20 sensor09, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.10.0',       // DS18B20 sensor10, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.11.0',       // DS18B20 sensor11, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.12.0',       // DS18B20 sensor12, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.13.0',       // DS18B20 sensor13, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.14.0',       // DS18B20 sensor14, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.15.0',       // DS18B20 sensor15, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.16.0',       // DS18B20 sensor16, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.17.0',       // DS18B20 sensor17, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.18.0',       // DS18B20 sensor18, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.19.0',       // DS18B20 sensor19, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.20.0',       // DS18B20 sensor20, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.21.0',       // DS18B20 sensor21, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.22.0',       // DS18B20 sensor22, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.23.0',       // DS18B20 sensor23, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.24.0',       // DS18B20 sensor24, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.25.0',       // DS18B20 sensor25, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.26.0',       // DS18B20 sensor26, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.27.0',       // DS18B20 sensor27, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.28.0',       // DS18B20 sensor28, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.29.0',       // DS18B20 sensor29, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.30.0',       // DS18B20 sensor30, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.31.0',       // DS18B20 sensor31, alarm, 0-low 1-ok 2-hi, read only
+      '.1.3.6.1.4.1.17095.1.2.4.32.0',       // DS18B20 sensor32, alarm, 0-low 1-ok 2-hi, read only
+      
+      '.1.3.6.1.4.1.17095.1.3.1.1.0',        // AN0, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.3.1.2.0',        // AN1, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.3.1.3.0',        // AN2, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.3.1.4.0',        // AN3, integer*100, read only
+      
+      '.1.3.6.1.4.1.17095.1.3.2.1.0',        // AN0, string, read only
+      '.1.3.6.1.4.1.17095.1.3.2.2.0',        // AN1, string, read only
+      '.1.3.6.1.4.1.17095.1.3.2.3.0',        // AN2, string, read only
+      '.1.3.6.1.4.1.17095.1.3.2.4.0',        // AN3, string, read only
+
+      '.1.3.6.1.4.1.17095.1.4.1.1.0',        // DHT temp, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.4.1.2.0',        // DHT hum, integer*100, read only
+      
+      '.1.3.6.1.4.1.17095.1.4.2.1.0',        // DHT temp, string, read only
+      '.1.3.6.1.4.1.17095.1.4.2.2.0',        // DHT hum, string, read only
+
+      '.1.3.6.1.4.1.17095.1.5.1.1.0',        // DS2438 temp, integer*100, read only
+      '.1.3.6.1.4.1.17095.1.5.1.2.0',        // DS2438 hum, integer*100, read only
+
+      '.1.3.6.1.4.1.17095.1.5.2.1.0',        // DS2438 temp, string, read only
+      '.1.3.6.1.4.1.17095.1.5.2.2.0',        // DS2438 hum, string, read only
+      
+      '.1.3.6.1.4.1.17095.1.6.1.1.0'         // Relay, 0 or 1, read write
+); far;
+
+const comunity : string[32] = 'public';
+
+const SNMP_Port = 161;
+
+const sysDescr_ = 'SiteSense V2.1'; far;                   // sysName, string
+const sysObjectID_ = '.1.3.6.1.4.1.17095.1.1.0'; far;     // sysObjectID, OID
+
+implementation
+
+end.

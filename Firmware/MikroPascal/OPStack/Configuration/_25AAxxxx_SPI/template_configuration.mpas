@@ -1,0 +1,125 @@
+// *****************************************************************************
+//
+// This file is the template for the application to define how the Configuration
+// Memory Protocol accesses Configuration Memory
+//
+// In order for these to be called you must define the node/vnode implements the
+// Configuration Address Space in several places.
+// In the template_node and template_vnode files
+// 1) Protocol Identification Protocol (PIP) must define Configuration Memory Protocol exists (USER_PIV_SUPPORTED_PROTOCOLS)
+// 2) USER_CONFIGMEM_LOWEST_SPACE must be low enough to cover the MSI_CONFIG value
+//
+// *****************************************************************************
+
+unit template_configuration;
+
+{$IFDEF FPC}
+interface
+{$ENDIF}
+
+{$I Options.inc}
+
+uses
+  {$IFDEF FPC}
+  Classes,
+  SysUtils,
+  {$ENDIF}
+  _25AAxxxx,
+  opstack_types;
+
+procedure TemplateConfiguration_Initialize;
+function ConfigurationCallback_ReadConfiguration(ConfigAddress: DWord; ReadCount: Word; ConfigData: PByte): Word;
+function ConfigurationCallback_WriteConfiguration(ConfigAddress: DWord; WriteCount: Word; ConfigData: PByte): Word;
+
+function ConfigurationCallback_ReadAcdiUser(ConfigAddress: DWord; ReadCount: Word; ConfigData: PByte): Word;
+function ConfigurationCallback_WriteAcdiUser(ConfigAddress: DWord; WriteCount: Word; ConfigData: PByte): Word;
+
+implementation
+
+procedure TemplateConfiguration_Initialize;
+begin
+  _25AAxxxx_Initialize
+end;
+
+// *****************************************************************************
+//  procedure ConfigurationCallback_ReadConfiguration
+//     Parameters: : ConfigAddress:  The offset into the flat address space to
+//                                   start reading from
+//                   ReadCount    :  The number of bytes to read
+//                   DatagramData :  Pointer to the start of the Datagram Array
+//                                   were to write the data to
+//     Returns:    The number of bytes actually read;
+//     Description: Override to read from the configuration memory (could be
+//                  SPI EEPROM, internal EEPROM, files, etc)
+// *****************************************************************************
+function ConfigurationCallback_ReadConfiguration(ConfigAddress: DWord; ReadCount: Word; ConfigData: PByte): Word;
+begin
+  while _25AAxxxx_Busy(EEPROM_BANK_0) do
+    Delay_us(10);
+  _25AAxxxx_Read(EEPROM_BANK_0, ConfigAddress, ReadCount, ConfigData);
+  Result := ReadCount;
+end;
+
+// *****************************************************************************
+//  procedure ConfigurationCallback_WriteConfiguration
+//     Parameters: : ConfigAddress:  The offset into the flat address space to
+//                                   start writing from
+//                   ReadCount    :  The number of bytes to write
+//                   DatagramData :  Pointer to the start of the Datagram Array
+//                                   were to write the data to
+//     Returns:    The number of bytes actually written;
+//     Description: Override to write from the configuration memory (could be
+//                  SPI EEPROM, internal EEPROM, files, etc)
+// *****************************************************************************
+function ConfigurationCallback_WriteConfiguration(ConfigAddress: DWord; WriteCount: Word; ConfigData: PByte): Word;
+begin
+  while _25AAxxxx_Busy(EEPROM_BANK_0) do
+    Delay_us(10);
+  _25AAxxxx_Write(EEPROM_BANK_0, ConfigAddress, WriteCount, ConfigData);
+  Result := WriteCount;
+end;
+
+
+// *****************************************************************************
+//  procedure ConfigurationCallback_ReadAcdiUser
+//     Parameters: : ConfigAddress:  The offset into the flat address space to
+//                                   start reading from
+//                   ReadCount    :  The number of bytes to read
+//                   DatagramData :  Pointer to the start of the Datagram Array
+//                                   were to write the data to
+//     Returns:    The number of bytes actually read;
+//     Description: Override to read from the configuration memory (could be
+//                  SPI EEPROM, internal EEPROM, files, etc)
+// *****************************************************************************
+function ConfigurationCallback_ReadAcdiUser(ConfigAddress: DWord; ReadCount: Word; ConfigData: PByte): Word;
+begin
+  // Here we use the same configuration memory for the AcdiUser strings as normal configuration memory
+  // that data starts after the user strings
+  // The user can completly override this if desired, the library has filled in
+  // The first 128 Bytes of the Configuration Memory are for the User Strings in this example
+  // (Version ID + 63 + 64)
+   Result := ConfigurationCallback_ReadConfiguration(ConfigAddress, ReadCount, ConfigData)
+end;
+
+// *****************************************************************************
+//  procedure ConfigurationCallback_WriteAcdiUser
+//     Parameters: : ConfigAddress:  Is the _beginning_ of the block of configruation memory
+//                                   for the node or vNode (offset 0)
+//                   ReadCount    :  The number of bytes to read
+//                   DatagramData :  Pointer to the start of the Datagram Array
+//                                   were to write the data to
+//     Returns:    The number of bytes actually written;
+//     Description: Override to read from the configuration memory (could be
+//                  SPI EEPROM, internal EEPROM, files, etc)
+// *****************************************************************************
+function ConfigurationCallback_WriteAcdiUser(ConfigAddress: DWord; WriteCount: Word; ConfigData: PByte): Word;
+begin
+  // Here we use the same configuration memory for the AcdiUser strings as normal configuration memory
+  // that data starts after the user strings
+  // The user can completly override this if desired, the library has filled in
+  // The first 128 Bytes of the Configuration Memory are for the User Strings in this example
+  // (Version ID + 63 + 64)
+   Result := ConfigurationCallback_WriteConfiguration(ConfigAddress, WriteCount, ConfigData)
+end;
+
+end.

@@ -1,0 +1,31 @@
+a.button{
+display:inline-block;
+width:110px;
+height:16px;
+padding:3px;
+border:1px #D7D7D7 solid;
+text-align:center;
+text-decoration:none;
+color:#FFFFFF;
+font-weight: bold;
+background: #0080FF;}
+a.button:hover{
+background: #00ff00;
+color:#000000;
+text-decoration:none;}
+* {font-family:Tahoma, Arial, Helvetica, sans-serif;
+font-size:1em;} body {text-align:center;
+background:#111;margin:0;font-size:0.8em;}
+#w {position:relative;}
+#c {padding: 5px;background:#FFF;width:700px;margin: 0 auto;text-align:left;}
+#t {font-weight:bold;font-size: 2em;
+margin-bottom: 0.5em;}h2, h3 {
+margin:0 0 .906em 0;background:#0000AA;
+padding:.181em .725em;color:#FFFFFF;
+letter-spacing:.09em;}.s {position:relative;
+margin-bottom:.453em;line-height:1.993em;
+width:100%;}.s .l {float:left;width:18.931em;}
+fieldset {border:solid .09em #ccc;padding:.725em;
+margin:0;}fieldset legend {
+font-weight:bold;margin-left:-.362em;
+padding:0 .272em;background:#fff;color:#0000AA;}

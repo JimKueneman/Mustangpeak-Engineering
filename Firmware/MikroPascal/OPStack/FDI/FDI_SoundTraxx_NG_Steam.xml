@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="http://openlcb.org/trunk/prototypes/xml/xslt/fdi.xsl"?>
+<fdi xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://openlcb.org/trunk/prototypes/xml/schema/fdi.xsd">
+  <segment origin="0" space="250">
+    <name>Function Definition for a SoundTraxx Narrow Guage Loco</name>
+    <group>
+      <name>Locomotive Sounds</name>
+      <function origin="0">
+        <name>Headlights</name>
+      </function>
+      <function origin="7">
+        <name>Dimmer</name>
+      </function>
+      <function origin="1">
+        <name>Bell</name>
+      </function>
+      <function origin="2">
+        <name>Whistle</name>
+      </function>
+      <function origin="3">
+        <name>Short Whistle</name>
+      </function>
+      <function origin="4">
+        <name>Hiss</name>
+      </function>
+    </group>
+    <group>
+      <name>Train Sounds</name>
+      <function origin="5">
+        <name>Water Stop</name>
+      </function>
+      <function origin="6">
+        <name>Coupler</name>
+      </function>
+      <function origin="11">
+        <name>Brake Squeal</name>
+      </function>
+      <function origin="12">
+        <name>Injectors</name>
+      </function>
+    </group>
+    <group>
+      <name>Misc Functions</name>
+      <function origin="8">
+        <name>Mute</name>
+      </function>
+    </group>
+  </segment>
+</fdi>

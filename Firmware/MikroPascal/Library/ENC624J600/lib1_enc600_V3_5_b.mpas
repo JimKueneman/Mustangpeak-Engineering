@@ -1,0 +1,765 @@
+unit lib1_enc600_V3_5_b;
+
+uses dspic_additional_string_library,Lib_Delays_LIO,definitions_ENC600,def_IO;
+
+procedure DisableInt;
+procedure EnableInt;
+procedure delayms(n : word);
+Procedure Eth_Select;
+Procedure Eth_UnSelect;
+function Spi_Read_(dummy : byte) : byte;
+Procedure Eth_SendSystemReset;
+Procedure Eth_BSF(register_address : byte; mask : word);
+Procedure Eth_BCF(register_address : byte; mask : word);
+Function Eth_ReadReg(register_address : byte) : word;
+Procedure Eth_WriteReg(register_address : byte; data_b : word);
+function Check_Link : Boolean;
+procedure Eth_PutByte(value : byte);
+function Eth_GetByte : byte;
+Procedure Eth_WritePHYReg(register_address : byte; data_b : word);
+Function Eth_ReadPHYReg(register_address : byte) : word;
+procedure CopyEthMemToRam(start_eth_address, dest_ram_address, length_w : word);
+procedure CopyEthMem_CPToRam(dest_ram_address, length_w : word);
+procedure CopyEthMemToRam_Inv(start_eth_address, dest_ram_address, length_w : word);
+procedure CopyEthMem_CPToRam_Inv(dest_ram_address, length_w : word);
+procedure CopyEthMemToEthMem(start_eth_address, dest_eth_address, length_w : word);
+procedure CopyRamToEthMem(start_ram_address, dest_eth_address, length_w : word);
+procedure CopyRamToEthMem_Inv(start_ram_address, dest_eth_address, length_w : word);
+procedure CopyRamToEthMem_CP(start_ram_address, length_w : word);
+procedure CopyRamToEthMem_Inv_CP(start_ram_address, length_w : word);
+procedure EthMemSet(dest_eth_address : word; chr_ : byte; length_w : word);
+procedure EthMemSet_CP(chr_ : byte; length_w : word);
+function CopyRamStringToEthMem_CP(var s : string[1472]): word;
+function CopyRamStringToEthMem_CP_a(s_addr : word): word;
+procedure CopyFlashToEthMem(start_Flash_address : ^far const byte; dest_eth_address, length_w : word);
+procedure CopyFlashToEthMem_CP(start_Flash_address : ^far const byte; length_w : word);
+function CopyFlashStringToEthMem(start_Flash_address : ^far const byte;  dest_eth_address : word): word;
+function CopyFlashStringToEthMem_CP(start_Flash_address : ^far const byte): word;
+procedure WriteToEthMem(dest_eth_address : word; value : byte);
+function ReadFromEthMem(start_eth_address : word) : byte;
+function EthMemCompareWithRam(start_eth_address, start_ram_address, length_w : word) : Boolean;
+function EthMemCompareWithFlash(start_eth_address : word; start_Flash_address : ^far const byte; length_w : word) : Boolean;
+function Eth_Cksum(start_eth_address, length_w : word) : word;
+procedure Firewall(F_ICMP, F_TCP, F_UDP : Boolean);
+procedure Eth_Policy(poli : byte);
+
+var ENC_CS : sbit; sfr; external;
+    ENC_CS_dir : sbit; sfr; external;
+    
+const
+      RXSTART              : word = $1000;
+      RXEND                : word = $5FFF;
+      TXSTART              : word = $0000;
+      GPSTART              : word = $0800;
+
+      Months_Days          : array[13] of Byte = ( 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31); far;
+
+      Waiting              : byte = 127;
+
+      Reject               : byte = 1;
+      Drop                 : byte = 2;
+      
+type IpHeader = array[4] of byte;
+type MacHeader = array[6] of byte;
+
+var
+  LinkEstablished: Boolean;         // ReadOnly: use to test if the hardware layer is connected in the next work (MAC)
+  OneSecondCounter: Word;           // Used internally to count off 10 - 100ms timer interrupts to create the 1 second counter
+
+var
+    eth_ip_addr : IpHeader;
+    eth_dns_addr : IpHeader;
+    eth_ntp_addr : IpHeader;
+    eth_gateway : IpHeader;
+    eth_mask : IpHeader;
+    eth_mac : MacHeader;
+    
+    
+    dest_ip_addr : IpHeader;      // On the block to get removed....
+    dest_ip_addr1 : IpHeader;
+    dest_ip_addr2 : IpHeader;
+    resp_ip_addr : IpHeader;
+    dest_mac : MacHeader;        // On the block to get removed....
+    source_port : word;
+
+    AddrPacket, NextPacket : word;
+    LongTmr : longint;
+    SEQ_No, ACK_No, SEQ_NoR, ACK_NoR : dWord;
+    TCP_Flag,TCP_FlagR,count_100 : byte;
+    Window,tcp_counter : word;
+    TickCounter1,TickCounter10 : word;
+
+    FICMP,FTCP,FUDP : Boolean;
+
+
+    policy : byte;
+
+    portaddress_cs,portaddress_reset : word;
+    set_cs, set_reset : word;
+    clr_cs, clr_reset : word;
+
+    save_int : byte;
+    
+    tmp_ip_addr,
+    tmp_gat_addr,
+    tmp_mask_addr,
+    tmp_dns_addr : IpHeader;
+    
+    hw_cksum,
+    udp_broadcast,
+    broadcast_packet,
+    use_user_MAC : Boolean;
+    
+    dynamic_var_addr : word;
+    
+    opened_socket : word;
+    
+implementation
+
+procedure DisableInt;
+begin
+  asm
+    DISI #31
+  end;
+end;
+
+procedure EnableInt;
+begin
+  DISICNT := 0;
+end;
+
+procedure delayms(n : word);
+var i : word;
+begin
+  i := 0;
+  while i < n do
+    begin
+      delay_1ms_;
+      CLRWDT;
+      inc(i);
+    end;
+end;
+
+Procedure Eth_Select;
+begin
+  ENC_CS := 0;
+End;
+
+Procedure Eth_UnSelect;
+begin
+  nop;
+  ENC_CS := 1;
+End;
+
+function Spi_Read_(dummy : byte) : byte;
+begin
+//  Result := SPI1BUF;
+  asm
+    MOV SPI1BUF,W0
+  end;
+  while SPI1STAT.1 = 1 do ;
+  SPI1BUF := dummy;
+  while SPI1STAT.0 = 0 do ;
+  Result := SPI1BUF;
+end;
+
+Procedure WCmd1(cmd1 : byte);
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Eth_UnSelect;
+End;
+
+Procedure WCmd2(cmd1,cmd2 : byte);
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Spi_Read_(cmd2);
+  Eth_UnSelect;
+End;
+
+Function RCmd2(cmd1 : byte) : byte;
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Result := Spi_Read_(0);
+  Eth_UnSelect;
+End;
+
+Function RCmd2W(cmd1 : byte) : word;
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Lo(Result) := Spi_Read_(0);
+  Hi(Result) := Spi_Read_(0);
+  Eth_UnSelect;
+End;
+
+Procedure WCmd3(cmd1,cmd2,cmd3 : byte);
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Spi_Read_(cmd2);
+  Spi_Read_(cmd3);
+  Eth_UnSelect;
+End;
+
+Function RCmd3(cmd1,cmd2 : byte) : byte;
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Spi_Read_(cmd2);
+  Result := Spi_Read_(0);
+  Eth_UnSelect;
+End;
+
+Function RCmd3W(cmd1,cmd2 : byte) : word;
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Spi_Read_(cmd2);
+  Lo(Result) := Spi_Read_(0);
+  Hi(Result) := Spi_Read_(0);
+  Eth_UnSelect;
+End;
+
+Procedure WCmd4(cmd1,cmd2 : byte; cmd3 : word);
+Begin
+  Eth_Select;
+  Spi_Read_(cmd1);
+  Spi_Read_(cmd2);
+  Spi_Read_(Lo(cmd3));
+  Spi_Read_(Hi(cmd3));
+  Eth_UnSelect;
+End;
+
+Procedure Eth_BSF(register_address : byte; mask : word);
+Begin
+  WCmd4(BFSUCMD_,register_address,mask);
+End;
+
+Procedure Eth_BCF(register_address : byte; mask : word);
+Begin
+  WCmd4(BFCUCMD_,register_address,mask);
+End;
+
+Function Eth_ReadReg(register_address : byte) : word;
+Begin
+  Result := RCmd3W(RCRUCMD_,register_address);
+End;
+
+Procedure Eth_WriteReg(register_address : byte; data_b : word);
+Begin
+  WCmd4(WCRUCMD_,register_address,data_b);
+End;
+
+Procedure Eth_SendSystemReset;
+begin
+  while True do
+  begin
+    while True do
+    begin
+      Eth_WriteReg(EUDAST_,$1234);
+      if Eth_ReadReg(EUDAST_) = $1234 then
+        Break;
+    end;
+    while True do
+    begin
+      if (Eth_ReadReg(ESTAT_) and $1000) = $1000 then  // CLKRDY
+        Break
+    end;
+    Eth_BSF(ECON2_, $0010);   // ETHRST
+    Delay_us(50);
+   { while True do
+    begin
+      if (Eth_ReadReg(ESTAT_) and $1A00) = $1A00 then           // ???? CLKRDY and 2 reserved bits?  What are you doing here Florin?
+        Break;
+    end;
+    delay_1ms_; }
+    if Eth_ReadReg(EUDAST_) = 0 then
+      Break;
+  end;
+  Delay_us(256);   // Wait 256us for the PHY register and bits to become available.
+end;
+
+procedure Eth_PutByte(value : byte);
+begin
+  WCmd2(WGPDATA_,value)
+end;
+
+function Eth_GetByte : byte;
+begin
+  Result := RCmd2(RGPDATA_);
+end;
+
+Procedure Eth_WritePHYReg(register_address : byte; data_b : word);
+Begin
+  Eth_WriteReg(MIREGADR_,$0100 or register_address);
+  Eth_WriteReg(MIWR_,data_b);
+  while (Eth_ReadReg(MISTAT_) and $0001) <> 0 do ;
+End;
+
+Function Eth_ReadPHYReg(register_address : byte) : word;
+Begin
+  Eth_WriteReg(MIREGADR_,$0100 or register_address);
+  Eth_WriteReg(MICMD_,$0001);
+  while (Eth_ReadReg(MISTAT_) and $0001) <> 0 do ;
+  Eth_WriteReg(MICMD_,$0000);
+  Result := Eth_ReadReg(MIRD_);
+End;
+
+function Check_Link : Boolean;
+begin
+  LinkEstablished := True;
+  if (Eth_ReadReg(ESTAT_) and $0100) = 0 then
+    if (Eth_ReadReg(ESTAT_) and $0100) = 0 then 
+      LinkEstablished := False;
+  Result := LinkEstablished;
+end;
+
+procedure CopyEthMemToRam(start_eth_address, dest_ram_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then Exit;
+  Eth_WriteReg(EGPRDPT_, start_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+
+  pt := dest_ram_address;
+  i := 0;
+  while i < length_w do
+    begin
+      pt^ := Spi_Read_(0);
+      pt := pt + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyEthMem_CPToRam(dest_ram_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then Exit;
+  
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+
+  pt := dest_ram_address;
+  i := 0;
+  while i < length_w do
+    begin
+      pt^ := Spi_Read_(0);
+      pt := pt + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyEthMemToRam_Inv(start_eth_address, dest_ram_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then Exit;
+  Eth_WriteReg(EGPRDPT_, start_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+  
+  pt := dest_ram_address + length_w - 1;
+  i := 0;
+  while i < length_w do
+    begin
+      pt^ := Spi_Read_(0);
+      pt := pt - 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyEthMem_CPToRam_Inv(dest_ram_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then Exit;
+  
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+  
+  pt := dest_ram_address + length_w - 1;
+  i := 0;
+  while i < length_w do
+    begin
+      pt^ := Spi_Read_(0);
+      pt := pt - 1;
+      inc(i);
+    end;
+
+  Eth_UnSelect;
+end;
+
+procedure CopyEthMemToEthMem(start_eth_address, dest_eth_address, length_w : word);
+begin
+  if length_w = 0 then Exit;
+  Eth_WriteReg(EDMAST_, start_eth_address);
+  Eth_WriteReg(EDMADST_, dest_eth_address);
+  Eth_WriteReg(EDMALEN_, length_w);
+
+  Eth_BSF(ECON1_, ECON1_DMANOCS_ or ECON1_DMAST_ or ECON1_DMACPY_);
+  while (Eth_ReadReg(ECON1_) and ECON1_DMAST_) <> 0 do ;
+end;
+
+procedure CopyRamToEthMem(start_ram_address, dest_eth_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then Exit;
+  Eth_WriteReg(EGPWRPT_, dest_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+
+  pt := start_ram_address;
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(pt^);
+      pt := pt + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyRamToEthMem_Inv(start_ram_address, dest_eth_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then Exit;
+  Eth_WriteReg(EGPWRPT_, dest_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  pt := start_ram_address + length_w - 1;
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(pt^);
+      pt := pt - 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyRamToEthMem_CP(start_ram_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then Exit;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  pt := start_ram_address;
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(pt^);
+      pt := pt + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyRamToEthMem_Inv_CP(start_ram_address, length_w : word);
+var i : word;
+    pt : ^byte;
+begin
+  if length_w = 0 then Exit;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  pt := start_ram_address + length_w - 1;
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(pt^);
+      pt := pt - 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure EthMemSet(dest_eth_address : word; chr_ : byte; length_w : word);
+var i : word;
+begin
+  if length_w = 0 then Exit;
+  Eth_WriteReg(EGPWRPT_, dest_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(chr_);
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure EthMemSet_CP(chr_ : byte; length_w : word);
+var i : word;
+begin
+  if length_w = 0 then Exit;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(chr_);
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+function CopyRamStringToEthMem_CP(var s : string[1472]): word;
+var pt : ^byte;
+    buf : byte;
+begin
+  Result := 0;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  pt := @s;
+  while True do
+    begin
+      buf := pt^;
+      if buf = 0 then Break;
+      Spi_Read_(buf);
+      pt := pt + 1;
+      inc(Result);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+function CopyRamStringToEthMem_CP_a(s_addr : word): word;
+var pt : ^byte;
+    buf : byte;
+begin
+  Result := 0;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  pt := s_addr;
+  while True do
+    begin
+      buf := pt^;
+      if buf = 0 then Break;
+      Spi_Read_(buf);
+      pt := pt + 1;
+      inc(Result);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyFlashToEthMem(start_Flash_address : ^far const byte; dest_eth_address, length_w : word);
+var i : word;
+begin
+  if length_w = 0 then Exit;
+  i := 0;
+  Eth_WriteReg(EGPWRPT_, dest_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  while i < length_w do
+    begin
+      Spi_Read_(start_Flash_address^);
+      start_Flash_address := start_Flash_address + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure CopyFlashToEthMem_CP(start_Flash_address : ^far const byte; length_w : word);
+var i : word;
+begin
+  if length_w = 0 then Exit;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  i := 0;
+  while i < length_w do
+    begin
+      Spi_Read_(start_Flash_address^);
+      start_Flash_address := start_Flash_address + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+function CopyFlashStringToEthMem(start_Flash_address : ^far const byte;  dest_eth_address : word): word;
+var buf : byte;
+begin
+  Result := 0;
+  Eth_WriteReg(EGPWRPT_, dest_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  while True do
+    begin
+      buf := start_Flash_address^;
+      if buf = 0 then Break;
+      Spi_Read_(buf);
+      start_Flash_address := start_Flash_address + 1;
+      inc(Result);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+function CopyFlashStringToEthMem_CP(start_Flash_address : ^far const byte): word;
+var buf : byte;
+begin
+  Result := 0;
+  
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  
+  while True do
+    begin
+      buf := start_Flash_address^;
+      if buf = 0 then Break;
+      Spi_Read_(buf);
+      start_Flash_address := start_Flash_address + 1;
+      inc(Result);
+    end;
+    
+  Eth_UnSelect;
+end;
+
+procedure WriteToEthMem(dest_eth_address : word; value : byte);
+begin
+  Eth_WriteReg(EGPWRPT_, dest_eth_address);
+  Eth_Select;
+  Spi_Read_(WGPDATA_);
+  Spi_Read_(value);
+  Eth_UnSelect;
+end;
+
+function ReadFromEthMem(start_eth_address : word) : byte;
+begin
+  Eth_WriteReg(EGPRDPT_, start_eth_address);
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+  Result := Spi_Read_(0);
+  Eth_UnSelect;
+end;
+
+function EthMemCompareWithRam(start_eth_address, start_ram_address, length_w : word) : Boolean;
+var i : word;
+    pt : ^byte;
+begin
+  Result := False;
+  if length_w = 0 then Exit;
+  Eth_WriteReg(EGPRDPT_, start_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+  
+  pt := start_ram_address;
+  i := 0;
+  while i < length_w do
+    begin
+      if pt^ <> Spi_Read_(0) then
+        begin
+          Eth_UnSelect;
+          Exit;
+        end;
+      pt := pt + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+  Result := True;
+end;
+
+function EthMemCompareWithFlash(start_eth_address : word; start_Flash_address : ^far const byte; length_w : word) : Boolean;
+var i : word;
+begin
+  Result := False;
+  if length_w = 0 then Exit;
+  Eth_WriteReg(EGPRDPT_, start_eth_address);
+  
+  Eth_Select;
+  Spi_Read_(RGPDATA_);
+  
+  i := 0;
+  while i < length_w do
+    begin
+      if Spi_Read_(0) <> start_Flash_address^ then
+        begin
+          Eth_UnSelect;
+          Exit;
+        end;
+      start_Flash_address := start_Flash_address + 1;
+      inc(i);
+    end;
+    
+  Eth_UnSelect;
+  Result := True;
+end;
+
+function Eth_Cksum(start_eth_address, length_w : word) : word;
+var i : word;
+begin
+  Result := 0;
+  if length_w = 0 then Exit;
+  while (Eth_ReadReg(ECON1_) and ECON1_DMAST_) <> 0 do;
+  Eth_WriteReg(EDMAST_, start_eth_address);
+  Eth_WriteReg(EDMALEN_, length_w);
+  Eth_BCF(ECON1_, ECON1_DMACPY_ or ECON1_DMANOCS_ or ECON1_DMACSSD_);
+  Eth_BSF(ECON1_, ECON1_DMAST_);
+  while (Eth_ReadReg(ECON1_) and ECON1_DMAST_) <> 0 do;  // wait for DMA complete checksum calculation, but NO more than 500 us
+  i := Eth_ReadReg(EDMACS_);
+  Lo(Result) := Hi(i);
+  Hi(Result) := Lo(i);
+end;
+
+procedure Firewall(F_ICMP, F_TCP, F_UDP : Boolean);
+begin
+  FICMP := F_ICMP;
+  FTCP := F_TCP;
+  FUDP := F_UDP;
+end;
+
+procedure Eth_Policy(poli : byte);
+begin
+  policy := poli;
+end;
+
+
+end.

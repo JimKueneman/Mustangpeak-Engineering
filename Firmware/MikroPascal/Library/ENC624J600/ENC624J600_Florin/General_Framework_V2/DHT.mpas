@@ -1,0 +1,187 @@
+unit DHT;
+
+uses dspic_additional_string_library,Lib_Delays_LIO,def_io;
+
+function DHT1_Read(var temp : integer; var hum : word) : boolean;
+
+var DHT1_in : sbit sfr external;
+var DHT1_lat : sbit sfr external;
+var DHT1_dir : sbit sfr external;
+
+implementation
+
+function DHT1_Read(var temp : integer; var hum : word) : boolean;
+var dat : array[5] of byte;
+    i,cnt : word;
+label end_DHT;
+begin
+  result := false;
+  DHT1_lat := 0;
+  nop;
+  DHT1_dir := 0;  // buss LO
+  delay_ms(1);
+  ASM
+    DISI #16000
+  End;
+  DHT1_dir := 1;  // buss HI
+  delay_us(80);
+  if DHT1_in <> 0 then goto end_DHT;
+  delay_us(80);
+  if DHT1_in = 0 then goto end_DHT;
+  cnt := 0;
+  while true do
+    begin
+      delay_us(1);
+      if DHT1_in = 0 then break;
+      if inc(cnt) > 99 then goto end_DHT;
+    end;
+  DISICNT := 0;
+  
+  delay_us(1);
+  
+  ASM
+    DISI #16000
+  End;
+  dat[0] := 0;
+  for i := 7 downto 0 do
+    begin
+      cnt := 0;
+      while true do
+        begin
+          delay_us(1);
+          if DHT1_in = 1 then break;
+          if inc(cnt) > 99 then goto end_DHT;
+        end;
+      cnt := 0;
+      while true do
+        begin
+          delay_us(1);
+          if DHT1_in = 0 then break;
+          if inc(cnt) > 99 then goto end_DHT;
+        end;
+      if cnt > 25 then dat[0].i := 1;
+    end;
+  DISICNT := 0;
+
+  delay_us(1);
+
+  ASM
+    DISI #16000
+  End;
+  dat[1] := 0;
+  for i := 7 downto 0 do
+    begin
+      cnt := 0;
+      while true do
+        begin
+          delay_us(1);
+          if DHT1_in = 1 then break;
+          if inc(cnt) > 99 then goto end_DHT;
+        end;
+      cnt := 0;
+      while true do
+        begin
+          delay_us(1);
+          if DHT1_in = 0 then break;
+          if inc(cnt) > 99 then goto end_DHT;
+        end;
+      if cnt > 25 then dat[1].i := 1;
+    end;
+  DISICNT := 0;
+
+  delay_us(1);
+
+  ASM
+    DISI #16000
+  End;
+  dat[2] := 0;
+  for i := 7 downto 0 do
+    begin
+      cnt := 0;
+      while true do
+        begin
+          delay_us(1);
+          if DHT1_in = 1 then break;
+          if inc(cnt) > 99 then goto end_DHT;
+        end;
+      cnt := 0;
+      while true do
+        begin
+          delay_us(1);
+          if DHT1_in = 0 then break;
+          if inc(cnt) > 99 then goto end_DHT;
+        end;
+      if cnt > 25 then dat[2].i := 1;
+    end;
+  DISICNT := 0;
+
+  delay_us(1);
+
+  ASM
+    DISI #16000
+  End;
+  dat[3] := 0;
+  for i := 7 downto 0 do
+    begin
+      cnt := 0;
+      while true do
+        begin
+          delay_us(1);
+          if DHT1_in = 1 then break;
+          if inc(cnt) > 99 then goto end_DHT;
+        end;
+      cnt := 0;
+      while true do
+        begin
+          delay_us(1);
+          if DHT1_in = 0 then break;
+          if inc(cnt) > 99 then goto end_DHT;
+        end;
+      if cnt > 25 then dat[3].i := 1;
+    end;
+  DISICNT := 0;
+
+  delay_us(1);
+  
+  ASM
+    DISI #16000
+  End;
+  dat[4] := 0;
+  for i := 7 downto 0 do
+    begin
+      cnt := 0;
+      while true do
+        begin
+          delay_us(1);
+          if DHT1_in = 1 then break;
+          if inc(cnt) > 99 then goto end_DHT;
+        end;
+      cnt := 0;
+      while true do
+        begin
+          delay_us(1);
+          if DHT1_in = 0 then break;
+          if inc(cnt) > 99 then goto end_DHT;
+        end;
+      if cnt > 25 then dat[4].i := 1;
+    end;
+  DISICNT := 0;
+  
+  if Lo(dat[0] + dat[1] + dat[2] + dat[3]) = dat[4] then
+    begin
+      Hi(hum) := dat[0];
+      Lo(hum) := dat[1];
+      hum := hum * 10;
+      Hi(temp) := dat[2];
+      Lo(temp) := dat[3];
+      if dat[2].7 <> 0 then temp := (32768 - temp);
+      temp := temp * 10;
+      result := true;
+    end;
+    
+end_DHT:
+
+  DISICNT := 0;
+end;
+
+end.

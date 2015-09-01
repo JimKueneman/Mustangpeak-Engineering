@@ -1,0 +1,82 @@
+unit opstackcore_can;
+
+// TODO:  Need to test FlushDestinationMessages
+
+{$IFDEF FPC}
+interface
+{$ENDIF}
+
+{$I Options.inc}
+
+uses
+  opstack_node,
+  opstack_utilities,
+  opstack_defines,
+  opstackcore_datagram;
+
+procedure DuplicateSourceDetected(AMessage: POPStackMessage; SourceNode: POpenLCBNode);
+procedure AliasMappingEnquiry(AMessage: POPStackMessage; DestNode: POpenLCBNode);
+procedure AliasMappingDefinition(AMessage: POPStackMessage; DestNode: POpenLCBNode);
+procedure AliasMappingReset(AMessage: POPStackMessage; DestNode: POpenLCBNode);
+
+implementation
+
+procedure DuplicateSourceDetected(AMessage: POPStackMessage; SourceNode: POpenLCBNode);
+begin
+  if AMessage^.MessageType and MT_CAN_TYPE <> 0 then
+  begin
+    // It may be a "good" duplicate message or a "bad" duplicate message
+    if (AMessage^.MTI = MTI_CAN_CID0) or (AMessage^.MTI = MTI_CAN_CID1) or (AMessage^.MTI = MTI_CAN_CID2) or (AMessage^.MTI = MTI_CAN_CID3) then
+      OPStackNode_SetFlag(SourceNode, MF_DUPLICATE_ALIAS_RID)                   // "Good Duplicate" - Another node is trying to register our Alias, tell it NO!
+    else
+      OPStackNode_SetFlag(SourceNode, MF_DUPLICATE_ALIAS);                      // "Bad Duplicate" - Another node is using our Alias, we have to disconnect from the network
+  end else
+    OPStackNode_SetFlag(SourceNode, MF_DUPLICATE_ALIAS);                        // "Bad Duplicate" - Another node is using our Alias, we have to disconnect from the network
+end;
+
+procedure AliasMappingEnquiry(AMessage: POPStackMessage; DestNode: POpenLCBNode);
+begin
+  if AMessage^.Buffer^.DataBufferSize = 0 then
+    OPStackNode_SetFlags(MF_ALIAS_MAP_ENQUIRY)
+  else begin
+    OpenLCBUtilities_SimpleDataToNodeID(@AMessage^.Buffer^.DataArray, AMessage^.Dest.ID);
+    DestNode := OPStackNode_FindByID(AMessage^.Dest.ID);
+    if DestNode <> nil then       // The full Source ID was filled above so it will be use to search
+    begin
+      if OPStackNode_TestState(DestNode, NS_PERMITTED) then                     // Only reply if node is in Permitted state
+        OPStackNode_SetFlag(DestNode, MF_ALIAS_MAP_ENQUIRY);
+    end;
+  end;
+end;
+
+procedure AliasMappingDefinition(AMessage: POPStackMessage; DestNode: POpenLCBNode);
+begin
+  if DestNode = nil then
+    if AMessage^.Buffer^.DataBufferSize > 0 then
+    begin
+      OpenLCBUtilities_SimpleDataToNodeID(@AMessage^.Buffer^.DataArray, AMessage^.Dest.ID);
+      DestNode := OPStackNode_FindByID(AMessage^.Dest.ID);
+    end;
+  if DestNode <> nil then                                                       // The full Source ID was filled above so it will be use to search
+  begin
+    if OPStackNode_TestState(DestNode, NS_PERMITTED) then                       // Only reply if node is in Permitted state
+      OPStackNode_SetFlag(DestNode, MF_DUPLICATE_NODE_ID);                      // The other node has the same Node ID as we do!  Warning Will Robinson, Warning
+ //   FlushWaitingForAckResponseMessagesByDestinationAlias(AMessage^.Source);
+  end;
+end;
+
+procedure AliasMappingReset(AMessage: POPStackMessage; DestNode: POpenLCBNode);
+begin
+  if DestNode = nil then
+    if AMessage^.Buffer^.DataBufferSize > 0 then
+    begin
+      OpenLCBUtilities_SimpleDataToNodeID(@AMessage^.Buffer^.DataArray, AMessage^.Dest.ID);
+      DestNode := OPStackNode_FindByID(AMessage^.Dest.ID);
+    end;
+  if DestNode <> nil then
+  begin
+ //   FlushWaitingForAckResponseMessagesByDestinationAlias(AMessage^.Source);
+  end;
+end;
+
+end.

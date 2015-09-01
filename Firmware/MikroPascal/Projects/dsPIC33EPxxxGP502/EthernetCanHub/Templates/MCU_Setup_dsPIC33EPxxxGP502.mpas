@@ -1,0 +1,402 @@
+unit MCU_Setup_dsPIC33EP64GP502;
+
+uses
+  HelperCAN;
+
+const
+  CAN_SWJ        = 0;               // Set up for 125Khz Baud Rate with a 8Mhz Crystal
+  CAN_BRP        = 7;               // Baud Rate Prescaler = 15 Quanta (125000 * 16 = 20Meg)
+  CAN_PHASESEG_1 = 4;               //   16 - (1 + 6 + 5) = 4
+  CAN_PHASESEG_2 = 5;               //
+  CAN_PROP_SEG   = 3;               //
+  
+  MAX_ECAN_BUFFER = 32;
+  MAX_SPI_BUFFER = 29;
+  
+  CAN_DMA_DATA_OFFSET = $1000;                // This is the start of the X-Data area.  Some of the dsPIC33s require DMA RAM to be
+  SPI_TX_DMA_A_DATA_OFFSET = CAN_DMA_DATA_OFFSET + (SizeOf(TCANRawBuffer) * MAX_ECAN_BUFFER);
+  SPI_TX_DMA_B_DATA_OFFSET = SPI_TX_DMA_A_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
+  SPI_RX_DMA_A_DATA_OFFSET = SPI_TX_DMA_B_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
+  SPI_RX_DMA_B_DATA_OFFSET = SPI_RX_DMA_A_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
+  LF = #13+#10;
+
+type
+  TCan_RawBufferArray = array[0..MAX_ECAN_BUFFER-1] of TCANRawBuffer;
+  TSpi_RawBufferArray = array[MAX_SPI_BUFFER] of Byte;
+
+  
+var
+  Can_RawBufferArray: TCan_RawBufferArray; absolute CAN_DMA_DATA_OFFSET;   // Transmit buffer for all filters.  The software pulls the data to the right list
+  Spi_TxARawBufferArray: TSpi_RawBufferArray; absolute SPI_TX_DMA_A_DATA_OFFSET;
+  Spi_TxBRawBufferArray: TSpi_RawBufferArray; absolute SPI_TX_DMA_B_DATA_OFFSET;
+  Spi_RxARawBufferArray: TSpi_RawBufferArray; absolute SPI_RX_DMA_A_DATA_OFFSET;
+  Spi_RxBRawBufferArray: TSpi_RawBufferArray; absolute SPI_RX_DMA_B_DATA_OFFSET;
+  
+  procedure MCU_Setup_Initialize;
+  procedure MCU_Enable_CAN;
+  procedure MCU_Enable_100msTimer;
+  procedure MCU_Enable_500msTimer;
+  procedure MCU_Enable_UART;
+  procedure MCU_Enable_SPI;
+  procedure MCU_Enable_PinChangeNotification;
+  
+  function NextFifoOpenLcbBuffer(var OpenLcbBuffer: TOpenLCBCanBuffer): Boolean;
+  function TryTransmitOpenLcbBuffer(var OpenLcbBuffer: TOpenLCBCanBuffer): Boolean;
+  procedure ForceSpi1Transmit;
+  procedure EnableSpi1(Enable: Boolean);
+  
+implementation
+
+// *****************************************************************************
+//  procedure NextFifoOpenLcbBuffer;
+//
+//  Parameters: OpenLcbBuffer: Buffer to fill in with the next Raw CAN buffer
+//
+//  Result:  True if ther was a message to retrieve, else false
+//
+// *****************************************************************************
+function NextFifoOpenLcbBuffer(var OpenLcbBuffer: TOpenLCBCanBuffer): Boolean;
+var
+  Tail, Head: Word;
+  Extended: Boolean;
+begin
+  Result := False;
+  ClearWindowSelectBit;
+  Tail := C1FIFO and $001F;
+  Head := (C1FIFO shr 8) and $001F;
+  if Tail <> Head then
+  begin
+    Extended := True;
+    dsPIC33_DMA_Style_Buffer(OpenLcbBuffer, Extended, CAN_DIRECTION_READ, @Can_RawBufferArray[Tail].Word0);
+    CAN_IsReceiveFull(Tail, True);
+    Result := True;
+  end;
+end;
+
+// *****************************************************************************
+//  procedure TryTransmitOpenLcbBuffer;
+//
+//  Parameters: OpenLcbBuffer: Buffer to to send
+//
+//  Result:  True if the transmit buffer was empty and the message is flagged to be send else false
+//
+// *****************************************************************************
+function TryTransmitOpenLcbBuffer(var OpenLcbBuffer: TOpenLCBCanBuffer): Boolean;
+var
+  Extended: Boolean;
+begin
+  Result := False;
+  if CAN_IsTransmitRequested(0) = False then
+  begin    // Buffer 0 is empty
+    Extended := True;
+    dsPIC33_DMA_Style_Buffer(OpenLcbBuffer, Extended, CAN_DIRECTION_WRITE, @Can_RawBufferArray[0].Word0);
+    CAN_RequestTransmit(0);
+    Result := True;
+  end;
+end;
+
+procedure MCU_Enable_CAN;
+const
+  SAMPLE_3_TIMES = $0040;
+  PROGRAMMABLE_SEG2PHTS = $0080;
+  IRQ_ECAN1_RX_DATA_READY              = 34;
+  IRQ_ECAN2_RX_DATA_READY              = 55;
+  IRQ_ECAN1_TX_DATA_READY              = 70;
+  IRQ_ECAN2_TX_DATA_READY              = 71;
+var
+  Address: DWord;
+  i: Integer;
+begin
+  for i := 0 to MAX_ECAN_BUFFER - 1 do
+  begin
+    Can_RawBufferArray[i].Word0 := 0;
+    Can_RawBufferArray[i].Word1 := 0;
+    Can_RawBufferArray[i].Word2 := 0;
+    Can_RawBufferArray[i].Word3 := 0;
+    Can_RawBufferArray[i].Word4 := 0;
+    Can_RawBufferArray[i].Word5 := 0;
+    Can_RawBufferArray[i].Word6 := 0;
+    Can_RawBufferArray[i].Word7 := 0;
+  end;
+  
+  CAN_EnterConfigMode;
+  CAN_SetBaud(CAN_SWJ, CAN_BRP, CAN_PHASESEG_2, CAN_PHASESEG_1, CAN_PROP_SEG, True);
+  
+  CAN_SetMask(0, $00000000, True);
+  CAN_SetFilter(0, $00000000, True);
+  CAN_RegisterMaskWithFilter(0, 0);
+  CAN_EnableFilter(0, True);
+  CAN_RegisterFilterWithBuffer(0, $000F);   // Use the FIFO
+  
+  CAN_EnterNormalMode;
+  
+  // 32 Buffers total (Receive = Total - Transmit Buffers assigned)
+  DMABS_2_bit := 1;
+  DMABS_1_bit := 1;
+  DMABS_0_bit := 0;
+
+  // Receive Buffers start at Buffer 3, 0-2 are Transmitters
+  FSA_4_bit := 0;
+  FSA_3_bit := 0;
+  FSA_2_bit := 0;
+  FSA_1_bit := 1;
+  FSA_0_bit := 1;
+
+  // _____________________ Transmit _______________________________
+  
+  // Setup the 3 CAN Transmitters
+  CAN_SetBufferAsTransmitter(0, True);
+  CAN_SetBufferAsTransmitter(1, True);
+  CAN_SetBufferAsTransmitter(2, True);
+  
+  // Set up Normal Transmit 0 DMA
+  //  DMAnCON
+  // Word Transfer
+  SIZE_DMA3CON_bit := 0;
+  // Direction = RAM to perpherial
+  DIR__DMA3CON_bit :=  1;
+                                                    //   10 = Peripheral Indirect Addressing mode
+  AMODE_1_DMA3CON_bit := 1;                         //   01 = Register Indirect without Post-Increment mode
+  AMODE_0_DMA3CON_bit := 0;                         //   00 = Register Indirect with Post-Increment mode
+  // Continous nonPingPong operation Mode
+  MODE_1_DMA3CON_bit := 0;
+  MODE_0_DMA3CON_bit := 0;
+
+  // DMAnREQ
+  DMA3REQ := IRQ_ECAN1_TX_DATA_READY;
+  
+  DMA3CNT := 7;   // DMAxCNT + 1 = number of bytes on DMA transfer = 8
+  Address := LongInt(@Can_RawBufferArray[0]);
+  DMA3STAH := Higher(Address);
+  DMA3STAL := (Hi(Address) shl 8) or Lo(Address);
+  DMA3PAD := Word( @C1TXD);
+  CHEN_DMA3CON_bit := 1; //Channel Enabled
+
+  // _____________________ Receive _______________________________
+  
+  // Set up Normal Receive 0 DMA
+  // ......DMAnCON  ....
+  // Word Transfer
+  SIZE_DMA2CON_bit := 0;
+  // Direction = Peripheral to RAM
+  DIR__DMA2CON_bit :=  0;
+  // Peripheral Indirect Addressing mode for FIFO
+  AMODE_1_DMA2CON_bit := 1;
+  AMODE_0_DMA2CON_bit := 0;
+  // Continous nonPingPong operation Mode
+  MODE_1_DMA2CON_bit := 0;
+  MODE_0_DMA2CON_bit := 0;
+
+  // DMAnREQ
+  DMA2REQ := IRQ_ECAN1_RX_DATA_READY;
+
+  DMA2CNT := 7;   // DMAxCNT + 1 = number of bytes on DMA transfer = 8
+  DMA2PAD := Word( @C1RXD);
+  Address := LongInt(@Can_RawBufferArray[0]);
+  DMA2STAH := Higher(Address);
+  DMA2STAL := (Hi(Address) shl 8) or Lo(Address);
+  CHEN_DMA2CON_bit := 1; // DMA Channel 2 Enabled
+end;
+
+procedure MCU_Enable_500msTimer;
+begin
+  TCS_T1CON_bit := 0;       // internal cycle clock
+  T1IP_0_bit := 1;          // Timer 1 Interrupt Priority = 3   (1 means off)
+  T1IP_1_bit := 1;
+  T1IP_2_bit := 0;
+  TCKPS_0_T1CON_bit := 1;   // 256 Prescaler
+  TCKPS_1_T1CON_bit := 1;
+  PR1 := $FFFF;            // Clock ticks every 31.25ns * 256 * 65535 = 524.28ms interrupts       (64Mhz = 15.625ns * 2 cycle/instruction = 31.25ns)
+  T1IF_bit := 0;           // Clear T1IF
+  T1IE_bit := 1;           // Enable the Interrupt
+end;
+
+procedure MCU_Enable_100msTimer;
+begin
+  TCS_T2CON_bit := 0;       // internal cycle clock
+  T2IP_0_bit := 1;          // Timer 2 Interrupt Priority = 3   (1 means off)
+  T2IP_1_bit := 1;
+  T2IP_2_bit := 0;
+  TCKPS_0_T2CON_bit := 1;   // 256 Prescaler
+  TCKPS_1_T2CON_bit := 1;
+  PR2 := 12500;             // Clock ticks every 31.25ns * 256 * 12500 = 100ms interrupts
+  T2IF_bit := 0;            // Clear T2IF
+  T2IE_bit := 1;            // Enable the Interrupt
+end;
+
+procedure MCU_Enable_UART;
+begin
+  UART1_Init(115200);                       // Initialize UART module a
+  Delay_ms(100);                            // Wait for UART module to stabilize
+end;
+
+procedure MCU_Enable_SPI;
+const
+  IRQ_SPI1_DONE = 10;
+var
+  Address: LongInt;
+  i: Integer;
+begin
+  for i := 0 to MAX_SPI_BUFFER - 1 do
+  begin
+    Spi_TxARawBufferArray[i] := i;
+    Spi_TxBRawBufferArray[i] := i;
+    Spi_RxARawBufferArray[i] := 0;
+    Spi_RxBRawBufferArray[i] := 0;
+  end;
+    
+  SPI1_Init();       // Initialize SPI1 module
+  SPIEN_bit := 0;    // Disable SPI
+  SPI1CON := SPI1CON and $FFE0;  // Clear the prescaler bits
+  SPI1CON := SPI1CON or $0003 or $0010;  // Setup for 5 Mhz (with the CAN plug in boards)     $10=5Mhz, $14=6.67Mhz, $18 = 10Mhz
+
+  SPIBEN_SPI1CON2_bit := 0; // Disable Enhanced mode since using DMA
+  MODE16_SPI1CON1_bit := 0; // 8-bit communication
+  
+
+  SPI1IP_0_bit := 1;
+  SPI1IF_bit := 0;
+  SPI1IE_bit := 1;
+
+  
+    // _____________________ Transmit _______________________________
+
+  // Set up Normal Transmit 0 DMA
+  // Byte Transfer
+  SIZE_DMA1CON_bit := 1;
+  // Direction = RAM to perpherial
+  DIR__DMA1CON_bit :=  1;
+  // Interrupt
+  HALF_DMA1CON_bit := 0;
+                               //  10 = Peripheral Indirect Addressing mode
+  AMODE_1_DMA1CON_bit := 0;    //  01 = Register Indirect without Post-Increment mode
+  AMODE_0_DMA1CON_bit := 0;    //  00 = Register Indirect with Post-Increment mode
+                               // 11 = One-Shot, Ping-Pong modes enabled (one block transfer from/to each DMA buffer)
+                               // 10 = Continuous, Ping-Pong modes enabled
+  MODE_1_DMA1CON_bit := 1;     // 01 = One-Shot, Ping-Pong modes disabled
+  MODE_0_DMA1CON_bit := 0;     // 00 = Continuous, Ping-Pong modes disabled
+
+  // DMAnREQ
+  DMA1REQ := IRQ_SPI1_DONE;
+
+  DMA1CNT := MAX_SPI_BUFFER-1;   // DMAxCNT + 1 = number of bytes on DMA transfer = 16
+  Address := LongInt(@Spi_TxARawBufferArray[0]);
+  DMA1STAH := Higher(Address);
+  DMA1STAL := (Hi(Address) shl 8) or Lo(Address);
+  Address := LongInt(@Spi_TxBRawBufferArray[0]);
+  DMA1STBH := Higher(Address);
+  DMA1STBL := (Hi(Address) shl 8) or Lo(Address);
+  DMA1PAD := Word( @SPI1BUF);
+ {
+  DMA1IP_0_bit := 1;
+  DMA1IP_1_bit := 1;
+  DMA1IF_bit := 0;
+  DMA1IE_bit := 1;
+   }
+  CHEN_DMA1CON_bit := 1; //Channel Enabled
+
+  // _____________________ Receive DMA0 = Highest Priority_______________________________
+
+  // Set up Normal Receive 0 DMA
+  // ......DMAnCON  ....
+  // Byte Transfer
+  SIZE_DMA0CON_bit := 1;
+  // Direction = Peripheral to RAM
+  DIR_bit :=  0;
+                               //  10 = Peripheral Indirect Addressing mode
+  AMODE_1_DMA0CON_bit := 0;    //  01 = Register Indirect without Post-Increment mode
+  AMODE_0_DMA0CON_bit := 0;    //  00 = Register Indirect with Post-Increment mode
+                               // 11 = One-Shot, Ping-Pong modes enabled (one block transfer from/to each DMA buffer)
+                               // 10 = Continuous, Ping-Pong modes enabled
+  MODE_1_DMA0CON_bit := 1;     // 01 = One-Shot, Ping-Pong modes disabled
+  MODE_0_DMA0CON_bit := 0;     // 00 = Continuous, Ping-Pong modes disabled
+
+  // DMAnREQ
+  DMA0REQ := IRQ_SPI1_DONE;
+
+  DMA0CNT := MAX_SPI_BUFFER-1;   // DMAxCNT + 1 = number of bytes on DMA transfer = 16
+  DMA0PAD := Word( @SPI1BUF);
+  Address := LongInt(@Spi_RxARawBufferArray[0]);
+  DMA0STAH := Higher(Address);
+  DMA0STAL := (Hi(Address) shl 8) or Lo(Address);
+  Address := LongInt(@Spi_RxBRawBufferArray[0]);
+  DMA0STBH := Higher(Address);
+  DMA0STBL := (Hi(Address) shl 8) or Lo(Address);
+
+  DMA0IP_0_bit := 1;
+  DMA0IP_1_bit := 1;
+  DMA0IF_bit := 0;
+  DMA0IE_bit := 1;
+
+  CHEN_DMA0CON_bit := 1; // DMA Channel Enabled
+
+   
+  SPIEN_bit := 1;    // Enable the SPI
+end;
+
+procedure ForceSpi1Transmit;
+begin
+  CHEN_DMA0CON_bit := 1;
+  CHEN_DMA1CON_bit := 1;  // Single Shot will disable the channel
+  FORCE_DMA1REQ_bit := 1;
+end;
+
+procedure EnableSpi1(Enable: Boolean);
+begin
+  if Enable then
+  begin
+    SPIEN_bit := 1;    // Enable SPI
+    CHEN_DMA0CON_bit := 1; // DMA Channel Enabled
+    CHEN_DMA1CON_bit := 1; // DMA Channel Enabled
+  end else
+  begin
+    SPIEN_bit := 0;    // Disable SPI
+    CHEN_DMA0CON_bit := 1; // DMA Channel Enabled
+    CHEN_DMA1CON_bit := 1; // DMA Channel Enabled
+  end;
+end;
+
+procedure MCU_Setup_Initialize;
+var
+  i: Integer;
+  WordPtr: ^Word;
+begin
+  ANSELA := 0x0000;                                  // configure AN pins on Port A as digital I/O
+  ANSELB := 0x0000;                                  // configure AN pins on Port B digital I/O
+
+
+  OSCCON := OSCCON and $F8FF;                                                   // Clear COSC bits (set to FRC mode)
+  OSCCON.0 := 1;                                                                // Tell it to change modes
+  while OSCCON.0 = 1 do;                                                        // wait for it to take effect
+
+  CLKDIV := CLKDIV and 0xFFE0;                                                  // PLLPRE<4:0> = 0  ->  N1 = 2    8MHz / 2 = 4MHz
+                                                                                // (must be within 0.8 MHz to 8 MHz range)
+  PLLFBD :=   30;                                                               // PLLDIV<8:0> = 30 ->  M = 32    4MHz * 32 = 128MHz
+                                                                                // (must be within 100 MHz to 200 MHz range)
+  PLLPOST_1_bit := 0;
+  PLLPOST_0_bit := 0;                                                           // PLLPOST<1:0> = 0 ->  N2 = 2    128MHz / 2 = 64MHz
+
+  OSCCON := OSCCON or $0300;                                                    // Set COSC to 011 = XT with PLL
+  OSCCON.0 := 1;                                                                // Tell it to change modes
+  while OSCCON.0 = 1 do;                                                        // wait for it to take effect
+
+  Delay_ms(10);
+
+  Unlock_IOLOCK;
+  PPS_Mapping_NoLock(44, _INPUT, _U1RX);                                        // Set RPI44 to the UART Receive
+  PPS_Mapping_NoLock(42, _OUTPUT, _U1TX);                                       // Set RP42 to the UART Transmit
+  PPS_Mapping_NoLock(33, _INPUT, _U2RX);                                        // Set RPI33 to the UART Receive
+  PPS_Mapping_NoLock(20, _OUTPUT, _U2TX);                                       // Set RP20 to the UART Transmit
+  PPS_Mapping_NoLock(45, _INPUT, _C1RX);                                        // Set RPI45 to the CAN Receive
+  PPS_Mapping_NoLock(43, _OUTPUT, _C1TX);                                       // Set RP43 to the CAN Transmit
+  Lock_IOLOCK;
+end;
+
+procedure MCU_Enable_PinChangeNotification;
+begin
+  CNIEB6_bit := 1;  // Pin Change Notification Interrupt on B6
+  CNIF_bit := 0;    // Clear Pin Change Interrupt flag
+  CNIE_bit := 1;    // Enable all Pin Change Interrupts
+end;
+
+end.

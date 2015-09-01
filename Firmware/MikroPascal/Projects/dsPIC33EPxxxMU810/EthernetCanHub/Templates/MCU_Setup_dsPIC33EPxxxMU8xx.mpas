@@ -1,0 +1,545 @@
+unit MCU_Setup_dsPIC33EPxxxGP8xx;
+
+uses
+  HelperCan;
+
+{$I Options.inc}
+
+const
+  CAN_SWJ        = 1;               // Set up for 125Khz Baud Rate with a 8Mhz Crystal at 140Mhz
+  CAN_BRP        = 19;               // Baud Rate Prescaler = 14 Quanta
+  CAN_PHASESEG_1 = 2;               //
+  CAN_PHASESEG_2 = 4;               //   PHASESEG_2 > SWJ
+  CAN_PROP_SEG   = 4;               //   PROP_SEG + PHASESEG_1 >= PHASESEG_2
+  
+  MAX_ECAN_BUFFER = 32;
+  MAX_SPI_BUFFER = 30;              // Grid Connect = 29 + 1 because the return packet is one byte behind and I need the extra byte in transmit to receive the return byte (back to the master Pi)
+
+  CAN_DMA_DATA_OFFSET = $D000;                // This is the start of the X-Data area.  Some of the dsPIC33s require DMA RAM to be
+  SPI_TX_DMA_A_DATA_OFFSET = CAN_DMA_DATA_OFFSET + (SizeOf(TCANRawBuffer) * MAX_ECAN_BUFFER);
+  SPI_TX_DMA_B_DATA_OFFSET = SPI_TX_DMA_A_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
+  SPI_RX_DMA_A_DATA_OFFSET = SPI_TX_DMA_B_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
+  SPI_RX_DMA_B_DATA_OFFSET = SPI_RX_DMA_A_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
+  CAN_TX_DMA_A_DATA_OFFSET = SPI_RX_DMA_B_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
+  CAN_TX_DMA_B_DATA_OFFSET = CAN_TX_DMA_A_DATA_OFFSET + SizeOf(TCANRawBuffer);
+  LF = #13+#10;
+
+type
+  TCan_RawBufferArray = array[0..MAX_ECAN_BUFFER-1] of TCANRawBuffer;
+  TSpi_RawBufferArray = array[MAX_SPI_BUFFER] of Byte;
+
+
+var
+  Can_RawBufferArray: TCan_RawBufferArray; far; dma; absolute CAN_DMA_DATA_OFFSET;   // Transmit buffer for all filters.  The software pulls the data to the right list
+  Spi_TxARawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_TX_DMA_A_DATA_OFFSET;
+  Spi_TxBRawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_TX_DMA_B_DATA_OFFSET;
+  Spi_RxARawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_RX_DMA_A_DATA_OFFSET;
+  Spi_RxBRawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_RX_DMA_B_DATA_OFFSET;
+  Can_TxARawBufferArray: TCANRawBuffer; far; dma; absolute CAN_TX_DMA_A_DATA_OFFSET;
+  Can_TxBRawBufferArray: TCANRawBuffer; far; dma; absolute CAN_TX_DMA_B_DATA_OFFSET;
+  
+  procedure MCU_Setup_Initialize;
+  procedure MCU_Enable_CAN;
+  procedure MCU_Enable_100msTimer;
+  procedure MCU_Enable_UART;
+  procedure MCU_Enable_SPI;
+  procedure MCU_Enable_PinChangeNotification;
+
+  function NextFifoOpenLcbBuffer(var OpenLcbBuffer: TOpenLCBCanBuffer): Boolean;
+  function TryTransmitOpenLcbBuffer(BufferIndex: Integer; OpenLcbBuffer: POpenLCBCanBuffer): Boolean;
+  procedure TransmitOpenLcbBuffer(BufferIndex: Integer; OpenLcbBuffer: POpenLCBCanBuffer);
+  function ForceSpi1Transmit: Boolean;
+  procedure EnableSpi(Enable: Boolean);
+  procedure ZeroSpiBuffers;
+  
+  procedure PrintDMABuffers;
+  
+implementation
+
+procedure ZeroSpiBuffers;
+var
+  i: Integer;
+begin
+  for i := 0 to MAX_SPI_BUFFER - 1 do
+  begin
+    Spi_TxARawBufferArray[i] := 0;
+    Spi_TxBRawBufferArray[i] := 0;
+    Spi_RxARawBufferArray[i] := 0;
+    Spi_RxBRawBufferArray[i] := 0;
+  end;
+end;
+  
+
+procedure MCU_Enable_100msTimer;
+begin
+  TCS_T2CON_bit := 0;       // internal cycle clock
+  T2IP_0_bit := 1;          // Timer 2 Interrupt Priority = 5   (1 means off)
+  T2IP_1_bit := 0;
+  T2IP_2_bit := 1;
+  TCKPS_0_T2CON_bit := 1;   // 256 Prescaler
+  TCKPS_1_T2CON_bit := 1;
+  PR2 := 27344;             // Clock ticks every (1/140MHz * 2 * 256 * 27344 = 100.00091ms interrupts
+  T2IF_bit := 0;            // Clear T2IF
+  T2IE_bit := 1;            // Enable the Interrupt
+  TON_T2CON_bit := 1;       // Turn on 100ms Timer
+end;
+
+procedure MCU_EnableUARTA;
+begin
+  PPS_Mapping(100, _INPUT, _U1RX);          // Set RPI100 to the UART Receive
+  PPS_Mapping(101, _OUTPUT, _U1TX);         // Set RP101 to the UART Transmit  {$ENDIF}
+  UART1_Init(230400);                       // Initialize UART module a
+  Delay_ms(100);                            // Wait for UART module to stabilize
+end;
+
+procedure MCU_Setup_Initialize;
+begin
+  // Setting output frequency to 140MHz
+  PLLFBD := 68;             // PLL multiplier M=70
+  CLKDIV := 0x0000;         // PLL prescaler N1=2, PLL postscaler N2=2
+  while OSCCON.0 = 1 do;                                                        // wait for it to take effect
+
+  ANSELA := 0x00;           // Convert all I/O pins to digital
+  ANSELB := 0x00;
+  ANSELC := 0x00;
+  ANSELD := 0x00;
+  ANSELE := 0x00;
+  ANSELG := 0x00;
+end;
+
+function ForceSpi1Transmit: Boolean;
+begin
+  if SPIEN_SPI2STAT_bit = 1 then
+  begin
+    CHEN_DMA0CON_bit := 1;
+    CHEN_DMA1CON_bit := 1;  // Single Shot will disable the channel
+    FORCE_DMA1REQ_bit := 1;
+    Result := True;
+  end else
+    Result := False;
+end;
+
+procedure EnableSpi(Enable: Boolean);
+begin
+  if Enable then
+  begin
+    SPIEN_SPI2STAT_bit := 1;    // Enable SPI
+    CHEN_DMA0CON_bit := 1; // DMA Channel Enabled
+    CHEN_DMA1CON_bit := 1; // DMA Channel Enabled
+  end else
+  begin
+    SPIEN_SPI2STAT_bit := 0;    // Disable SPI
+    CHEN_DMA0CON_bit := 0; // DMA Channel Disabled
+    CHEN_DMA1CON_bit := 0; // DMA Channel Disabled
+  end;
+end;
+
+procedure MCU_Enable_SPI;
+const
+  IRQ_SPI2_DONE = 33;
+var
+  Address: LongInt;
+  i: Integer;
+begin
+  CNPUG9_bit := 1;  // Pull up on CN
+  PPS_Mapping(121, _INPUT, _SS2IN);                                      // Set RPI121 (RG9) to the Slave Select (CS) Input Rece
+  
+  for i := 0 to MAX_SPI_BUFFER - 1 do
+  begin
+    Spi_TxARawBufferArray[i] := 0; //i;
+    Spi_TxBRawBufferArray[i] := 0;
+    Spi_RxARawBufferArray[i] := 0;
+    Spi_RxBRawBufferArray[i] := 0;
+  end;
+
+
+  SPIEN_SPI2STAT_bit := 0;    // Disable SPI          
+  DISSCK_SPI2CON1_bit := 0;   // SCK pin is enabled = 0
+  DISSDO_SPI2CON1_bit := 0;   // SDI pin is enabled = 0
+  MODE16_SPI2CON1_bit := 0;   // 8Bit transfer = 0
+  SMP_SPI2CON1_bit := 0;      // Must be clear in Slave mode
+  CKE_SPI2CON1_bit := 0;      // Data changes on transition from idle clock to active clock = 0
+  SSEN_SPI2CON1_bit := 1;     // Slave Select (CS) is not used by the module = 0
+  CKP_SPI2CON1_bit := 0;      // Clock Idle state is low = 0
+  MSTEN_SPI2CON1_bit := 0;    // Master mode enable = 1
+  
+  SPIBEN_SPI2CON2_bit := 0;   // Disable Enhanced mode since using DMA
+
+ // SPI2IP_0_bit := 1;    // SPI interrupt on every byte not very useful
+ // SPI2IF_bit := 0;
+ // SPI2IE_bit := 1;
+
+    // _____________________ Transmit _______________________________
+
+  // Set up Normal Transmit 0 DMA
+  // Byte Transfer
+  SIZE_DMA1CON_bit := 1;
+  // Direction = RAM to perpherial
+  DIR__DMA1CON_bit :=  1;
+  // Interrupt
+  HALF_DMA1CON_bit := 0;
+                               // 10 = Peripheral Indirect Addressing mode
+  AMODE_1_DMA1CON_bit := 0;    // 01 = Register Indirect without Post-Increment mode
+  AMODE_0_DMA1CON_bit := 0;    // 00 = Register Indirect with Post-Increment mode
+                               // 11 = One-Shot, Ping-Pong modes enabled (one block transfer from/to each DMA buffer)
+                               // 10 = Continuous, Ping-Pong modes enabled
+  MODE_1_DMA1CON_bit := 1;     // 01 = One-Shot, Ping-Pong modes disabled
+  MODE_0_DMA1CON_bit := 0;     // 00 = Continuous, Ping-Pong modes disabled
+
+  // DMAnREQ
+  DMA1REQ := IRQ_SPI2_DONE;
+
+  DMA1CNT := MAX_SPI_BUFFER-1;   // DMAxCNT + 1 = number of bytes on DMA transfer = 16
+  Address := LongInt(@Spi_TxARawBufferArray[0]);
+ // DMA1STAH := Higher(Address);
+  DMA1STAL := (Hi(Address) shl 8) or Lo(Address);
+  
+  Address := LongInt(@Spi_TxBRawBufferArray[0]);
+ // DMA1STBH := Higher(Address);
+  DMA1STBL := (Hi(Address) shl 8) or Lo(Address);
+  
+  DMA1PAD := Word( @SPI2BUF);
+
+  // _____________________ Receive DMA0 = Highest Priority_______________________________
+
+  // Set up Normal Receive 0 DMA
+  // ......DMAnCON  ....
+  // Byte Transfer
+  SIZE_DMA0CON_bit := 1;
+  // Direction = Peripheral to RAM
+  DIR_bit :=  0;
+                               // 10 = Peripheral Indirect Addressing mode
+  AMODE_1_DMA0CON_bit := 0;    // 01 = Register Indirect without Post-Increment mode
+  AMODE_0_DMA0CON_bit := 0;    // 00 = Register Indirect with Post-Increment mode
+                               // 11 = One-Shot, Ping-Pong modes enabled (one block transfer from/to each DMA buffer)
+                               // 10 = Continuous, Ping-Pong modes enabled
+  MODE_1_DMA0CON_bit := 1;     // 01 = One-Shot, Ping-Pong modes disabled
+  MODE_0_DMA0CON_bit := 0;     // 00 = Continuous, Ping-Pong modes disabled
+
+  // DMAnREQ
+  DMA0REQ := IRQ_SPI2_DONE;
+
+  DMA0CNT := MAX_SPI_BUFFER-1;   // DMAxCNT + 1 = number of bytes on DMA transfer = 16
+  DMA0PAD := Word( @SPI2BUF);
+  Address := LongInt(@Spi_RxARawBufferArray[0]);
+ // DMA0STAH := Higher(Address);
+  DMA0STAL := (Hi(Address) shl 8) or Lo(Address);
+  
+  Address := LongInt(@Spi_RxBRawBufferArray[0]);
+ // DMA0STBH := Higher(Address);
+  DMA0STBL := (Hi(Address) shl 8) or Lo(Address);
+
+  // Enable the DMA 0 and DMA 1 interrupts
+  DMA1IP_0_bit := 1;
+  DMA1IP_1_bit := 1;
+  DMA1IF_bit := 0;
+  DMA1IE_bit := 1;
+  
+  DMA0IP_0_bit := 1;
+  DMA0IP_1_bit := 1;
+  DMA0IF_bit := 0;
+  DMA0IE_bit := 1;
+  
+// The SPI Enables on the CS Pin interrupt.  Must do this or thinks get out of sync on
+// startup
+//  CHEN_DMA0CON_bit := 1;      // DMA Channel Enabled
+//  SPIEN_SPI2STAT_bit := 1;    // Enable the SPI
+//  CHEN_DMA1CON_bit := 1;      //Channel Enabled
+end;
+
+procedure MCU_Enable_UART;
+begin
+  PPS_Mapping(100, _INPUT, _U1RX);                                      // Set RPI100 to the UART Receive
+  PPS_Mapping(101, _OUTPUT, _U1TX);                                     // Set RP101 to the UART Transmit
+  
+  UART1_Init(230400);                       // Initialize UART module a
+  Delay_ms(100);                            // Wait for UART module to stabilize
+end;
+
+procedure MCU_Enable_CAN;
+const
+  SAMPLE_3_TIMES = $0040;
+  PROGRAMMABLE_SEG2PHTS = $0080;
+  IRQ_ECAN1_RX_DATA_READY              = 34;
+  IRQ_ECAN2_RX_DATA_READY              = 55;
+  IRQ_ECAN1_TX_DATA_READY              = 70;
+  IRQ_ECAN2_TX_DATA_READY              = 71;
+var
+  Address: DWord;
+  i: Integer;
+begin
+  PPS_Mapping(112, _INPUT, _C1RX);                                              // Set RPI112 to the CAN Receive
+  PPS_Mapping(113, _OUTPUT, _C1TX);                                             // Set RP113 to the CAN Transmit
+  
+  for i := 0 to MAX_ECAN_BUFFER - 1 do
+  begin
+    Can_RawBufferArray[i].Word0 := 0;
+    Can_RawBufferArray[i].Word1 := 0;
+    Can_RawBufferArray[i].Word2 := 0;
+    Can_RawBufferArray[i].Word3 := 0;
+    Can_RawBufferArray[i].Word4 := 0;
+    Can_RawBufferArray[i].Word5 := 0;
+    Can_RawBufferArray[i].Word6 := 0;
+    Can_RawBufferArray[i].Word7 := 0;
+  end;
+
+  CAN_EnterConfigMode;
+  CAN_SetBaud(CAN_SWJ, CAN_BRP, CAN_PHASESEG_2, CAN_PHASESEG_1, CAN_PROP_SEG, True);
+
+  CAN_SetMask(0, $00000000, True);
+  CAN_SetFilter(0, $00000000, True);
+  CAN_RegisterMaskWithFilter(0, 0);
+  CAN_EnableFilter(0, True);
+  CAN_RegisterFilterWithBuffer(0, $000F);   // Use the FIFO
+
+  CAN_EnterNormalMode;
+  
+  CANCKS_C1CTRL1_bit := 1;
+
+  // 32 Buffers total (Receive = Total - Transmit Buffers assigned)
+  DMABS_2_bit := 1;
+  DMABS_1_bit := 1;
+  DMABS_0_bit := 0;
+
+  // Receive Buffers start at Buffer 3, 0-2 are Transmitters
+  FSA_4_bit := 0;
+  FSA_3_bit := 0;
+  FSA_2_bit := 0;
+  FSA_1_bit := 1;
+  FSA_0_bit := 1;
+
+  // _____________________ Transmit _______________________________
+
+  // Setup the 3 CAN Transmitters
+  CAN_SetBufferAsTransmitter(0, True);
+  CAN_SetBufferAsTransmitter(1, True);
+  CAN_SetBufferAsTransmitter(2, True);
+
+  // Set up Normal Transmit 0 DMA
+  //  DMAnCON
+  // Word Transfer
+  SIZE_DMA3CON_bit := 0;
+  // Direction = RAM to perpherial
+  DIR__DMA3CON_bit :=  1;
+                               // 10 = Peripheral Indirect Addressing mode
+  AMODE_1_DMA3CON_bit := 1;    // 01 = Register Indirect without Post-Increment mode
+  AMODE_0_DMA3CON_bit := 0;    // 00 = Register Indirect with Post-Increment mode
+                               // 11 = One-Shot, Ping-Pong modes enabled (one block transfer from/to each DMA buffer)
+                               // 10 = Continuous, Ping-Pong modes enabled
+  MODE_1_DMA3CON_bit := 0;     // 01 = One-Shot, Ping-Pong modes disabled
+  MODE_0_DMA3CON_bit := 0;     // 00 = Continuous, Ping-Pong modes disabled
+
+  // DMAnREQ
+  DMA3REQ := IRQ_ECAN1_TX_DATA_READY;
+
+  DMA3CNT := 7;   // DMAxCNT + 1 = number of  on DMA transfer = 8
+  Address := LongInt(@Can_RawBufferArray[0]);
+ // DMA3STAH := Higher(Address);
+  DMA3STAL := (Hi(Address) shl 8) or Lo(Address);
+  
+  DMA3PAD := Word( @C1TXD);
+  CHEN_DMA3CON_bit := 1; //Channel Enabled
+
+  // _____________________ Receive _______________________________
+
+  // Set up Normal Receive 0 DMA
+  // ......DMAnCON  ....
+  // Word Transfer
+  SIZE_DMA2CON_bit := 0;
+  // Direction = Peripheral to RAM
+  DIR__DMA2CON_bit :=  0;
+  // Peripheral Indirect Addressing mode for FIFO
+  AMODE_1_DMA2CON_bit := 1;
+  AMODE_0_DMA2CON_bit := 0;
+                               // 11 = One-Shot, Ping-Pong modes enabled (one block transfer from/to each DMA buffer)
+                               // 10 = Continuous, Ping-Pong modes enabled
+  MODE_1_DMA2CON_bit := 0;     // 01 = One-Shot, Ping-Pong modes disabled
+  MODE_0_DMA2CON_bit := 0;     // 00 = Continuous, Ping-Pong modes disabled
+
+  // DMAnREQ
+  DMA2REQ := IRQ_ECAN1_RX_DATA_READY;
+
+  DMA2CNT := 7;   // DMAxCNT + 1 = number of bytes on DMA transfer = 8
+  DMA2PAD := Word( @C1RXD);
+  Address := LongInt(@Can_RawBufferArray[0]);
+ // DMA2STAH := Higher(Address);
+  DMA2STAL := (Hi(Address) shl 8) or Lo(Address);
+  
+  CHEN_DMA2CON_bit := 1; // DMA Channel 2 Enabled
+end;
+
+function TryTransmitOpenLcbBuffer(BufferIndex: Integer; OpenLcbBuffer: POpenLCBCanBuffer): Boolean;
+var
+  Extended: Boolean;
+begin
+  Result := False;
+  if OpenLcbBuffer <> nil then
+  begin
+    if CAN_IsTransmitRequested(0) = False then
+    begin
+      TransmitOpenLcbBuffer(BufferIndex, OpenLcbBuffer);
+      Result := True;
+    end
+  end
+end;
+
+// Does not make any checks. It just fills and Sends the message
+procedure TransmitOpenLcbBuffer(BufferIndex: Integer; OpenLcbBuffer: POpenLCBCanBuffer);
+var
+  Extended: Boolean;
+begin
+  if OpenLcbBuffer <> nil then
+  begin
+    Extended := True;
+    dsPIC33_DMA_Style_Buffer(OpenLcbBuffer^, Extended, CAN_DIRECTION_WRITE, @Can_RawBufferArray[0].Word0);
+    CAN_RequestTransmit(BufferIndex);
+  end
+end;
+
+function NextFifoOpenLcbBuffer(var OpenLcbBuffer: TOpenLCBCanBuffer): Boolean;
+var
+  Tail, Head: Word;
+  Extended: Boolean;
+  LocalBuffer: TCANRawBuffer;
+begin
+  Result := False;
+  ClearWindowSelectBit;
+  Tail := C1FIFO and $001F;
+  Head := (C1FIFO shr 8) and $001F;
+  if Tail <> Head then
+  begin
+    Extended := True;
+    LocalBuffer.Word0 := Can_RawBufferArray[Tail].Word0;
+    LocalBuffer.Word1 := Can_RawBufferArray[Tail].Word1;
+    LocalBuffer.Word2 := Can_RawBufferArray[Tail].Word2;
+    LocalBuffer.Word3 := Can_RawBufferArray[Tail].Word3;
+    LocalBuffer.Word4 := Can_RawBufferArray[Tail].Word4;
+    LocalBuffer.Word5 := Can_RawBufferArray[Tail].Word5;
+    LocalBuffer.Word6 := Can_RawBufferArray[Tail].Word6;
+    LocalBuffer.Word7 := Can_RawBufferArray[Tail].Word7;
+    dsPIC33_DMA_Style_Buffer(OpenLcbBuffer, Extended, CAN_DIRECTION_READ, @LocalBuffer.Word0);
+    CAN_IsReceiveFull(Tail, True);
+    Result := True;
+  end;
+end;
+
+procedure MCU_Enable_PinChangeNotification;
+begin
+  CNIEG9_bit := 1;  // Pin Change Notification Interrupt on B6
+  CNIF_bit := 0;    // Clear Pin Change Interrupt flag
+  CNIE_bit := 1;    // Enable all Pin Change Interrupts
+end;
+
+procedure PrintDMABuffers;
+const
+  LF = #13+#10;
+var
+  i: Integer;
+  s1: array[128] of char;
+begin
+  IntTohex(DMA0CON, s1);
+  UART1_Write_Text('DMA0CON = '+s1+'  ');
+  IntTohex(DMA0REQ, s1);
+  UART1_Write_Text('DMA0REQ = '+s1+'  ');
+  IntTohex(DMA0STAL, s1);
+  UART1_Write_Text('DMA0STAL = '+s1+'  ');
+  IntTohex(DMA0STAH, s1);
+  UART1_Write_Text('DMA0STAH = '+s1+'  ');
+  IntTohex(DMA0STBL, s1);
+  UART1_Write_Text('DMA0STBL = '+s1+'  ');
+  IntTohex(DMA0STBH, s1);
+  UART1_Write_Text('DMA0STBH = '+s1+'  ');
+  IntTohex(DMA0PAD, s1);
+  UART1_Write_Text('DMA0PAD = '+s1+'  ');
+  IntTohex(DMA0CNT, s1);
+  UART1_Write_Text('DMA0CNT = '+s1+'  ');
+  UART1_Write_Text(LF);
+
+  IntTohex(DMA1CON, s1);
+  UART1_Write_Text('DMA1CON = '+s1+'  ');
+  IntTohex(DMA1REQ, s1);
+  UART1_Write_Text('DMA1REQ = '+s1+'  ');
+  IntTohex(DMA1STAL, s1);
+  UART1_Write_Text('DMA1STAL = '+s1+'  ');
+  IntTohex(DMA1STAH, s1);
+  UART1_Write_Text('DMA1STAH = '+s1+'  ');
+  IntTohex(DMA1STBL, s1);
+  UART1_Write_Text('DMA1STBL = '+s1+'  ');
+  IntTohex(DMA1STBH, s1);
+  UART1_Write_Text('DMA1STBH = '+s1+'  ');
+  IntTohex(DMA1PAD, s1);
+  UART1_Write_Text('DMA1PAD = '+s1+'  ');
+  IntTohex(DMA1CNT, s1);
+  UART1_Write_Text('DMA1CNT = '+s1+'  ');
+  UART1_Write_Text(LF);
+
+  IntTohex(DMA2CON, s1);
+  UART1_Write_Text('DMA2CON = '+s1+'  ');
+  IntTohex(DMA2REQ, s1);
+  UART1_Write_Text('DMA2REQ = '+s1+'  ');
+  IntTohex(DMA2STAL, s1);
+  UART1_Write_Text('DMA2STAL = '+s1+'  ');
+  IntTohex(DMA2STAH, s1);
+  UART1_Write_Text('DMA2STAH = '+s1+'  ');
+  IntTohex(DMA2STBL, s1);
+  UART1_Write_Text('DMA2STBL = '+s1+'  ');
+  IntTohex(DMA2STBH, s1);
+  UART1_Write_Text('DMA2STBH = '+s1+'  ');
+  IntTohex(DMA2PAD, s1);
+  UART1_Write_Text('DMA2PAD = '+s1+'  ');
+  IntTohex(DMA2CNT, s1);
+  UART1_Write_Text('DMA2CNT = '+s1+'  ');
+
+  UART1_Write_Text(LF);
+  IntTohex(DMA3CON, s1);
+  UART1_Write_Text('DMA3CON = '+s1+'  ');
+  IntTohex(DMA3REQ, s1);
+  UART1_Write_Text('DMA3REQ = '+s1+'  ');
+  IntTohex(DMA3STAL, s1);
+  UART1_Write_Text('DMA3STAL = '+s1+'  ');
+  IntTohex(DMA3STAH, s1);
+  UART1_Write_Text('DMA3STAH = '+s1+'  ');
+  IntTohex(DMA3STBL, s1);
+  UART1_Write_Text('DMA3STBL = '+s1+'  ');
+  IntTohex(DMA3STBH, s1);
+  UART1_Write_Text('DMA3STBH = '+s1+'  ');
+  IntTohex(DMA3PAD, s1);
+  UART1_Write_Text('DMA3PAD = '+s1+'  ');
+  IntTohex(DMA3CNT, s1);
+  UART1_Write_Text('DMA3CNT = '+s1+'  ');
+
+
+  UART1_Write_Text(LF);
+  IntTohex(DMAPWC, s1);
+  UART1_Write_Text('DMAPWC = '+s1+'  ');
+  IntTohex(DMARQC, s1);
+  UART1_Write_Text('DMARQC = '+s1+'  ');
+  IntTohex(DMALCA, s1);
+  UART1_Write_Text('DMALCA = '+s1+'  ');
+  IntTohex(DMAPPS, s1);
+  UART1_Write_Text('DMAPPS = '+s1+LF);
+
+  UART1_Write_Text(LF);
+  UART1_Write_Text('RX Buffer'+LF);
+  for i := 0 to MAX_ECAN_BUFFER - 1 do
+  begin
+    IntToHex(Can_RawBufferArray[i].Word0, s1);
+    UART1_Write_Text('Word0 = '+s1+'  ');
+    IntToHex(Can_RawBufferArray[i].Word1, s1);
+    UART1_Write_Text('Word1 = '+s1+'  ');
+    IntToHex(Can_RawBufferArray[i].Word2, s1);
+    UART1_Write_Text('Word2 = '+s1+'  ');
+    IntToHex(Can_RawBufferArray[i].Word3, s1);
+    UART1_Write_Text('Word3 = '+s1+'  ');
+    IntToHex(Can_RawBufferArray[i].Word4, s1);
+    UART1_Write_Text('Word4 = '+s1+'  ');
+    IntToHex(Can_RawBufferArray[i].Word5, s1);
+    UART1_Write_Text('Word5 = '+s1+'  ');
+    IntToHex(Can_RawBufferArray[i].Word6, s1);
+    UART1_Write_Text('Word6 = '+s1+'  ');
+    IntToHex(Can_RawBufferArray[i].Word7, s1);
+    UART1_Write_Text('Word7 = '+s1+'  '+LF);
+  end;
+end;
+
+end.

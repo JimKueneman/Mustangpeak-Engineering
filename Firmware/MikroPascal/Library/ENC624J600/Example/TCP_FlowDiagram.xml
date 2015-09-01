@@ -1,0 +1,13 @@
+<TCP_FlowDiagram>
+	<Attributes>
+		<Url></Url>
+		<Image></Image>
+		<File></File>
+	</Attributes>
+	<Events>
+		<OnLeftClick></OnLeftClick>
+		<OnRightClick></OnRightClick>
+		<OnDblClick>OpenFile</OnDblClick>
+		<OnMouseOver>PreviewImage</OnMouseOver>
+	</Events>
+</TCP_FlowDiagram>

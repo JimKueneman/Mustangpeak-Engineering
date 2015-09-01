@@ -1,0 +1,605 @@
+unit df_lib_SPI1;
+
+uses Lib_Delays_LIO,crc16_lib,lib1_enc600_V3_5_b;
+
+function DF_ContRead(Adr : dword) : byte;
+procedure DF_ContArrayRead(var buff_ : array[512] of byte; Adr : dword);
+procedure DF_ContArrayToETH(Adr : dword; j : word);
+procedure DF_BufferToETH(BufferNo : byte);
+procedure DF_PageToBuffer(PageAdr : word; BufferNo : byte);
+procedure DF_BufferToPage(PageAdr : word; BufferNo : byte);
+function DF_BufferReadByte(Adr : word; BufferNo : byte) : byte;
+procedure DF_BufferReadArray(var buff_ : array[512] of byte; BufferNo : byte);
+procedure DF_BufferWriteByte(Adr : word; d_in : byte; BufferNo : byte);
+procedure DF_BufferWriteArray(var buff_ : array[512] of byte; BufferNo : byte);
+procedure DF_BufferFill(value : byte; BufferNo : byte);
+procedure DF_BufferWriteArrayETH_CP(BufferNo : byte);
+function DF_Init : boolean;
+procedure DF_ReadSecurityRegister(var buff_ : array[64] of byte);
+function DF_ContArrayCRC(Adr : dword; j : dword) : word;
+function DF_SecurityRegisterCRC() : word;
+procedure DF_ContArrayReadN(var buff_ : array[65535] of byte; Adr : dword; len_ : word);
+function DF_StrLen(Adr : dword) : dword;
+procedure DF_BufferReadArrayPt(buff_ : ^byte; BufferNo : byte);
+procedure DF_BufferWriteArrayPt(buff_ : ^byte; BufferNo : byte);
+
+procedure DF_DPD;
+procedure DF_Resume_DPD;
+
+
+//Dataflash opcodes
+const
+  FlashPageRead =       0xD2;    // Main memory page read
+  FlashToBuf1Transfer = 0x53;    // Main memory page to buffer 1 transfer
+  Buf1Read =            0xD4;    // Buffer 1 read
+  FlashToBuf2Transfer = 0x55;    // Main memory page to buffer 2 transfer
+  Buf2Read =            0xD6;    // Buffer 2 read
+  StatusReg =           0xD7;    // Status register
+  AutoPageReWrBuf1 =    0x58;    // Auto page rewrite through buffer 1
+  AutoPageReWrBuf2 =    0x59;    // Auto page rewrite through buffer 2
+  FlashToBuf1Compare =  0x60;    // Main memory page to buffer 1 compare
+  FlashToBuf2Compare =  0x61;    // Main memory page to buffer 2 compare
+  ContArrayRead =       0xE8;    // Continuous Array Read (Note : Only A/B-parts supported)
+  FlashProgBuf1 =       0x82;    // Main memory page program through buffer 1
+  Buf1ToFlashWE =       0x83;    // Buffer 1 to main memory page program with built-in erase
+  Buf1Write =           0x84;    // Buffer 1 write
+  FlashProgBuf2 =       0x85;    // Main memory page program through buffer 2
+  Buf2ToFlashWE =       0x86;    // Buffer 2 to main memory page program with built-in erase
+  Buf2Write =           0x87;    // Buffer 2 write
+  Buf1ToFlash =         0x88;    // Buffer 1 to main memory page program without built-in erase
+  Buf2ToFlash =         0x89;    // Buffer 2 to main memory page program without built-in erase
+  PageErase =           0x81;    // Page erase
+  ReadSecurityRegister = 0x77;
+       
+var DF_CS : sbit; sfr; external;
+    DF_CS_dir : sbit; sfr; external;
+    
+implementation
+
+var R18_ : byte;
+
+procedure DF_Write(tx_data : byte);
+begin
+  asm
+    MOV SPI1BUF,W0
+  end;
+  while SPI1STAT.1 = 1 do ;
+  SPI1BUF := tx_data;
+  while SPI1STAT.0 = 0 do ;
+  asm
+    MOV SPI1BUF,W0
+  end;
+end;
+
+procedure DF_Read;
+begin
+  asm
+    MOV SPI1BUF,W0
+  end;
+  while SPI1STAT.1 = 1 do ;
+  asm
+    CLR SPI1BUF
+  end;
+  while SPI1STAT.0 = 0 do ;
+  R18_ := SPI1BUF;
+end;
+
+function DF_ReadStatus : byte;
+begin
+  DF_CS := 0;
+  nop;
+  DF_Write(StatusReg);                  //send status register read op-code
+  DF_Read;
+  result := R18_;
+  DF_CS := 1;
+  nop;
+end;
+
+var gen_status : byte;
+
+procedure WaitForReady;
+var i : word;
+begin
+  i := 0;
+  while i < 500 do
+    begin
+      gen_status := DF_ReadStatus;
+      if (gen_status and $80) <> 0 then break;
+      Delay_100us_;
+      inc(i);
+    end;
+end;
+
+procedure SetPowerOfTwo;
+begin
+  DF_CS := 0;
+  nop;
+  DF_Write($3D);
+  DF_Write($2A);
+  DF_Write($80);
+  DF_Write($A6);
+  DF_CS := 1;
+  WaitForReady;
+end;
+
+procedure DF_DPD;
+begin
+  DF_CS := 1;
+  nop;
+  DF_CS_dir := 0;
+  nop;
+  DF_CS := 0;
+  nop;
+  DF_Write($B9);
+  DF_CS := 1;
+end;
+
+procedure DF_Resume_DPD;
+begin
+  DF_CS := 1;
+  nop;
+  DF_CS_dir := 0;
+  nop;
+  DF_CS := 0;
+  nop;
+  DF_Write($AB);
+  DF_CS := 1;
+  delay_us(50);
+end;
+
+procedure DF_ReadSecurityRegister(var buff_ : array[64] of byte);
+var i : byte;
+begin
+  DF_CS := 0;
+  nop;
+  DF_Write($77);
+  DF_Write(0);
+  DF_Write(0);
+  DF_Write(0);
+  i := 0;
+  while i < 64 do
+    begin
+      DF_Read;
+      inc(i);
+    end;
+  i := 0;
+  while i < 64 do
+    begin
+      DF_Read;
+      buff_[i] := R18_;
+      inc(i);
+    end;
+  DF_CS := 1;
+end;
+
+function DF_SecurityRegisterCRC() : word;
+var i : byte;
+begin
+  DF_CS := 0;
+  nop;
+  result := $FFFF;
+  DF_Write($77);
+  DF_Write(0);
+  DF_Write(0);
+  DF_Write(0);
+  i := 0;
+  while i < 64 do
+    begin
+      DF_Read;
+      inc(i);
+    end;
+  i := 0;
+  while i < 64 do
+    begin
+      DF_Read;
+      result := Hi(result) XOR Table16[R18_ XOR Lo(result)];
+      inc(i);
+    end;
+  DF_CS := 1;
+end;
+
+function DF_ContRead(Adr : dword) : byte;
+begin
+  Adr := Adr and $001FFFFF;
+  DF_CS := 0;
+  nop;
+  DF_Write($03);
+  DF_Write(Higher(Adr));
+  DF_Write(Hi(Adr));
+  DF_Write(Lo(Adr));
+  DF_Read;
+  result := R18_;
+  DF_CS := 1;
+end;
+
+procedure DF_ContArrayRead(var buff_ : array[512] of byte; Adr : dword);
+var i : word;
+begin
+  Adr := Adr and $001FFFFF;
+  DF_CS := 0;
+  nop;
+  DF_Write($03);
+  DF_Write(Higher(Adr));
+  DF_Write(Hi(Adr));
+  DF_Write(Lo(Adr));
+  i := 0;
+  while i < 512 do
+    begin
+      DF_Read;
+      buff_[i] := R18_;
+      inc(i);
+    end;
+  DF_CS := 1;
+end;
+
+procedure DF_ContArrayReadN(var buff_ : array[65535] of byte; Adr : dword; len_ : word);
+var i : word;
+begin
+  Adr := Adr and $001FFFFF;
+  DF_CS := 0;
+  nop;
+  DF_Write($03);
+  DF_Write(Higher(Adr));
+  DF_Write(Hi(Adr));
+  DF_Write(Lo(Adr));
+  i := 0;
+  while i < len_ do
+    begin
+      DF_Read;
+      buff_[i] := R18_;
+      inc(i);
+    end;
+  DF_CS := 1;
+end;
+
+function DF_StrLen(Adr : dword) : dword;
+var i,j : dword;
+begin
+  result := 0;
+  Adr := Adr and $001FFFFF;
+  DF_CS := 0;
+  nop;
+  DF_Write($03);
+  DF_Write(Higher(Adr));
+  DF_Write(Hi(Adr));
+  DF_Write(Lo(Adr));
+  i := Adr;
+  j := 0;
+  while true do
+    begin
+      DF_Read;
+      if R18_ = 0 then break;
+      if inc(i) > $001FFFFF then exit;
+      inc(j);
+      ClrWdt;
+    end;
+  result := j;
+  DF_CS := 1;
+end;
+
+procedure DF_ContArrayToETH(Adr : dword; j : word);
+var i : word;
+begin
+  Adr := Adr and $001FFFFF;
+  Eth_Select;
+  Spi_Read_(%00101010); // WGPDATA_
+  DF_CS := 0;
+  nop;
+  DF_Write($03);
+  DF_Write(Higher(Adr));
+  DF_Write(Hi(Adr));
+  DF_Write(Lo(Adr));
+  asm
+    PUSH W7
+    MOV SPI1BUF,W0
+    MOV SPI2BUF,W0
+  end;
+  i := 0;
+  while i < j do
+    begin
+//      DF_Read;
+//      Spi_Read_(R18_);
+      while SPI1STAT.1 = 1 do ;
+      asm
+        CLR SPI1BUF
+      end;
+      while SPI1STAT.0 = 0 do ;
+      asm
+        MOV SPI1BUF,W7
+      end;
+      while SPI2STAT.1 = 1 do ;
+      asm
+        MOV W7,SPI2BUF
+      end;
+      while SPI2STAT.0 = 0 do ;
+      asm
+        MOV SPI2BUF,W0
+      end;
+      inc(i);
+    end;
+  asm
+    POP W7
+  end;
+  DF_CS := 1;
+  Eth_UnSelect;
+end;
+
+
+procedure DF_BufferToETH(BufferNo : byte);
+var i : word;
+begin
+  Eth_Select;
+  Spi_Read_(%00101010); // WGPDATA_
+  DF_CS := 0;
+  nop;
+  if BufferNo = 1 then DF_Write(Buf1Read)
+  else DF_Write(Buf2Read);
+  DF_Write(0);
+  DF_Write(0);
+  DF_Write(0);
+  DF_Write(0);
+  asm
+    PUSH W7
+    MOV SPI1BUF,W0
+    MOV SPI2BUF,W0
+  end;
+  i := 0;
+  while i < 512 do
+    begin
+//      DF_Read;
+//      Spi_Read_(R18_);
+      while SPI1STAT.1 = 1 do ;
+      asm
+        CLR SPI1BUF
+      end;
+      while SPI1STAT.0 = 0 do ;
+      asm
+        MOV SPI1BUF,W7
+      end;
+      while SPI2STAT.1 = 1 do ;
+      asm
+        MOV W7,SPI2BUF
+      end;
+      while SPI2STAT.0 = 0 do ;
+      asm
+        MOV SPI2BUF,W0
+      end;
+      inc(i);
+    end;
+  asm
+    POP W7
+  end;
+  DF_CS := 1;
+  Eth_UnSelect;
+end;
+
+function DF_ContArrayCRC(Adr : dword; j : dword) : word;
+var i : dword;
+begin
+  Adr := Adr and $001FFFFF;
+  result := $FFFF;
+  DF_CS := 0;
+  nop;
+  DF_Write($03);
+  DF_Write(Higher(Adr));
+  DF_Write(Hi(Adr));
+  DF_Write(Lo(Adr));
+  i := 0;
+  while i < j do
+    begin
+      DF_Read;
+      result := Hi(result) XOR Table16[R18_ XOR Lo(result)];
+      inc(i);
+    end;
+  DF_CS := 1;
+end;
+
+procedure DF_PageToBuffer(PageAdr : word; BufferNo : byte);
+begin
+  PageAdr := (PageAdr shl 1) and $1FFF;
+  DF_CS := 0;
+  nop;
+  if BufferNo = 1 then DF_Write(FlashToBuf1Transfer)
+  else DF_Write(FlashToBuf2Transfer);
+  DF_Write(Hi(PageAdr));
+  DF_Write(Lo(PageAdr));
+  DF_Write(0);
+  DF_CS := 1;
+  WaitForReady;
+end;
+
+procedure DF_BufferToPage(PageAdr : word; BufferNo : byte);
+begin
+  PageAdr := (PageAdr shl 1) and $1FFF;
+  DF_CS := 0;
+  nop;
+  if BufferNo = 1 then DF_Write($60)
+  else DF_Write($61);
+  DF_Write(Hi(PageAdr));
+  DF_Write(Lo(PageAdr));
+  DF_Write(0);
+  DF_CS := 1;
+  WaitForReady;
+  if gen_status and 0x40 = 0 then exit; // page and buffer are the same
+  DF_CS := 0;
+  nop;
+  if BufferNo = 1 then DF_Write(Buf1ToFlashWE)
+  else DF_Write(Buf2ToFlashWE);
+  DF_Write(Hi(PageAdr));
+  DF_Write(Lo(PageAdr));
+  DF_Write(0);
+  DF_CS := 1;
+  WaitForReady;
+end;
+
+function DF_BufferReadByte(Adr : word; BufferNo : byte) : byte;
+begin
+  Adr := Adr and $01FF;
+  DF_CS := 0;
+  nop;
+  if BufferNo = 1 then DF_Write(Buf1Read)
+  else DF_Write(Buf2Read);
+  DF_Write(0);
+  DF_Write(Hi(Adr));
+  DF_Write(Lo(Adr));
+  DF_Write(0);
+  DF_Read;
+  result := R18_;
+  DF_CS := 1;
+end;
+
+procedure DF_BufferReadArray(var buff_ : array[512] of byte; BufferNo : byte);
+var i : word;
+begin
+  DF_CS := 0;
+  nop;
+  if BufferNo = 1 then DF_Write(Buf1Read)
+  else DF_Write(Buf2Read);
+  DF_Write(0);
+  DF_Write(0);
+  DF_Write(0);
+  DF_Write(0);
+  i := 0;
+  while i < 512 do
+    begin
+      DF_Read;
+      buff_[i] := R18_;
+      inc(i);
+    end;
+  DF_CS := 1;
+end;
+
+procedure DF_BufferWriteByte(Adr : word; d_in : byte; BufferNo : byte);
+begin
+  Adr := Adr and $01FF;
+  DF_CS := 0;
+  nop;
+  if BufferNo = 1 then DF_Write(Buf1Write)
+  else DF_Write(Buf2Write);
+  DF_Write(0);
+  DF_Write(Hi(Adr));
+  DF_Write(Lo(Adr));
+  DF_Write(d_in);
+  DF_CS := 1;
+end;
+
+procedure DF_BufferWriteArray(var buff_ : array[512] of byte; BufferNo : byte);
+var i : word;
+begin
+  DF_CS := 0;
+  nop;
+  if BufferNo = 1 then DF_Write(Buf1Write)
+  else DF_Write(Buf2Write);
+  DF_Write(0);
+  DF_Write(0);
+  DF_Write(0);
+  i := 0;
+  while i < 512 do
+    begin
+      DF_Write(buff_[i]);
+      inc(i);
+    end;
+  DF_CS := 1;
+end;
+
+procedure DF_BufferFill(value : byte; BufferNo : byte);
+var i : word;
+begin
+  DF_CS := 0;
+  nop;
+  if BufferNo = 1 then DF_Write(Buf1Write)
+  else DF_Write(Buf2Write);
+  DF_Write(0);
+  DF_Write(0);
+  DF_Write(0);
+  i := 0;
+  while i < 512 do
+    begin
+      DF_Write(value);
+      inc(i);
+    end;
+  DF_CS := 1;
+end;
+
+procedure DF_BufferWriteArrayETH_CP(BufferNo : byte);
+var i : word;
+begin
+  DF_CS := 0;
+  nop;
+  if BufferNo = 1 then DF_Write(Buf1Write)
+  else DF_Write(Buf2Write);
+  DF_Write(0);
+  DF_Write(0);
+  DF_Write(0);
+  i := 0;
+  while i < 512 do
+    begin
+      DF_Write(Eth_GetByte); // here put to eth
+      inc(i);
+    end;
+  DF_CS := 1;
+end;
+
+function DF_Init : boolean;
+var i : byte;
+begin
+  DF_CS := 1;
+  nop;
+  DF_CS_dir := 0;
+  i := 0;
+  while i < 10 do
+    begin
+      delay_1ms_;
+      inc(i);
+    end;
+  if (DF_ReadStatus and 1) = 0 then
+    begin
+      SetPowerOfTwo;
+      result := false
+    end
+  else result := true;
+end;
+
+procedure DF_BufferWriteArrayPt(buff_ : ^byte; BufferNo : byte);
+var i : word;
+begin
+  DF_CS := 0;
+  nop;
+  if BufferNo = 1 then DF_Write(Buf1Write)
+  else DF_Write(Buf2Write);
+  DF_Write(0);
+  DF_Write(0);
+  DF_Write(0);
+  i := 0;
+  while i < 512 do
+    begin
+      DF_Write(buff_^);
+      inc(i);
+      inc(buff_);
+    end;
+  DF_CS := 1;
+end;
+
+procedure DF_BufferReadArrayPt(buff_ : ^byte; BufferNo : byte);
+var i : word;
+begin
+  DF_CS := 0;
+  nop;
+  if BufferNo = 1 then DF_Write(Buf1Read)
+  else DF_Write(Buf2Read);
+  DF_Write(0);
+  DF_Write(0);
+  DF_Write(0);
+  DF_Write(0);
+  i := 0;
+  while i < 512 do
+    begin
+      DF_Read;
+      buff_^ := R18_;
+      inc(i);
+      inc(buff_);
+    end;
+  DF_CS := 1;
+end;
+
+end.

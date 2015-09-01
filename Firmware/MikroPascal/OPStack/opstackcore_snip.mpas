@@ -1,0 +1,129 @@
+unit opstackcore_snip;
+
+{$IFDEF FPC}
+interface
+{$ENDIF}
+
+{$I Options.inc}
+
+uses
+  opstackcore_basic,
+  template_node,
+  {$IFDEF SUPPORT_VIRTUAL_NODES}
+  template_vnode,
+  {$ENDIF}
+  opstack_events,
+  opstack_node,
+  opstack_buffers,
+  opstack_defines,
+  template_hardware,
+  template_configuration,
+  opstack_types;
+
+procedure SimpleNodeInfoMessage(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+function SimpleNodeInfoRequestHandler(DestNode: POpenLCBNode; var MessageToSend: POPStackMessage; AMessage: POPStackMessage): Boolean;
+procedure SimpleNodeInfoRequestReply(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+
+implementation
+
+//
+// When a message is received this function queues it up for later processing by the main statemachine
+//
+procedure SimpleNodeInfoMessage(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+begin
+  // Link it in
+  OPStackNode_IncomingMessageLink(DestNode, AMessage)
+end;
+
+//
+//  Called to automatically reply to a Simple Node Info Request
+//
+function SimpleNodeInfoRequestHandler(DestNode: POpenLCBNode; var MessageToSend: POPStackMessage; AMessage: POPStackMessage): Boolean;
+var
+  MultiFrameStringBufferPtr: PMultiFrameStringBuffer;
+  j: Integer;
+  ConfigOffset: DWord;
+  TempBuffer: string[CDI_MAX_USERDESC_LEN];
+begin
+  Result := False;
+  MessageToSend := nil;
+  if OPStackBuffers_Allocate_MultiFrameString_Message(MessageToSend, MTI_SIMPLE_NODE_INFO_REPLY, AMessage^.Dest, AMessage^.Source) then
+  begin
+    MultiFrameStringBufferPtr := PMultiFrameStringBuffer( PByte( MessageToSend^.Buffer));
+    MultiFrameStringBufferPtr^.DataBufferSize := 0;
+    {$IFDEF SUPPORT_VIRTUAL_NODES}
+    if DestNode^.State and NS_VIRTUAL <> 0 then
+    begin
+      while MultiFrameStringBufferPtr^.DataBufferSize < USER_VNODE_MAX_ACDI_MFG_ARRAY do
+      begin
+        MultiFrameStringBufferPtr^.DataArray[MultiFrameStringBufferPtr^.DataBufferSize] := USER_VNODE_ACDI_MFG_STRINGS[MultiFrameStringBufferPtr^.DataBufferSize];
+        Inc(MultiFrameStringBufferPtr^.DataBufferSize);
+      end;
+    end else
+    {$ENDIF}
+    begin
+      while MultiFrameStringBufferPtr^.DataBufferSize < USER_MAX_ACDI_MFG_ARRAY do
+      begin
+        MultiFrameStringBufferPtr^.DataArray[MultiFrameStringBufferPtr^.DataBufferSize] := USER_ACDI_MFG_STRINGS[MultiFrameStringBufferPtr^.DataBufferSize];
+        Inc(MultiFrameStringBufferPtr^.DataBufferSize);
+      end;
+    end;
+    
+    Hardware_EnableInterrupts;
+    
+    // Need to read configuration memory here in a callback
+    MultiFrameStringBufferPtr^.DataArray[MultiFrameStringBufferPtr^.DataBufferSize] := 1;
+    Inc(MultiFrameStringBufferPtr^.DataBufferSize);
+    
+    ConfigOffset := DestNode^.iIndex * USER_CONFIGURATION_MEMORY_SIZE;  // Index 0 is the physical node so train nodes start at 1
+    ConfigurationCallback_ReadConfiguration(ConfigOffset + CDI_NAME, CDI_MAX_USERNAME_LEN, @TempBuffer);
+    j := 0;
+    while (TempBuffer[j] <> #0) and (j < CDI_MAX_USERNAME_LEN) do
+    begin
+      MultiFrameStringBufferPtr^.DataArray[MultiFrameStringBufferPtr^.DataBufferSize] := TempBuffer[j];
+      Inc(MultiFrameStringBufferPtr^.DataBufferSize);
+      Inc(j);
+    end;
+    MultiFrameStringBufferPtr^.DataArray[MultiFrameStringBufferPtr^.DataBufferSize] := 0;
+    Inc(MultiFrameStringBufferPtr^.DataBufferSize);
+    
+    
+    ConfigurationCallback_ReadConfiguration(ConfigOffset + CDI_DESCRIPTION, CDI_MAX_USERDESC_LEN, @TempBuffer);
+    j := 0;
+    while (TempBuffer[j] <> #0) and (j < CDI_MAX_USERDESC_LEN) do
+    begin
+      MultiFrameStringBufferPtr^.DataArray[MultiFrameStringBufferPtr^.DataBufferSize] := TempBuffer[j];
+      Inc(MultiFrameStringBufferPtr^.DataBufferSize);
+      Inc(j);
+    end;
+    MultiFrameStringBufferPtr^.DataArray[MultiFrameStringBufferPtr^.DataBufferSize] := 0;
+    Inc(MultiFrameStringBufferPtr^.DataBufferSize);
+
+  {
+    
+    j := 0;
+    while j < 2 do
+    begin
+      MultiFrameStringBufferPtr^.DataArray[MultiFrameStringBufferPtr^.DataBufferSize] := 0;
+      Inc(MultiFrameStringBufferPtr^.DataBufferSize);
+      Inc(j)
+    end;
+      }
+      
+    Hardware_DisableInterrupts;
+    
+    Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, AMessage);
+  end;
+end;
+
+//
+// Called when the reply to a request by us is received and needs to be handled
+//
+procedure SimpleNodeInfoRequestReply(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+begin
+  if OnSimpleNodeInfoReply <> nil then
+    OnSimpleNodeInfoReply(DestNode, AMessage);
+  UnLinkDeAllocateAndTestForMessageToSend(DestNode, nil, AMessage);
+end;
+
+end.

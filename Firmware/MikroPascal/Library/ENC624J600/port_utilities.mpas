@@ -1,0 +1,132 @@
+unit port_utilities;
+
+uses
+  lib1_enc600_V3_5_b;
+
+const
+  PORT_CACHE_LEN              : byte = 2;
+  TCP                         : byte = 100;
+  UDP                         : byte = 200;
+  
+function Search_Port(protocol : byte; port_ : word) : boolean;
+function Close_Port(protocol : byte; port_ : word) : boolean;
+function Open_Port(protocol_ : byte; port__ : word) : boolean;
+procedure UDP_Open_Port(port_u : word);
+procedure TCP_Open_Port(port_t : word);
+procedure UDP_Close_Port(port_u : word);
+procedure TCP_Close_Port(port_t : word);
+procedure Put_UDPPointer;
+procedure Put_TCPPointer;
+
+var
+  TCP_Opened_Ports,
+  UDP_Opened_Ports : array[PORT_CACHE_LEN] of word;
+  PING_Wait,                                                                    // This is the number of seconds the library will wait for a PING Reply before bailing
+  ARP_Wait,                                                                     // This is the number of seconds the library will wait for a ARP Reply before bailing
+  TCP_Wait,                                                                     // This is the number of seconds the library will wait for a TCP Reply before bailing
+  UDP_Wait : word;                                                              // This is the number of seconds the library will wait for a UDP Reply before bailing
+
+implementation
+
+function Search_Port(protocol : byte; port_ : word) : boolean;
+var i : byte;
+    pt : ^word;
+begin
+  result := false;
+  if port_ = 0 then exit;
+  if protocol = TCP then
+    pt := @TCP_Opened_Ports
+  else pt := @UDP_Opened_Ports;
+  i := 0;
+  while i < PORT_CACHE_LEN do
+    begin
+      if pt^ = port_ then
+        begin
+          result := true;
+          exit;
+        end;
+      pt := pt + 1;
+      inc(i);
+    end;
+end;
+
+function Close_Port(protocol : byte; port_ : word) : boolean;
+var i : byte;
+    pt : ^word;
+begin
+  result := false;
+  if port_ = 0 then exit;
+  if protocol = TCP then pt := @TCP_Opened_Ports
+  else pt := @UDP_Opened_Ports;
+  i := 0;
+  while i < PORT_CACHE_LEN do
+    begin
+      if pt^ = port_ then
+        begin
+          pt^ := 0;
+          result := true;
+          exit;
+        end;
+      pt := pt + 1;
+      inc(i);
+    end;
+end;
+
+function Open_Port(protocol_ : byte; port__ : word) : boolean;
+var i : byte;
+    pt : ^word;
+begin
+  result := false;
+  if port__ = 0 then exit;
+  if Search_Port(protocol_, port__) <> 0 then
+    begin
+      result := true;
+      exit;
+    end;
+  if protocol_ = TCP then pt := @TCP_Opened_Ports
+  else pt := @UDP_Opened_Ports;
+  i := 0;
+  while i < PORT_CACHE_LEN do
+    begin
+      if pt^ = 0 then
+        begin
+          pt^ := port__;
+          result := true;
+          exit;
+        end;
+      pt := pt + 1;
+      inc(i);
+    end;
+end;
+
+procedure UDP_Open_Port(port_u : word);
+begin
+  Open_Port(UDP, port_u);
+end;
+
+procedure TCP_Open_Port(port_t : word);
+begin
+  Open_Port(TCP, port_t);
+end;
+
+procedure UDP_Close_Port(port_u : word);
+begin
+  Close_Port(UDP, port_u);
+end;
+
+procedure TCP_Close_Port(port_t : word);
+begin
+  Close_Port(TCP, port_t);
+end;
+
+procedure Put_UDPPointer;
+begin
+  WriteToEthMem(TXSTART+41,$00);
+end;
+
+procedure Put_TCPPointer;
+begin
+  WriteToEthMem(TXSTART+53,$00);
+end;
+
+end.

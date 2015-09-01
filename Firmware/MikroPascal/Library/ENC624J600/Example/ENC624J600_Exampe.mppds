@@ -1,0 +1,84 @@
+[DEVICE]
+Name=P33EP512MU810
+Clock=140000000
+[MEMORY_MODEL]
+Value=0
+[BUILD_TYPE]
+Value=0
+[ACTIVE_TAB]
+Value=..\protocol_tcp.mpas
+[USE_EEPROM]
+Value=0
+[USE_HEAP]
+Value=0
+[HEAP_SIZE]
+Value=2000
+[EEPROM_DEFINITION]
+Value=
+[FILES]
+Count=9
+File0=ENC624J600_Exampe.mpas
+File1=..\Library\dspic_additional_string_library.mpas
+File2=..\Library\Lib_Delays_LIO.mpas
+File3=..\definitions_ENC600.mpas
+File4=..\lib1_enc600_V3_5_b.mpas
+File5=..\lib2_enc600_V3_5_b.mpas
+File6=..\User\def_io.mpas
+File7=..\User\enc_lib_user.mpas
+File8=..\..\Common\helperfunctions.mpas
+[BINARIES]
+Count=0
+[IMAGES]
+Count=0
+ActiveImageIndex=-1
+[OPENED_FILES]
+Count=7
+File0=ENC624J600_Exampe.mpas
+File1=..\lib1_enc600_V3_5_b.mpas
+File2=..\lib2_enc600_V3_5_b.mpas
+File3=..\protocol_udp.mpas
+File4=..\protocol_dhcp.mpas
+File5=..\protocol_defines.mpas
+File6=..\protocol_tcp.mpas
+[EEPROM]
+Count=0
+[ACTIVE_COMMENTS_FILES]
+Count=1
+File0=TCP_FlowDiagram.xml
+[OTHER_FILES]
+Count=2
+File0=..\TCP_Flowdiagram.png
+File1=
+[SEARCH_PATH]
+Count=11
+Path0=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\defs\
+Path1=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\uses\
+Path2=S:\Mustangpeak\mikroPascal\Library\ENC624J600\Example\
+Path3=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Packages\Network_Ethernet_dsPIC\Uses\
+Path4=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Packages\FAT32 Library\Uses\
+Path5=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Packages\FT800\Uses\
+Path6=S:\Mustangpeak\mikroPascal\Library\ENC624J600\Library\
+Path7=S:\Mustangpeak\mikroPascal\Library\ENC624J600\
+Path8=S:\Mustangpeak\mikroPascal\Library\ENC624J600\User\
+Path9=S:\Mustangpeak\mikroPascal\Library\Common\
+Path10=S:\Mustangpeak\mikroPascal\Library\ENC624J600\The TCP:
+[HEADER_PATH]
+Count=0
+[HEADERS]
+Count=0
+[PLDS]
+Count=0
+[Useses]
+Count=7
+File0=C_Stdlib
+File1=Conversions
+File2=String
+File3=C_Type
+File4=Peripheral_Pin_Select
+File5=UART
+File6=SPI
+[EXPANDED NODES]
+Node1=Sources
+Node2=Active Comments Files
+Node3=Other Files
+Count=3

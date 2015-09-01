@@ -1,0 +1,213 @@
+unit protocol_dhcp;
+
+uses
+  dspic_additional_string_library,
+  Lib_Delays_LIO,
+  definitions_ENC600,
+  lib1_enc600_V3_5_b,
+  port_utilities,
+  packet_utilities,
+  protocol_defines,
+  protocol_udp,
+  protocol_arp;
+
+function DHCP_Request : boolean;
+procedure Process_DHCP;
+
+var
+  DHCP_count_1,DHCP_count_2 : word;
+  DHCP_count_3 : dword;
+  DHCP_Lease_Time : dword;
+  DHCPServerID : IpHeader;
+  DHCP_State : byte;
+  
+implementation
+
+const
+  dhcp_c_1 : array[12] of byte = ($01,$01,$06,$00,$68,$BB,$2E,$23,$00,$00,$80,$00); far;
+  dhcp_c_2 : array[4] of byte = ($63,$82,$53,$63); far;
+  dhcp_c_3 : array[5] of byte = ($37,$03,$01,$03,$06); far;
+
+//******************************************************************************
+//* Name    : Eth_DoDHCP                                                       *
+//* Purpose : Process incomming DHCP packets                                   *
+//******************************************************************************
+procedure Eth_DoDHCP;
+begin
+  clrwdt;
+  if (Eth_ReadReg(EIR_) and $0040) <> 0 then     // PKTIF : RX Packet Pending Interrupt Flag?
+    begin
+      if Eth_ReadPacket = ETH_IP then
+        begin
+          if ReadFromEthMem(AddrPacket+23) = ETH_IP_UDP then
+            Eth_Udp_ReplyHandler;
+        end;
+    end;
+end;
+
+//******************************************************************************
+//* Name    : Send_DHCP                                                        *
+//* Purpose : Send DHCP request                                                *
+//******************************************************************************
+procedure Send_DHCP(msg_type : byte);
+var len_data : word;
+begin
+  EthMemSet(TXSTART,$FF,6);
+  CopyRamToEthMem(@eth_mac,TXSTART+6,6);
+  EthMemSet(TXSTART+26,0,4);
+  EthMemSet(TXSTART+30,$FF,4);
+
+  Put_UDPPointer;
+
+  if msg_type <> DHCP_REQUEST_MESSAGE then 
+    Mem_Cpy(@tmp_ip_addr,@eth_ip_addr,4);
+
+  len_data := (12 + 16 + 6 + 202 + 6 + 1 + 5 + 1);
+
+  CopyFlashToEthMem_CP(@dhcp_c_1, 12);
+
+  EthMemSet_CP(0,4);
+
+  EthMemSet_CP(0,12);
+
+  // my MAC address
+  CopyRamToEthMem_CP(@eth_mac, 6);
+
+  // no server host name, no boot file name
+  EthMemSet_CP(0,202);
+
+  // magic cookie
+  CopyFlashToEthMem_CP(@dhcp_c_2, 4) ;
+
+  Eth_PutByte($35);  // DHCP message type
+  Eth_PutByte($01);  // length 1
+
+  // first option is message type
+  Eth_PutByte(msg_type);
+
+  Eth_PutByte(DHCP_PARAM_REQUEST_IP_ADDRESS);
+  Eth_PutByte(DHCP_PARAM_REQUEST_IP_ADDRESS_LEN);
+  CopyRamToEthMem_CP(@tmp_ip_addr,4);
+  len_data := len_data + 6;
+
+  if msg_type = DHCP_REQUEST_MESSAGE then
+    begin
+    // if not discover message, add server identifier option
+      Eth_PutByte(DHCP_SERVER_IDENTIFIER);
+      Eth_PutByte(DHCP_SERVER_IDENTIFIER_LEN);
+      CopyRamToEthMem_CP(@DHCPServerID, 4);
+      len_data := len_data + 6;
+    end;
+
+  CopyFlashToEthMem_CP(@dhcp_c_3, 5);
+
+  Eth_PutByte(DHCP_END_OPTION);
+
+//  Eth_SendUDP(DHCP_SEND_PORT, DHCP_RECEIVE_PORT, len_data);
+end;
+
+//******************************************************************************
+//* Name    : DHCP_Request                                                     *
+//* Purpose : Get IP through DHCP                                              *
+//******************************************************************************
+function DHCP_Request : boolean;
+var CountBuf : word;
+    i : byte;
+begin
+  Result := False;
+  DHCP_State := 0;
+  i := 0;
+  while i < 3 do
+  begin
+    if Check_Link = False then
+      Exit;
+    UDP_Open_Port(DHCP_RECEIVE_PORT);
+    DHCP_State := 1;
+    Send_DHCP(DHCP_DISCOVER_MESSAGE);
+    TickCounter1 := 0;
+    CountBuf := 0;
+    while CountBuf < UDP_Wait do
+    begin
+      Eth_DoDHCP;
+      if DHCP_State = 2 then
+        break;
+      CountBuf := TickCounter1;
+    end;
+    UDP_Close_Port(DHCP_RECEIVE_PORT);
+    if DHCP_State = 2 then
+      break;
+    inc(i);
+  end;
+
+  if DHCP_State <> 2 then
+  begin
+    DHCP_State := 0;
+    Exit;
+  end;
+
+  i := 0;
+  while i < 3 do
+  begin
+    if Check_Link = False then
+      begin
+        DHCP_State := 0;
+        Exit;
+      end;
+    UDP_Open_Port(DHCP_RECEIVE_PORT);
+    DHCP_State := 2;
+    Send_DHCP(DHCP_REQUEST_MESSAGE);
+    TickCounter1 := 0;
+    CountBuf := 0;
+    while CountBuf < UDP_Wait do
+      begin
+        Eth_DoDHCP;
+        if DHCP_State = 3 then break;
+        CountBuf := TickCounter1;
+      end;
+    UDP_Close_Port(DHCP_RECEIVE_PORT);
+    if DHCP_State = 3 then break;
+    inc(i);
+  end;
+
+  if DHCP_State <> 3 then
+  begin
+    DHCP_State := 0;
+    Exit;
+  end;
+
+  Mem_Cpy(@eth_ip_addr,@tmp_ip_addr,4);
+  Mem_Cpy(@eth_gateway,@tmp_gat_addr,4);
+  Mem_Cpy(@eth_mask,@tmp_mask_addr,4);
+  Mem_Cpy(@eth_dns_addr,@tmp_dns_addr,4);
+  DHCP_count_3 := 0;
+  Result := True;
+end;
+
+//******************************************************************************
+//* Name    : Process_DHCP                                                     *
+//* Purpose : Get IP through DHCP                                              *
+//******************************************************************************
+procedure Process_DHCP;
+begin
+  if DHCP_count_1 > 9 then  // 1sec
+  begin
+    DHCP_count_1 := 0;
+    if Check_Link = False then      // Lost the link in the middle of DHCP statemachine, reset
+    begin
+      DHCP_State := 0;
+      DHCP_count_2 := 294;
+      Eth_Arp_EraseCache;
+    end else
+    if (DHCP_State = 0) {and (DHCP_Enable <> 0)} then
+    begin
+      if DHCP_count_2 > 299 then   // 5min
+      begin
+        DHCP_count_2 := 0;
+        DHCP_Request;
+      end;
+    end;
+  end;
+end;
+
+
+end.

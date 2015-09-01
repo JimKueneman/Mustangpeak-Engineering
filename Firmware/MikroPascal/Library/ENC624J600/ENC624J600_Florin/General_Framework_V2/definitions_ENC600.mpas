@@ -1,0 +1,263 @@
+unit definitions_ENC;
+
+const HALFDUPLEX_   =  0xFF;
+const FULLDUPLEX_   =  0xFE;
+const SPD10_        =  0xFF;
+const SPD100_       =  0xFD;
+const AUTO_NEGOTIATION_       = 0xFB;
+const MANUAL_NEGOTIATION_ = 0xFF;
+
+// ENC424J600/624J600 register addresses
+// SPI Bank 0 registers --------
+const ETXST_       = 0x0000;
+const ETXSTL_      = 0x0000;
+const ETXSTH_      = 0x0001;
+const ETXLEN_      = 0x0002;
+const ETXLENL_     = 0x0002;
+const ETXLENH_     = 0x0003;
+const ERXST_       = 0x0004;
+const ERXSTL_      = 0x0004;
+const ERXSTH_      = 0x0005;
+const ERXTAIL_     = 0x0006;
+const ERXTAILL_    = 0x0006;
+const ERXTAILH_    = 0x0007;
+const ERXHEAD_     = 0x0008;
+const ERXHEADL_    = 0x0008;
+const ERXHEADH_    = 0x0009;
+const EDMAST_      = 0x000A;
+const EDMASTL_     = 0x000A;
+const EDMASTH_     = 0x000B;
+const EDMALEN_     = 0x000C;
+const EDMALENL_    = 0x000C;
+const EDMALENH_    = 0x000D;
+const EDMADST_     = 0x000E;
+const EDMADSTL_    = 0x000E;
+const EDMADSTH_    = 0x000F;
+const EDMACS_      = 0x0010;
+const EDMACSL_     = 0x0010;
+const EDMACSH_     = 0x0011;
+const ETXSTAT_     = 0x0012;
+const ETXSTATL_    = 0x0012;
+const ETXSTATH_    = 0x0013;
+const ETXWIRE_     = 0x0014;
+const ETXWIREL_    = 0x0014;
+const ETXWIREH_    = 0x0015;
+
+// SPI all bank registers
+const EUDAST_      = 0x0016;
+const EUDASTL_     = 0x0016;
+const EUDASTH_     = 0x0017;
+const EUDAND_      = 0x0018;
+const EUDANDL_     = 0x0018;
+const EUDANDH_     = 0x0019;
+const ESTAT_       = 0x001A;
+const ESTATL_      = 0x001A;
+const ESTATH_      = 0x001B;
+const EIR_         = 0x001C;
+const EIRL_        = 0x001C;
+const EIRH_        = 0x001D;
+const ECON1_       = 0x001E;
+const ECON1L_      = 0x001E;
+const ECON1H_      = 0x001F;
+
+
+// SPI Bank 1 registers -----
+const EHT1_        = 0x0020;
+const EHT1L_       = 0x0020;
+const EHT1H_       = 0x0021;
+const EHT2_        = 0x0022;
+const EHT2L_       = 0x0022;
+const EHT2H_       = 0x0023;
+const EHT3_        = 0x0024;
+const EHT3L_       = 0x0024;
+const EHT3H_       = 0x0025;
+const EHT4_        = 0x0026;
+const EHT4L_       = 0x0026;
+const EHT4H_       = 0x0027;
+const EPMM1_       = 0x0028;
+const EPMM1L_      = 0x0028;
+const EPMM1H_      = 0x0029;
+const EPMM2_       = 0x002A;
+const EPMM2L_      = 0x002A;
+const EPMM2H_      = 0x002B;
+const EPMM3_       = 0x002C;
+const EPMM3L_      = 0x002C;
+const EPMM3H_      = 0x002D;
+const EPMM4_       = 0x002E;
+const EPMM4L_      = 0x002E;
+const EPMM4H_      = 0x002F;
+const EPMCS_       = 0x0030;
+const EPMCSL_      = 0x0030;
+const EPMCSH_      = 0x0031;
+const EPMO_        = 0x0032;
+const EPMOL_       = 0x0032;
+const EPMOH_       = 0x0033;
+const ERXFCON_     = 0x0034;
+const ERXFCONL_    = 0x0034;
+const ERXFCONH_    = 0x0035;
+
+// SPI all bank registers from 0x36 to 0x3F
+
+
+// SPI Bank 2 registers -----
+const MACON1_      = 0x0040;
+const MACON1L_     = 0x0040;
+const MACON1H_     = 0x0041;
+const MACON2_      = 0x0042;
+const MACON2L_     = 0x0042;
+const MACON2H_     = 0x0043;
+const MABBIPG_     = 0x0044;
+const MABBIPGL_    = 0x0044;
+const MABBIPGH_    = 0x0045;
+const MAIPG_       = 0x0046;
+const MAIPGL_      = 0x0046;
+const MAIPGH_      = 0x0047;
+const MACLCON_     = 0x0048;
+const MACLCONL_    = 0x0048;
+const MACLCONH_    = 0x0049;
+const MAMXF_       = 0x004A;
+const MAMXFL_      = 0x004A;
+const MAMXFLL_     = 0x004A;
+const MAMXFLH_     = 0x004B;
+const MICMD_       = 0x0052;
+const MICMDL_      = 0x0052;
+const MICMDH_      = 0x0053;
+const MIREGADR_    = 0x0054;
+const MIREGADRL_   = 0x0054;
+const MIREGADRH_   = 0x0055;
+
+// SPI all bank registers from 0x56 to 0x5F
+
+
+// SPI Bank 3 registers -----
+const MAADR3_      = 0x0060;
+const MAADR3L_     = 0x0060;
+const MAADR3H_     = 0x0061;
+const MAADR2_      = 0x0062;
+const MAADR2L_     = 0x0062;
+const MAADR2H_     = 0x0063;
+const MAADR1_      = 0x0064;
+const MAADR1L_     = 0x0064;
+const MAADR1H_     = 0x0065;
+const MIWR_        = 0x0066;
+const MIWRL_       = 0x0066;
+const MIWRH_       = 0x0067;
+const MIRD_        = 0x0068;
+const MIRDL_       = 0x0068;
+const MIRDH_       = 0x0069;
+const MISTAT_      = 0x006A;
+const MISTATL_     = 0x006A;
+const MISTATH_     = 0x006B;
+const EPAUS_       = 0x006C;
+const EPAUSL_      = 0x006C;
+const EPAUSH_      = 0x006D;
+const ECON2_       = 0x006E;
+const ECON2L_      = 0x006E;
+const ECON2H_      = 0x006F;
+const ERXWM_       = 0x0070;
+const ERXWML_      = 0x0070;
+const ERXWMH_      = 0x0071;
+const EIE_         = 0x0072;
+const EIEL_        = 0x0072;
+const EIEH_        = 0x0073;
+const EIDLED_      = 0x0074;
+const EIDLEDL_     = 0x0074;
+const EIDLEDH_     = 0x0075;
+
+// SPI all bank registers from 0x66 to 0x6F
+
+
+// SPI Non-banked Special Function Registers
+const EGPDATA_     =    0x0080;
+const EGPDATAL_    =    0x0080;
+const ERXDATA_     =    0x0082;
+const ERXDATAL_    =    0x0082;
+const EUDADATA_    =    0x0084;
+const EUDADATAL_   =    0x0084;
+const EGPRDPT_     =    0x0086;
+const EGPRDPTL_    =    0x0086;
+const EGPRDPTH_    =    0x0087;
+const EGPWRPT_     =    0x0088;
+const EGPWRPTL_    =    0x0088;
+const EGPWRPTH_    =    0x0089;
+const ERXRDPT_     =    0x008A;
+const ERXRDPTL_    =    0x008A;
+const ERXRDPTH_    =    0x008B;
+const ERXWRPT_     =    0x008C;
+const ERXWRPTL_    =    0x008C;
+const ERXWRPTH_    =    0x008D;
+const EUDARDPT_    =    0x008E;
+const EUDARDPTL_   =    0x008E;
+const EUDARDPTH_   =    0x008F;
+const EUDAWRPT_    =    0x0090;
+const EUDAWRPTL_   =    0x0090;
+const EUDAWRPTH_   =    0x0091;
+
+// ENC424J600/624J600 PHY Register Addresses   //
+const PHCON1_      =  0x00;
+const PHSTAT1_     =  0x01;
+const PHANA_       =  0x04;
+const PHANLPA_     =  0x05;
+const PHANE_       =  0x06;
+const PHCON2_      =  0x11;
+const PHSTAT2_     =  0x1B;
+const PHSTAT3_     =  0x1F;
+
+{*
+ * bit masks
+ *}
+const ECON1_PKTDEC_  = 0x0100;
+const ECON1_DMAST_   = 0x0020;
+const ECON1_TXRTS_   = 0x0002;
+
+const ECON1_DMACPY_  = 0x0010;
+const ECON1_DMANOCS_ = 0x0004;
+const ECON1_DMACSSD_ = 0x0008;
+
+const MISTAT_BUSY_   = 0x0001;
+const MICMD_MIIRD_   = 0x0001;
+
+{*
+ * SPI commands
+ *}
+const BFSCMD_  = %10000000;      // bit field set
+const BFSUCMD_ = %00100100;      // bit field set
+const BFCCMD_  = %10100000;      // bit field clear
+const BFCUCMD_ = %00100110;      // bit field clear
+const WCRCMD_  = %01000000;      // write control register
+const WCRUCMD_ = %00100010;
+const RCRCMD_  = %00000000;      // read control register
+const RCRUCMD_ = %00100000;      //
+
+const RRXDATA_ = %00101100;           // read ERXDATA
+const WRXDATA_ = %00101110;           // write ERXDATA
+const RGPDATA_ = %00101000;           // read EGPDATA
+const WGPDATA_ = %00101010;           // write EGPDATA
+
+{*
+ * ENC memory allocation
+ *
+const BUF_SIZE       = 1518;
+const RAM_SIZE        =0x6000                  ;       // 24kB RAM available
+const TRANSMIT_START  =0                       ;       // transmit buffer start address
+const TRANSMIT_LENGTH = (BUF_SIZE + 100)       ;       // transmit buffer length
+const RECEIVE_START   =0x5340                  ;       // receive buffer start address
+const RECEIVE_END     =0x5FFF                  ;       // receive buffer end address
+const RECEIVE_SIZE    =(0x5FFF-RECEIVE_START+1);       // receive buffer size
+const REPLY_START     =(TRANSMIT_START)        ;       // reply buffer starts after per packet control byte
+}
+
+const NO_ADDR_ = 0xFFFF;
+
+{*
+ * rx filter consts
+ *}
+ 
+const BROADCAST_ = 0x0001;
+const MULTICAST_ = 0x0002;
+const CRC_       = 0x0040;
+const UNICAST_   = 0x0008;
+
+implementation
+
+end.

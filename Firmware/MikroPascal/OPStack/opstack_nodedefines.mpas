@@ -1,0 +1,22 @@
+unit opstack_nodedefines;
+
+const
+  LEN_PIV_PROTOCOL = 6;                                                         // 6 Bytes long
+
+type
+  TPIVProtocolValueArray = array[0..LEN_PIV_PROTOCOL-1] of Byte;
+  PPIVProtocolValueArray = ^TPIVProtocolValueArray;
+  
+const
+  MSI_CDI                            = $FF;                                     // MemorySpaceIdentifier - Access the Configuration Definition Infomation (CDI)
+  MSI_ALL                            = $FE;                                     // MemorySpaceIdentifier - Access All memory (define all in the application)
+  MSI_CONFIG                         = $FD;                                     // MemorySpaceIdentifier - Access basic configuration memory that feeds into the CDI
+  MSI_ACDI_MFG                       = $FC;                                     // MemorySpaceIdentifier - Access the ACDI Manfacturers Info
+  MSI_ACDI_USER                      = $FB;                                     // MemorySpaceIdentifier - Access the ACDI User definable Info
+  MSI_FDI                            = $FA;                                     // MemorySpaceIdentifier - Access the Function Definition Information (FDI)
+  MSI_FUNCTION_CONFIG                = $F9;                                     // MemorySpaceIdentifier - Access to the Function States (sort of like the Configuration of FDI)
+
+
+implementation
+
+end.

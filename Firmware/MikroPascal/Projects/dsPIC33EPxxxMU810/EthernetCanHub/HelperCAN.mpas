@@ -1,0 +1,663 @@
+unit HelperCAN;
+
+const
+  CAN_DIRECTION_WRITE = 0;
+  CAN_DIRECTION_READ  = 1;
+  
+type
+  TOpenLCBCanBuffer = record
+    MTI: DWord;
+    PayloadCount: Word;
+    Payload: array[0..7] of Byte;
+  end;
+  POpenLCBCanBuffer = ^TOpenLCBCanBuffer;
+  
+type
+  TCANRawBuffer = record
+    Word0    : Word;   // if Standard Message then SID else EID upper Bits
+    Word1    : Word;   // if Standard Message then Data Length Code else low bits of EID and upper bits of SID
+    Word2    : Word;   // if Standard Message then Data 0 and Data 1 else low bits of SID and Data Length Code
+    Word3    : Word;   // if Standard Message then Data 2 and Data 3 else Data 0 and Data 1
+    Word4    : Word;   // if Standard Message then Data 4 and Data 5 else Data 2 and Data 3
+    Word5    : Word;   // if Standard Message then Data 6 and Data 7 else Data 4 and Data 5
+    Word6    : Word;   // if Standard Message then, not used, else Data 6 and Data 7
+    Word7    : Word;   // dsPIC33 only, For TX not used for RX the Filter that passed the message
+  end;
+  PCANRawBuffer = ^TCANRawBuffer;
+  
+  {$IFDEF P33FJ256GP710A}
+  TFarWord = Word;          // far breaks the writing to the DMA Buffer in the FJ.....
+  {$ELSE}
+  TFarWord = Word; far;
+  {$ENDIF}
+
+// *****************************************************************************
+// Initialization Functions
+// *****************************************************************************
+procedure CAN_EnterConfigMode;
+procedure CAN_EnterNormalMode;
+procedure CAN_SetBaud(SWJ, BRP, SEG2PH, SEG1PH, PRSEG: Word; Sample3Times: Boolean);
+procedure ClearWindowSelectBit;
+
+
+procedure CAN_SetMask(MaskNumber: Byte; Mask: DWord; ExtendedOnly: Boolean);       // (0..2)
+procedure CAN_SetFilter(FilterNumber: Byte; Filter: DWord; ExtendedOnly: Boolean); // (0..15)
+procedure CAN_RegisterMaskWithFilter(FilterNumber, MaskNumber: Word);
+procedure CAN_EnableFilter(FilterNumber: Byte; Enabled: Boolean);                  // (0..15);
+procedure CAN_RegisterFilterWithBuffer(FilterNumber, BufferNumber: Word);
+
+procedure CAN_SetBufferAsTransmitter(BufferNumber: Word; DoSet: Boolean);
+procedure CAN_SetTransmitterPriority(BufferNumber: Word; Priority: Word);
+procedure CAN_RequestTransmit(BufferNumber: Word);
+
+function CAN_IsReceiveFull(BufferNumber: Word; Clear: Boolean): Boolean;
+function CAN_IsTransmitRequested(BufferNumber: Word): Boolean;
+
+function PingPongASelected(DMAChannel: Word): Boolean;
+function PingPongBSelected(DMAChannel: Word): Boolean;
+
+procedure dsPIC33_DMA_Style_Buffer(var Buffer: TOpenLCBCanBuffer; var Extended: Boolean; Direction: Byte; CANPtr: ^TFarWord);
+
+implementation
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_Style_Buffer
+//     Parameters:
+//
+//     Returns: None
+//
+//     Description:   Fills the passed PCANRawBuffer with the more user friendly data
+//                    the buffers are filled with copies of what the perphial registers need
+//
+//                     NOTE:  The datasheet for the dsPIC33FJ256GP710A is TOTALLY FREAKING WRONG
+//                            in the Bit Pattern for the SID, EID, DLC words in the Buffers...
+//
+//
+//                                     This is the correct bit pattern.
+//  Datasheet defined SID - Word 0     |   U  |   U  |   U  |EID-17|EID-16|EID-15|EID-14|EID-13|EID-12|EID-11|EID-10|EID-9 |EID-8 |EID-7 |  SRR |  EID |
+//  Datasheet defined EID - Word 1     |   U  |   U  |   U  |   U  |EID-6 |EID-5 |EID-4 |EID-3 |EID-2 |EID-1 |EID-0 |SID-10 |SID-9 |SID-8 |SID-7 |SID-6|
+//  Datasheet defined EID - Word 2     |SID-5 |SID-4 |SID-3 |SID-2 |SID-1 |SID-0 |  RTR |  RB1 |   U  |   U  |   U  |   RB0 | DCL-3| DCL-2| DCL-1| DCL-0|
+//
+//  The example code for the ECAN shows in the comments what is in the datasheet
+//  BUT.....  The code does exactly what I show above!!!!  Verified the datasheet is wrong
+// *****************************************************************************
+procedure dsPIC33_DMA_Style_Buffer(var Buffer: TOpenLCBCanBuffer; var Extended: Boolean; Direction: Byte; CANPtr: ^TFarWord);
+var
+  Temp: DWord;
+  TempWord: Word;
+begin
+  if Direction = CAN_DIRECTION_WRITE then
+  begin
+    // Direction = 0 means Parameters to Buffer (Load TX Buffer)
+    if Extended then
+    begin
+      Temp := (Buffer.MTI shr 16) and $00001FFC;
+      CANPtr^ := LoWord(Temp);                                                  // Setup the Extended iD 7..17
+      CANPtr^ := CANPtr^ or $0001;                                              // Setup if it is an extended ID
+      Inc(CANPtr);
+      Temp := (Buffer.MTI shr 6) and $00000FFF;                                  // Move to the Extended ID
+      CANPtr^ := LoWord(Temp);                                                  // put SID 0..6 into bits 5..11 and SID 6..10 in bits 0..4
+      Inc(CANPtr);                                                              // Move to the DLC and the rest of the EID
+      Temp := (Buffer.MTI shl 10) and $0000FC00;
+      CANPtr^ := LoWord(Temp);                                                  // Put SID 0..5 into bits 10..15
+      CANPtr^ := CANPtr^ or (Word( Buffer.PayloadCount) and $000F);                // Put Data Length in the last 4 bits
+    end else
+    begin
+      Temp := (Buffer.MTI shl 2) and $000007FF;
+      CANPtr^ := LoWord(Temp);                                                  // SID
+      Inc(CANPtr);                                                              // EID is not used
+      Lo( CANPtr^) := Buffer.PayloadCount;                                           // EID/DLC does not use the EID bits
+    end;
+    Inc(CANPtr);
+    Lo(CANPtr^) := Buffer.Payload[0];                                          // Move to Byte 1 and Byte 2
+    Hi(CANPtr^) := Buffer.Payload[1];
+    Inc(CANPtr);
+    Lo(CANPtr^) := Buffer.Payload[2];                                          // Move to Byte 1 and Byte 2
+    Hi(CANPtr^) := Buffer.Payload[3];
+    Inc(CANPtr);
+    Lo(CANPtr^) := Buffer.Payload[4];                                          // Move to Byte 1 and Byte 2
+    Hi(CANPtr^) := Buffer.Payload[5];
+    Inc(CANPtr);
+    Lo(CANPtr^) := Buffer.Payload[6];                                          // Move to Byte 1 and Byte 2
+    Hi(CANPtr^) := Buffer.Payload[7];
+    Inc(CANPtr);
+  end else
+  begin
+    // Direction <> 0 then Buffer to Parameters (Read RX Buffer)
+
+    Extended := CANPtr^ and $0001 <> 0;
+    if Extended then
+    begin
+      Buffer.MTI := CANPtr^ and $1FFC;
+      Buffer.MTI := Buffer.MTI shl 16;
+      Inc(CANPtr);                                                              // Word 1
+      Buffer.MTI := Buffer.MTI or DWORD((CANPtr^ and $0FFF) shl 6);
+      Inc(CANPtr);
+      Buffer.MTI := Buffer.MTI or DWORD((CANPtr^ and $FC00) shr 10);            // Word 2
+    end else
+    begin
+      LoWord( Buffer.MTI) := (CANPtr^ and $1FFC) shr 2;                                  // Word 0
+      Inc(CANPtr);                                                              // Word 1
+    end;
+    Buffer.PayloadCount := Lo(CANPtr^) and $000F;                               // Word 2
+    Inc(CANPtr);                                                                // Move to C1RXnB1
+    Buffer.Payload[0] := Lo(CANPtr^);
+    Buffer.Payload[1] := Hi(CANPtr^);
+    Inc(CANPtr);                                                                // Move to C1RXnB2
+    Buffer.Payload[2] := Lo(CANPtr^);
+    Buffer.Payload[3] := Hi(CANPtr^);
+    Inc(CANPtr);                                                                // Move to C1RXnB3
+    Buffer.Payload[4] := Lo(CANPtr^);
+    Buffer.Payload[5] := Hi(CANPtr^);
+    Inc(CANPtr);                                                                // Move to C1RXnB4
+    Buffer.Payload[6] := Lo(CANPtr^);
+    Buffer.Payload[7] := Hi(CANPtr^);
+    Inc(CANPtr);                                                                // Move to C1RXnCON
+  end
+end;
+
+// *****************************************************************************
+//  procedure ValidateCAN_ID;
+//
+//  Parameters: ID:  The CAN 11 or 27 bit ID
+//
+//  Result:
+//
+//  Description: Strips off the upper 3 bits to make sure we don't overrun the
+//               registers in these functions
+// *****************************************************************************
+procedure ValidateCAN_ID(var ID: DWord);
+begin
+  ID := ID and $1FFFFFFF;
+end;
+
+// *****************************************************************************
+//  procedure SetWindowSelectBit;
+//
+//  Parameters:
+//
+//  Result:
+//
+//  Description: Selects the bank of memory to the Filter and Mask registers
+// *****************************************************************************
+procedure SetWindowSelectBit;
+begin
+  WIN_bit := 1;
+end;
+
+// *****************************************************************************
+//  procedure ClearWindowSelectBit;
+//
+//  Parameters:
+//
+//  Result:
+//
+//  Description: Selects the bank of memory not associated with the Filter and Mask Registers
+// *****************************************************************************
+procedure ClearWindowSelectBit;
+begin
+  WIN_bit := 0;
+end;
+
+// *****************************************************************************
+//  procedure ManipulateTXBit;
+//
+//  Parameters:   BufferNumber: The Buffer Index to check for aborted transmit (0..7)
+//                BitIndex    : Index of the bit to manipulate in the TX Control Structure
+//
+//  Result:
+//
+//  Description:  WARNING: Up until recently the silicon had a bug that made only
+//                Buffer 0 work correctly as a transmitter.  What would happen is
+//                The SID/EID of Buffer 0 would be used as the CAN ID for Buffers 1-7
+//                Look at the parts errata sheet to see if this bug still exists
+//                in the device being used
+// *****************************************************************************
+procedure ManipulateTXBit(BufferNumber: Word; BitIndex: Byte; DoSet: Boolean);
+var
+  Offset: Word;
+  RegPtr: ^Word;
+begin
+  ClearWindowSelectBit;
+  RegPtr := @C1TR01CON;
+  Offset := BufferNumber div 2;       // Is it C1TRO1CON, C1TR23CON, C1TR34CON or C1TR67CON?
+  RegPtr := RegPtr + Offset;          // Get to the right Register
+  Offset := BufferNumber mod 2;       // Is it the first Byte (0,2,4,5) or Second (1,3,5,7) Byte?
+  Offset := (Offset * 8) + BitIndex;
+  if DoSet then
+    RegPtr^.Offset := 1
+  else
+    RegPtr^.Offset := 0;
+end;
+
+// *****************************************************************************
+//  procedure ReadTXBit;
+//
+//  Parameters:   BufferNumber: The Buffer Index to check for aborted transmit (0..7)
+//                BitIndex    : Index of the bit to check for in the TX Control Structure
+//
+//  Result:
+//
+//  Description:  WARNING: Up until recently the silicon had a bug that made only
+//                Buffer 0 work correctly as a transmitter.  What would happen is
+//                The SID/EID of Buffer 0 would be used as the CAN ID for Buffers 1-7
+//                Look at the parts errata sheet to see if this bug still exists
+//                in the device being used
+// *****************************************************************************
+function ReadTXBit(BufferNumber: Word; BitIndex: Byte): Boolean;
+var
+  Offset: Word;
+  RegPtr: ^Word;
+begin
+  ClearWindowSelectBit;
+  RegPtr := @C1TR01CON;
+  Offset := BufferNumber div 2;       // Is it C1TRO1CON, C1TR23CON, C1TR34CON or C1TR67CON?
+  RegPtr := RegPtr + Offset;          // Get to the right Register
+  Offset := BufferNumber mod 2;       // Is it the first Byte (0,2,4,5) or Second (1,3,5,7) Byte?
+  Offset := (Offset * 8) + BitIndex;
+  Result := RegPtr^.Offset = 1
+end;
+
+// *****************************************************************************
+//  procedure ReadRXBit;
+//
+//  Parameters:   RegPtr      : The Starting Register
+//                BufferNumber: The Buffer Index to check for aborted transmit (0..31)
+//
+//  Result:
+//
+//  Description:  Assumes 32 Individual Bits in 2 consecutive 16 bit registers (CxRXFUL1, CxRXFUL2 or CxRXOVF1, CxRXOVF2 are the main reason)
+// *****************************************************************************
+function ReadRXBit(RegPtr: ^Word; BufferNumber: Word; Clear: Boolean): Boolean;
+var
+  Offset: Word;
+begin
+  ClearWindowSelectBit;
+  Offset := BufferNumber div 16;       // Is it First or Second Register?
+  RegPtr := RegPtr + Offset;          // Get to the right Register
+  Offset := BufferNumber;
+  if Offset > 15 then
+    Offset := Offset - 16; // Convert to the Bit Offset
+  Result := RegPtr^.Offset = 1;
+  if Clear then
+    RegPtr^.Offset := 0
+end;
+
+// *****************************************************************************
+//  procedure SetFilterMaskBits;
+//
+//  Parameters: RegPtr      : Pointer to the Register to modify
+//              Filter      : Filter or Mask bits
+//              ExtendedOnly: Sets the EID bit in the filter or mask
+//
+//  Result:
+//
+//  Description: Internal function that set the Standard ID in the lower word for the Filter and Mask
+//               Again the Documentation is WRONG:
+//
+//                                     This is the correct bit pattern.
+//  Datasheet defined SID - Word 0     |EID-17|EID-16|EID-15|EID-14|EID-13|EID-12|EID-11|EID-10|EID-9 |EID-8 |EID-7 |  U   |EXEID |  U   |EID-6 |EID-5 |
+//  Datasheet defined EID - Word 1     |EID-4 |EID-3 |EID-2 |EID-1 |EID-0 |SID-10|SID-9 |SID-8 |SID-7 |SID-6 |SID-5 |SID-4 |SID-3 |SID-2 |SID-1 |SID-0 |
+// *****************************************************************************
+procedure SetFilterMaskBits(RegPtrSID, RegPtrEID: ^Word; Filter: DWord; ExtendedOnly: Boolean);
+begin
+  RegPtrEID^ := Filter;                                               // Setup SID and EID 0..4
+  RegPtrSID^ := DWord(Filter shr 16) and $0003;                       // Setup EID 5..6 and clear the upper 14 bits
+  RegPtrSID^ := RegPtrSID^ or (DWord(Filter shr 13) and $FFE0);       // Set up EID 7..17
+  if ExtendedOnly then
+    RegPtrSID^ := RegPtrSID^ or $0008;
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_CAN_SetBaud;
+//
+//  Parameters: SWJ   : See Data Sheet
+//              BRP   : See Data Sheet
+//              SEG2PH: See Data Sheet
+//              SEG1PH: See Data Sheet
+//              PRSEG : See Data Sheet
+//              Sample3Times: Set module to sample signal 3 time for a majority vote
+//
+//  Result:
+//
+//  Description:
+// *****************************************************************************
+procedure dsPIC33_CAN_SetBaud(SWJ, BRP, SEG2PH, SEG1PH, PRSEG: Word; Sample3Times: Boolean);
+const
+  SAMPLE_3_TIMES = $0040;
+  PROGRAMMABLE_SEG2PHTS = $0080;
+begin
+  C1CFG1 := BRP or (SWJ shl 6);
+  C1CFG2 := PRSEG or (SEG1PH shl 3) or (SEG2PH shl 8) or PROGRAMMABLE_SEG2PHTS;
+  if Sample3Times then
+    C1CFG2 := C1CFG2 or SAMPLE_3_TIMES
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_CAN_EnterConfigMode;
+//
+//  Parameters:
+//
+//  Result:
+//
+//  Description:  Places the ECAN module in Configuration Mode and waits for
+//                it to enter the mode
+// *****************************************************************************
+procedure CAN_EnterConfigMode;
+begin
+  C1CTRL1 := (C1CTRL1 and $F8FF) or $0400;                                      // Set REQOP to Config (100)
+  while (C1CTRL1 and $00E0) <> $0080 do;                                        // Poll OPMODE until it equals (100)
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_CAN_EnterNormalMode;
+//
+//  Parameters:
+//
+//  Result:
+//
+//  Description:  Places the ECAN module in Normal Mode and waits for
+//                it to enter the mode
+// *****************************************************************************
+procedure CAN_EnterNormalMode;
+begin
+  C1CTRL1 := C1CTRL1 and $F8FF;                                                 // Set REQOP to Normal (000)
+  while (C1CTRL1 and $00E0) <> $0000 do;                                        // Poll OPMODE until it equals (000)
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_CAN_SetBaud;
+//
+//  Parameters: SWJ   : See Data Sheet
+//              BRP   : See Data Sheet
+//              SEG2PH: See Data Sheet
+//              SEG1PH: See Data Sheet
+//              PRSEG : See Data Sheet
+//              Sample3Times: Set module to sample signal 3 time for a majority vote
+//
+//  Result:
+//
+//  Description:
+// *****************************************************************************
+procedure CAN_SetBaud(SWJ, BRP, SEG2PH, SEG1PH, PRSEG: Word; Sample3Times: Boolean);
+const
+  SAMPLE_3_TIMES = $0040;
+  PROGRAMMABLE_SEG2PHTS = $0080;
+begin
+  C1CFG1 := BRP or (SWJ shl 6);
+  C1CFG2 := PRSEG or (SEG1PH shl 3) or (SEG2PH shl 8) or PROGRAMMABLE_SEG2PHTS;
+  if Sample3Times then
+    C1CFG2 := C1CFG2 or SAMPLE_3_TIMES
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_CAN_AssociateFilterWithMask;
+//
+//  Parameters: FilterNumber:   The number Filter (0..15)
+//              MaskNumer:      The number Mask to associate with the Filter (0..2)
+//
+//  Result:
+//
+//  Description:   Filter Number = 0..15, Filter are the Bits that much match
+//                 Mask Number = 0..2, Filter are the Bits that much match
+// *****************************************************************************
+procedure CAN_RegisterMaskWithFilter(FilterNumber, MaskNumber: Word);
+var
+  M: DWord;
+  Offset: Word;
+begin
+  // WIN does not matter
+  if (FilterNumber < 16) and (MaskNumber < 3) then
+  begin
+    Offset := FilterNumber * 2;
+    M := $00000003;
+    M := M shl Offset;
+    M := not M;
+    C1FMSKSEL1 := C1FMSKSEL1 and LoWord(M);      // Clear the bits for the Filter Association
+    C1FMSKSEL2 := C1FMSKSEL2 and HiWord(M);
+
+    M := MaskNumber;
+    M := M shl Offset;
+    C1FMSKSEL1 := C1FMSKSEL1 or LoWord(M);
+    C1FMSKSEL2 := C1FMSKSEL2 or HiWord(M);
+  end
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_CAN_SetFilter;
+//
+//  Parameters: FilterNumber: The Filter to set the bits of (0..15)
+//              Filter      : The Filter filter (all 27 continuous bits)
+//              ExtendedOnly: If to only look at Extended Messages
+//
+//  Result:
+//
+//  Description:  Filter Number = 0..15, Filter are the Bits that much match
+//                (as defined by the mask associated with this filter)
+// *****************************************************************************
+procedure CAN_SetFilter(FilterNumber: Byte; Filter: DWord; ExtendedOnly: Boolean);
+var
+  SIDRegPtr, EIDRegPtr: ^Word;
+begin
+  if FilterNumber < 16 then
+  begin
+    SetWindowSelectBit;
+    SIDRegPtr := @C1RXF0SID + (FilterNumber * 2);   // Increases by Word not bytes so 2 not 4
+    EIDRegPtr := @C1RXF0EID + (FilterNumber * 2);   // Increases by Word not bytes so 2 not 4
+
+    ValidateCAN_ID(Filter);
+    SetFilterMaskBits(SIDRegPtr, EIDRegPtr, Filter, ExtendedOnly);
+  end
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_CAN_SetMask;
+//
+//  Parameters: MaskNumber  : The Mask to set the bits of (0..15)
+//              Mask        : The Mask filter (all 27 continuous bits)
+//              ExtendedOnly: If to only look at Extended Messages
+//
+//  Result:
+//
+//  Description:  Mask Number = 0..2, Filter are the Bits that much match
+// *****************************************************************************
+procedure CAN_SetMask(MaskNumber: Byte; Mask: DWord; ExtendedOnly: Boolean);
+var
+  SIDRegPtr, EIDRegPtr: ^Word;
+begin
+  if MaskNumber < 3 then
+  begin
+    SetWindowSelectBit;
+    SIDRegPtr := @C1RXM0SID + (MaskNumber * 2);    // Increases by Word not bytes so 2 not 4
+    EIDRegPtr := @C1RXM0EID + (MaskNumber * 2);   // Increases by Word not bytes so 2 not 4
+
+    ValidateCAN_ID(Mask);
+    SetFilterMaskBits(SIDRegPtr, EIDRegPtr, Mask, ExtendedOnly);
+  end
+end;
+
+procedure CAN_EnableFilter(FilterNumber: Byte; Enabled: Boolean);
+var
+  Mask: Word;
+begin
+  Mask := 1;
+  Mask := Mask shl FilterNumber;
+  C1FEN1 := C1FEN1 and not Mask;  // Clear the bit
+  if Enabled then
+    C1FEN1 := C1FEN1 or Mask;
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_CAN_RegisterBufferWithFilter;
+//
+//  Parameters: FilterNumber:   The number Filter (0..15)
+//              BufferNumber:   The number Buffer to associate with the Filter (0..15)
+//
+//  Result:
+//
+//  Description:   Filter Number = 0..15, Filter are the Bits that much match
+//                 Mask Number = 0..2, Filter are the Bits that much match
+//                 I believe what this really does is set the Offset (the hardware
+//                 takes the Index * 8 to get the offset) from the
+//                 DMA base memory for Perpheral Indirect Addressing Mode.  I don't
+//                 think these have any useage in other DMA modes like Register Indirect
+//                 with Post-Increment or Register Indirect without Post-Increment, but
+//                 that is TDB with the hardware
+// *****************************************************************************
+procedure CAN_RegisterFilterWithBuffer(FilterNumber, BufferNumber: Word);
+var
+  RegPtr: ^Word;
+  Offset: Word;
+  Mask: Word;
+begin
+  SetWindowSelectBit;
+  RegPtr := @C1BUFPNT1;
+  Offset := (FilterNumber div 4);
+  RegPtr := RegPtr + Offset;  // Offset to the right C1BUFPNT register
+  Offset := (FilterNumber mod 4) * 4;                  // Find the offset into the register
+  Mask := $000F;
+  Mask := Mask shl Offset;
+  Mask := not Mask;
+  RegPtr^ := RegPtr^ and Mask;                    // Clear the Pointer
+  Mask := BufferNumber;
+  Mask := Mask shl Offset;
+  RegPtr^ := RegPtr^ or Mask;
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_CAN_SetBufferAsTransmitter;
+//
+//  Parameters:  DoSet       : Sets or Clears the Buffer as a Transmitter
+//               BufferNumber: The Buffer Index that is to be used as a Transmitter (0..7)
+//
+//  Result:
+//
+//  Description:  WARNING: Up until recently the silicon had a bug that made only
+//                Buffer 0 work correctly as a transmitter.  What would happen is
+//                The SID/EID of Buffer 0 would be used as the CAN ID for Buffers 1-7
+//                Look at the parts errata sheet to see if this bug still exists
+//                in the device being used
+// *****************************************************************************
+procedure CAN_SetBufferAsTransmitter(BufferNumber: Word; DoSet: Boolean);
+const
+   TX_ENABLE_BIT = 7;
+begin
+  ManipulateTXBit(BufferNumber, TX_ENABLE_BIT, DoSet);
+end;
+
+procedure CAN_SetTransmitterPriority(BufferNumber: Word; Priority: Word);
+var
+  Offset, Mask: Word;
+  RegPtr: ^Word;
+begin
+  ClearWindowSelectBit;
+  RegPtr := @C1TR01CON;
+  Offset := BufferNumber div 2;       // Is it C1TRO1CON, C1TR23CON, C1TR34CON or C1TR67CON?
+  RegPtr := RegPtr + Offset;          // Get to the right Register
+  Offset := BufferNumber mod 2;       // Is it the first Byte (0,2,4,5) or Second (1,3,5,7) Byte?
+  Offset := (Offset * 8);
+  Mask := $0003;
+  Mask := Mask shl Offset;
+  Mask := not Mask;
+  RegPtr^ := RegPtr^ and Mask;
+  Mask := Priority;
+  Mask := Mask shl Offset;
+  RegPtr^ := RegPtr^ or Mask
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_CAN_RequestTransmit;
+//
+//  Parameters:   BufferNumber: The Buffer Index that is to be used as a Transmitter (0..7)
+//
+//  Result:
+//
+//  Description:  WARNING: Up until recently the silicon had a bug that made only
+//                Buffer 0 work correctly as a transmitter.  What would happen is
+//                The SID/EID of Buffer 0 would be used as the CAN ID for Buffers 1-7
+//                Look at the parts errata sheet to see if this bug still exists
+//                in the device being used. This appeared to be only a problem
+//                if using the Peripheral Addressing Mode.  It was claimed to not
+//                be a problem in Register Indirect modes...
+// *****************************************************************************
+procedure CAN_RequestTransmit(BufferNumber: Word);
+const
+   TX_REQUEST_BIT = 3;
+begin
+  ClearWindowSelectBit;
+  ManipulateTXBit(BufferNumber, TX_REQUEST_BIT, True);
+  //CAN_Engine.State := CAN_ENGINE.State or CES_TRANSMITTING;
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_CAN_HardwareFIFO_SetStartBuffer;
+//
+//  Parameters: BufferNumber:  Buffer Index where the FIFO Buffer Starts (0..31)
+//
+//  Result:
+//
+//  Description: The CAN Module supports a FIFO Buffer for a single receiver buffer.
+//               It is the only way to access Buffers 16 to 31 as all other registers
+//               are limited to accessing Buffers 0..15 (16 Bits)
+// *****************************************************************************
+procedure CAN_HardwareFIFO_SetStartBuffer(StartBuffer: Word);
+begin
+  ClearWindowSelectBit;
+  C1FCTRL := (C1FCTRL and $FFE0) or StartBuffer
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_CAN_RX_Full;
+//
+//  Parameters:   BufferNumber: The Buffer Index is to be checked for a RX Full (0..31)
+//
+//  Result:
+//
+//  Description:
+// *****************************************************************************
+function CAN_IsReceiveFull(BufferNumber: Word; Clear: Boolean): Boolean;
+begin
+  ClearWindowSelectBit;
+  Result := ReadRXBit(@C1RXFUL1, BufferNumber, Clear);
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_CAN_TX_Requested;
+//
+//  Parameters:   BufferNumber: The Buffer Index to check for aborted transmit (0..7)
+//
+//  Result:
+//
+//  Description:  WARNING: Up until recently the silicon had a bug that made only
+//                Buffer 0 work correctly as a transmitter.  What would happen is
+//                The SID/EID of Buffer 0 would be used as the CAN ID for Buffers 1-7
+//                Look at the parts errata sheet to see if this bug still exists
+//                in the device being used
+// *****************************************************************************
+function CAN_IsTransmitRequested(BufferNumber: Word): Boolean;
+const
+  TX_REQUEST_BIT = 3;
+begin
+  Result := ReadTXBit(BufferNumber, TX_REQUEST_BIT)
+end;
+
+function PingPongASelected(DMAChannel: Word): Boolean;
+var
+  Mask: Word;
+begin
+  Mask := $0001;
+  Mask := Mask shl DMAChannel;
+  Result := DMAPPS and Mask = 0;
+end;
+
+function PingPongBSelected(DMAChannel: Word): Boolean;
+var
+  Mask: Word;
+begin
+  Mask := $0001;
+  Mask := Mask shl DMAChannel;
+  Result := DMAPPS and Mask <> 0;
+end;
+
+
+end.

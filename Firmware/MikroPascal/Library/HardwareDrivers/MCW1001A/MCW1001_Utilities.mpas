@@ -1,0 +1,207 @@
+unit MCW1001_Utilities;
+
+uses
+  opstack_types,
+  MCW1001_Defines;
+  
+procedure MCW1001_ZeroIpAddress(IpAddr: ^TOlcbIpAddress);
+procedure MCW1001_ZeroMacAddress(MacAddr: ^TOlcbMacAddress);
+procedure MCW1001_ZeroIpAddressAssigned(IpAddr: ^TWiFiIpAddressAssignedEvent);
+procedure MCW1001_ZeroConnectionStatusChanged(ConnectStatus: ^TWiFiConnectionStatusChangedEvent);
+procedure MCW1001_ZeroScanResultsReady(ScanResults: ^TWiFiScanResultsReadyEvent);
+procedure MCW1001_ZeroPingResponse(PingResponse: ^TWiFiPingResponseEvent);
+procedure MCW1001_ZeroError(Error: ^TWiFiErrorEvent);
+procedure MCW1001_ZeroStartup(Startup: ^TWiFiStartupEvent);
+procedure MCW1001_ZeroNetworkStatus(NetworkStatus: ^TWiFiNetworkStatus);
+procedure MCW1001_ZeroBinaryKeyResult(WPAKeyResult: ^TWiFiWPAKeyResult);
+procedure MCW1001_ZeroScanResult(ScanResult: ^TWiFiScanResult);
+procedure MCW1001_ZeroSocketCreateResult(SocketCreateResult: ^TSocketCreateResult);
+procedure MCW1001_ZeroSocketBindResult(SocketBindResult: ^TSocketBindResult);
+procedure MCW1001_ZeroSocketConnectResult(SocketConnectResult: ^TSocketConnectResult);
+procedure MCW1001_ZeroSocketListenResult(SocketListenResult: ^TSocketListenResult);
+procedure MCW1001_ZeroSocketAcceptResult(SocketAcceptResult: ^TSocketAcceptResult);
+procedure MCW1001_ZeroSocketSendResult(SocketSendResult: ^TSocketSendResult);
+procedure MCW1001_ZeroSocketReceiveResult(SocketReceiveResult: ^TSocketReceiveResult);
+procedure MCW1001_ZeroSocketSendToResult(SocketSendToResult: ^TSocketSendToResult);
+procedure MCW1001_ZeroSocketReceiveFromResult(SocketReceiveFromResult: ^TSocketReceiveFromResult);
+procedure MCW1001_ZeroSocketAllocateResult(SocketAllocateResult: ^TSocketAllocateResult);
+
+implementation
+
+
+procedure MCW1001_ZeroIpAddress(IpAddr: ^TOlcbIpAddress);
+begin
+  IpAddr^[0] := 0;
+  IpAddr^[1] := 0;
+  IpAddr^[2] := 0;
+  IpAddr^[3] := 0;
+end;
+
+procedure MCW1001_ZeroMacAddress(MacAddr: ^TOlcbMacAddress);
+begin
+  MacAddr^[0] := 0;
+  MacAddr^[1] := 0;
+  MacAddr^[2] := 0;
+  MacAddr^[3] := 0;
+  MacAddr^[4] := 0;
+  MacAddr^[5] := 0;
+end;
+
+procedure MCW1001_ZeroIpAddressAssigned(IpAddr: ^TWiFiIpAddressAssignedEvent);
+begin
+  MCW1001_ZeroIpAddress(@IpAddr^.IpAddress);
+  IpAddr^.Valid := False;
+end;
+
+procedure MCW1001_ZeroConnectionStatusChanged(ConnectStatus: ^TWiFiConnectionStatusChangedEvent);
+begin
+  ConnectStatus^.Status := 0;
+  ConnectStatus^.EventData := 0;
+  ConnectStatus^.Valid := False;
+end;
+
+procedure MCW1001_ZeroScanResultsReady(ScanResults: ^TWiFiScanResultsReadyEvent);
+begin
+  ScanResults^.NumberOfResults := 0;
+  ScanResults^.Valid := False;
+end;
+
+procedure MCW1001_ZeroPingResponse(PingResponse: ^TWiFiPingResponseEvent);
+begin
+  PingResponse^.Received := False;
+  PingResponse^.Valid := False;
+end;
+
+procedure MCW1001_ZeroError(Error: ^TWiFiErrorEvent);
+begin
+  Error^.ErrorType := 0;
+  MCW1001_ZeroIpAddress(@Error^.ErrorData);
+  Error^.Valid := False;
+end;
+
+procedure MCW1001_ZeroStartup(Startup: ^TWiFiStartupEvent);
+begin
+  Startup^.ConditionMask := 0;
+  Startup^.SocketVersion := 0;
+  Startup^.RadioVersion := 0;
+  Startup^.Valid := False;
+end;
+
+procedure MCW1001_ZeroNetworkStatus(NetworkStatus: ^TWiFiNetworkStatus);
+begin
+  MCW1001_ZeroIpAddress(@NetworkStatus^.IpAddress);
+  MCW1001_ZeroIpAddress(@NetworkStatus^.Mask);
+  MCW1001_ZeroIpAddress(@NetworkStatus^.GatewayAddress);
+  MCW1001_ZeroMacAddress(@NetworkStatus^.MacAddress);
+  NetworkStatus^.Status := 0;
+  NetworkStatus^.Valid := False;
+end;
+
+procedure MCW1001_ZeroBinaryKeyResult(WPAKeyResult: ^TWiFiWPAKeyResult);
+var
+  i: Integer;
+begin
+  for i := 0 to 31 do
+    WPAKeyResult^.BinaryKey[i] := 0;
+  WPAKeyResult^.Valid := False;
+end;
+
+procedure MCW1001_ZeroScanResult(ScanResult: ^TWiFiScanResult);
+var
+  i: Integer;
+begin
+  for i := 0 to 6 do
+    ScanResult^.BSSID[0] := 0;
+  ScanResult^.SSIDLen := 0;
+  for i := 0 to 31 do
+    ScanResult^.SSID[i] := 0;
+  ScanResult^.APConfig := 0;
+  ScanResult^.BeaconPeriod := 0;
+  ScanResult^.ATIMWindow := 0;
+  for i := 0 to 7 do
+    ScanResult^.BasicRates[i] := 0;
+  ScanResult^.RSSI := 0;
+  ScanResult^.BasicRateListLen := 0;
+  ScanResult^.DTIMPeriod := 0;
+  ScanResult^.BSSType := 0;
+  ScanResult^.ChannelNumber := 0;
+  ScanResult^.Valid := False;
+end;
+
+procedure MCW1001_ZeroSocketCreateResult(SocketCreateResult: ^TSocketCreateResult);
+begin
+  SocketCreateResult^.Handle := SOCKET_CREATE_UNKNOWN_RESULT;
+  SocketCreateResult^.Valid := False;
+end;
+
+procedure MCW1001_ZeroSocketBindResult(SocketBindResult: ^TSocketBindResult);
+begin
+  SocketBindResult^.Valid := False;
+  SocketBindResult^.Port := 0;
+  SocketBindResult^.BindResult := 0;
+end;
+
+procedure MCW1001_ZeroSocketConnectResult(SocketConnectResult: ^TSocketConnectResult);
+begin
+  SocketConnectResult^.Valid := False;
+  SocketConnectResult^.ConnectResult := 0;
+end;
+
+procedure MCW1001_ZeroSocketListenResult(SocketListenResult: ^TSocketListenResult);
+begin
+  SocketListenResult^.Valid := False;
+  SocketListenResult^.ListenResult := 0;
+  SocketListenResult^.BackLog := 0;
+end;
+
+procedure MCW1001_ZeroSocketAcceptResult(SocketAcceptResult: ^TSocketAcceptResult);
+begin
+  SocketAcceptResult^.Valid := False;
+  SocketAcceptResult^.Handle := 0;
+  SocketAcceptResult^.RemotePort := 0;
+  SocketAcceptResult^.RemoteIP[0] := 0;
+  SocketAcceptResult^.RemoteIP[1] := 0;
+  SocketAcceptResult^.RemoteIP[2] := 0;
+  SocketAcceptResult^.RemoteIP[3] := 0;
+end;
+
+procedure MCW1001_ZeroSocketSendResult(SocketSendResult: ^TSocketSendResult);
+begin
+  SocketSendResult^.Valid := False;
+  SocketSendResult^.Count := 0;
+end;
+
+procedure MCW1001_ZeroSocketReceiveResult(SocketReceiveResult: ^TSocketReceiveResult);
+begin
+  SocketReceiveResult^.Valid := False;
+  SocketReceiveResult^.Handle := 0;
+  SocketReceiveResult^.Count := 0;
+end;
+
+procedure MCW1001_ZeroSocketSendToResult(SocketSendToResult: ^TSocketSendToResult);
+begin
+  SocketSendToResult^.Valid := False;
+  SocketSendToResult^.Count := 0;
+end;
+
+procedure MCW1001_ZeroSocketReceiveFromResult(SocketReceiveFromResult: ^TSocketReceiveFromResult);
+begin
+  SocketReceiveFromResult^.Valid := False;
+  SocketReceiveFromResult^.Handle := 0;
+  SocketReceiveFromResult^.SenderPort := 0;
+  SocketReceiveFromResult^.SenderIp[0] := 0;
+  SocketReceiveFromResult^.SenderIp[1] := 0;
+  SocketReceiveFromResult^.SenderIp[2] := 0;
+  SocketReceiveFromResult^.SenderIp[3] := 0;
+  SocketReceiveFromResult^.Count := 0;
+end;
+
+procedure MCW1001_ZeroSocketAllocateResult(SocketAllocateResult: ^TSocketAllocateResult);
+begin
+  SocketAllocateResult^.Valid := False;
+  SocketAllocateResult^.Count := 0;
+  SocketAllocateResult^.AllocationResult := 0;
+end;
+
+
+end.

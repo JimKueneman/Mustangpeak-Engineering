@@ -1,0 +1,85 @@
+unit DS2438_temp_hum;
+
+uses OneWire_base2P,Lib_Delays_LIO,def_io;
+
+function DS2438GetTempHum(var romcode : array[1..8] of byte; var temp : Integer; var hum : word) : boolean;
+procedure DS2438ConvertTemp(var romcode : array[1..8] of byte);
+procedure DS2438ConvertVoltage(var romcode : array[1..8] of byte);
+
+implementation
+
+function DS2438GetTempHum(var romcode : array[1..8] of byte; var temp : Integer; var hum : word) : boolean;
+var i,CRC : byte;
+    romdata : array [1..9] of byte;
+    buf_lo : word;
+    buf_hi : Integer;
+    buf : short;
+    buf_,buf1,sensor_RH : real;
+    ADC_Voltage,ADC_Current : word;
+begin
+  CRC := 0;
+  temp := 0;
+  result := false;
+  
+  Ow_Reset_2P;       // OneWire reset signal
+  Ow_Write_2P($55);   // Issue command
+  for i := 1 to 8 do Ow_Write_2P(romcode[i]);
+  Ow_Write_2P($B8);   // Issue command
+  Ow_Write_2P($00);   // Issue command
+  Delay_500us_;
+
+  Ow_Reset_2P;       // OneWire reset signal
+  Ow_Write_2P($55);   // Issue command
+  for i := 1 to 8 do Ow_Write_2P(romcode[i]);
+  Ow_Write_2P($BE);   // Issue command
+  Ow_Write_2P($00);   // Issue command
+  
+  for i := 1 to 9 do romdata[i] := Ow_Read_2P;  // Get result
+  for i := 1 to 8 do CRC := Table2P[CRC xor romdata[i]];
+  if CRC = romdata[9] then
+    begin
+      buf_lo := romdata[2];
+      buf := romdata[3];
+      Lo(ADC_Voltage) := romdata[4];
+      Hi(ADC_Voltage) := romdata[5];
+      Lo(ADC_Current) := romdata[6];
+      Hi(ADC_Current) := romdata[7];
+      
+      buf_lo := (buf_lo * 50) div 128;
+      buf_hi := buf;
+      buf_hi := buf_hi * 100;
+      buf_hi := buf_hi + buf_lo;
+      temp := buf_hi;
+      
+      buf_ := real(ADC_Voltage)/100.0;
+      buf1 := real(ADC_Current)*0.4858; // divider 19.90
+      sensor_RH := ((buf1/buf_)-15.15)/0.00636;
+      sensor_RH := sensor_RH/((105.46-(real(temp)*0.00216))/100.0);
+      hum := sensor_RH;
+      
+      if temp > 9999 then temp := 9999;
+      if hum > 9999 then hum := 9999;
+      
+      result := true;
+    end;
+end;
+
+procedure DS2438ConvertTemp(var romcode : array[1..8] of byte);
+var i : byte;
+begin
+  Ow_Reset_2P;
+  Ow_Write_2P($55);   // Issue command to DS18x20
+  for i := 1 to 8 do Ow_Write_2P(romcode[i]);
+  Ow_Write_2P($44);
+end;
+
+procedure DS2438ConvertVoltage(var romcode : array[1..8] of byte);
+var i : byte;
+begin
+  Ow_Reset_2P;
+  Ow_Write_2P($55);   // Issue command to DS18x20
+  for i := 1 to 8 do Ow_Write_2P(romcode[i]);
+  Ow_Write_2P($B4);
+end;
+
+end.

@@ -1,0 +1,395 @@
+program EthernetCanHub;
+
+// ******************************************************************************
+//
+// * Copyright:
+//     (c) Mustangpeak Software 2015.
+//
+//     The contents of this file are subject to the GNU GPL v3 licence/ you maynot use
+//     this file except in compliance with the License. You may obtain a copy of the
+//     License at http://www.gnu.org/licenses/gpl.html
+//
+// * Revision History:
+//     2012-08-10:   Created
+//
+// * Description:
+
+//
+// *****************************************************************************
+  
+var
+  BarelyInSync, HaveSeenAHighCS: Boolean;    //  THIS WILL NOT WORK IF THE RASPBERRY PI IS REBOOTED!!!!
+  
+  
+// *****************************************************************************
+//  INTERRUPTS
+// *****************************************************************************
+
+procedure INTERRUPT_Timer_525ms(); iv IVT_ADDR_T1INTERRUPT;
+begin
+  T1IF_bit := 0;
+end;
+
+procedure INTERRUPT_Timer_100ms(); iv IVT_ADDR_T2INTERRUPT;
+// Called once every 100m
+begin
+  T2IF_bit := 0;                                                                // Clear the Flag
+end;
+
+procedure interrupt_DMA3_Can_Transmit(); iv IVT_ADDR_DMA3INTERRUPT;
+begin
+  // Called when Transmit is complete.....
+  // Can make this self pumping but need to be aware that the main loop will
+  // need to push a message into the transmit buffer to kick this off initially
+  DMA3IF_bit := 0;
+end;
+
+procedure interrupt_DMA2_Can_Receive(); iv IVT_ADDR_DMA2INTERRUPT;
+begin
+  // Very little to do in a CAN Receive interrupt while using the FIFO
+  DMA2IF_bit := 0;
+end;
+
+procedure interrupt_Can(); iv IVT_ADDR_C1INTERRUPT;
+begin
+  // Very little to do with the CAN interrupt with the DMA
+  C1IF_bit := 0;
+end;
+
+//******************************************************************************
+// Fired immeditatly after the DMA receive cycle is complete.  This is 29 bytes
+// in our case.  Once the receive is complete the PingPong is on the opposite
+// buffer and we grab the message from the prevous buffer, convert it into a
+// LccBuffer, and store it in our software FIFO waiting to be sent out.  We also
+// need to make sure we can fit a full block (size TBD) in the buffer and if not
+// clear the CTS line so the sender will stop sending.  This FIFO must always have
+// a full block free if the CTS line is set, that way if the sender blasts a full
+// block (size TBD) there always be enough room to store it and we will have time
+// to get the CTS clear before the block has been fully sent.  This allows the
+// sender to be notified in time to not send any more data until CTS is high again
+//******************************************************************************
+procedure interrupt_DMA0_SPI_Receive(); iv IVT_ADDR_DMA0INTERRUPT;
+var
+  NextCanOutBuffer: POpenLCBCanBuffer;
+  GridConnectStr: TGridConnectString;
+  i: Integer;
+begin       
+  DMA0IF_bit := 0;
+  
+  LATB1_bit := 1;
+  
+  if BarelyInSync then
+  begin
+    if PingPongASelected(0) then        // A is selected so B is ready
+    begin
+      for i := 0 to MAX_GRID_CONNECT_LEN-1 do
+        GridConnectStr[i] := Spi_RxBRawBufferArray[i];
+    end
+    else // B is selected so A is ready
+    begin
+      for i := 0 to MAX_GRID_CONNECT_LEN-1 do
+        GridConnectStr[i] := Spi_RxARawBufferArray[i];
+    end;
+
+    // TODO: Once confidence is built send the OlcbBuffer format directly.  This conversion takes too long.
+    if (GridConnectStr[0] = ':') then
+    begin
+      NextCanOutBuffer := CanBufferOut_NextEmpty; // This will signal an overrun if needed
+      if NextCanOutBuffer <> nil then
+        GridConnectStr_ToCanBuffer(@GridConnectStr, NextCanOutBuffer);
+    end;
+  end;
+    
+  LATB1_bit := 0;
+end;
+
+//******************************************************************************
+// Fired immeditatly after the DMA transmit cycle is complete.  This is 29 bytes
+// in our case.  Once the transmit is complete the PingPong is on the opposite
+// buffer and we can load in our next message to move from the CAN in to the SPI 
+// out.  If there is no message then load it with zeros and the receiver will
+// ignore them.
+//******************************************************************************
+procedure interrupt_DMA1_SPI_Transmit(); iv IVT_ADDR_DMA1INTERRUPT;
+var
+  OpenLcbBuffer: TOpenLCBCanBuffer;
+  GridConnectStr: TGridConnectString;
+  i: Integer;
+begin
+  DMA1IF_bit := 0;
+  
+  // A transmit on one of the Ping/Pong buffers has completed. I am assuming that
+  // that pointer is now on the buffer with the current transmit.
+  // This could preempt the CAN interrupt... Is that ok?
+  if NextFifoOpenLcbBuffer(OpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
+  begin
+    LATB4_bit := 1;
+    
+    if BarelyInSync then
+    begin
+      GridConnect_BufferToGridConnect(OpenLcbBuffer, @GridConnectStr);           // convert it to grid connect string
+
+      if PingPongASelected(1) then        // A is selected so B is ready          // If A is Selected then B is empty
+      begin
+        for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // Copy the GridConnectString into the SPI Tx DMA
+          Spi_TxBRawBufferArray[i] := GridConnectStr[i]
+      end else
+      begin
+        for i := 0 to MAX_GRID_CONNECT_LEN-1 do
+          Spi_TxARawBufferArray[i] := GridConnectStr[i];                          // Copy the GridConnectString into the SPI Tx DMA
+      end;
+
+      LATB4_bit := 0;
+
+    end else
+    begin   // Send nulls if we are not in sync yet
+      if PingPongASelected(1) then        // A is selected so B is ready
+      begin
+        for i := 0 to MAX_SPI_BUFFER - 1 do
+          Spi_TxBRawBufferArray[i] := 0;
+      end else
+      begin
+        for i := 0 to MAX_SPI_BUFFER - 1 do
+          Spi_TxARawBufferArray[i] := 0;
+      end
+    end
+  end else
+  begin   // Send nulls if there is nothing to send for this round
+    if PingPongASelected(1) then        // A is selected so B is ready
+    begin
+      for i := 0 to MAX_SPI_BUFFER - 1 do
+        Spi_TxBRawBufferArray[i] := 0;
+    end else
+    begin
+      for i := 0 to MAX_SPI_BUFFER - 1 do
+        Spi_TxARawBufferArray[i] := 0;
+    end
+  end
+end;
+
+//******************************************************************************
+// Pin Change Interrupt for Chip Select (CS) line.  Here we enable/disable the
+// DMA's for SPI.  That way we are always in sync with the the data coming in.  If
+// we don't do this we could boot the slave in the middle of the master (RPi) sending
+// a message and we will be all out of sync.  We MUST have a mulitple of 29 bytes
+// (the current DMA count) or things will get out of sync.
+//******************************************************************************
+procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
+var
+  PortGCopy: Word;
+begin
+  CNIF_bit := 0;
+  PortGCopy := PORTG;    // Clear all changes
+  if not BarelyInSync then
+  begin
+    if PortGCopy.B9 = 1 then
+      HaveSeenAHighCS := True
+    else begin
+      if HaveSeenAHighCS then
+      begin
+        if PortGCopy.B9 =  0 then
+        begin
+          BarelyInSync := True;
+          EnableSpi(True);
+          
+          UART_Write_Text('Sync' + LF);
+          
+        end;
+      end
+    end
+  end;
+end;
+
+var
+  i: Integer;
+  s1, s2: string[128];
+  OpenLcbBuffer, SendOpenLcbBuffer: TOpenLCBCanBuffer;
+  Extended: Boolean;
+  Address: DWord;
+begin
+  { Main program }
+  BarelyInSync := False;
+  HaveSeenAHighCS := False;
+  MCU_Setup_Initialize;
+  CanBufferOut_Initialize;
+  MCU_Enable_100msTimer;
+  MCU_Enable_UART;
+  MCU_Enable_SPI;
+
+  EnableSpi(True);  // Use the Chip Select via the Pin B6 Change Notification interrupt
+  MCU_Enable_PinChangeNotification;
+  
+  TON_T1CON_bit := 1;       // Turn on 500ms timer
+  TON_T2CON_bit := 1;       // Turn on 100ms timer
+    
+  MCU_Enable_CAN;
+
+  TRISB1_bit := 0;
+  TRISB4_bit := 0;
+
+  UART1_Write_Text('Booting'+LF);
+  
+  Address := DWord(@Spi_TxARawBufferArray[0]);
+  LongWordToHex(DWord(Address), s1);
+  UART1_Write_Text('Address: ' + s1 + LF);
+  
+  SendOpenLcbBuffer.MTI := $19490072;
+  SendOpenLcbBuffer.PayloadCount := 0;
+  SendOpenLcbBuffer.Payload[0] := 0;
+  SendOpenLcbBuffer.Payload[1] := 0;
+  SendOpenLcbBuffer.Payload[2] := 0;
+  SendOpenLcbBuffer.Payload[3] := 0;
+  SendOpenLcbBuffer.Payload[4] := 0;
+  SendOpenLcbBuffer.Payload[5] := 0;
+  SendOpenLcbBuffer.Payload[6] := 0;
+  SendOpenLcbBuffer.Payload[7] := 0;
+  
+  while True do
+  begin
+    // Handle moving the SPI data to the CAN Interface
+    // For now we will just work with Buffer 0 and poll it.  Later we will work
+    // on implementing the Ping/Pong buffer so we can keep it moving.
+    if not CAN_IsTransmitRequested(0) then
+    begin      
+      while DMA0IE_bit = 1 do DMA0IE_bit := 0;                                  // Disable a SPI receive done interrupt while we are maniuplating the buffer
+      CanBufferOut_NextFull(OpenLcbBuffer);                                     // We only pull the SPI buffer if we have a CAN Tx Buffer available
+      DMA0IE_bit := 1;                                                          // Reinable the interrupt
+      if OpenLcbBuffer.MTI <> 0 then
+        TransmitOpenLcbBuffer(0, @OpenLcbBuffer);                                 // Send it to Buffer 0 to transmit
+    end;
+
+
+    // This creates a copy of the buffer then moves the pointer releasing it from being "used"
+    // NOTE THIS MUST BE REMOVED FOR REAL AS IT REMOVES THE MESSAGE FROM THE BUFFER IF IT COULD EVER GET
+    // CALLED SINCE THE INTERRUPT SHOULD FIRE FIRST
+ {   if NextFifoOpenLcbBuffer(OpenLcbBuffer) then
+    begin
+      LongWordToHex(OpenLcbBuffer.MTI, s1);
+      s2 := 'Rx MTI: ' + s1 + ':';
+      UART1_Write_Text(s2+LF);
+    end;  }
+
+    if UART1_Data_Ready then
+    begin
+      case UART1_Read of
+          'R' :    begin
+                     WordToHex(C1RXFUL1, s1);
+                     s2 := 'C1RXFUL1: 0x' + s1;
+                     UART1_Write_Text(s2+LF);
+                     WordToHex(C1RXFUL2, s1);
+                     s2 := 'C1RXFUL2: 0x' + s1;
+                     UART1_Write_Text(s2+LF);
+                     WordToHex(C1FCTRL, s1);
+                     s2 := 'C1FCTRL: 0x' + s1;
+                     UART1_Write_Text(s2+LF);
+                     WordToHex(C1FIFO, s1);
+                     s2 := 'C1FIFO: 0x' + s1;
+                     UART1_Write_Text(s2+LF);
+                     WordToHex(C1RXOVF1, s1);
+                     s2 := 'C1RXOVF1: 0x' + s1;
+                     UART1_Write_Text(s2+LF);
+                     WordToHex(C1RXOVF2, s1);
+                     s2 := 'C1RXOVF2: 0x' + s1;
+                     UART1_Write_Text(s2+LF);
+                   end;
+          'T' :    begin
+                     if TryTransmitOpenLcbBuffer(0, @SendOpenLcbBuffer) then
+                     begin
+                     LongWordToHex(SendOpenLcbBuffer.MTI, s1);
+                     s2 := 'Tx MTI: ' + s1;
+                     UART1_Write_Text(s2+LF);
+                     end else
+                       UART1_Write_Text('Transmit Failed');
+                   end;
+          'E' :    begin
+                     WordToHex(DMAPWC, s1);
+                     UART1_Write_Text('DMAPWC: 0x' + s1 + LF);
+                     
+                     WordToHex(DMARQC, s1);
+                     UART1_Write_Text('DMARQC: 0x' + s1 + LF);
+                     
+                     WordToHex(SPI2STAT, s1);
+                     UART1_Write_Text('SPI2STAT: 0x' + s1 + LF);
+                     
+                     WordToHex(SPI2CON1, s1);
+                     UART1_Write_Text('SPI2CON1: 0x' + s1 + LF);
+                     
+                     WordToHex(SPI2CON2, s1);
+                     UART1_Write_Text('SPI2CON2: 0x' + s1 + LF);
+
+                   end;
+          'S' :    begin
+                     
+                     if ForceSpi1Transmit then
+                       UART1_Write_Text('Success Tx Force' + LF)
+                     else
+                       UART1_Write_Text('Fail Tx Force' + LF)
+                   end;
+          '2' :    begin
+                     WordToHex(DMA0STAH, s1);
+                     UART1_Write_Text('DMA0STAH: 0x' + s1 + LF);
+                     WordToHex(DMA0STAL, s1);
+                     UART1_Write_Text('DMA0STAL: 0x' + s1 + LF);
+                     UART1_Write_Text('Spi TX A' + LF);
+                     for i := 0 to MAX_SPI_BUFFER - 1 do
+                     begin
+                       WordToStr(Spi_TxARawBufferArray[i], s1);
+                       UART1_Write_Text(s1 + LF);
+                     end;
+                     UART1_Write_Text('Spi TX B' + LF);
+                     for i := 0 to MAX_SPI_BUFFER - 1 do
+                     begin
+                       WordToStr(Spi_TxBRawBufferArray[i], s1);
+                       UART1_Write_Text(s1 + LF);
+                     end;
+                     WordToHex(DMA1STAH, s1);
+                     UART1_Write_Text('DMA1STAH: 0x' + s1 + LF);
+                     WordToHex(DMA1STAL, s1);
+                     UART1_Write_Text('DMA1STAL: 0x' + s1 + LF);
+                     UART1_Write_Text('Spi RX A' + LF);
+                     for i := 0 to MAX_SPI_BUFFER - 1 do
+                     begin
+                       WordToStr(Spi_RxARawBufferArray[i], s1);
+                       UART1_Write_Text(s1 + LF);
+                     end;
+                     UART1_Write_Text('Spi RX B' + LF);
+                     for i := 0 to MAX_SPI_BUFFER - 1 do
+                     begin
+                       WordToStr(Spi_RxBRawBufferArray[i], s1);
+                       UART1_Write_Text(s1 + LF);
+                     end;
+                   end;
+          '3' :    begin
+                     UART1_Write_Text('CAN Rx:' + LF);
+                     for i := 0 to MAX_ECAN_BUFFER - 1 do
+                     begin
+                       WordToHex(Can_RawBufferArray[i].Word0, s1);
+                       UART_Write_Text(s1 + ' ');
+                       WordToHex(Can_RawBufferArray[i].Word1, s1);
+                       UART_Write_Text(s1 + ' ');
+                       WordToHex(Can_RawBufferArray[i].Word2, s1);
+                       UART_Write_Text(s1 + ' ');
+                       WordToHex(Can_RawBufferArray[i].Word3, s1);
+                       UART_Write_Text(s1 + ' ');
+                       WordToHex(Can_RawBufferArray[i].Word4, s1);
+                       UART_Write_Text(s1 + ' ');
+                       WordToHex(Can_RawBufferArray[i].Word5, s1);
+                       UART_Write_Text(s1 + ' ');
+                       WordToHex(Can_RawBufferArray[i].Word6, s1);
+                       UART_Write_Text(s1 + ' ');
+                       WordToHex(Can_RawBufferArray[i].Word7, s1);
+                       UART_Write_Text(s1 + LF);
+                     end;
+                     UART1_Write_Text(s1 + LF);
+                   end;
+          '4' : begin
+                PrintDMABuffers; 
+              end;
+          '5' : begin
+                  ZeroSpiBuffers
+                end;
+          
+      end;
+    end
+  end;
+end.

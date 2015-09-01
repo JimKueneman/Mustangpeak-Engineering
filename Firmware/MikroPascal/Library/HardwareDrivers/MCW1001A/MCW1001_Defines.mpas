@@ -1,0 +1,369 @@
+unit MCW1001_Defines;
+
+uses
+  opstack_types;
+
+const
+
+  SOCKET_CREATE_UNKNOWN_RESULT            =  $FF;
+  SOCKET_CREATE_INVALID_RESULT            =  $FE; // Reset are valid Handles
+  
+  SOCKET_BIND_SUCCESS_RESULT              = $00;  // All other values failures
+                                                                                      
+  SOCKET_CONNECT_SUCCESS_RESULT           =  $00;
+  SOCKET_CONNECT_INPROCESS_RESULT         =  $FE;
+  SOCKET_CONNECT_FAILED_RESULT            =  $FF;
+  
+  SOCKET_LISTEN_SUCCESS_RESULT            =  $00;
+  SOCKET_LISTEN_INPROCESS_RESULT          =  $FE;
+  SOCKET_LISTEN_FAILED_RESULT             =  $FF;
+
+  SOCKET_ACCEPT_INVALID_RESULT            =  $FF;  // Rest are Valid Handles
+  SOCKET_ACCEPT_INPROCESS_RESULT          =  $FE;
+  
+  SOCKET_ALLOCATE_SUCCESS_RESULT             = $00;
+  SOCKET_ALLOCATE_MAX_ALLOCATION_EXCEEDED    = $FF;
+  SOCKET_ALLOCATE_BUFFER_ALLOCATION_EXCEEDED = $FE;
+
+// Control Messages
+const
+  RESET_MSG                      = 0x00AA;
+  GET_VERSION_MSG                = 0x0017;
+  GPIO_MSG                       = 0x00AC;
+   
+// Control Response Messages
+const
+  GPIO_RESPONSE_MSG              = 0x0032;
+   
+// Network Configuration Messages
+const
+  SET_IP_ADDRESS_MSG             = 0x0029;
+  SET_NETWORK_MASK_MSG           = 0x002A;
+  SET_GATEWAY_IP_ADDRESS_MSG     = 0x002C;
+  GET_NETWORK_STATUS             = 0x0030;
+  SET_MACADDRESS_MSG             = 0x0031;
+  SET_ARP_TIME_MSG               = 0x00AD;
+  
+// Network Configuration Response Messages
+const
+  NETWORK_STATUS_RESPONSE_MSG    = 0x0030;
+  
+// Wi-Fi General Configuration Messages
+const
+  SET_CP_NETWORK_MODE_MSG        = 0x0037;
+  SET_CP_SSID_MSG                = 0x0039;
+  SET_REGIONAL_DOMAIN_MSG        = 0x0038;
+  SET_CHANNEL_LIST_MSG           = 0x003A;
+  SET_LIST_RETRY_COUNT_MSG       = 0x003B;
+  
+// Wi-Fi Power Management Messages
+const
+  SET_POWER_MODE_MSG             = 0x0066;
+  
+// Wi-Fi Security Configuration Messages
+const
+  SET_CP_SECURITY_OPEN_MSG       = 0x0041;
+  SET_CP_SECURITY_WEP40_MSG      = 0x0042;
+  SET_CP_SECURITY_WEP104_MSG     = 0x0043;
+  SET_CP_SECURITY_WPA_MSG        = 0x0044;
+  GET_CP_WPAKEY_MSG              = 0x0047;
+
+// Wi-Fi Security Configuration Response Messages
+const
+  WPAKEY_RESPONSE_MSG            = 0x0031;
+  
+// Wi-Fi Scanning Messages
+const
+  SCAN_START_MSG                 = 0x0050;
+  SCAN_GET_RESULTS_MSG           = 0x0051;
+  
+// Wi-Fi Scanning Response Messages
+const
+  SCAN_RESULT_MSG                = 0x0016;
+  
+// Wi-Fi Connection Messages
+const
+  WIFI_CONNECT_MSG               = 0x005A;
+  WIFI_DISCONNECT_MSG            = 0x005B;
+  
+// ICMP (Ping) Messages
+const
+  PING_SEND_MSG                  = 0x0079;
+  
+// Socket Messages
+const
+  SOCKET_CREATE_MSG              = 0x006E;
+  SOCKET_CLOSE_MSG               = 0x006F;
+  SOCKET_BIND_MSG                = 0x0070;
+  SOCKET_CONNECT_MSG             = 0x0071;
+  SOCKET_LISTEN_MSG              = 0x0072;
+  SOCKET_ACCEPT_MSG              = 0x0073;
+  SOCKET_SEND_MSG                = 0x0074;
+  SOCKET_RECV_MSG                = 0x0075;
+  SOCKET_SEND_TO_MSG             = 0x0076;
+  SOCKET_RECV_FROM_MSG           = 0x0077;
+  SOCKET_ALLOCATE_MSG            = 0x007A;
+  
+// Socket Result Messages
+const
+  SOCKET_CREATE_RESPONSE_MSG     = 0x0017;
+  SOCKET_BIND_RESPONSE_MSG       = 0x0018;
+  SOCKET_CONNECT_RESPONSE_MSG    = 0x0019;
+  SOCKET_LISTEN_RESPONSE_MSG     = 0x001A;
+  SOCKET_ACCEPT_RESPONSE_MSG     = 0x001B;
+  SOCKET_SEND_RESPONSE_MSG       = 0x001C;
+  SOCKET_RECV_RESPONSE_MSG       = 0x001D;
+  SOCKET_SEND_TO_RESPONSE_MSG    = 0x001E;
+  SOCKET_RECV_FROM_RESPONSE_MSG  = 0x001F;
+  SOCKET_ALLOCATE_RESPONSE_MSG   = 0x0020;
+
+const
+  NETWORK_MODE_INFASTRUCTURE = 1;                                               // Use with MWC1001_SetNetworkMode
+  NETWORK_MODE_ADHOC         = 2;                                               // Use with MWC1001_SetNetworkMode
+
+const
+  REGIONAL_DOMAIN_FCC        = 0;                                               // Use with MWC1001_SetRegionalDomain
+  REGIONAL_DOMAIN_IC         = 1;                                               // Use with MWC1001_SetRegionalDomain
+  REGIONAL_DOMAIN_ETSI       = 2;                                               // Use with MWC1001_SetRegionalDomain
+  REGIONAL_DOMAIN_SPAIN      = 3;                                               // Use with MWC1001_SetRegionalDomain
+  REGIONAL_DOMAIN_FRANCE     = 4;                                               // Use with MWC1001_SetRegionalDomain
+  REGIONAL_DOMAIN_JAPANA     = 5;                                               // Use with MWC1001_SetRegionalDomain
+  REGIONAL_DOMAIN_JAPANB     = 6;                                               // Use with MWC1001_SetRegionalDomain
+  
+const
+  RETRY_INFASTRUCTURE_RETRY_COUNT_FOREVER = 255;                                // [Default] Use with MWC1001_SetListRetryCount and the InfastructureRetryCount parameter
+  RETRY_ADHOC_RETRY_COUNT_DEFAULT = 5;                                          // [Default] Use with MWC1001_SetListRetryCount and the AdHocRetryCount parameter
+  
+const
+  WEP_MODE_OPEN    = 0;                                                         // Use with MWC1001_SetSecurityWEP40 or MWC1001_SetSecurityWEP104
+  WEP_MODE_SHARED  = 1;                                                         // Use with MWC1001_SetSecurityWEP40 or MWC1001_SetSecurityWEP104
+  
+const
+  MODE_WPA      = 0;                                                            // Use with MWC1001_SetSecurityWPA
+  MODE_WPA2     = 1;                                                            // Use with MWC1001_SetSecurityWPA
+  MODE_WPA_WPA2 = 2;                                                            // Use with MWC1001_SetSecurityWPA
+  
+const
+  KEY_TYPE_BINARY_PRESHARED = 0;                                                // Use with MWC1001_SetSecurityWPA
+  KEY_TYPE_PASSPHRASE       = 1;                                                // Use with MWC1001_SetSecurityWPA
+      
+const
+  SCAN_ALL                  = 0xFF;                                             // Use with MWC1001_ScanStart
+  
+const
+  AP_CONFIG_IE              = 0x01;                                             // Use with MWC1001_GetScanResults
+  AP_CONFIG_RES1            = 0x02;                                             // Use with MWC1001_GetScanResults
+  AP_CONFIG_RES2            = 0x04;                                             // Use with MWC1001_GetScanResults
+  AP_CONFIG_RES3            = 0x08;                                             // Use with MWC1001_GetScanResults
+  AP_CONFIG_PRIVACY         = 0x10;                                             // Use with MWC1001_GetScanResults
+  AP_CONFIG_PREAMBLE        = 0x20;                                             // Use with MWC1001_GetScanResults
+  AP_CONFIG_WPA             = 0x40;                                             // Use with MWC1001_GetScanResults
+  AP_CONFIG_WPA2            = 0x80;                                             // Use with MWC1001_GetScanResults
+  
+const
+  CONNECT_STATUS_SUCCEEDED      = 1;                                            // Used in the TWiFiConnectionStatusChangedEvent struture
+  CONNECT_STATUS_FAILED         = 2;                                            // Used in the TWiFiConnectionStatusChangedEvent struture
+  CONNECT_STATUS_TEMP_LOST      = 3;                                            // Used in the TWiFiConnectionStatusChangedEvent struture
+  CONNECT_STATUS_REESTABLISHED  = 4;                                            // Used in the TWiFiConnectionStatusChangedEvent struture
+  CONNECT_STATUS_PERMENTLY_LOST = 5;                                            // Used in the TWiFiConnectionStatusChangedEvent struture
+  
+// Event associated Messages
+const
+  EVENT_MSG                           = 0x0001;
+  EVENT_TYPE_ACK_MASK                 = 0x8000;
+  EVENT_TYPE_IP_ADDRESS               = 16;
+  EVENT_TYPE_CONNECTION_STATUS_CHANGE = 8;
+  EVENT_TYPE_SCAN_RESULTS_READY       = 9;
+  EVENT_TYPE_PING_RESPONSE            = 26;
+  EVENT_TYPE_ERROR                    = 255;
+  EVENT_TYPE_STARTUP                  = 27;
+  
+const
+  SM_POWER_ON_RESET   = 0x01;                                                   // EVENT_TYPE_STARTUP Event Flags
+  SM_BROWN_OUT_RESET  = 0x02;                                                   // EVENT_TYPE_STARTUP Event Flags
+  SM_IDLE_RESET       = 0x04;                                                   // EVENT_TYPE_STARTUP Event Flags
+  SM_SLEEP_RESET      = 0x08;                                                   // EVENT_TYPE_STARTUP Event Flags
+  SM_WATCHDOG_RESET   = 0x10;                                                   // EVENT_TYPE_STARTUP Event Flags
+  SM_SOFTWARE_RESET   = 0x40;                                                   // EVENT_TYPE_STARTUP Event Flags
+  SM_HARDWARE_RESET   = 0x80;                                                   // EVENT_TYPE_STARTUP Event Flags
+  
+const
+  MAX_CHANNELS = 11;
+  MAX_WIFI_DATABUFFER = 2048;
+  
+const
+  ERROR_BAUD_RATE_GENERATOR       = 60;
+  ERROR_INVALID_CONNECT_PROFILE   = 61;
+  ERROR_WIFE_ALREADY_CONNECTED    = 62;
+  ERROR_WIFI_DISCONNECT_ERROR     = 63;
+  ERROR_CLOSE_SOCKET_FAILED       = 64;
+  ERROR_SOCKET_SENDTO_TIMEOUT     = 65;
+  ERROR_INVALID_SCAN_INDEX        = 66;
+  ERROR_ICMP_PING_FLOOD           = 67;
+  ERROR_ICMP_PING_IN_USE          = 68;
+  ERROR_SOCKET_RECVFROM           = 69;
+  ERROR_TX_BUFFOR_ALLOCATION      = 71;
+  ERROR_GENERAL_ASSERT            = 72;
+  ERROR_INVALID_POWERSAVE_MODE    = 73;
+  ERROR_BUSY_HIBERNATEMODE        = 74;
+  ERROR_BUSY_SCANMODE             = 75;
+
+type
+  TChannelList = array[MAX_CHANNELS] of Byte;
+  TKey5 = string[5];
+  TKey13 = string[13];
+  TKey64 = string[64];
+  TKey32 = string[32];
+  TSSID = string[32];
+  TKey5Array = array[4] of TKey5;
+  TKey13Array = array[4] of TKey13;
+  TWiFiDataBuffer = array[MAX_WIFI_DATABUFFER] of byte;
+
+  TWiFiIpAddressAssignedEvent = record
+    Valid: Boolean;
+    IpAddress: TOlcbIpAddress;
+  end;
+  PWiFiIpAddressAssignedEvent = ^TWiFiIpAddressAssignedEvent;
+
+  TWiFiConnectionStatusChangedEvent = record
+    Valid: Boolean;
+    Status: Byte;                           // See CONNECT_STATUS_xxxx contants
+    EventData: Byte;                        // See
+  end;
+  PWiFiConnectionStatusChangedEvent = ^TWiFiConnectionStatusChangedEvent;
+
+  TWiFiScanResultsReadyEvent = record
+    Valid: Boolean;
+    NumberOfResults: Byte;
+  end;
+  PWiFiScanResultsReadyEvent = ^TWiFiScanResultsReadyEvent;
+
+  TWiFiPingResponseEvent = record
+    Valid: Boolean;
+    Received: Boolean;
+  end;
+  PWiFiPingResponseEvent = ^TWiFiPingResponseEvent;
+
+  TWiFiErrorEvent = record
+    Valid: Boolean;
+    ErrorType: Byte;
+    ErrorData: array[0..3] of Byte;
+  end;
+  PWiFiErrorEvent = ^TWiFiErrorEvent;
+
+  TWiFiStartupEvent = record
+    Valid: Boolean;
+    ConditionMask: Byte;
+    SocketVersion: Word;
+    RadioVersion: Word;
+  end;
+  PWiFiStartupEvent = ^TWiFiStartupEvent;
+  
+  TWiFiNetworkStatus = record
+    Valid: Boolean;
+    MacAddress: TOlcbMacAddress;
+    IpAddress: TOlcbIpAddress;
+    Mask: TOlcbIpAddress;
+    GatewayAddress: TOlcbIpAddress;
+    Status: Byte;
+  end;
+  PWiFiNetworkStatus = ^TWiFiNetworkStatus;
+  
+  TWiFiWPAKeyResult = record
+    Valid: Boolean;
+    BinaryKey: TKey32;
+  end;
+  PWiFiWPAKeyResult = ^TWiFiWPAKeyResult;
+  
+  TWiFiScanResult = record
+    Valid: Boolean;
+    BSSID: array[6] of Byte;
+    SSIDLen: Byte;
+    SSID: TSSID;
+    APConfig: Byte;
+    BeaconPeriod: Word;
+    ATIMWindow: Word;
+    BasicRates: array[8] of Byte;
+    RSSI: Byte;
+    BasicRateListLen: Byte;
+    DTIMPeriod: Byte;
+    BSSType: Byte;
+    ChannelNumber: Byte;
+  end;
+  PWiFiScanResult = ^TWiFiScanResult;
+  
+type
+  TSocketCreateResult = record
+    Valid: Boolean;
+    Handle: Byte;   // 0..253, 254 = Invalid Socket; 255 = Unknown Socket type
+  end;
+  PSocketCreateResult = ^TSocketCreateResult;
+  
+  TSocketBindResult = record
+    Valid: Boolean;
+    Port: Word;         // Local Port Number bound to
+    BindResult: Byte;   // 0 – Success; 1-255 – Unsuccessful Bind
+  end;
+  PSocketBindResult = ^TSocketBindResult;
+  
+  TSocketConnectResult = record
+    Valid: Boolean;
+    ConnectResult: Byte;   // 0 – Success; 254 – Socket connect in process; 255 – Socket connect failed
+  end;
+  PSocketConnectResult = ^TSocketConnectResult;
+  
+  TSocketListenResult = record
+    Valid: Boolean;
+    ListenResult: Byte;   // 0 – Success; 254 – Socket connect in process; 255 – Socket connect failed
+    BackLog: Byte;        // New Unassigned backlog count
+  end;
+  PSocketListenResult = ^TSocketListenResult;
+  
+  TSocketAcceptResult = record
+    Valid: Boolean;
+    Handle: Byte;                  // Handle: Byte;   // 0..253, 254 = Invalid Socket; 255 = Unknown Socket type
+    RemotePort: Word;              // Remote Port Number
+    RemoteIP: TOlcbIpAddress;      // Remote IP address – for IPv4 the first 4 bytes are the IP address
+  end;
+  PSocketAcceptResult = ^TSocketAcceptResult;
+
+  TSocketSendResult = record
+    Valid: Boolean;
+    Count: Word;                  // Socket byte count sent
+  end;
+  PSocketSendResult = ^TSocketSendResult;
+  
+  TSocketReceiveResult = record
+    Valid: Boolean;
+    Handle: Byte;                //  Socket Handle (previously created with SOCKET_CREATE_MSG)
+    Count: Word;                 //  Amount of data to be read
+    ReceiveBuffer: TWiFiDataBuffer; // N bytes of data read
+  end;
+  PSocketReceiveResult = ^TSocketReceiveResult;
+  
+  TSocketSendToResult = record
+    Valid: Boolean;
+    Count: Word;                 //  Byte count sent
+  end;
+  PSocketSendToResult = ^TSocketSendToResult;
+  
+  TSocketReceiveFromResult = record
+    Valid: Boolean;
+    Handle: Byte;                  // Socket Handle (used when data was read)
+    SenderPort: Word;              // Port number of sender
+    SenderIp: TOlcbIpAddress;      // IP Address of sender
+    Count: Word;                   // Byte count received (N)
+    ReceiveBuffer: TWiFiDataBuffer; // N bytes of data read
+  end;
+  PSocketReceiveFromResult = ^TSocketReceiveFromResult;
+  
+  TSocketAllocateResult = record
+    Valid: Boolean;
+    AllocationResult: Byte;       // If successful, the result field returned will be 0. If the result is 0xFF, the maximum number of sockets was exceeded, and if the result is 0xFE, the total buffer allocation size was exceeded.
+    Count: Byte;                  // Allocated Socket Count
+  end;
+  PSocketAllocateResult = ^TSocketAllocateResult;
+  
+implementation
+
+end.

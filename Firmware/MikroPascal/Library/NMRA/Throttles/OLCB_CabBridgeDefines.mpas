@@ -1,0 +1,209 @@
+// ******************************************************************************
+//
+// * Copyright:
+//     (c) Mustangpeak Software 2014.
+//
+//     The contents of this file are subject to the GNU GPL v3 licence/ you maynot use
+//     this file except in compliance with the License. You may obtain a copy of the
+//     License at http://www.gnu.org/licenses/gpl.html
+//
+// * Revision History:
+//     2011-01-28:   Created
+//     2012-10-07:   Version 1.0
+//
+// * Description:
+//    Defines global constants for NCE Bus Bridge
+//
+// ******************************************************************************
+unit OLCB_CabBridgeDefines;
+
+{$I Options.inc}
+
+{$IFDEF FPC}
+interface
+{$ENDIF}
+
+uses
+  opstack_defines,
+  template_node;
+  
+const
+  QUERY_NORMAL                             = 0;
+  QUERY_FOR_ALLOCATION                     = 1;
+  
+const
+   STATE_CAB_SEND_QUERY                    = 0;
+   STATE_CAB_WAIT_QUERY                    = 1;
+   STATE_CAB_DONE_QUERY                    = 2;
+
+const
+  STATE_BRIDGE_USER_START                  = 0;
+  STATE_BRIDGE_FIND_PROXY                  = 1;
+  STATE_BRIDGE_CREATE_REQUIRED_CABS        = 2;
+  STATE_BRIDGE_POLL_CABS                   = 3;
+
+  STATE_SUB_BRIDGE_INITIALIZE                          = 0;
+  STATE_SUB_BRIDGE_SYNC_TRANSMIT_BYTE                  = 1;
+  STATE_SUB_BRIDGE_SYNC_WAITFOR_HARDWARE_BUFFER_EMPTY  = 2;
+  STATE_SUB_BRIDGE_WAIT_SYNC_DELAY                     = 3;
+  STATE_SUB_BRIDGE_INITIAIZE_PING                      = 4;
+  STATE_SUB_BRIDGE_PING_TRANSMIT_BYTE                  = 5;
+  STATE_SUB_BRIDGE_PING_WAITFOR_HARDWARE_BUFFER_EMPTY  = 6;
+  STATE_SUB_BRIDGE_WAIT_FOR_RESPONSE                   = 7;
+  STATE_SUB_BRIDGE_TIMEOUT                             = 8;
+  STATE_SUB_BRIDGE_CAB_REPLIED                         = 9;
+  STATE_SUB_BRIDGE_DISPATCH_MESSAGE                    = 10;
+  STATE_SUB_BRIDGE_NEXT_CAB                            = 11;
+
+  STATE_CAB_SELECT_LOCO_SEND_PROXY_MANAGE_LOCK               = 1;
+  STATE_CAB_SELECT_LOCO_SEND_PROXY_ALLOCATE                  = 2;
+  STATE_CAB_SELECT_LOCO_SEND_PROXY_MANAGE_UNLOCK             = 3;
+  STATE_CAB_SELECT_LOCO_SEND_TRACTION_MANAGE_LOCK            = 4;
+  STATE_CAB_SELECT_LOCO_SEND_TRACTION_ASSIGN_CONTROLLER      = 5;
+  STATE_CAB_SELECT_LOCO_SEND_TRACTION_QUERY_SPEED            = 6;
+  STATE_CAB_SELECT_LOCO_SEND_TRACTION_QUERY_FUNCTIONS        = 7;
+  STATE_CAB_SELECT_LOCO_SEND_TRACTION_MANAGE_UNLOCK          = 8;
+  STATE_CAB_SELECT_LOCO_GENERIC_REPLY_WAIT                   = 20;
+  STATE_CAB_SELECT_LOCO_GENERIC_TIMEOUT_PROXY_UNLOCK         = 21;
+  STATE_CAB_SELECT_LOCO_GENERIC_TIMEOUT_TRACTION_UNLOCK      = 22;
+
+  STATE_THROTTLE_RELEASE_CONTROLLER_INITIALIZE               = 0;
+  STATE_THROTTLE_RELEASE_CONTROLLER_SEND_TRACTION_LOCK       = 1;
+  STATE_THROTTLE_RELEASE_CONTROLLER_SEND_TRACTION_RELEASE    = 2;
+  STATE_THROTTLE_RELEASE_CONTROLLER_SEND_TRACTION_UNLOCK     = 3;
+  STATE_THROTTLE_RELEASE_CONTROLLER_WAIT                     = 4;
+
+const
+  CAB_MAX_DATA_BYTE = 15;                                                    // Max number of databytes in a Cab message
+
+  // Olcb bus statemachine
+  STATE_WAIT_FOR_USER_MESSAGE     = 0;
+
+  STATE_RS485_NCE_READ_CAB_KEY_PRESS   = 0;  // State machine states for the RS485 receiver
+  STATE_RS485_NCE_READ_CAB_SPEED       = 1;
+  STATE_RS485_NCE_CONTINUE_INPUT       = 2;
+  STATE_RS485_NCE_FULL                 = 3;
+
+  ID_MIN_DEVICE_NCE                    = 2;
+  ID_MAX_DEVICE_NCE                    = 63;   // 63 Devices on NceBus bus allowed not including ID = 0 or 1
+  NCEBUS_PING                          = %10000000;   // P10A AAAA
+  MAX_MISSED_PINGS_TO_REMOVE_FROM_BUS  = 12;          // not supported as NCE cabs can't be on the bus alone they need pings to other cabs to work.....bit 4/7/2013
+  NCE_CAB_BUS_PADDING                  = 8;          // How many fixed Cab objects to always have on the bus to Ping, NCE Cabs can't be on the bus alone and a NCE CS has 8 always available.
+
+
+  ID_MIN_DEVICE_XPRESSNET                    = 1;
+  ID_MAX_DEVICE_XPRESSNET                    = 31;   // 31 Devices on NceBus bus allowed not including ID = 0
+  XPRESSNET_CAB_BUS_PADDING                  = 4;    // How many fixed Cab objects to always have on the bus to Ping, Xpressnet Cabs can be on the bus alone
+
+  CS_ALLOCATED                                  = $01;  // The Cab is allocated from the RAM buffer
+  CS_NCE_MACRO_MESSAGE                          = $08;  // NCE specific
+  CS_NCE_LOCO_SELECT                            = $10;  // NCE specific
+
+  CS_NCE_MULTI_FRAME_MESSAGE = CS_NCE_MACRO_MESSAGE or CS_NCE_LOCO_SELECT;
+
+  // NCE Specific Constants for the Throttle Messages
+  NCE_UNDOCUMENTED_CAB_CHANGE  =$7E;                     // Sent when the throttle is switched between the two possible CAB IDs.  Allows clearing of buffers, etc
+  NCE_NO_SPEED_TO_REPORT       = %01111111;              // $7F
+  NCE_NO_KEY_TO_REPORT         = %01111101;              // $7D
+  NCE_SPEED_MASK               = %01111111;              // $7F
+
+  NCE_CAB_SELECT_LOCO       = $48;   // 72
+  NCE_CAB_ENTER             = $40;   // 64
+  NCE_CAB_DIR_TOGGLE        = $43;
+  NCE_HORN_KEY_DOWN         = $49;
+  NCE_CAB_ONE_STEP_FASTER   = $4A;
+  NCE_CAB_ONE_STEP_SLOWER   = $4B;
+  NCE_CAB_EMERGENCY_STOP    = $4C;
+  NCE_CAB_BELL              = $4D;
+  NCE_CAB_TOGGLE_F0_0       = $50;
+  NCE_CAB_TOGGLE_F1_1       = $51;
+  NCE_CAB_TOGGLE_F2_2       = $52;
+  NCE_CAB_TOGGLE_F3_3       = $53;
+  NCE_CAB_TOGGLE_F4_4       = $54;
+  NCE_CAB_TOGGLE_F5_5       = $55;
+  NCE_CAB_TOGGLE_F6_6       = $56;
+  NCE_CAB_TOGGLE_F7_7       = $57;
+  NCE_CAB_TOGGLE_F8_8       = $58;
+  NCE_CAB_9                 = $59;
+  NCE_HORN_KEY_UP           = $5F;
+  NCE_CAB_FIVE_STEPS_FASTER = $5A;
+  NCE_CAB_FIVE_STEPS_SLOWER = $5B;
+  NCE_CAB_SELECT_MACRO      = $5C;
+  NCE_CAB_DIR_FORWARD       = $6A;
+  NCE_CAB_DIR_REVERSE       = $6B;
+
+
+  NCE_CMD_CURSOR_ON         = $CF;  // 207
+  NCE_CMD_CURSOR_OFF        = $CE;  // 206
+
+  // Xpressnet specific messages for the throttles
+    // Call Byte Definitions
+  CALLBYTE_RESPONSE_XPRESSNET                = %01100000;   // P11A AAAA
+  CALLBYTE_INQUIRY_XPRESSNET                 = %01000000;   // P10A AAAA
+  CALLBYTE_REQUEST_ACK_FROM_DEVICE_XPRESSNET = %00000000;   // P00A AAAA
+  CALLBYTE_BROADCAST_XPRESSNET               = %01100000;   // P110 0000
+  CALLBYTE_TRANSFER_ERRORS_XPRESSNET         = %01100000;   // P11A AAAA
+  
+  REDISCOVERY_TIME         = 5;    // = Slow timer count (~525ms * REDISCOVERY_TIME = time to rescan for new Devices)
+
+type
+  TCabMessageArray = array[0..CAB_MAX_DATA_BYTE] of Byte;
+  PCabMessageArray = ^TCabMessageArray;
+
+  {$IFDEF SUPPORT_CAB_INPUT_BUFFER}
+  TCabMessage = record
+    DataBytes: TCabMessageArray;
+    Count: Byte;                                                                // Number of valid bytes in the array, for Xpressnet upper nibble is the Instruction, lower is the Count
+    Full: Boolean;                                                              // True if the message is ready to be process
+  end;
+  PCabMessage = ^TCabMessage;
+  {$ENDIF}
+
+  TCab = record
+    State: Byte;                                                                // See CS_xxxx constants
+    ID: Byte;                                                                   // Cab Address (ID/Index)
+    iStateMachine: Byte;                                                        // SubStatemachine index
+    iSubStateMachine: Byte;
+    WatchDog_1s: Word;
+    iQueryFunction: Integer;                                                    // For rowing through all Functions during mass query
+    QueryType: Byte;                                                            // QUERY_xxxx constants
+    {$IFDEF SUPPORT_CAB_INPUT_BUFFER}                                           // NCE interleave user input button presses so we need per cab buffer
+    UserInputBuffer: TCabMessage;
+    {$ENDIF}
+  end;
+  PCab = ^TCab;
+
+  TAssignedCabArray = array[0..USER_MAX_NODE_COUNT-2] of POpenLCBNode;          // Only Virtual Nodes make sense, skip the physical server node
+
+  TCabBridge = record
+    Discovering: Boolean;                        // The bridge is pinging all Cab IDs looking for newly added Cabs
+    iStateMachine: Byte;                         // Main Statemachine index
+    DiscoverTimer: Byte;                         // Counter to detect when to start a Discovery cycle
+    IncomingBuffer: TCabMessageArray;            //
+    iIncomingCount: Byte;                        // for Xpressnet upper nibble is the Instruction, lower is the Count
+    iIncomingByteIndex: Byte;                    // Indexes the next incoming byte for the IncomingBuffer
+    iIncomingStateMachine: Byte;                 //
+    IncomingStarted: Boolean;
+    OutGoingBuffer: TCabMessageArray;
+    iOutGoingCount: Byte;
+    iOutGoingByteIndex: {$IFDEF FPC}Shortint{$ELSE}Short{$ENDIF};
+    LastPortRead: Word;                          // Pin Change testing
+    AssignedCabs: TAssignedCabArray;
+    iAssignedCabCount: Integer;                  // Number of valid Cabs in the AssignedCabs array
+    iAssignedCab: Byte;
+    ExistingCab: POpenLCBNode;
+    CurrentCabID: Byte;
+  end;
+  PCabBridge = ^TCabBridge;
+
+  // Array of User Data for all Nodes ( there will be one extra since the Root Node is differnet and not a CAB
+  TCabArray = array[0..USER_MAX_NODE_COUNT-1] of TCab;
+
+var
+  CabArray: TCabArray;
+  CabBridge: TCabBridge;
+
+implementation
+
+
+end.

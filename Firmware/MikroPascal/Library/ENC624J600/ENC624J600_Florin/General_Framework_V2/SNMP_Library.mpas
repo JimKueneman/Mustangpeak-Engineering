@@ -1,0 +1,852 @@
+unit SNMP_Library;
+
+uses dspic_additional_string_library,lib_Delays_LIO,SNMP_OID,lib1_enc600_V3_5_b;
+
+function Process_SNMP(var data_in_s : array[$FFFF] of byte; data_len : word) : word;
+
+const SNMP_Version = 0; // Only Version 1 is supported
+
+const Sequence = $30;
+const GetRequest = $A0;
+const GetNext = $A1;
+const GetResponse = $A2;
+const SetRequest = $A3;
+
+const uinteger_ = $41;
+const integer_ = 2;
+const string_ = 4;
+const oid_ = 6;
+const timeticks_ = $43;
+const ipaddress_ = $40;
+
+const noError_ = 0;
+const readWrite_ = 0;
+const tooBig_ = 1;
+const noSuchName_ = 2;
+const badValue_ = 3;
+const readOnly_ = 4;
+const genErr_ = 5;
+
+var response_address : array[OID_number] of ^byte;
+    response_type : array[OID_number] of byte;
+    max_response_len : array[OID_number] of byte;
+    access_type : array[OID_number] of byte; // 4 read only, 0 read write
+
+implementation
+
+function Is_Data_Valid1(ptf1 : ^far const byte; var OID_read_ : string[$FF]) : boolean;
+var i,buf, buf1 : byte;
+begin
+  result := false;
+  i := 0;
+  while true do
+    begin
+      buf := OID_read_[i];
+      buf1 := ptf1^;
+      if buf1 = 0 then break;
+      if buf <> buf1 then exit;
+      inc(i);
+      ptf1 := ptf1 + 1;
+    end;
+  if i < 3 then exit;
+  result := true;
+end;
+
+function Is_Data_Valid(ptf1 : ^far const byte; var OID_read_ : string[$FF]) : boolean;
+var i,buf : byte;
+begin
+  result := false;
+  i := 0;
+  while true do
+    begin
+      buf := OID_read_[i];
+      if buf = 0 then break;
+      if buf <> ptf1^ then exit;
+      inc(i);
+      ptf1 := ptf1 + 1;
+    end;
+  result := true;
+end;
+
+function Get_OID_Len(ptf1 : ^far const byte) : byte;
+begin
+  result := 0;
+  while ptf1^ <> 0 do
+    begin
+      ptf1 := ptf1 + 1;
+      result := result + 1;
+    end;
+end;
+
+function OID_String2Hex(ptf2 : ^far const byte; var OID_Out_ : string[$FF]) : byte;
+var txt5 : string[5];
+    val_out : word;
+    ii,buf_i : byte;
+begin
+  result := 0;
+  ptf2 := ptf2 + 1;
+  if ptf2^ <> '1' then exit;
+  ptf2 := ptf2 + 2;
+  if ptf2^ <> '3' then exit;
+  ptf2 := ptf2 + 2;
+  OID_Out_[0] := $2B; // always start with $2B
+  result := 1;
+  while true do
+    begin
+      if ptf2^ = 0 then break;
+      ii := 0;
+      while true do
+        begin
+          buf_i := ptf2^;
+          if buf_i = '.' then
+            begin
+              ptf2 := ptf2 + 1;
+              break;
+            end;
+          if buf_i = 0 then break;
+          txt5[ii] := buf_i;
+          inc(ii);
+          ptf2 := ptf2 + 1;
+        end;
+      txt5[ii] := 0;
+      val_out := Str2Word(txt5);
+      txt5[0] := Word(val_out div 16384);
+      txt5[1] := Word((val_out - (txt5[0] * 16384)) div 128);
+      txt5[2] := Word(val_out - (txt5[0] * 16384) - (txt5[1]*128));
+      if txt5[0] <> 0 then
+        begin
+          OID_Out_[result] := txt5[0] + $80;
+          inc(result);
+        end;
+      if txt5[1] <> 0 then
+        begin
+          OID_Out_[result] := txt5[1] + $80;
+          inc(result);
+        end;
+      OID_Out_[result] := txt5[2];
+      inc(result);
+    end;
+end;
+
+function OID_VarString2Hex(ptf2 : ^byte; var OID_Out_ : string[$FF]) : byte;
+var txt5 : string[5];
+    val_out : word;
+    ii,buf_i : byte;
+begin
+  result := 0;
+  ptf2 := ptf2 + 1;
+  if ptf2^ <> '1' then exit;
+  ptf2 := ptf2 + 2;
+  if ptf2^ <> '3' then exit;
+  ptf2 := ptf2 + 2;
+  OID_Out_[0] := $2B; // always start with $2B
+  result := 1;
+  while true do
+    begin
+      if ptf2^ = 0 then break;
+      ii := 0;
+      while true do
+        begin
+          buf_i := ptf2^;
+          if buf_i = '.' then
+            begin
+              ptf2 := ptf2 + 1;
+              break;
+            end;
+          if buf_i = 0 then break;
+          txt5[ii] := buf_i;
+          inc(ii);
+          ptf2 := ptf2 + 1;
+        end;
+      txt5[ii] := 0;
+      val_out := Str2Word(txt5);
+      txt5[0] := Word(val_out div 16384);
+      txt5[1] := Word((val_out - (txt5[0] * 16384)) div 128);
+      txt5[2] := Word(val_out - (txt5[0] * 16384) - (txt5[1]*128));
+      if txt5[0] <> 0 then
+        begin
+          OID_Out_[result] := txt5[0] + $80;
+          inc(result);
+        end;
+      if txt5[1] <> 0 then
+        begin
+          OID_Out_[result] := txt5[1] + $80;
+          inc(result);
+        end;
+      OID_Out_[result] := txt5[2];
+      inc(result);
+    end;
+end;
+
+function get_len(var data_in_ss : array[$FFFF] of byte; address__ : word; var offset_ : byte) : word;
+var buf : byte;
+begin
+  buf := data_in_ss[address__];
+  if buf = $82 then
+    begin
+      Hi(result) := data_in_ss[address__+1];
+      Lo(result) := data_in_ss[address__+2];
+      offset_ := 2;
+      exit;
+    end
+  else
+  if buf = $81 then
+    begin
+      result := data_in_ss[address__+1];
+      offset_ := 1;
+      exit;
+    end
+  else result := buf;
+  offset_ := 0;
+end;
+
+procedure add_len(var data_in_ss : array[$FFFF] of byte; address__ : word; len_ : word);
+var buf1 : word;
+begin
+  Hi(buf1) := data_in_ss[address__+1];
+  Lo(buf1) := data_in_ss[address__+2];
+  buf1 := buf1 + len_;
+  data_in_ss[address__+1] := Hi(buf1);
+  data_in_ss[address__+2] := Lo(buf1);
+end;
+
+procedure put_len(var data_in_ss : array[$FFFF] of byte; address__ : word; len_ : word);
+begin
+  data_in_ss[address__] := $82;
+  data_in_ss[address__+1] := Hi(len_);
+  data_in_ss[address__+2] := Lo(len_);
+end;
+
+procedure put_len_ext(var data_in_ss : array[$FFFF] of byte; address__ : word; len1 : byte);
+var buf : byte;
+begin
+  buf := data_in_ss[address__ + len1];
+  data_in_ss[address__] := $82;
+  data_in_ss[address__+1] := 0;
+  data_in_ss[address__+2] := buf;
+end;
+
+procedure Move_Mem_2_Right(addr_ : word; len_ : word; len1 : byte);
+var pt1,pt2 : ^byte;
+    i : word;
+begin
+  pt1 := word(addr_ + len_ + 1 - len1);
+  pt2 := word(addr_ + len_ - 1);
+  i := 0;
+  while i < len_ do
+    begin
+      pt1^ := pt2^;
+      dec(pt1);
+      dec(pt2);
+      inc(i);
+    end;
+end;
+
+function Get_String_Len(address : word) : word;
+var pty : ^byte;
+begin
+  result := 0;
+  pty := address;
+  while true do
+    begin
+      if pty^ = 0 then break;
+      pty := pty + 1;
+      if inc(result) = 0 then exit;
+    end;
+end;
+
+function Get_Const_Len(ptf6 : ^far const byte;) : word;
+begin
+  result := 0;
+  while true do
+    begin
+      if ptf6^ = 0 then exit;
+      inc(ptf6);
+      if inc(result) = 0 then exit;
+    end;
+end;
+
+function Process_SNMP(var data_in_s : array[$FFFF] of byte; data_len : word) : word;
+var buf_txt : string[64];
+    txt5 : string[5];
+    buf,buf1,i,j : word;
+    data_b : byte;
+    data_w : word;
+    S_Message_Len_Addr : word;
+    S_Ver_Len_Addr : word;
+    S_Comunity_Len_Addr : word;
+    S_PDU_Len_Addr : word;
+    S_ReqID_Len_Addr : word;
+    S_Err_Len_Addr : word;
+    S_ErrInd_Len_Addr : word;
+    S_VarbindList_Len_Addr : word;
+    S_Varbind_Len_Addr : word;
+    S_OID_Len_Addr : word;
+    S_Value_Len_Addr : word;
+    pt : ^byte;
+    OID_Rec_Len : word;
+    OID_Hex_Len : word;
+    offset : byte;
+
+begin
+  result := 0;
+
+  S_Message_Len_Addr := 1;
+
+  if get_len(data_in_s,S_Message_Len_Addr,offset) <> (data_len - 2 - offset) then
+    begin
+      exit;
+    end;
+
+  if offset < 2 then
+    begin
+      Move_Mem_2_Right(word(@data_in_s[S_Message_Len_Addr]),data_len-S_Message_Len_Addr,offset);
+      put_len_ext(data_in_s,S_Message_Len_Addr,offset);
+      offset := 2;
+    end;
+
+  S_Ver_Len_Addr := S_Message_Len_Addr + 2 + offset;
+
+  S_Comunity_Len_Addr := S_Ver_Len_Addr + data_in_s[S_Ver_Len_Addr] + 2;
+
+  S_PDU_Len_Addr := S_Comunity_Len_Addr + data_in_s[S_Comunity_Len_Addr] + 2;
+
+  get_len(data_in_s,S_PDU_Len_Addr,offset);
+
+  if offset < 2 then
+    begin
+      Move_Mem_2_Right(word(@data_in_s[S_PDU_Len_Addr]),data_len+2-S_PDU_Len_Addr,offset);
+      put_len_ext(data_in_s,S_PDU_Len_Addr,offset);
+      add_len(data_in_s,S_Message_Len_Addr,2);
+      offset := 2;
+    end;
+
+  S_ReqID_Len_Addr := S_PDU_Len_Addr + 2 + offset;
+
+  S_Err_Len_Addr := S_ReqID_Len_Addr + data_in_s[S_ReqID_Len_Addr] + 2;
+  S_ErrInd_Len_Addr := S_Err_Len_Addr + data_in_s[S_Err_Len_Addr] + 2;
+
+  S_VarbindList_Len_Addr := S_ErrInd_Len_Addr + data_in_s[S_ErrInd_Len_Addr] + 2;
+
+  get_len(data_in_s,S_VarbindList_Len_Addr,offset);
+
+  if offset < 2 then
+    begin
+      Move_Mem_2_Right(word(@data_in_s[S_VarbindList_Len_Addr]),data_len+4-S_VarbindList_Len_Addr,offset);
+      put_len_ext(data_in_s,S_VarbindList_Len_Addr,offset);
+      add_len(data_in_s,S_Message_Len_Addr,2);
+      add_len(data_in_s,S_PDU_Len_Addr,2);
+      offset := 2;
+    end;
+
+  S_Varbind_Len_Addr := S_VarbindList_Len_Addr + 2 + offset;
+
+  get_len(data_in_s,S_Varbind_Len_Addr,offset);
+
+  if offset < 2 then
+    begin
+      Move_Mem_2_Right(word(@data_in_s[S_Varbind_Len_Addr]),data_len+6-S_Varbind_Len_Addr,offset);
+      put_len_ext(data_in_s,S_Varbind_Len_Addr,offset);
+      add_len(data_in_s,S_Message_Len_Addr,2);
+      add_len(data_in_s,S_PDU_Len_Addr,2);
+      add_len(data_in_s,S_VarbindList_Len_Addr,2);
+      offset := 2;
+    end;
+
+  S_OID_Len_Addr := S_Varbind_Len_Addr + 2 + offset;
+  S_Value_Len_Addr := S_OID_Len_Addr + data_in_s[S_OID_Len_Addr] + 2;
+
+  if data_in_s[S_Ver_Len_Addr + 1] <> SNMP_Version then   // SNMP Version
+    begin
+      exit;
+    end;
+
+  buf := data_in_s[S_Comunity_Len_Addr]; // Get comunity
+  i := 0;
+  while i < buf do
+    begin
+      buf_txt[i] := data_in_s[S_Comunity_Len_Addr+1+i];
+      inc(i);
+    end;
+  buf_txt[i] := 0;
+
+  if Is_Data_Valid(@comunity, buf_txt) = false then   // Is not in this comunity , exit
+    begin
+      exit;
+    end;
+  buf_txt :='.1.3';  // always OID start with this value
+  buf := data_in_s[S_OID_Len_Addr] - 1;
+  i := 0;
+  while i < buf do
+    begin
+      data_b := data_in_s[S_OID_Len_Addr+2+i];
+      if data_b and $80 > 0 then
+        begin
+          inc(i);
+          data_w := (data_b and $7F) * 128;
+          data_b := data_in_s[S_OID_Len_Addr+2+i];
+          if data_b and $80 > 0 then
+            begin
+              inc(i);
+              data_w := (data_w * 128) + ((data_b and $7F) * 128) + data_in_s[S_OID_Len_Addr+2+i];
+            end
+          else data_w := data_w + data_b;
+          Word2Str(data_w,txt5);
+          Str_AppendSuf(buf_txt,'.');
+          Str_Cat(buf_txt,txt5);
+        end
+      else
+        begin
+          Byte2Str(data_b,txt5);
+          Str_AppendSuf(buf_txt,'.');
+          Str_Cat(buf_txt,txt5);
+        end;
+      inc(i);
+    end;
+
+  OID_Rec_Len := Str_Len(buf_txt);
+
+  if data_in_s[S_PDU_Len_Addr-1] = SetRequest then
+    begin
+      i := 0;
+      while i < OID_number do
+        begin
+          if Is_Data_Valid(@OID[i], buf_txt) <> 0 then break;
+          inc(i);
+        end;
+
+      if i = OID_number then // OID not found
+        begin
+          data_in_s[S_PDU_Len_Addr-1] := GetResponse;
+          data_in_s[S_Err_Len_Addr+1] := noSuchName_; // No Such Name
+          result := get_len(data_in_s,S_Message_Len_Addr,offset) + 2 + offset;
+          exit;
+        end;
+
+      if Get_OID_Len(@OID[i]) <> OID_Rec_Len then
+        begin
+          data_in_s[S_PDU_Len_Addr-1] := GetResponse;
+          data_in_s[S_Err_Len_Addr+1] := noSuchName_; // No Such Name
+          result := get_len(data_in_s,S_Message_Len_Addr,offset) + 2 + offset;
+          exit;
+        end;
+
+      if access_type[i] = readOnly_ then
+        begin
+          data_in_s[S_PDU_Len_Addr-1] := GetResponse;
+          data_in_s[S_Err_Len_Addr+1] := readOnly_; // Read only
+          result := get_len(data_in_s,S_Message_Len_Addr,offset) + 2 + offset;
+          exit;
+        end;
+
+      if data_in_s[S_Value_Len_Addr-1] <> response_type[i] then  // response type
+        begin
+          data_in_s[S_PDU_Len_Addr-1] := GetResponse;
+          data_in_s[S_Err_Len_Addr+1] := badValue_; // Bad Value
+          result := get_len(data_in_s,S_Message_Len_Addr,offset) + 2 + offset;
+          exit;
+        end;
+
+      buf := get_len(data_in_s,S_Value_Len_Addr,offset);
+
+      if buf > max_response_len[i] then
+        begin
+          data_in_s[S_PDU_Len_Addr-1] := GetResponse;
+          data_in_s[S_Err_Len_Addr+1] := tooBig_; // Read only
+          result := get_len(data_in_s,S_Message_Len_Addr,offset) + 2 + offset;
+          exit;
+        end;
+
+      if data_in_s[S_Value_Len_Addr-1] = string_ then // string
+        begin
+          pt := response_address[i];
+          i := 0;
+          while i < buf do
+            begin
+              pt^ := data_in_s[S_Value_Len_Addr+1+i+offset];
+              pt := pt + 1;
+              inc(i);
+            end;
+          pt^ := 0; // end of string
+        end
+      else
+      if (data_in_s[S_Value_Len_Addr-1] = uinteger_) or (data_in_s[S_Value_Len_Addr-1] = integer_) then // integer or uninteger
+        begin
+          buf1 := max_response_len[i];
+          pt := response_address[i];
+          j := 0;
+          while j < buf1 do
+            begin
+              pt^ := 0;
+              pt := pt + 1;
+              inc(j);
+            end;
+          pt := response_address[i] + buf - 1;
+          i := 0;
+          while i < buf do
+            begin
+              pt^ := data_in_s[S_Value_Len_Addr+1+i+offset];
+              pt := pt - 1;
+              inc(i);
+            end;
+        end
+      else
+      if data_in_s[S_Value_Len_Addr-1] = ipaddress_ then // ip address
+        begin
+          pt := response_address[i];
+          i := 0;
+          while i < 4 do
+            begin
+              pt^ := data_in_s[S_Value_Len_Addr+1+i+offset];
+              pt := pt + 1;
+              inc(i);
+            end;
+        end
+      else
+        begin
+          exit;
+        end;
+
+      data_in_s[S_PDU_Len_Addr-1] := GetResponse;
+      data_in_s[S_Err_Len_Addr+1] := noError_; // No Errors
+      result := get_len(data_in_s,S_Message_Len_Addr,offset) + 2 + offset;
+      exit;
+    end;
+
+  if data_in_s[S_PDU_Len_Addr-1] = GetNext then
+    begin
+      i := 0;
+      while i < OID_number do
+        begin
+          if Is_Data_Valid(@OID[i], buf_txt) <> 0 then break;
+          inc(i);
+        end;
+
+      if i = OID_number then
+        begin
+          if buf_txt[OID_Rec_Len-2] = '.' then
+          if buf_txt[OID_Rec_Len-1] = '0' then
+            begin
+              buf_txt[OID_Rec_Len-2] := 0;
+              OID_Rec_Len := OID_Rec_Len - 2;
+              i := 0;
+              while i < OID_number do
+                begin
+                  if Is_Data_Valid(@OID[i], buf_txt) <> 0 then break;
+                  inc(i);
+                end;
+            end;
+          if i = OID_number then
+            begin
+              i := 0;
+              while i < OID_number do
+                begin
+                  if Is_Data_Valid1(@OID[i], buf_txt) <> 0 then break;
+                  inc(i);
+                end;
+
+              if i = OID_number then // OID not found
+                begin
+                  data_in_s[S_PDU_Len_Addr-1] := GetResponse;
+                  data_in_s[S_Err_Len_Addr+1] := noSuchName_; // No Such Name
+                  result := get_len(data_in_s,S_Message_Len_Addr,offset) + 2 + offset;
+                  exit;
+                end;
+            end;
+        end;
+
+      if Get_OID_Len(@OID[i]) = OID_Rec_Len then
+      if inc(i) = OID_number then // OID not found
+        begin
+          data_in_s[S_PDU_Len_Addr-1] := GetResponse;
+          data_in_s[S_Err_Len_Addr+1] := noSuchName_; // No Such Name
+          result := get_len(data_in_s,S_Message_Len_Addr,offset) + 2 + offset;
+          exit;
+        end;
+      OID_Hex_Len := OID_String2Hex(@OID[i], buf_txt);
+      if OID_Hex_Len = 0 then
+        begin
+          exit;
+        end;
+      buf := OID_Hex_Len - get_len(data_in_s,S_OID_Len_Addr,offset);
+      if buf <> 0 then
+        begin
+          data_in_s[S_OID_Len_Addr] := OID_Hex_Len;
+          add_len(data_in_s,S_Message_Len_Addr,buf);
+          add_len(data_in_s,S_PDU_Len_Addr,buf);
+          add_len(data_in_s,S_VarbindList_Len_Addr,buf);
+          add_len(data_in_s,S_Varbind_Len_Addr,buf);
+          S_Value_Len_Addr := S_Value_Len_Addr + buf;
+        end;
+      buf := 0;
+      while buf < OID_Hex_Len do
+        begin
+          data_in_s[S_OID_Len_Addr+1+buf] := buf_txt[buf];
+          inc(buf);
+        end;
+    end
+  else
+  if data_in_s[S_PDU_Len_Addr-1] = GetRequest then
+    begin
+      i := 0;
+      while i < OID_number do
+        begin
+          if Is_Data_Valid(@OID[i], buf_txt) <> 0 then break;
+          inc(i);
+        end;
+
+      if i = OID_number then // OID not found
+        begin
+          data_in_s[S_PDU_Len_Addr-1] := GetResponse;
+          data_in_s[S_Err_Len_Addr+1] := noSuchName_; // No Such Name
+          result := get_len(data_in_s,S_Message_Len_Addr,offset) + 2 + offset;
+          exit;
+        end;
+
+      if Get_OID_Len(@OID[i]) <> OID_Rec_Len then
+        begin
+          data_in_s[S_PDU_Len_Addr-1] := GetResponse;
+          data_in_s[S_Err_Len_Addr+1] := noSuchName_; // No Such Name
+          result := get_len(data_in_s,S_Message_Len_Addr,offset) + 2 + offset;
+          exit;
+        end;
+    end
+  else
+    begin
+      exit;
+    end;
+
+  data_in_s[S_PDU_Len_Addr-1] := GetResponse;
+  data_in_s[S_Err_Len_Addr+1] := noError_; // No Errors
+
+  data_in_s[S_Value_Len_Addr] := $82;
+  offset := 2;
+
+  if response_type[i] = uinteger_ then
+    begin
+      buf := max_response_len[i];
+      pt := response_address[i];
+      i := buf;
+      while buf > 0 do
+        begin
+          data_in_s[S_Value_Len_Addr+buf+offset] := pt^; // put data
+          pt := pt + 1;
+          dec(buf);
+        end;
+      data_in_s[S_Value_Len_Addr-1] := uinteger_; // Unsigned Integer type
+    end
+  else
+  if response_type[i] = integer_ then
+    begin
+      buf := max_response_len[i];
+      pt := response_address[i];
+      i := buf;
+      while buf > 0 do
+        begin
+          data_in_s[S_Value_Len_Addr+buf+offset] := pt^; // put data
+          pt := pt + 1;
+          dec(buf);
+        end;
+      data_in_s[S_Value_Len_Addr-1] := integer_; // Integer type
+    end
+  else
+  if response_type[i] = string_ then
+    begin
+      buf1 := max_response_len[i];
+      pt := response_address[i];
+      i := 0;
+      while true do
+        begin
+          buf := pt^;
+          if buf = 0 then break;
+          data_in_s[S_Value_Len_Addr+1+i+offset] := buf;
+          pt := pt + 1;
+          if inc(i) >= buf1 then break;
+        end;
+      data_in_s[S_Value_Len_Addr-1] := string_; // String type
+    end
+  else
+  if response_type[i] = timeticks_ then
+    begin
+      buf := max_response_len[i];
+      pt := response_address[i];
+      i := buf;
+      while buf > 0 do
+        begin
+          data_in_s[S_Value_Len_Addr+buf+offset] := pt^; // put data
+          pt := pt + 1;
+          dec(buf);
+        end;
+      data_in_s[S_Value_Len_Addr-1] := timeticks_; // TimeTicks type
+    end
+  else
+  if response_type[i] = oid_ then
+    begin
+      OID_Hex_Len := OID_VarString2Hex(response_address[i], buf_txt);
+      pt := @buf_txt;
+      i := 0;
+      while i < OID_Hex_Len do
+        begin
+          buf := pt^;
+          data_in_s[S_Value_Len_Addr+1+i+offset] := buf;
+          pt := pt + 1;
+          inc(i);
+        end;
+      data_in_s[S_Value_Len_Addr-1] := oid_; // OID type
+    end
+  else
+  if response_type[i] = ipaddress_ then
+    begin
+      pt := response_address[i];
+      i := 0;
+      while true do
+        begin
+          data_in_s[S_Value_Len_Addr+1+i+offset] := pt^;
+          pt := pt + 1;
+          if inc(i) >= 4 then break;
+        end;
+      data_in_s[S_Value_Len_Addr-1] := ipaddress_; // ip address
+    end
+  else
+    begin
+      exit;
+    end;
+
+  put_len(data_in_s,S_Value_Len_Addr,i);
+  add_len(data_in_s,S_Message_Len_Addr,i+offset);
+  add_len(data_in_s,S_PDU_Len_Addr,i+offset);
+  add_len(data_in_s,S_VarbindList_Len_Addr,i+offset);
+  add_len(data_in_s,S_Varbind_Len_Addr,i+offset);
+
+  result := get_len(data_in_s,S_Message_Len_Addr,offset) + 2 + offset;
+end;
+{
+function Send_SNMP_TRAP(OID_Trap_loc, specific : byte; var my_IP : array[4] of byte; var TimeTicks : dword; var data_out_s : array[$FFFF] of byte; OID_loc : byte) : word;
+var t0,t1,t2,t3,t4,address : word;
+    buf_txt : string[64];
+    buf,response_type__,i : byte;
+    pt : ^byte;
+    buf_d : dword;
+begin
+
+  case response_type[OID_loc] of
+    uinteger_ : t4 := max_response_len[OID_loc];
+    integer_ : t4 := max_response_len[OID_loc];
+    string_ :
+      begin
+        t4 := Get_String_Len(word(response_address[OID_loc]));
+        if t4 > max_response_len[OID_loc] then t4 := max_response_len[OID_loc];
+      end;
+    oid_ :
+      begin
+        t4 := OID_VarString2Hex(word(response_address[OID_loc]),buf_txt);
+        if t4 > max_response_len[OID_loc] then t4 := max_response_len[OID_loc];
+      end
+    else t4 := 4;
+  end;
+
+  t3 := t4 + 6 + OID_String2Hex(@OID[OID_loc], buf_txt);
+  t2 := t3 + 4;
+  t1 := t2 + 24 + OID_String2Hex(@OID_Trap[OID_Trap_loc], buf_txt);
+  t0 := t1 + 9 + Get_Const_Len(@comunity);
+  result := t0 + 4;
+
+  data_out_s[0] := $30;
+  put_len_ext(data_out_s,1,t0);
+  data_out_s[4] := $02;
+  data_out_s[5] := $01;
+  data_out_s[6] := $00;
+  data_out_s[7] := $04;
+  data_out_s[8] := Get_Const_Len(@comunity);
+  buf_txt := comunity;
+  Mem_Cpy(word(@data_out_s[9]),word(@buf_txt),data_out_s[8]);
+  address := data_out_s[8] + 9;
+  data_out_s[address] := $A4;
+  inc(address);
+  put_len_ext(data_out_s,address,t1);
+  address := address + 3;
+  data_out_s[address] := $06;
+  inc(address);
+  buf := OID_String2Hex(@OID_Trap[OID_Trap_loc], buf_txt);
+  data_out_s[address] := buf;
+  inc(address);
+  Mem_Cpy(word(@data_out_s[address]),word(@buf_txt),buf);
+  address := address + buf;
+  data_out_s[address] := $40;
+  inc(address);
+  data_out_s[address] := $04;
+  inc(address);
+  Mem_Cpy(word(@data_out_s[address]),word(@my_IP),4);
+  address := address + 4;
+  data_out_s[address] := $02;
+  inc(address);
+  data_out_s[address] := $01;
+  inc(address);
+  data_out_s[address] := $06;
+  inc(address);
+  data_out_s[address] := $02;
+  inc(address);
+  data_out_s[address] := $01;
+  inc(address);
+  data_out_s[address] := specific;
+  inc(address);
+  data_out_s[address] := $43;
+  inc(address);
+  data_out_s[address] := $04;
+  inc(address);
+  DisableInt;
+  buf_d := TimeTicks;
+  EnableInt;
+  data_out_s[address] := Highest(buf_d);
+  inc(address);
+  data_out_s[address] := Higher(buf_d);
+  inc(address);
+  data_out_s[address] := Hi(buf_d);
+  inc(address);
+  data_out_s[address] := Lo(buf_d);
+  inc(address);
+
+  data_out_s[address] := $30;
+  inc(address);
+  put_len_ext(data_out_s,address,t2);
+  address := address + 3;
+  data_out_s[address] := $30;
+  inc(address);
+  put_len_ext(data_out_s,address,t3);
+  address := address + 3;
+  data_out_s[address] := $06;
+  inc(address);
+  buf := OID_String2Hex(@OID[OID_loc], buf_txt);
+  data_out_s[address] := buf;
+  inc(address);
+  Mem_Cpy(word(@data_out_s[address]),word(@buf_txt),buf);
+  address := address + buf;
+  data_out_s[address] := response_type[OID_loc];
+  inc(address);
+  put_len_ext(data_out_s,address,t4);
+  address := address + 3;
+
+  response_type__ := response_type[OID_loc];
+
+  if response_type__ = oid_ then
+    begin
+      OID_VarString2Hex(word(response_address[OID_loc]),buf_txt);
+      Mem_Cpy(word(@data_out_s[address]),word(@buf_txt),t4);
+    end
+  else
+  if (response_type__ = uinteger_) or (response_type__ = integer_) or (response_type__ = timeticks_) then
+    begin
+      pt := response_address[OID_loc] + t4 - 1;
+      i := 0;
+      while i < t4 do
+        begin
+          data_out_s[address+i] := pt^;
+          pt := pt - 1;
+          inc(i);
+        end;
+    end
+  else Mem_Cpy(word(@data_out_s[address]),word(response_address[OID_loc]),t4);  // error here...
+
+end;
+}
+end.

@@ -1,0 +1,311 @@
+unit opstack_canstatemachines;
+
+// TODO: FlushCanSpecificBuffers not tested or know if it work right
+
+
+{$IFDEF FPC}
+interface
+{$ENDIF}
+
+{$I Options.inc}
+
+uses
+  {$IFDEF FPC}
+  Classes, SysUtils,
+  {$ENDIF}
+   opstack_defines,
+  opstack_types,
+  opstack_buffers,
+  opstackcore_basic,
+  opstack_utilities,
+  opstackcore_can,
+  opstack_canstatemachinesmultiframe,
+  {$IFDEF SUPPORT_STREAMS}
+  opstack_canstatemachinesstream,
+  {$ENDIF}
+  opstack_canstatemachinessnip,
+  opstack_canstatemachinesdatagram,
+  opstack_canstatemachinesbuffers;
+
+function OPStackCANStatemachine_OpenLCBCanBufferToOPStackBuffer(OpenLCBCanBuffer: POpenLCBCanBuffer; var OPStackMessage: POPStackMessage; var DestNode: POpenLCBNode): Boolean;
+procedure OPStackCANStatemachine_OPStackMessageToOpenLCBCanBuffer(AMessage: POPStackMessage; OpenLCBCanBuffer: POpenLCBCanBuffer);
+procedure OPStackCANStatemachine_ProcessMessages;
+
+{$IFNDEF FPC}
+function OPStackNode_FindByAlias(AliasID: Word): POpenLCBNode; external;
+{$ENDIF}
+
+implementation
+
+{$IFDEF FPC}
+uses
+  opstacknode;
+{$ENDIF}
+
+// *****************************************************************************
+//  procedure FlushCanSpecificBuffers;
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+procedure FlushCanSpecificBuffers(SourceAliasID: Word);
+var
+  AMessage: POPStackMessage;
+begin
+  AMessage := OPStackCANStatemachineBuffers_FindAnyDatagramOnOutgoingStack(SourceAliasID);
+  while AMessage <> nil do
+  begin
+    OPStackCANStatemachineBuffers_RemoveOutgoingDatagramMessage(AMessage);
+    OPStackBuffers_DeAllocateMessage(AMessage);
+    AMessage := OPStackCANStatemachineBuffers_FindAnyDatagramOnOutgoingStack(SourceAliasID);
+  end;
+
+  AMessage := OPStackCANStatemachineBuffers_FindAnyDatagramOnIncomingStack(SourceAliasID);
+  while AMessage <> nil do
+  begin
+    OPStackCANStatemachineBuffers_RemoveIncomingDatagramMessage(AMessage);
+    OPStackBuffers_DeAllocateMessage(AMessage);
+    AMessage := OPStackCANStatemachineBuffers_FindAnyDatagramOnIncomingStack(SourceAliasID);
+  end;
+
+  AMessage := OPStackCANStatemachineBuffers_FindAnyMultiFrameStringOnOutgoingStack(SourceAliasID);
+  while AMessage <> nil do
+  begin
+    OPStackCANStatemachineBuffers_RemoveOutgoingMultiFrameStringMessage(AMessage);
+    OPStackBuffers_DeAllocateMessage(AMessage);
+    AMessage := OPStackCANStatemachineBuffers_FindAnyMultiFrameStringOnOutgoingStack(SourceAliasID);
+  end;
+
+  {$IFDEF SUPPORT_STREAMS}
+  AMessage := OPStackCANStatemachineBuffers_FindAnyStreamOnOutgoingStack(SourceAliasID, -1, -1);
+  while AMessage <> nil do
+  begin
+    OPStackCANStatemachineBuffers_RemoveStreamMessage(AMessage);
+    OPStackBuffers_DeAllocateMessage(AMessage);
+    AMessage := OPStackCANStatemachineBuffers_FindAnyStreamOnOutgoingStack(SourceAliasID, -1, -1);
+  end;
+  {$ENDIF}
+
+  AMessage := OPStackCANStatemachineBuffers_FindAnyMultiFrameOnOutgoingStack(SourceAliasID);
+  while AMessage <> nil do
+  begin
+    OPStackCANStatemachineBuffers_RemoveMultiFrameMessage(AMessage);
+    OPStackBuffers_DeAllocateMessage(AMessage);
+    AMessage := OPStackCANStatemachineBuffers_FindAnyMultiFrameOnOutgoingStack(SourceAliasID);
+  end;
+end;
+
+// *****************************************************************************
+//  procedure OPStackCANStatemachine_OpenLCBCanBufferToOPStackBuffer;
+//    Parameters: OpenLCBCanBuffer - Buffer to convert to a message buffer, this buffer is built on the stack and will be gone after the call chain is complete
+//                OPStackMessage   - Temporary OPStack buffer to work with.  It arrives zeroed, this buffer is built on the stack and will be gone after the call chain is complete
+//                DestNode         - The internal POpenLCBNode the message is destined for (nil, if the message was not inteded for any of our nodes)
+//                SourceNode       - The internal POpenLCBNode that matches the source node ID (this SHOULD be nil if not then there is a duplicate Alias out there)
+//    Result:
+//    Description: OPStackMessage MUST be zeroized before calling this function
+// *****************************************************************************
+function OPStackCANStatemachine_OpenLCBCanBufferToOPStackBuffer(OpenLCBCanBuffer: POpenLCBCanBuffer; var OPStackMessage: POPStackMessage; var DestNode: POpenLCBNode): Boolean;
+var
+  AllocatedMessagePtr: POPStackMessage;
+  DatagramProcessErrorCode: Word;
+  SourceNode: POpenLCBNode;
+begin
+  Result := False;
+  // Initialize some local variables
+  DestNode := nil;
+  AllocatedMessagePtr := nil;
+  
+  // Extract if the message is on the OLCB or CAN layer
+  if OpenLCBCanBuffer^.MTI and MTI_OLCB_MSG = 0 then
+  begin                                                                         // It is on the CAN layer
+    // Setup the Message Type, MTI and Data from the CAN Message
+    OPStackMessage^.Source.AliasID := OpenLCBCanBuffer^.MTI and $00000FFF;
+    OPStackMessage^.MessageType := MT_CAN_TYPE or MT_SIMPLE;
+    OPStackMessage^.MTI := (OpenLCBCanBuffer^.MTI shr 12) and $FFFF;
+    if OPStackMessage^.MTI and $F000 > 0 then
+      OPStackMessage^.MTI := OPStackMessage^.MTI and $F000;                     // CID uses the upper nibble as the MTI, the rest use the lower 3 nibbles
+    OPStackBuffers_CopyDataArray(OPStackMessage^.Buffer, PByte( @OpenLCBCanBuffer^.Payload), OpenLCBCanBuffer^.PayloadCount, True);
+    
+    SourceNode := OPStackNode_FindByAlias(OPStackMessage^.Source.AliasID);      // Do we have a Node that has the same Alias as the node that sent this?  If so that is a problem
+    if SourceNode <> nil then
+    begin
+      DuplicateSourceDetected(OPStackMessage, SourceNode);
+      Exit;
+    end else 
+    begin
+      case OPStackMessage^.MTI of
+        MTI_CAN_AMD,                                                            // If another node has reset then we need to clear out any inprocess states with that node
+        MTI_CAN_AMR :
+          begin
+            FlushCanSpecificBuffers(OPStackMessage^.Source.AliasID);                                            // This is only an issue with CAN so encapsulate it here in CAN only code
+            OpenLCBUtilities_SimpleDataToNodeID(@OPStackMessage^.Buffer^.DataArray, OPStackMessage^.Source.ID); // Can pull the Source NodeID from these messages
+          end;
+      end;
+      Result := True;
+      Exit;
+    end;
+  end else
+  begin       
+    case (OpenLCBCanBuffer^.MTI shr 12) and $F000 of                            // If we just look at the upper nibble we can classify them as general, datagram, or stream
+      MTI_FRAME_TYPE_CAN_GENERAL :
+          begin
+            // Setup the Message Type, MTI and Data from the CAN Message
+            OPStackMessage^.Source.AliasID := OpenLCBCanBuffer^.MTI and $00000FFF;
+            OPStackMessage^.MessageType := MT_SIMPLE;
+            OPStackMessage^.MTI := (OpenLCBCanBuffer^.MTI shr 12) and $0FFF;
+            
+            if OPStackMessage^.MTI and MTI_ADDRESSED_MASK = MTI_ADDRESSED_MASK then
+            begin
+              // It is addressed so pull the destination alias and see if it is going to one of our nodes
+              OPStackMessage^.Dest.AliasID := Word(Word(Word(OpenLCBCanBuffer^.Payload[0] shl 8) or OpenLCBCanBuffer^.Payload[1]) and $0FFF);  // General CAN messages have the Alias in the payload first two bytes
+              OPStackMessage^.FramingBits := OpenLCBCanBuffer^.Payload[0] and $30;
+              OPStackBuffers_CopyDataArrayWithSourceOffset(OPStackMessage^.Buffer, PByte( @OpenLCBCanBuffer^.Payload), OpenLCBCanBuffer^.PayloadCount, 2);
+              DestNode := OPStackNode_FindByAlias(OPStackMessage^.Dest.AliasID);
+              
+              if DestNode <> nil then
+              begin
+                if OPStackMessage^.FramingBits <> 0 then                        // This handles SNIP and STNIP message that include Framing information
+                begin
+                  if StackCANStatemachineDatagram_ProcessIncomingMultiFrameMessage(OPStackMessage, AllocatedMessagePtr) then   // Don't dispatch it until it is fully received
+                  begin
+                    OPStackMessage := AllocatedMessagePtr;                        // replace the last incoming frame with the full MultiFrame message
+                    Result := True
+                  end
+                end else
+                if OPStackMessage^.MTI = MTI_SIMPLE_NODE_INFO_REPLY then        // Legacy SNIP did not use framing
+                begin
+                  if OPStackCANStatemachineSnip_ProcessIncomingMultiFrameStringMessage(OPStackMessage, AllocatedMessagePtr) then
+                  begin
+                    OPStackMessage := AllocatedMessagePtr;                        // replace the last incoming frame with the full MultiFrame message
+                    Result := True
+                  end
+                end else
+                begin
+                  // Addressed message but a single Frame
+                  if OPStackBuffers_AllocateOPStackMessage(AllocatedMessagePtr, OPStackMessage^.MTI, OPStackMessage^.Source, OPStackMessage^.Dest, False) then
+                  begin
+                    OPStackBuffers_CopyDataArray(AllocatedMessagePtr^.Buffer, @OPStackMessage^.Buffer^.DataArray, OPStackMessage^.Buffer^.DataBufferSize, True);
+                    OPStackMessage := AllocatedMessagePtr;
+                    Result := True
+                  end else 
+                  begin
+                    case OPStackMessage^.MTI of
+                      MTI_STREAM_PROCEED,                   // Think about these stream messages more
+                      MTI_STREAM_COMPLETE,
+                      MTI_DATAGRAM_OK_REPLY,
+                      MTI_DATAGRAM_REJECTED_REPLY : begin {TODO:  What do do with this messages... an OIR is not appropriate for them} end
+                    else
+                      OptionalInteractionRejected(OPStackMessage^.Dest, OPStackMessage^.Source, OPStackMessage^.MTI, False); // Out of buffers, try again later
+                    end;
+                  end;
+                end;
+              end
+            end else
+            begin
+              // Un-addressed, just send it without an allocated message
+              OPStackBuffers_CopyDataArray(OPStackMessage^.Buffer, PByte( @OpenLCBCanBuffer^.Payload), OpenLCBCanBuffer^.PayloadCount, True);
+              Result := True
+            end;
+            Exit;
+          end;
+      MTI_FRAME_TYPE_CAN_DATAGRAM_ONLY_FRAME,
+      MTI_FRAME_TYPE_CAN_DATAGRAM_FRAME_START,
+      MTI_FRAME_TYPE_CAN_DATAGRAM_FRAME,
+      MTI_FRAME_TYPE_CAN_DATAGRAM_FRAME_END :
+        begin
+          OPStackMessage^.Dest.AliasID := (OpenLCBCanBuffer^.MTI shr 12) and $0FFF;
+          DestNode := OPStackNode_FindByAlias(OPStackMessage^.Dest.AliasID);
+          if DestNode <> nil then
+          begin
+            // Setup the Message Type, MTI and Data from the CAN Message
+            OPStackMessage^.Source.AliasID := OpenLCBCanBuffer^.MTI and $00000FFF;
+            OPStackMessage^.MessageType := MT_SIMPLE;
+            OPStackMessage^.MTI := (OpenLCBCanBuffer^.MTI shr 12) and $F000;
+            OPStackBuffers_CopyDataArray(OPStackMessage^.Buffer, PByte( @OpenLCBCanBuffer^.Payload), OpenLCBCanBuffer^.PayloadCount, True);
+          
+            DatagramProcessErrorCode := StackCANStatemachineDatagram_ProcessIncomingDatagramMessage(OPStackMessage, AllocatedMessagePtr);
+            case DatagramProcessErrorCode of
+                DATAGRAM_PROCESS_ERROR_OK         : 
+                  begin
+                    OPStackMessage := AllocatedMessagePtr;
+                    Result := True;
+                  end;
+                DATAGRAM_PROCESS_ERROR_QUIET_FAIL :
+                  begin
+                  end
+              else begin
+                  if AllocatedMessagePtr <> nil then
+                    OPStackBuffers_DeAllocateMessage(AllocatedMessagePtr);      // If there is an error, need to flush the buffer
+                  DatagramRejected(@OPStackMessage^.Source, @OPStackMessage^.Dest, DatagramProcessErrorCode);
+                  Exit;
+                end;
+            end
+          end;
+          Exit;
+        end;
+      MTI_FRAME_TYPE_CAN_STREAM_SEND :
+        begin
+          Exit;
+        end;
+    end; // case
+  end;
+end;
+
+// *****************************************************************************
+//  procedure OPStackCANStatemachine_OPStackMessageToOpenLCBCanBuffer;
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+procedure OPStackCANStatemachine_OPStackMessageToOpenLCBCanBuffer(AMessage: POPStackMessage; OpenLCBCanBuffer: POpenLCBCanBuffer);
+var
+  i: Integer;
+begin
+  OpenLCBCanBuffer^.PayloadCount := 0;
+  if AMessage^.MessageType and MT_CAN_TYPE <> 0 then
+  begin
+    // This is a special case CAN message
+    case AMessage^.MTI of
+      MTI_CAN_CID0 : OpenLCBCanBuffer^.MTI := DWord(AMessage^.MTI shl 12) or (AMessage^.Source.ID[1] and $00FFF000) or AMEssage^.Source.AliasID or $10000000;
+      MTI_CAN_CID1 : OpenLCBCanBuffer^.MTI := DWord(AMessage^.MTI shl 12) or ((AMessage^.Source.ID[1] shl 12) and $00FFF000) or AMEssage^.Source.AliasID or  $10000000;
+      MTI_CAN_CID2 : OpenLCBCanBuffer^.MTI := DWord(AMessage^.MTI shl 12) or (AMessage^.Source.ID[0] and $00FFF000) or AMEssage^.Source.AliasID or $10000000;
+      MTI_CAN_CID3 : OpenLCBCanBuffer^.MTI := DWord(AMessage^.MTI shl 12) or ((AMessage^.Source.ID[0] shl 12) and $00FFF000) or AMEssage^.Source.AliasID or  $10000000
+    else
+      OpenLCBCanBuffer^.MTI := (AMessage^.MTI shl 12) or AMessage^.Source.AliasID or $10000000;
+    end;
+  end else
+  if AMessage^.MTI and MTI_FRAME_TYPE_MASK <= MTI_FRAME_TYPE_CAN_GENERAL then
+  begin
+    // This is a general case MTI ($9xxx)
+    OpenLCBCanBuffer^.MTI := (AMessage^.MTI shl 12) or AMessage^.Source.AliasID or $19000000;
+    if AMessage^.MTI and MTI_ADDRESSED_MASK = MTI_ADDRESSED_MASK then
+    begin
+      OpenLCBCanBuffer^.Payload[0] := Hi( AMessage^.Dest.AliasID) or AMessage^.FramingBits;
+      OpenLCBCanBuffer^.Payload[1] := Lo( AMessage^.Dest.AliasID);
+      OpenLCBCanBuffer^.PayloadCount := 2;
+    end;
+  end else
+  if AMessage^.MTI and MTI_FRAME_TYPE_MASK <= MTI_FRAME_TYPE_CAN_STREAM_SEND then
+  begin
+    // This is a datagram MTI ($Axxx...$Dxxxx) or stream MTI ($Fxxx)
+    OpenLCBCanBuffer^.MTI := (AMessage^.MTI shl 12) or (AMessage^.Dest.AliasID shl 12) or AMessage^.Source.AliasID or $10000000;
+  end;
+
+  for i := 0 to AMessage^.Buffer^.DataBufferSize - 1 do
+  begin
+    OpenLCBCanBuffer^.Payload[OpenLCBCanBuffer^.PayloadCount] := AMessage^.Buffer^.DataArray[i];
+    Inc(OpenLCBCanBuffer^.PayloadCount);
+  end;
+end;
+
+procedure OPStackCANStatemachine_ProcessMessages;
+begin
+  StackCANStatemachineDatagram_ProcessOutgoingDatagramMessage;
+  OPStackCANStatemachineSnip_ProcessOutgoingMultiFrameStringMessage;
+  {$IFDEF SUPPORT_STREAMS}
+  OPStackCANStatemachineStream_ProcessOutgoingStreamMessage;
+  {$ENDIF}
+  OPStackCANStatemachineMultiFrame_ProcessOutgoingMultiFrameMessage;
+end;
+
+end.

@@ -1,0 +1,577 @@
+unit opstackcore_traction;
+
+{$I Options.inc}
+
+uses
+  {$IFDEF SUPPORT_DCC}
+  NMRA_DCC,
+  {$ENDIF}
+  opstack_events,
+  template_hardware,
+  Float16,
+  opstack_node,
+  opstackcore_basic,
+  opstack_defines,
+  opstack_buffers,
+  opstack_utilities,
+  template_configuration,
+  opstack_types;
+
+const
+  MAX_CONTROLLER_NOTIFY_TIME = 1;  // 1 second to wait for controller that is being stolen from to reply if it allows the steal
+
+procedure TractionProtocolMessage(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+function TractionProtocolHandler(DestNode: POpenLCBNode; var MessageToSend, NextMessage: POPStackMessage): Boolean;
+procedure TractionProtocolReply(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+procedure TractionProtocolTimerTick_1s(Node: POpenLCBNode);
+
+procedure TractionProtocolEmergenyStop(DestNode: POpenLCBNode);
+
+implementation
+
+procedure TractionFunctionStatesArrayTo32Bits(var FunctionStatesArray: TFunctionStatesArray; var FunctionBits: DWord);
+var
+  Mask: DWord;
+  i: Integer;
+begin
+  FunctionBits := 0;
+  Mask := $00000001;
+  i := 0;
+  while i < 29 do
+  begin
+    if FunctionStatesArray[i] > 0 then
+      FunctionBits := FunctionBits or Mask;
+    Mask := Mask shr 1;
+    Inc(i);
+  end;
+end;
+
+function FunctionStatesArrayToGroup(FunctionIndex: Byte; var FunctionStatesArray: TFunctionStatesArray): Byte;
+begin
+  if FunctionIndex < 5 then
+  begin   // F0-F4 in a single Byte
+    Lo(Result) := %10000000;    // %100DDDDD
+    if FunctionStatesArray[0] > 0 then Result := Result or %00010000;     // F0 (FL)
+    if FunctionStatesArray[1] > 0 then Result := Result or %00000001;     // F1
+    if FunctionStatesArray[2] > 0 then Result := Result or %00000010;     // F2
+    if FunctionStatesArray[3] > 0 then Result := Result or %00000100;     // F3
+    if FunctionStatesArray[4] > 0 then Result := Result or %00001000;     // F4
+    Exit;
+  end else
+  if FunctionIndex < 9 then
+  begin
+    Lo(Result) := %10110000;    // %101SDDDD
+    if FunctionStatesArray[5] > 0 then Result := Result or %00000001;     // F5
+    if FunctionStatesArray[6] > 0 then Result := Result or %00000010;     // F6
+    if FunctionStatesArray[7] > 0 then Result := Result or %00000100;     // F7
+    if FunctionStatesArray[8] > 0 then Result := Result or %00001000;     // F8
+    Exit;
+  end else
+  if FunctionIndex < 13 then
+  begin
+    Lo(Result) := %10100000;    // %101SDDDD
+    if FunctionStatesArray[9] > 0 then Result := Result or %00000001;     // F9
+    if FunctionStatesArray[10] > 0 then Result := Result or %00000010;    // F10
+    if FunctionStatesArray[11] > 0 then Result := Result or %00000100;    // F11
+    if FunctionStatesArray[12] > 0 then Result := Result or %00001000;    // F12
+    Exit;
+  end else
+  if FunctionIndex < 21 then
+  begin
+    if FunctionStatesArray[13] > 0 then Result := Result or %00000001;    // F13
+    if FunctionStatesArray[14] > 0 then Result := Result or %00000010;    // F14
+    if FunctionStatesArray[15] > 0 then Result := Result or %00000100;    // F15
+    if FunctionStatesArray[16] > 0 then Result := Result or %00001000;    // F16
+    if FunctionStatesArray[17] > 0 then Result := Result or %00010000;    // F17
+    if FunctionStatesArray[18] > 0 then Result := Result or %00100000;    // F18
+    if FunctionStatesArray[19] > 0 then Result := Result or %01000000;    // F19
+    if FunctionStatesArray[20] > 0 then Result := Result or %10000000;    // F20
+    Exit;
+  end else
+  if FunctionIndex < 29 then
+  begin
+    if FunctionStatesArray[21] > 0 then Result := Result or %00000001;    // F21
+    if FunctionStatesArray[22] > 0 then Result := Result or %00000010;    // F22
+    if FunctionStatesArray[23] > 0 then Result := Result or %00000100;    // F23
+    if FunctionStatesArray[24] > 0 then Result := Result or %00001000;    // F24
+    if FunctionStatesArray[25] > 0 then Result := Result or %00010000;    // F25
+    if FunctionStatesArray[26] > 0 then Result := Result or %00100000;    // F26
+    if FunctionStatesArray[27] > 0 then Result := Result or %01000000;    // F27
+    if FunctionStatesArray[28] > 0 then Result := Result or %10000000;    // F28
+    Exit;
+  end;
+end;
+
+procedure MessageToFunctionInfo(OPStackMessage: POPStackMessage; FunctionAddress: ^DWord; FunctionValue: ^Word);
+begin
+  if FunctionAddress <> nil then
+    FunctionAddress^ := (DWord( OPStackMessage^.Buffer^.DataArray[1]) shl 16) or (DWord( OPStackMessage^.Buffer^.DataArray[2]) shl 8) or DWord( OPStackMessage^.Buffer^.DataArray[3]);
+  if FunctionValue <> nil then
+    FunctionValue^ := (DWord( OPStackMessage^.Buffer^.DataArray[4]) shl 8) or DWord( OPStackMessage^.Buffer^.DataArray[5]);
+end;
+
+function FunctionExtendedCode(FunctionIndex: Byte): Byte;
+begin
+  if FunctionIndex < 21 then
+    Result := %11011110
+  else
+    Result := %11011111
+end;
+
+procedure TractionProtocolEmergenyStop(DestNode: POpenLCBNode);
+var
+  IsForward: Boolean;
+  SpeedStep: Byte;
+  {$IFDEF SUPPORT_DCC}
+  AddressHi, AddressLo: Byte;
+  DCCPacket: TDCCPacket;
+  {$ENDIF}
+begin
+  {$IFDEF SUPPORT_DCC}
+  // Split the address to make clear when loading bytes
+  AddressHi := (DestNode^.TrainData.Address shr 8) and $00FF;
+  AddressLo := DestNode^.TrainData.Address and $00FF;
+  {$ENDIF}
+
+  // Update the Speed to 0
+  IsForward := DestNode^.TrainData.SpeedDir and $8000 <> $8000;
+  if IsForward then
+    DestNode^.TrainData.SpeedDir := $0000
+  else
+    DestNode^.TrainData.SpeedDir := $8000;
+  case DestNode^.TrainData.SpeedSteps of
+    14, 28 :
+      begin
+        SpeedStep := $01;
+        if IsForward then
+          SpeedStep := SpeedStep or $60
+        else
+          SpeedStep := SpeedStep or $40;
+        {$IFDEF SUPPORT_DCC}
+        if AddressHi and NMRA_LONGADDRESS_MASK_BYTE = NMRA_LONGADDRESS_MASK_BYTE then
+          NMRA_DCC_LoadPacket(@DCCPacket, AddressHi, AddressLo, SpeedStep, 0, 0, 3)
+        else
+          NMRA_DCC_LoadPacket(@DCCPacket, AddressLo, SpeedStep, 0, 0, 0, 2);
+
+        NMRA_DCC_QueuePacket(@Track, @DCCPacket, False);
+        {$ENDIF}
+      end;
+    128 :
+      begin
+        SpeedStep := $01;
+        if IsForward then
+          SpeedStep := SpeedStep or $80;
+        {$IFDEF SUPPORT_DCC}
+        NMRA_DCC_LoadPacket(@DCCPacket, AddressHi, AddressLo, %00111111, SpeedStep, 0, 4);
+
+        NMRA_DCC_QueuePacket(@Track, @DCCPacket, False);
+        {$ENDIF}
+      end;
+  end;
+end;
+
+procedure TractionProtocolSpeedDirHandler(DestNode: POpenLCBNode; var MessageToSend, NextMessage: POPStackMessage);
+var
+  IsForward: Boolean;
+  AbsoluteSpeed: Real;
+  SpeedStep: Word;
+  {$IFDEF SUPPORT_DCC}
+  AddressHi, AddressLo: Byte;
+  DCCPacket: TDCCPacket;
+  {$ENDIF}
+begin
+  MessageToSend := nil;
+  if OpenLCBUtilities_EqualNodeIDInfo(DestNode^.TrainData.ControllerLink, NextMessage^.Source) then   // Only respond to the node that is linked to us
+  begin
+    {$IFDEF SUPPORT_DCC}
+    AddressHi := (DestNode^.TrainData.Address shr 8) and $00FF;                                                        // Split the address to make clear when loading bytes
+    AddressLo := DestNode^.TrainData.Address and $00FF;
+    {$ENDIF}
+    DestNode^.TrainData.SpeedDir := (NextMessage^.Buffer^.DataArray[1] shl 8) or (NextMessage^.Buffer^.DataArray[2]);  // Update with the new Speed
+    IsForward := DestNode^.TrainData.SpeedDir and $8000 <> $8000;                                                      // Split the Speed and Direction
+    AbsoluteSpeed := HalfToFloat(DestNode^.TrainData.SpeedDir and not $8000);
+    case DestNode^.TrainData.SpeedSteps of
+      14  : begin
+              AbsoluteSpeed := (14/100) * AbsoluteSpeed;
+              SpeedStep := Word( AbsoluteSpeed);
+              SpeedStep := _14_STEP_TABLE[SpeedStep];
+              if IsForward then
+                SpeedStep := SpeedStep or $60
+              else
+                SpeedStep := SpeedStep or $40;
+              {$IFDEF SUPPORT_DCC}
+              if AddressHi and NMRA_LONGADDRESS_MASK_BYTE = NMRA_LONGADDRESS_MASK_BYTE then
+                NMRA_DCC_LoadPacket(@DCCPacket, AddressHi, AddressLo, SpeedStep, 0, 0, 3)
+              else
+                NMRA_DCC_LoadPacket(@DCCPacket, AddressLo, SpeedStep, 0, 0, 0, 2);
+              NMRA_DCC_QueuePacket(@Track, @DCCPacket, False);
+              {$ENDIF}
+            end;
+      28  : begin
+              AbsoluteSpeed := (28/100) * AbsoluteSpeed;
+              SpeedStep := Word( AbsoluteSpeed);
+
+              SpeedStep := _28_STEP_TABLE[SpeedStep];
+              if IsForward then
+                SpeedStep := SpeedStep or $60
+              else
+                SpeedStep := SpeedStep or $40;
+              {$IFDEF SUPPORT_DCC}
+              if AddressHi and NMRA_LONGADDRESS_MASK_BYTE = NMRA_LONGADDRESS_MASK_BYTE then
+                NMRA_DCC_LoadPacket(@DCCPacket, AddressHi, AddressLo, SpeedStep, 0, 0, 3)
+              else
+                NMRA_DCC_LoadPacket(@DCCPacket, AddressLo, SpeedStep, 0, 0, 0, 2);
+              NMRA_DCC_QueuePacket(@Track, @DCCPacket, False)
+              {$ENDIF}
+            end;
+      128 : begin
+              {$IFDEF SUPPORT_DCC}
+              AddressHi := AddressHi or NMRA_LONGADDRESS_MASK_BYTE;               // Allow a mistaken short address to work here by adding the $C0  Per Tim
+              {$ENDIF}
+              AbsoluteSpeed := (127/100) * AbsoluteSpeed;
+              SpeedStep := Word( AbsoluteSpeed);
+              if SpeedStep > 0 then
+                Inc(SpeedStep);   // 1 = EStop
+              if IsForward then
+                SpeedStep := SpeedStep or $80;
+              {$IFDEF SUPPORT_DCC}
+              NMRA_DCC_LoadPacket(@DCCPacket, AddressHi, AddressLo, %00111111, SpeedStep, 0, 4);
+              NMRA_DCC_QueuePacket(@Track, @DCCPacket, False);
+              {$ENDIF}
+            end;
+    end;
+  end;
+  UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+end;
+
+procedure TractionProtocolFunctionHandler(DestNode: POpenLCBNode; var MessageToSend, NextMessage: POPStackMessage);
+{$IFDEF SUPPORT_DCC}
+var
+  FunctionAddress: DWord;
+  FunctionValue: Word;
+  FunctionStateArray: TFunctionStatesArray;
+  AddressHi, AddressLo: Byte;
+  DCCPacket: TDCCPacket;
+{$ENDIF}
+begin
+  MessageToSend := nil;   
+  {$IFDEF SUPPORT_DCC}
+  if OpenLCBUtilities_EqualNodeIDInfo(DestNode^.TrainData.ControllerLink, NextMessage^.Source) then     // Only respond to the node that is liked to us
+  begin
+    if (OnTractionFunctionConfigWrite <> nil) and (OnTractionFunctionConfigRead <> nil) then
+    begin
+      MessageToFunctionInfo(NextMessage, @FunctionAddress, @FunctionValue);
+      OnTractionFunctionConfigRead(DestNode, @NextMessage^.Source, 0, 58, @FunctionStateArray);        // First read them all to get any extra flags stored with the value, 29*2 = 58
+      FunctionValue := (FunctionStateArray[FunctionAddress] and $FFFE) or FunctionValue;               // Strip off the bottom bit of the existing value then set the new state
+      OnTractionFunctionConfigWrite(DestNode, @NextMessage^.Source, FunctionAddress, 2, @FunctionValue); // Function Value is 2 bytes
+      FunctionStateArray[FunctionAddress] := FunctionValue;                                              // Update the Array for the DCC Packet
+      AddressHi := (DestNode^.TrainData.Address shr 8) and $00FF;   // Split the address to make clear when loading bytes
+      AddressLo := DestNode^.TrainData.Address and $00FF;
+      if AddressHi and NMRA_LONGADDRESS_MASK_BYTE = NMRA_LONGADDRESS_MASK_BYTE then
+      begin
+        if FunctionAddress < 13 then
+          NMRA_DCC_LoadPacket(@DCCPacket, AddressHi, AddressLo, FunctionStatesArrayToGroup(Lo(FunctionAddress), FunctionStateArray), 0, 0, 3)
+        else
+          NMRA_DCC_LoadPacket(@DCCPacket, AddressHi, AddressLo, FunctionExtendedCode(Lo(FunctionAddress)), FunctionStatesArrayToGroup(Lo(FunctionAddress), FunctionStateArray), 0, 4)
+      end else
+      begin
+        if FunctionAddress < 13 then
+          NMRA_DCC_LoadPacket(@DCCPacket, AddressLo, FunctionStatesArrayToGroup(Lo(FunctionAddress), FunctionStateArray), 0, 0, 0, 2)
+        else
+          NMRA_DCC_LoadPacket(@DCCPacket, AddressLo, FunctionExtendedCode(Lo(FunctionAddress)), FunctionStatesArrayToGroup(Lo(FunctionAddress), FunctionStateArray), 0, 0, 3)
+      end;
+      NMRA_DCC_QueuePacket(@Track, @DCCPacket, False);
+    end;
+  end;   
+  {$ENDIF}
+  UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+end;
+
+procedure TractionProtocolEmergencyStopHandler(DestNode: POpenLCBNode; var MessageToSend, NextMessage: POPStackMessage);
+begin
+  MessageToSend := nil;
+  if OpenLCBUtilities_EqualNodeIDInfo(DestNode^.TrainData.ControllerLink, NextMessage^.Source) then    // Only respond to the node liked to us
+  begin
+    TractionProtocolEmergenyStop(DestNode);
+  end;
+  UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+end;
+
+function TractionProtocolQuerySpeedHandler(DestNode: POpenLCBNode; var MessageToSend, NextMessage: POPStackMessage): Boolean;
+begin
+  Result := False;
+  MessageToSend := nil;
+  if OPStackBuffers_AllocateMultiFrameMessage(MessageToSend, MTI_TRACTION_REPLY, NextMessage^.Dest, NextMessage^.Source) then
+  begin
+    MessageToSend^.Buffer^.DataArray[0] := TRACTION_QUERY_SPEED;
+    MessageToSend^.Buffer^.DataArray[1] := Hi( DestNode^.TrainData.SpeedDir);
+    MessageToSend^.Buffer^.DataArray[2] := Lo( DestNode^.TrainData.SpeedDir);
+    MessageToSend^.Buffer^.DataArray[3] := $00;                                 // Result Reply
+    MessageToSend^.Buffer^.DataArray[4] := $FF;                                 // Not a Number (NaN) for Commanded Speed (not supported in DCC)
+    MessageToSend^.Buffer^.DataArray[5] := $FF;                                 // Not a Number (NaN) for Commanded Speed (not supported in DCC)
+    MessageToSend^.Buffer^.DataArray[6] := $FF;                                 // Not a Number (NaN) for Actual Speed (not supported in DCC)
+    MessageToSend^.Buffer^.DataArray[7] := $FF;                                 // Not a Number (NaN) for Actual Speed (not supported in DCC)
+    MessageToSend^.Buffer^.DataBufferSize := 8;
+    Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+  end;
+end;
+
+function TractionProtocolQueryFunctionHandler(DestNode: POpenLCBNode; var MessageToSend, NextMessage: POPStackMessage): Boolean;
+var
+  FunctionAddress: DWord;
+  FunctionValue: Word;
+  FunctionStateArray: TFunctionStatesArray;
+begin
+  Result := False;
+  MessageToSend := nil;
+  if OnTractionFunctionConfigRead <> nil then
+  begin
+    MessageToFunctionInfo(NextMessage, @FunctionAddress, nil);
+    OnTractionFunctionConfigRead(DestNode, @NextMessage^.Source, 0, 58, @FunctionStateArray);   // 29*2 as we store words not bytes
+    if OPStackBuffers_AllocateOPStackMessage(MessageToSend, MTI_TRACTION_REPLY, NextMessage^.Dest, NextMessage^.Source, False) then
+    begin
+      MessageToSend^.Buffer^.DataArray[0] := TRACTION_QUERY_FUNCTION;
+      MessageToSend^.Buffer^.DataArray[1] := NextMessage^.Buffer^.DataArray[1];   // Reuse Address
+      MessageToSend^.Buffer^.DataArray[2] := NextMessage^.Buffer^.DataArray[2];
+      MessageToSend^.Buffer^.DataArray[3] := NextMessage^.Buffer^.DataArray[3];
+      MessageToSend^.Buffer^.DataArray[4] := 0;
+      MessageToSend^.Buffer^.DataArray[5] := 0;
+      MessageToSend^.Buffer^.DataBufferSize := 6;
+      MessageToSend^.Buffer^.DataArray[5] := Lo( FunctionStateArray[FunctionAddress]) and $01;  // May store more info in the byte such as if to repeat it
+      Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+    end;
+  end;
+end;
+
+//******************************************************************************
+// procedure TractionProtocol
+// Parameters:
+//    AMessage: The incoming OPStack Message
+//    DestNode: The node the message is meant for
+// Description:
+//    Takes incoming Traction Protocol and posts it to be disected and handled
+//    later in the Reply
+//******************************************************************************
+
+function TractionProtocolManageHandler(DestNode: POpenLCBNode; var MessageToSend, NextMessage: POPStackMessage): Boolean;
+begin
+  Result := False;
+  MessageToSend := nil;
+  if NextMessage^.Buffer^.DataArray[1] = TRACTION_MANAGE_RESERVE then
+  begin
+    if OPStackBuffers_AllocateOPStackMessage(MessageToSend, MTI_TRACTION_REPLY, NextMessage^.Dest, NextMessage^.Source, False) then
+    begin
+      MessageToSend^.Buffer^.DataBufferSize := 3;
+      MessageToSend^.Buffer^.DataArray[0] := TRACTION_MANAGE;
+      MessageToSend^.Buffer^.DataArray[1] := TRACTION_MANAGE_RESERVE;
+      if OpenLCBUtilities_NullNodeIDInfo(DestNode^.TrainData.Lock) or OpenLCBUtilities_EqualNodeIDInfo(DestNode^.TrainData.Lock, NextMessage^.Source) then
+      begin
+        MessageToSend^.Buffer^.DataArray[2] := TRACTION_MANAGE_RESERVE_REPLY_OK;
+        DestNode^.TrainData.Lock.AliasID := NextMessage^.Source.AliasID;
+        DestNode^.TrainData.Lock.ID[0] := NextMessage^.Source.ID[0];
+        DestNode^.TrainData.Lock.ID[1] := NextMessage^.Source.ID[1];
+      end else
+        MessageToSend^.Buffer^.DataArray[2] := TRACTION_MANAGE_RESERVE_REPLY_FAIL;
+      Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+    end
+  end else
+  if NextMessage^.Buffer^.DataArray[1] = TRACTION_MANAGE_RELEASE then
+  begin
+    if OpenLCBUtilities_EqualNodeIDInfo(DestNode^.TrainData.Lock, NextMessage^.Source) then
+    begin
+      DestNode^.TrainData.Lock.AliasID := 0;
+      DestNode^.TrainData.Lock.ID[0] := 0;
+      DestNode^.TrainData.Lock.ID[1] := 0;
+    end;
+    Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+  end;
+end;
+
+function TractionProtocolControllerHandler(DestNode: POpenLCBNode; var MessageToSend, NextMessage: POPStackMessage): Boolean;
+var
+  i: Integer;
+  MultiFrameBuffer: PMultiFrameBuffer;
+  TempController: TNodeInfo;
+begin
+  MessageToSend := nil;
+  Result := False;
+  case NextMessage^.Buffer^.DataArray[1] of
+    TRACTION_CONTROLLER_CONFIG_ASSIGN :
+        begin
+          // Make sure the called has the Train Locked
+          if OpenLCBUtilities_EqualNodeIDInfo(DestNode^.TrainData.Lock, NextMessage^.Source) then
+          begin
+            // Get a Pointer to the sent buffer
+            MultiFrameBuffer := PMultiFrameBuffer( PByte( NextMessage^.Buffer));
+            // Extract the Requested Controller Node Information
+            OpenLCBUtilities_Load48BitNodeIDWithSimpleData(@TempController.ID, PSimpleDataArray( @MultiFrameBuffer^.DataArray[3])^);
+            if MultiFrameBuffer^.DataArray[2] and TRACTION_FLAGS_ALIAS_INCLUDED <> 0 then
+              TempController.AliasID := Word(MultiFrameBuffer^.DataArray[9] shl 8) or Word(MultiFrameBuffer^.DataArray[10]);
+            
+            // If the Linked Controller = 0 or the requested Controller is the same as the current controller then ...
+            if OpenLCBUtilities_NullNodeIDInfo(DestNode^.TrainData.ControllerLink) or OpenLCBUtilities_EqualNodeIDInfo(DestNode^.TrainData.ControllerLink, TempController) then
+            begin
+              // TODO: Need to test if the controller is allowed to connect to this Train by this Train
+              if OPStackBuffers_AllocateOPStackMessage(MessageToSend, MTI_TRACTION_REPLY, NextMessage^.Dest, NextMessage^.Source, False) then
+              begin
+                MessageToSend^.Buffer^.DataBufferSize := 3;
+                MessageToSend^.Buffer^.DataArray[0] := TRACTION_CONTROLLER_CONFIG;
+                MessageToSend^.Buffer^.DataArray[1] := TRACTION_CONTROLLER_CONFIG_ASSIGN;
+                MessageToSend^.Buffer^.DataArray[2] := TRACTION_CONTROLLER_ASSIGN_REPLY_OK;
+                DestNode^.TrainData.ControllerLink := TempController;
+                Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+              end
+            end else
+            begin   // The Controller is set to another node, need to ask that node if it will release the Train
+              // TODO: Need to ask the assigned controller if we should allow the assignment
+
+              if OPStackBuffers_AllocateMultiFrameMessage(MessageToSend, MTI_TRACTION_PROTOCOL, DestNode^.Info, DestNode^.TrainData.ControllerLink) then
+              begin
+                MessageToSend^.Buffer^.DataBufferSize := MultiFrameBuffer^.DataBufferSize;  
+                MessageToSend^.Buffer^.DataArray[0] := TRACTION_CONTROLLER_CONFIG;
+                MessageToSend^.Buffer^.DataArray[1] := TRACTION_CONTROLLER_CONFIG_NOTIFY;
+                for i := 2 to MultiFrameBuffer^.DataBufferSize - 1 do
+                  MessageToSend^.Buffer^.DataArray[i] := MultiFrameBuffer^.DataArray[i];
+                DestNode^.TrainData.State := DestNode^.TrainData.State or TS_WAITING_FOR_CONTROLLER_NOTIFY;
+                DestNode^.TrainData.Timer := 0;
+                DestNode^.TrainData.ScratchNode := TempController;               // Store the Controller who is asking for the Train
+                Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+                // Timer started, either the current controller replies or it times out and the new controller is assigned
+              end
+            end
+          end else
+            Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+        end;
+    TRACTION_CONTROLLER_CONFIG_RELEASE :
+        begin
+          if OpenLCBUtilities_EqualNodeIDInfo(DestNode^.TrainData.Lock, NextMessage^.Source) then
+          begin
+            if OpenLCBUtilities_EqualNodeIDInfo(DestNode^.TrainData.ControllerLink, NextMessage^.Source) then
+            begin
+              DestNode^.TrainData.ControllerLink.AliasID := 0;
+              DestNode^.TrainData.ControllerLink.ID[0] := 0;
+              DestNode^.TrainData.ControllerLink.ID[1] := 0;
+            end;
+            Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+          end else
+            Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+        end;
+    TRACTION_CONTROLLER_CONFIG_QUERY :
+        begin
+          if OPStackBuffers_AllocateMultiFrameMessage(MessageToSend, MTI_TRACTION_REPLY, NextMessage^.Dest, NextMessage^.Source) then
+          begin
+            MultiFrameBuffer := PMultiFrameBuffer( PByte( MessageToSend^.Buffer));
+            MultiFrameBuffer^.DataBufferSize := 11;
+            MultiFrameBuffer^.DataArray[0] := TRACTION_CONTROLLER_CONFIG;
+            MultiFrameBuffer^.DataArray[1] := TRACTION_CONTROLLER_CONFIG_QUERY;
+            MultiFrameBuffer^.DataArray[2] := $01;  // Alias included
+            OpenLCBUtilities_LoadSimpleDataWith48BitNodeID(@DestNode^.TrainData.ControllerLink.ID, PSimpleDataArray( PByte( @MessageToSend^.Buffer^.DataArray[3])));
+            MultiFrameBuffer^.DataArray[9] := Hi( DestNode^.TrainData.ControllerLink.AliasID);
+            MultiFrameBuffer^.DataArray[10] := Lo( DestNode^.TrainData.ControllerLink.AliasID);
+            Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+          end;
+        end;
+    TRACTION_CONTROLLER_CONFIG_NOTIFY :
+        begin
+          Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+        end
+  else
+    Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+  end
+end;
+
+function TractionProtocolConsistHandler(DestNode: POpenLCBNode; var MessageToSend, NextMessage: POPStackMessage): Boolean;
+begin
+  MessageToSend := nil;
+  if OpenLCBUtilities_EqualNodeIDInfo(DestNode^.TrainData.Lock, NextMessage^.Source) then
+  begin
+   // if DestNode^.TrainData.State and TS_LOCKED <> 0 then
+   /// begin
+      // Only manage if the DestNode is locked
+   // end;
+  end;
+  Result := UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+end;
+
+procedure TractionProtocolMessage(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+begin
+  OPStackNode_IncomingMessageLink(DestNode, AMessage)
+end;
+
+function TractionProtocolHandler(DestNode: POpenLCBNode; var MessageToSend, NextMessage: POPStackMessage): Boolean;
+begin
+  Result := False;
+  MessageToSend := nil;
+  case NextMessage^.Buffer^.DataArray[0] of
+    TRACTION_SPEED_DIR         : begin TractionProtocolSpeedDirHandler(DestNode, MessageToSend, NextMessage); Exit; end;
+    TRACTION_FUNCTION          : begin TractionProtocolFunctionHandler(DestNode, MessageToSend, NextMessage); Exit; end;
+    TRACTION_E_STOP            : begin TractionProtocolEmergencyStopHandler(DestNode, MessageToSend, NextMessage); Exit; end;
+    TRACTION_QUERY_SPEED       : begin Result := TractionProtocolQuerySpeedHandler(DestNode, MessageToSend, NextMessage); Exit; end;
+    TRACTION_QUERY_FUNCTION    : begin Result := TractionProtocolQueryFunctionHandler(DestNode, MessageToSend, NextMessage); Exit; end;
+    TRACTION_CONTROLLER_CONFIG : begin Result := TractionProtocolControllerHandler(DestNode, MessageToSend, NextMessage); Exit; end;
+    TRACTION_CONSIST           : begin Result := TractionProtocolConsistHandler(DestNode, MessageToSend, NextMessage); Exit; end;
+    TRACTION_MANAGE            : begin Result := TractionProtocolManageHandler(DestNode, MessageToSend, NextMessage); Exit; end
+  else
+    UnLinkDeAllocateAndTestForMessageToSend(DestNode, MessageToSend, NextMessage);
+  end;
+end;
+
+procedure TractionProtocolReply(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+var
+  MessageToSend: POPStackMessage;
+begin
+  if DestNode^.TrainData.State and TS_WAITING_FOR_CONTROLLER_NOTIFY <> 0 then
+    if AMessage^.Buffer^.DataArray[0] = TRACTION_CONTROLLER_CONFIG then
+      if AMessage^.Buffer^.DataArray[1] = TRACTION_CONTROLLER_CONFIG_NOTIFY then
+      begin
+        MessageToSend := nil;
+        // Note the reply is to the Node that locked us as the current or requested controller may not be who is asking for the Controller-Assign
+        if OPStackBuffers_AllocateOPStackMessage(MessageToSend, MTI_TRACTION_REPLY, AMessage^.Dest, DestNode^.TrainData.Lock, False) then
+        begin
+          MessageToSend^.Buffer^.DataBufferSize := 3;
+          MessageToSend^.Buffer^.DataArray[0] := TRACTION_CONTROLLER_CONFIG;
+          MessageToSend^.Buffer^.DataArray[1] := TRACTION_CONTROLLER_CONFIG_ASSIGN;
+          MessageToSend^.Buffer^.DataArray[2] := AMessage^.Buffer^.DataArray[2];
+          if MessageToSend^.Buffer^.DataArray[2] = TRACTION_CONTROLLER_ASSIGN_REPLY_OK then
+            DestNode^.TrainData.ControllerLink := DestNode^.TrainData.ScratchNode;
+          DestNode^.TrainData.ScratchNode.ID := NULL_NODE_ID;
+          DestNode^.TrainData.ScratchNode.AliasID := 0;
+          DestNode^.TrainData.State := DestNode^.TrainData.State and not TS_WAITING_FOR_CONTROLLER_NOTIFY;
+          OutgoingMessage(MessageToSend, True);
+        end;
+        Exit;
+      end;
+  UnLinkDeAllocateAndTestForMessageToSend(DestNode, nil, AMessage);
+end;
+
+procedure TractionProtocolTimerTick_1s(Node: POpenLCBNode);
+var
+  MessageToSend: POPStackMessage;
+begin
+  if Node^.TrainData.State and TS_WAITING_FOR_CONTROLLER_NOTIFY <> 0 then
+  begin
+    Inc(Node^.TrainData.Timer);
+    if Node^.TrainData.Timer > MAX_CONTROLLER_NOTIFY_TIME then
+    begin
+      MessageToSend := nil;
+      // The last controller did not reply so just take it
+      if IsOutgoingBufferAvailable then
+        // Note the reply is to the Node that locked us as the current or requested controller may not be who is asking for the Controller-Assign
+        if OPStackBuffers_AllocateOPStackMessage(MessageToSend, MTI_TRACTION_REPLY, Node^.Info, Node^.TrainData.Lock, False) then
+        begin
+          Node^.TrainData.State := Node^.TrainData.State and not TS_WAITING_FOR_CONTROLLER_NOTIFY;
+          MessageToSend^.Buffer^.DataBufferSize := 3;
+          MessageToSend^.Buffer^.DataArray[0] := TRACTION_CONTROLLER_CONFIG;
+          MessageToSend^.Buffer^.DataArray[1] := TRACTION_CONTROLLER_CONFIG_ASSIGN;
+          MessageToSend^.Buffer^.DataArray[2] := TRACTION_CONTROLLER_ASSIGN_REPLY_OK;
+          Node^.TrainData.ControllerLink := Node^.TrainData.ScratchNode;
+          Node^.TrainData.ScratchNode.AliasID := 0;
+          Node^.TrainData.ScratchNode.ID := NULL_NODE_ID;
+          OutgoingMessage(MessageToSend, True);
+        end
+    end;
+  end;
+end;
+
+
+end.

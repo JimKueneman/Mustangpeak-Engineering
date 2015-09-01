@@ -1,0 +1,151 @@
+unit protocol_defines;
+
+const
+  // ***** MAC FIELD OFFSETS ******************
+  LEN_MAC_HEADER = 14;                            // For a ENC624J600
+  OFFSET_MAC_DEST = 0;
+  OFFSET_MAC_SOURCE = 6;
+  
+  // ***** IP4 FIELD OFFSETS ******************
+  LEN_IP_HEADER  = 20;
+  OFFSET_IP4_VERSION_IHL          = LEN_MAC_HEADER;      // 0:14
+  OFFSET_IP4_DSCP_ECN             = LEN_MAC_HEADER + 1;  // 1:15
+  OFFSET_IP4_TOTAL_LEN            = LEN_MAC_HEADER + 2;  // 2:16; 2 bytes
+  OFFSET_IP4_IDENTIFICATION       = LEN_MAC_HEADER + 4;  // 4:18; 2 bytes
+  OFFSET_IP4_FLAGS_FRAGMENTOFFSET = LEN_MAC_HEADER + 6;  // 6:20; 2 bytes
+  OFFSET_IP4_TTL                  = LEN_MAC_HEADER + 8;  // 8:22
+  OFFSET_IP4_PROTOCOL             = LEN_MAC_HEADER + 9;  // 9:23
+  OFFSET_IP4_HEADER_CHECKSUM      = LEN_MAC_HEADER + 10; // 10:24; 2 bytes
+  OFFSET_IP4_SOURCE_IP            = LEN_MAC_HEADER + 12; // 12:26; 4 bytes
+  OFFSET_IP4_DEST_IP              = LEN_MAC_HEADER + 16; // 16:30; 4 bytes
+  
+  // ***** UDP FIELD OFFSETS ******************
+  LEN_UDP_HEADER = 20;
+  OFFSET_UDP_SOURCE_PORT = LEN_MAC_HEADER + LEN_IP_HEADER;      // 0:34
+  OFFSET_UDP_DEST_PORT   = LEN_MAC_HEADER + LEN_IP_HEADER + 2;  // 2:36
+  OFFSET_UDP_LENGTH      = LEN_MAC_HEADER + LEN_IP_HEADER + 4;  // 4:38
+  OFFSET_UDP_CHECKSUM    = LEN_MAC_HEADER + LEN_IP_HEADER + 6;  // 6:40
+  OFFSET_UDP_DATA        = LEN_MAC_HEADER + LEN_IP_HEADER + 8;  // 8:42
+
+  LEN_UDP_PSEUDO_HEADER = 20;
+  OFFSET_PSEUDO_UDP_IP4_SOURCE_IP        = 0;
+  OFFSET_PSEUDO_UDP_IP4_DEST_IP          = 4;
+  OFFSET_PSEUDO_UDP_IP4_ZEROS            = 8;
+  OFFSET_PSEUDO_UDP_IP4_PROTOCOL         = 9;
+  OFFSET_PSEUDO_UDP_IP4_UDP_LENGTH       = 10;
+  OFFSET_PSEUDO_UDP_IP4_SOURCE_PORT      = 12;
+  OFFSET_PSEUDO_UDP_IP4_DEST_PORT        = 14;
+  OFFSET_PSEUDO_UDP_IP4_LENGTH           = 16;
+  OFFSET_PSEUDO_UDP_IP4_CHECKSUM         = 18;
+  OFFSET_PSEUDO_UDP_IP4_DATA             = 20;
+  
+  // ***** TCP FIELD OFFSETS ******************
+  LEN_TCP_HEADER = 20;
+  OFFSET_TCP_SOURCE_PORT       = LEN_MAC_HEADER + LEN_IP_HEADER;      // 0:34
+  OFFSET_TCP_DEST_PORT         = LEN_MAC_HEADER + LEN_IP_HEADER + 2;  // 2:36
+  OFFSET_TCP_SEQUENCE_NUMBER   = LEN_MAC_HEADER + LEN_IP_HEADER + 4;  // 4:38
+  OFFSET_TCP_ACK_NUMBER        = LEN_MAC_HEADER + LEN_IP_HEADER + 8;  // 8:42
+  OFFSET_TCP_DATA_OFFSET_FLAGS = LEN_MAC_HEADER + LEN_IP_HEADER + 12; // 12:44
+  OFFSET_TCP_WINDOW_SIZE       = LEN_MAC_HEADER + LEN_IP_HEADER + 14; // 14:46
+  OFFSET_TCP_CHECKSUM          = LEN_MAC_HEADER + LEN_IP_HEADER + 16; // 16:48
+  OFFSET_TCP_URGENT_PTR        = LEN_MAC_HEADER + LEN_IP_HEADER + 18; // 18:50
+  OFFSET_TCP_DATA              = LEN_MAC_HEADER + LEN_IP_HEADER + 20; // 20:52
+  
+  LEN_TCP_PSEUDO_HEADER = 32;
+  OFFSET_PSEUDO_TCP_IP4_SOURCE_IP        = 0;
+  OFFSET_PSEUDO_TCP_IP4_DEST_IP          = 4;
+  OFFSET_PSEUDO_TCP_IP4_ZEROS            = 8;
+  OFFSET_PSEUDO_TCP_IP4_PROTOCOL         = 9;
+  OFFSET_PSEUDO_TCP_IP4_LENGTH          = 10;
+  OFFSET_PSEUDO_TCP_IP4_SOURCE_PORT     = 12;
+  OFFSET_PSEUDO_TCP_IP4_DEST_PORT       = 14;
+  OFFSET_PSEUDO_TCP_IP4_SEQUENCE_NUMBER = 16;
+  OFFSET_PSEUDO_TCP_IP4_ACK_NUMBER      = 20;
+  OFFSET_PSEUDO_TCP_IP4_DATA_OFFSET     = 24;
+  OFFSET_PSEUDO_TCP_IP4_RESERVED        = 25;
+  OFFSET_PSEUDO_TCP_IP4_FLAGS           = 26;
+  OFFSET_PSEUDO_TCP_IP4_WINDOW          = 27;
+  OFFSET_PSEUDO_TCP_IP4_CHECKSUM        = 28;
+  OFFSET_PSEUDO_TCP_IP4_URGENT_PTR      = 30;
+  OFFSET_PSEUDO_TCP_IP4_DATA            = 32;
+  
+  PROTOCOL_UDP = $11;
+  PROTOCOL_TCP = $06;
+  
+
+const
+      ETH_ARP              : word = $0806;
+      ETH_ARP_REQ          : byte = $01;
+      ETH_ARP_RES          : byte = $02;
+
+      ETH_IP               : word = $0800;
+      ETH_IP_TCP           : byte = $06;
+      ETH_IP_UDP           : byte = $11;
+      ETH_IP_ICMP          : byte = $01;
+      ETH_IP_ICMP_ECHO     : byte = $08;
+      ETH_IP_ICMP_REPLY    : byte = $00;
+
+      MAX_PACKET           : word = 1518;
+
+      URG                  : byte = 5;
+      ACK                  : byte = 4;
+      PSH                  : byte = 3;
+      RST                  : byte = 2;
+      SYN                  : byte = 1;
+      FIN                  : byte = 0;
+
+      URG_S                : byte = $20;
+      ACK_S                : byte = $10;
+      PSH_S                : byte = $08;
+      RST_S                : byte = $04;
+      SYN_S                : byte = $02;
+      FIN_S                : byte = $01;
+
+const
+  DHCP_DISCOVER_MESSAGE = 1;
+  DHCP_REQUEST_MESSAGE = 3;
+  DHCP_SERVER_IDENTIFIER = 54;
+  DHCP_SERVER_IDENTIFIER_LEN = 4;
+  DHCP_PARAM_REQUEST_IP_ADDRESS = 50;
+  DHCP_PARAM_REQUEST_IP_ADDRESS_LEN = 4;
+  BOOT_REPLY = 2;
+  DHCP_MESSAGE_TYPE = 53;
+  DHCP_SUBNET_MASK = 1;
+  DHCP_GATEWAY = 3;
+  DHCP_DNS = 6;
+  DHCP_END_OPTION = 255;
+  DHCP_IP_LEASE_TIME = 51;
+  DHCP_OFFER = 2;
+  DHCP_ACK = 5;
+  
+  DHCP_SEND_PORT    = 67;
+  DHCP_RECEIVE_PORT = 68;   {DHCP_SEND_PORT + 1}
+  
+const
+  CRLF: array[2] of char = (#13, #10);
+  
+type
+  DNS_HEADER = Record
+   TransactionID        : word;
+   Flags                : word;
+   Questions            : word;
+   Answers              : word;
+   AuthoritativeRecords : word;
+   AdditionalRecords    : word;
+  end;
+
+type
+  DNS_ANSWER_HEADER = Record
+    ResponseName        : word;
+    ResponseType        : word;
+    ResponseClass       : word;
+    ResponseTTL         : dword;
+    ResponseLen         : word;
+  end;
+  
+const
+  NTP_PORT = 123;
+
+implementation
+
+end.

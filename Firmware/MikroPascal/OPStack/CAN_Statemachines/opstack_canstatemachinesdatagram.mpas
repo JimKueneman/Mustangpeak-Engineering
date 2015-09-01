@@ -1,0 +1,168 @@
+unit opstack_canstatemachinesdatagram;
+
+{$IFDEF FPC}
+interface
+{$ENDIF}
+
+{$I Options.inc}
+
+uses
+  {$IFDEF FPC}
+  Classes, SysUtils,
+  {$ENDIF}
+  template_hardware,
+  opstack_defines,
+  opstack_buffers,
+  opstack_types,
+  opstack_canstatemachinesbuffers;
+
+procedure StackCANStatemachineDatagram_ProcessOutgoingDatagramMessage;
+function StackCANStatemachineDatagram_ProcessIncomingDatagramMessage(OPStackMessage: POPStackMessage; var DatagramMessage: POPStackMessage): Byte;
+
+implementation
+
+// *****************************************************************************
+//  procedure StackCANStatemachineDatagram_ProcessIncomingDatagramMessage;
+//    Parameters: OPStackMessage - Message incoming
+//    Result:     ErrorCode -
+//                Result - DATAGRAM_PROCESS_ERROR_xxxx constant
+//    Description:
+// *****************************************************************************
+function StackCANStatemachineDatagram_ProcessIncomingDatagramMessage(OPStackMessage: POPStackMessage; var DatagramMessage: POPStackMessage): Byte;
+var
+  InProcessMessage: POPStackmessage;
+begin
+  Result := DATAGRAM_PROCESS_ERROR_QUIET_FAIL;
+  DatagramMessage := nil;
+  InProcessMessage := OPStackCANStatemachineBuffers_FindMessageOnIncomingDatagramStack(OPStackMessage);
+  case OPStackMessage^.MTI of
+    MTI_FRAME_TYPE_CAN_DATAGRAM_ONLY_FRAME :
+        begin
+          if InProcessMessage = nil then
+          begin
+            case OPStackMessage^.Buffer^.DataArray[0] of
+      //        DATAGRAM_TYPE_BOOTLOADER,
+              DATAGRAM_TYPE_MEMORY_CONFIGURATION :
+                  begin                                                         // Allocate a message for a full MTI_DATRGRAM and return the pointer to the message
+                    if OPStackBuffers_AllocateDatagramMessage(InProcessMessage, OPStackMessage^.Source, OPStackMessage^.Dest, 0) then
+                    begin
+                      OPStackBuffers_CopyData(InProcessMessage^.Buffer, OPStackMessage^.Buffer);
+                      PDatagramBuffer( PByte( InProcessMessage^.Buffer))^.CurrentCount := 0;
+                      DatagramMessage := InProcessMessage;
+                      Result := DATAGRAM_PROCESS_ERROR_OK;
+                      Exit;
+                    end else                                                    // No Buffer available, try again
+                      Result := DATAGRAM_PROCESS_ERROR_BUFFER_FULL;
+                  end
+            else
+              Result := DATAGRAM_PROCESS_ERROR_SOURCE_NOT_ACCEPTED;             // Unknowns Datagram type
+            end;
+          end                                                                   // The node has a DG connection already, can't have two just drop it
+        end;
+    MTI_FRAME_TYPE_CAN_DATAGRAM_FRAME_START :
+        begin
+          if InProcessMessage = nil then
+          begin
+            if OPStackBuffers_AllocateDatagramMessage(InProcessMessage, OPStackMessage^.Source, OPStackMessage^.Dest, 0) then
+            begin
+              OPStackBuffers_CopyData(InProcessMessage^.Buffer, OPStackMessage^.Buffer);
+              PDatagramBuffer( PByte( InProcessMessage^.Buffer))^.CurrentCount := OPStackMessage^.Buffer^.DataBufferSize;
+              if not OPStackCANStatemachineBuffers_AddIncomingDatagramMessage(InProcessMessage) then
+                OPStackBuffers_DeAllocateMessage(InProcessMessage);
+              Exit
+            end                                                                 // No Buffer available, try again  Don't agree with this but Python test fails for overlapped datagram if I return th
+          end                                                                   // The node has a DG connection already, can't have two just drop it
+        end;
+    MTI_FRAME_TYPE_CAN_DATAGRAM_FRAME       :
+        begin
+          if InProcessMessage <> nil then
+          begin
+            InProcessMessage^.WatchDog_1s := 0;
+            OPStackBuffers_CopyDataArray(InProcessMessage^.Buffer, @OPStackMessage^.Buffer^.DataArray, OPStackMessage^.Buffer^.DataBufferSize, False);
+            PDatagramBuffer( PByte( InProcessMessage^.Buffer))^.CurrentCount := PDatagramBuffer( PByte( InProcessMessage^.Buffer))^.CurrentCount + OPStackMessage^.Buffer^.DataBufferSize;
+            Exit;
+          end
+        end;
+    MTI_FRAME_TYPE_CAN_DATAGRAM_FRAME_END   :
+        begin
+          if InProcessMessage <> nil then
+          begin
+            InProcessMessage^.WatchDog_1s := 0;
+            OPStackBuffers_CopyDataArray(InProcessMessage^.Buffer, @OPStackMessage^.Buffer^.DataArray, OPStackMessage^.Buffer^.DataBufferSize, False);
+            PDatagramBuffer( PByte( InProcessMessage^.Buffer))^.CurrentCount := 0;      // Wooh Hoo, we are done
+            OPStackCANStatemachineBuffers_RemoveIncomingDatagramMessage(InProcessMessage);   // Pull it out of the working stack
+            DatagramMessage := InProcessMessage;                                        // Return the completed message
+            case InProcessMessage^.Buffer^.DataArray[0] of
+     //         DATAGRAM_TYPE_BOOTLOADER,
+              DATAGRAM_TYPE_MEMORY_CONFIGURATION :  Result := DATAGRAM_PROCESS_ERROR_OK // Send it back to be dispatched
+            else
+              Result := DATAGRAM_PROCESS_ERROR_SOURCE_NOT_ACCEPTED;              // Unknown Datagram type
+            end
+          end else
+            Result := DATAGRAM_PROCESS_ERROR_OUT_OF_ORDER;
+        end;
+    end; {case}
+end;
+
+// *****************************************************************************
+//  procedure ProcessOutgoingDatagramMessage;
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+procedure StackCANStatemachineDatagram_ProcessOutgoingDatagramMessage;
+var
+  NewMessage: TOPStackMessage;
+  NewBuffer: TSimpleBuffer;
+  LocalOutgoingMessage: POPStackMessage;
+  DatagramBuffer: PDatagramBuffer;
+  MTI: Word;
+begin
+  if IsOutgoingBufferAvailable then
+  begin
+    LocalOutgoingMessage := OPStackCANStatemachineBuffers_FirstMessageOnOutgoingDatagramStack(0);
+    if LocalOutgoingMessage <> nil then                                 // We just work this stack from the top down, for now
+    begin
+      LocalOutgoingMessage^.WatchDog_1s := 0;
+      DatagramBuffer := PDatagramBuffer( PByte( LocalOutgoingMessage^.Buffer));
+      OPStackBuffers_ZeroMessage(@NewMessage);
+      OPStackBuffers_ZeroSimpleBuffer(@NewBuffer, False);
+      if LocalOutgoingMessage^.Buffer^.DataBufferSize <= 8 then
+      begin
+        OPStackBuffers_LoadMessage(@NewMessage, MTI_FRAME_TYPE_CAN_DATAGRAM_ONLY_FRAME, LocalOutgoingMessage^.Source, LocalOutgoingMessage^.Dest, 0);
+        NewMessage.MessageType := MT_SIMPLE;
+        NewMessage.Buffer := @NewBuffer;
+        OPStackBuffers_CopyDataArray(@NewBuffer, @DatagramBuffer^.DataArray, LocalOutgoingMessage^.Buffer^.DataBufferSize, True);
+        NewMessage.Buffer^.DataBufferSize := LocalOutgoingMessage^.Buffer^.DataBufferSize;
+        OPStackCANStatemachineBuffers_RemoveOutgoingDatagramMessage(LocalOutgoingMessage);
+        OutgoingMessage(@NewMessage, True);
+        Exit;
+      end else
+      if PDatagramBuffer( PByte( LocalOutgoingMessage^.Buffer))^.CurrentCount = 0 then
+        MTI := MTI_FRAME_TYPE_CAN_DATAGRAM_FRAME_START
+      else
+      if LocalOutgoingMessage^.Buffer^.DataBufferSize - PDatagramBuffer( PByte( LocalOutgoingMessage^.Buffer))^.CurrentCount > 8 then
+        MTI := MTI_FRAME_TYPE_CAN_DATAGRAM_FRAME
+      else begin
+        MTI := MTI_FRAME_TYPE_CAN_DATAGRAM_FRAME_END;
+        OPStackCANStatemachineBuffers_RemoveOutgoingDatagramMessage(LocalOutgoingMessage);
+      end;
+
+      OPStackBuffers_LoadMessage(@NewMessage, MTI, LocalOutgoingMessage^.Source, LocalOutgoingMessage^.Dest, 0);
+      OPStackBuffers_ZeroSimpleBuffer(@NewBuffer, False);
+      NewMessage.MessageType := MT_SIMPLE;
+      NewMessage.Buffer := @NewBuffer;
+      while DatagramBuffer^.CurrentCount < DatagramBuffer^.DataBufferSize do
+      begin
+        NewMessage.Buffer^.DataArray[NewBuffer.DataBufferSize] := DatagramBuffer^.DataArray[DatagramBuffer^.CurrentCount];
+        Inc(DatagramBuffer^.CurrentCount);
+        Inc(NewBuffer.DataBufferSize);
+        if NewBuffer.DataBufferSize = 8 then
+          Break;
+      end;
+      OutgoingMessage(@NewMessage, True);
+    end;
+  end;
+end;
+
+end.

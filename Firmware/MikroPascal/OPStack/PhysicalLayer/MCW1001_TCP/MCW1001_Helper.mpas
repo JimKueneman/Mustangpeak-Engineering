@@ -1,0 +1,661 @@
+unit MCW1001_Helper;
+
+{$I Options.inc}
+
+uses
+  opstack_utilities,
+  opstack_types,
+  MCW1001_Print,
+  opstackcore_tcp,
+  opstack_defines,
+  opstack_debug,
+  MCW1001_Defines,
+  MCW1001;
+  
+{.$DEFINE CLIENTSOCKETS}                   // Need to make this a USER VARIABLE
+{$DEFINE SERVERSOCKETS}                    // Need to make this a USER VARIABLE
+{$DEFINE PRINT_DEBUG}
+
+// If either are zero then undefine the corresponding conditional define above
+const
+  MAX_SERVER_SOCKETS = 1;                   // Need to make this a USER VARIABLE
+  MAX_SERVER_CONNECTION_SOCKETS = 7;        // Need to make this a USER VARIABLE
+  MAX_CLIENT_SOCKETS = 0;                   // Need to make this a USER VARIABLE
+  
+type
+  TWiFiClientConnection = record
+    Handle: Byte;
+    Port: Word;
+    AddressIp: TOlcbIpAddress;
+    ReceiveBuffer: TOPStackTcpMessage;
+    NodeID: TNodeID;                              // NodeID of node at the other end of the TCP connection
+  end;
+  
+  {$IFDEF SERVERSOCKETS}
+  TWiFiServerConnection = record
+    Handle: Byte;
+    Port: Word;
+    AddressIp: TOlcbIpAddress;
+    Connections: array[MAX_SERVER_CONNECTION_SOCKETS] of TWiFiClientConnection;
+  end;
+  {$ENDIF}
+  
+  TWiFiInfo = record
+    {$IFDEF SERVERSOCKETS}
+    Servers: array[MAX_SERVER_SOCKETS] of TWiFiServerConnection;
+    {$ENDIF}
+    {$IFDEF CLIENTSOCKETS}
+    Clients: array[MAX_CLIENT_SOCKETS] of TWiFiClientConnection;
+    {$ENDIF}
+    SendBuffers: TOPStackTcpOutgoingMessages;
+    Connected: Boolean;
+    AddressIp: TOlcbIpAddress;
+    NetworkMaskIp: TOlcbIpAddress;
+    GatewayIp: TOlcbIpAddress;
+    MacAddressIp: TOlcbMacAddress;
+    SSID: string[64];
+    Password: string[64];
+  end;
+  
+procedure MCW1001_DataStructures_Initialize;
+procedure MCW1001_DataStructures_SetWiFiAddressIp(Byte1, Byte2, Byte3, Byte4: Byte);
+procedure MCW1001_DataStructures_SetWiFiNetworkMaskIp(Byte1, Byte2, Byte3, Byte4: Byte);
+procedure MCW1001_DataStructures_SetWiFiGatewayIp(Byte1, Byte2, Byte3, Byte4: Byte);
+procedure MCW1001_DataStructures_SetWiFiMacAddress(Byte1, Byte2, Byte3, Byte4, Byte5, Byte6: Byte);
+procedure MCW1001_DataStructures_SetWiFiSecurityCredentials(var ASSID: string[64]; var APassword: string[64]);
+procedure MCW1001_DataStructures_SetAllChannels;
+procedure MCW1001_DataStructures_1s;
+
+{$IFDEF SERVERSOCKETS}        
+function MCW1001_DataStructures_AssignServerHandle(hHandle: Byte; Port: Word; var AddressIp: TOlcbIpAddress): Integer;
+function MCW1001_DataStructures_CreateServer(Port: Word): Boolean;
+procedure MCW1001_DataStructures_ListenHandler;  
+procedure MCW1001_DataStructures_CloseWiFiServerSockets;
+{$ENDIF}
+
+{$IFDEF CLIENTSOCKETS}                
+function MCW1001_DataStructures_AssignClientHandle(hHandle: Byte): Integer;
+procedure MCW1001_DataStructures_CloseWiFiClientSockets;
+{$ENDIF}
+
+procedure MCW1001_DataStructures_ReadHandler;
+procedure MCW1001_DataStructures_WriteHandler;
+
+function MCW1001_DataStructures_ConnectWiFi: Boolean;
+procedure MCW1001_DataStructures_DisconnectWiFi;
+
+function MCW1001_DataStructures_InitializeSockets: Boolean;
+
+procedure MCW1001_DataStructures_PrintSockets;
+
+procedure ReceivedOnTcp(TcpMessage: POPStackTcpMessage); external;
+
+var
+  WiFiInfo: TWiFiInfo;
+
+implementation
+
+procedure ResetConnection(var Connection: TWiFiClientConnection);
+begin
+  Connection.Handle := SOCKET_CREATE_UNKNOWN_RESULT;
+  Connection.Port := 0;
+  Connection.NodeID[0] := 0;
+  Connection.NodeID[1] := 0;
+  Connection.AddressIp[0] := 0;
+  Connection.AddressIp[1] := 0;
+  Connection.AddressIp[2] := 0;
+  Connection.AddressIp[3] := 0;
+  Connection.ReceiveBuffer.ReceiveState := 0;
+  Connection.ReceiveBuffer.iMessage := 0;
+  Connection.ReceiveBuffer.MessageSize := 0;
+  Connection.ReceiveBuffer.CaptureTime[0] := 0;
+  Connection.ReceiveBuffer.CaptureTime[0] := 0;
+end;
+
+procedure MCW1001_DataStructures_PrintSockets;
+var
+  i, j: Integer;
+begin
+  DebugLine('______________________________');
+  DebugLine('Sockets');
+  {$IFDEF CLIENTSOCKETS}
+  {$ENDIF}
+  {$IFDEF SERVERSOCKETS}
+   for i := 0 to MAX_SERVER_SOCKETS - 1 do
+   begin
+     ByteToStr(i, s1);
+     DebugLine('Listener #' + s1);
+     ByteToStr(WiFiInfo.Servers[i].Handle, s1);
+     DebugLine('Listener Handle: ' + s1);
+     WordToStr(WiFiInfo.Servers[i].Port, s1);
+     DebugLine('Listener Port: ' + s1);
+     DebugStr('    ');
+     MCW1001_PrintIpAddress(WiFiInfo.Servers[i].AddressIp);
+     DebugLine('');
+     for j := 0 to MAX_SERVER_CONNECTION_SOCKETS - 1 do
+     begin
+       ByteToStr(i, s1);
+       DebugLine('    Connection #' + s1);
+       ByteToStr(WiFiInfo.Servers[i].Connections[j].Handle, s1);
+       DebugLine('    Connection Handle: ' + s1);
+       WordToStr(WiFiInfo.Servers[i].Connections[j].Port, s1);
+       DebugLine('    Connection Port: ' + s1);
+       DebugStr('    ');
+       MCW1001_PrintIpAddress(WiFiInfo.Servers[i].Connections[j].AddressIp);
+       DebugLine('');
+     end
+   end;
+  {$ENDIF}   
+  DebugLine('______________________________');
+end;
+
+procedure MCW1001_DataStructures_1s;
+begin
+
+end;
+
+procedure MCW1001_DataStructures_ClearWiFiInfo;
+var
+  i, j: Integer;
+begin
+  {$IFDEF SERVERSOCKETS}
+  for i := 0 to MAX_SERVER_SOCKETS - 1 do
+  begin
+    WiFiInfo.Servers[i].Handle := SOCKET_CREATE_UNKNOWN_RESULT;
+    WiFiInfo.Servers[i].Port := 0;
+    WiFiInfo.Servers[i].AddressIp[0] := 0;
+    WiFiInfo.Servers[i].AddressIp[1] := 0;
+    WiFiInfo.Servers[i].AddressIp[2] := 0;
+    WiFiInfo.Servers[i].AddressIp[3] := 0;
+    for j := 0 to MAX_SERVER_CONNECTION_SOCKETS - 1 do
+    begin
+      WiFiInfo.Servers[i].Connections[j].Handle := SOCKET_CREATE_UNKNOWN_RESULT;
+      WiFiInfo.Servers[i].Connections[j].Port := 0;
+      WiFiInfo.Servers[i].Connections[j].AddressIp[0] := 0;
+      WiFiInfo.Servers[i].Connections[j].AddressIp[1] := 0;
+      WiFiInfo.Servers[i].Connections[j].AddressIp[2] := 0;
+      WiFiInfo.Servers[i].Connections[j].AddressIp[3] := 0;
+      WiFiInfo.Servers[i].Connections[j].NodeID[0] := 0;
+      WiFiInfo.Servers[i].Connections[j].NodeID[1] := 0;
+      OPstackcoreTCP_ResetMessage(WiFiInfo.Servers[i].Connections[j].ReceiveBuffer);
+    end;
+  end;
+  {$ENDIF}
+  {$IFDEF CLIENTSOCKETS}
+  for i := 0 to MAX_CLIENT_SOCKETS - 1 do
+  begin
+    WiFiInfo.Clients[i].Handle := SOCKET_CREATE_UNKNOWN_RESULT;
+    WiFiInfo.Clients[i].Port := 0;
+    WiFiInfo.Clients[i].AddressIp[0] := 0;
+    WiFiInfo.Clients[i].AddressIp[1] := 0;
+    WiFiInfo.Clients[i].AddressIp[2] := 0;
+    WiFiInfo.Clients[i].AddressIp[3] := 0;
+    OPstackcoreTCP_ResetMessage(WiFiInfo.Servers[i].ReceiveBuffer);
+  end;
+  {$ENDIF}   
+  WiFiInfo.SendBuffers.Head := 0;
+  WifiInfo.SendBuffers.Tail := 0;
+  WifiInfo.SendBuffers.Count := 0;
+  for i := 0 to MAX_OLCB_TCP_SEND_BUFFERS - 1 do
+  begin
+    for j := 0 to MAX_OLCB_TCP_MESSAGE_ARRAY - 1 do
+      WiFiInfo.SendBuffers.Buffers[i][j] := 0;
+  end;
+
+  WiFiInfo.Connected := False;
+  WiFiInfo.SSID := '';
+  WiFiInfo.Password := '';
+  WiFiInfo.AddressIp[0] := 0;
+  WiFiInfo.AddressIp[1] := 0;
+  WiFiInfo.AddressIp[2] := 0;
+  WiFiInfo.AddressIp[3] := 0;
+  WiFiInfo.NetworkMaskIp[0] := 0;
+  WiFiInfo.NetworkMaskIp[1] := 0;
+  WiFiInfo.NetworkMaskIp[2] := 0;
+  WiFiInfo.NetworkMaskIp[3] := 0;
+  WiFiInfo.GatewayIp[0] := 0;
+  WiFiInfo.GatewayIp[1] := 0;
+  WiFiInfo.GatewayIp[2] := 0;
+  WiFiInfo.GatewayIp[3] := 0;
+  WiFiInfo.MacAddressIp[0] := 0;
+  WiFiInfo.MacAddressIp[1] := 0;
+  WiFiInfo.MacAddressIp[2] := 0;
+  WiFiInfo.MacAddressIp[3] := 0;
+  WiFiInfo.MacAddressIp[4] := 0;
+  WiFiInfo.MacAddressIp[5] := 0;
+end;
+
+procedure MCW1001_DataStructures_Initialize;
+begin
+  MCW1001_DataStructures_ClearWiFiInfo;
+end;
+
+procedure MCW1001_DataStructures_SetWiFiAddressIp(Byte1, Byte2, Byte3, Byte4: Byte);
+begin
+  WiFiInfo.AddressIp[0] := Byte1;
+  WiFiInfo.AddressIp[1] := Byte2;
+  WiFiInfo.AddressIp[2] := Byte3;
+  WiFiInfo.AddressIp[3] := Byte4;
+  MCW1001_SetIpAddress(WiFiInfo.AddressIp, True);
+end;
+  
+procedure MCW1001_DataStructures_SetWiFiNetworkMaskIp(Byte1, Byte2, Byte3, Byte4: Byte);
+begin
+  WiFiInfo.NetworkMaskIp[0] := Byte1;
+  WiFiInfo.NetworkMaskIp[1] := Byte2;
+  WiFiInfo.NetworkMaskIp[2] := Byte3;
+  WiFiInfo.NetworkMaskIp[3] := Byte4;
+  MCW1001_SetNetworkMask(WiFiInfo.NetworkMaskIp, True);
+end;
+
+procedure MCW1001_DataStructures_SetWiFiGatewayIp(Byte1, Byte2, Byte3, Byte4: Byte);
+begin
+  WiFiInfo.GatewayIp[0] := Byte1;
+  WiFiInfo.GatewayIp[1] := Byte2;
+  WiFiInfo.GatewayIp[2] := Byte3;
+  WiFiInfo.GatewayIp[3] := Byte4;
+  MCW1001_SetGatewayIpAddress(WiFiInfo.GatewayIp, True);
+end;
+
+procedure MCW1001_DataStructures_SetWiFiMacAddress(Byte1, Byte2, Byte3, Byte4, Byte5, Byte6: Byte);
+begin
+  WiFiInfo.MacAddressIp[0] := Byte1;
+  WiFiInfo.MacAddressIp[1] := Byte2;
+  WiFiInfo.MacAddressIp[2] := Byte3;
+  WiFiInfo.MacAddressIp[3] := Byte4;
+  WiFiInfo.MacAddressIp[4] := Byte5;
+  WiFiInfo.MacAddressIp[5] := Byte6;
+  MCW1001_SetMacAddress(WiFiInfo.MacAddressIp, True);
+end;
+
+procedure MCW1001_DataStructures_SetWiFiSecurityCredentials(var ASSID: string[64]; var APassword: string[64]);
+begin
+  WiFiInfo.SSID := ASSID;
+  WiFiInfo.Password := APassword;
+  MCW1001_SetSSID(1, WiFiInfo.SSID, True);
+end;
+
+procedure MCW1001_DataStructures_SetAllChannels;
+var
+  ChannelList: TChannelList;
+begin
+  MCW1001_FillChannelList(ChannelList);
+  MCW1001_SetChannelList(MAX_CHANNELS, ChannelList, True);
+end;
+
+{$IFDEF SERVERSOCKETS}
+function MCW1001_DataStructures_AssignServerHandle(hHandle: Byte; Port: Word; var AddressIp: TOlcbIpAddress): Integer;
+var
+  i: Integer;
+begin
+  Result := -1;
+  i := 0;
+  while i < MAX_SERVER_SOCKETS do
+  begin
+    if WiFiInfo.Servers[i].Handle = SOCKET_CREATE_UNKNOWN_RESULT then
+    begin
+      WiFiInfo.Servers[i].Handle := hHandle;
+      WiFiInfo.Servers[i].Port := Port;
+      WiFiInfo.Servers[i].AddressIp := AddressIp;
+      Result := i;
+      Break;
+    end;
+    Inc(i);
+  end
+end;
+{$ENDIF}
+
+{$IFDEF CLIENTSOCKETS}
+function MCW1001_DataStructures_AssignClientHandle(hHandle: Byte): Integer;
+var
+  i: Integer;
+begin
+  Result := -1;   
+  i := 0;
+  while i < MAX_CLIENT_SOCKETS do
+  begin
+    if WiFiInfo.Clients[i].Handle = SOCKET_CREATE_UNKNOWN_RESULT then
+    begin
+      WiFiInfo.Clients[i].Handle := hHandle;
+      Result := i;
+      Break;
+    end;
+    Inc(i);
+  end
+
+end;
+{$ENDIF}
+
+{$IFDEF SERVERSOCKETS}
+function MCW1001_DataStructures_AssignConnectionHandle(hHandle: Byte; Port: Word; var AddressIp: TOlcbIpAddress; var Server: TWiFiServerConnection): Integer;
+var
+  i: Integer;
+begin
+  Result := -1;
+  i := 0;
+  while i < MAX_SERVER_CONNECTION_SOCKETS do
+  begin
+    if Server.Connections[i].Handle = SOCKET_CREATE_UNKNOWN_RESULT then
+    begin
+      ResetConnection(Server.Connections[i]);
+      Server.Connections[i].Handle := hHandle;
+      Server.Connections[i].Port := Port;
+      Server.Connections[i].AddressIp := AddressIp;
+      Result := i;
+      Break;
+    end;
+    Inc(i);
+  end
+end;
+{$ENDIF}
+
+function MCW1001_DataStructures_ConnectWiFi: Boolean;
+begin
+  MCW1001_Connect(1, True);
+  Result := MCW1001_ConnectionStatusChangedEvent.Status = CONNECT_STATUS_SUCCEEDED;
+  WiFiInfo.Connected := Result;
+end;
+
+procedure MCW1001_DataStructures_DisconnectWiFi;
+begin
+  if WiFiInfo.Connected then
+  begin
+    {$IFDEF SERVERSOCKETS}
+    MCW1001_DataStructures_CloseWiFiServerSockets;
+    {$ENDIF}
+    {$IFDEF CLIENTSOCKETS}
+    MCW1001_DataStructures_CloseWiFiClientSockets;
+    {$ENDIF}
+    MCW1001_Disconnect(True);
+    WiFiInfo.Connected := False;
+  end;
+end;
+
+{$IFDEF SERVERSOCKETS}
+procedure MCW1001_DataStructures_CloseWiFiServerSockets;
+var
+  i, j: Integer;
+begin
+  for i := 0 to MAX_SERVER_SOCKETS - 1 do
+  begin
+    if WiFiInfo.Servers[i].Handle < SOCKET_CREATE_INVALID_RESULT then
+    begin
+      for j := 0 to MAX_SERVER_CONNECTION_SOCKETS - 1 do
+      begin
+        if WiFiInfo.Servers[i].Connections[j].Handle < SOCKET_CREATE_INVALID_RESULT then
+        begin
+          MCW1001_SocketClose(WiFiInfo.Servers[i].Connections[j].Handle);
+          WiFiInfo.Servers[i].Connections[j].Handle := SOCKET_CREATE_UNKNOWN_RESULT;
+        end;
+      end;
+      MCW1001_SocketClose(WiFiInfo.Servers[i].Handle);
+      WiFiInfo.Servers[i].Handle := SOCKET_CREATE_UNKNOWN_RESULT;
+    end;
+  end;
+end;
+{$ENDIF}
+
+{$IFDEF CLIENTSOCKETS}
+procedure MCW1001_DataStructures_CloseWiFiClientSockets;
+var
+  i: Integer;
+begin
+  for i := 0 to MAX_CLIENT_SOCKETS - 1 do
+  begin
+    if WiFiInfo.Clients[i].Handle < SOCKET_CREATE_INVALID_RESULT then
+    begin
+      MCW1001_SocketClose(WiFiInfo.Clients[i].Handle);
+      WiFiInfo.Clients[i].Handle := SOCKET_CREATE_UNKNOWN_RESULT;
+    end;
+  end;
+end;
+{$ENDIF}
+
+function MCW1001_DataStructures_InitializeSockets: Boolean;
+begin
+  {$IFDEF PRINT_DEBUG}
+  MCW1001_DataStructures_PrintSockets;
+  {$ENDIF}
+  
+  MCW1001_SocketAllocate(MAX_SERVER_SOCKETS + MAX_SERVER_CONNECTION_SOCKETS, MAX_CLIENT_SOCKETS, 512, 512, 512, 512, True);   // Allocate Sockets and sizes
+  Result := MCW1001_SocketAllocateResult.AllocationResult = SOCKET_ALLOCATE_SUCCESS_RESULT;
+end;
+
+{$IFDEF SERVERSOCKETS}
+function MCW1001_DataStructures_CreateServer(Port: Word): Boolean;
+var
+  iSocket: Integer;
+  CleanUpSocket: Boolean;
+  LocalSocketHandle: Byte;
+begin
+  Result := False;
+  CleanUpSocket := False;
+  LocalSocketHandle := 0;
+  MCW1001_SocketCreateTCP(True);
+  LocalSocketHandle := MCW1001_SocketCreateResult.Handle;
+  if LocalSocketHandle < SOCKET_CREATE_INVALID_RESULT then
+  begin
+    CleanUpSocket := True;                                                      // Assume the worst
+    iSocket := MCW1001_DataStructures_AssignServerHandle(LocalSocketHandle, Port, WiFiInfo.AddressIp);    // Store it in our local storage if there is room
+    if iSocket > -1 then
+    begin
+      MCW1001_SocketBind(Port, LocalSocketHandle, True);
+      if MCW1001_SocketBindResult.BindResult = 0 then
+      begin
+        MCW1001_SocketListen(LocalSocketHandle, MAX_SERVER_CONNECTION_SOCKETS, True);
+        if MCW1001_SocketListenResult.ListenResult < SOCKET_LISTEN_INPROCESS_RESULT then
+        begin
+          CleanUpSocket := False;
+          Result := True;
+          DebugLine('Listening........');
+        end
+      end
+    end
+  end;
+  if CleanUpSocket then
+    MCW1001_SocketClose(LocalSocketHandle)
+end;
+{$ENDIF}
+
+{$IFDEF SERVERSOCKETS}
+procedure MCW1001_DataStructures_ListenHandler;
+var
+  i: Integer;
+  LocalServerHandle: Byte;
+begin
+  i := 0;
+  while i < MAX_SERVER_SOCKETS do
+  begin
+    LocalServerHandle := WiFiInfo.Servers[i].Handle;
+    if LocalServerHandle < SOCKET_CREATE_INVALID_RESULT then
+    begin
+      MCW1001_SocketAccept(LocalServerHandle, True);
+      if MCW1001_SocketAcceptResult.Handle < SOCKET_ACCEPT_INPROCESS_RESULT then
+      begin
+        MCW1001_DataStructures_AssignConnectionHandle(MCW1001_SocketAcceptResult.Handle, MCW1001_SocketAcceptResult.RemotePort, MCW1001_SocketAcceptResult.RemoteIP, WiFiInfo.Servers[i]);
+        {$IFDEF PRINT_DEBUG}
+        MCW1001_DataStructures_PrintSockets
+        {$ENDIF}
+      end;
+    end;
+    Inc(i);
+  end;
+end;
+{$ENDIF}
+
+procedure MCW1001_DataStructures_ReadHandler;
+var
+  i, j, iByte: Integer;
+  LocalHandle: Byte;
+  
+  w: Integer;
+begin
+  {$IFDEF CLIENTSOCKETS}
+  for i := 0 to MAX_CLIENT_SOCKETS - 1 do
+  begin
+    if WiFiInfo.Clients[i].Handle < SOCKET_CREATE_INVALID_RESULT then
+    begin
+      LocalHandle := WiFiInfo.Clients[i].Handle;
+      // TODO
+    end;
+  end;
+  {$ENDIF}
+  
+  {$IFDEF SERVERSOCKETS}
+  for i := 0 to MAX_SERVER_SOCKETS - 1 do
+  begin
+    if WiFiInfo.Servers[i].Handle < SOCKET_CREATE_INVALID_RESULT then
+    begin
+      for j := 0 to MAX_SERVER_CONNECTION_SOCKETS - 1 do
+      begin
+        if WiFiInfo.Servers[i].Connections[j].Handle < SOCKET_CREATE_INVALID_RESULT then
+        begin
+          LocalHandle := WiFiInfo.Servers[i].Connections[j].Handle;
+          MCW1001_SocketReceive(LocalHandle, MAX_OLCB_TCP_MESSAGE_ARRAY, True);
+          if MCW1001_ErrorEvent.Valid then
+          begin
+            MCW1001_SocketClose(LocalHandle);                                    // Right thing to do is close it?  Throttle may have gone to sleep and wants to recover....
+            ResetConnection(WiFiInfo.Servers[i].Connections[j]);
+          end else
+          if MCW1001_SocketReceiveResult.Valid then
+          begin
+            for iByte := 0 to MCW1001_SocketReceiveResult.Count - 1 do
+            begin
+              if OPStackcoreTcp_DecodeMachine(MCW1001_SocketReceiveResult.ReceiveBuffer[iByte], WiFiInfo.Servers[i].Connections[j].ReceiveBuffer) then
+              begin  // See if this socket pipe has been assiged to the Node on the other end.  If not save it so we can use it to filter sends
+                
+           {     DebugLine('Received Message');
+                
+                DebugLine('');
+                for w := 0 to WiFiInfo.Servers[i].Connections[j].ReceiveBuffer.MessageSize - 1 do
+                begin
+                  ByteToStr(WiFiInfo.Servers[i].Connections[j].ReceiveBuffer.DataArray[w], s1);
+                  DebugStr(s1 + ' ');
+                end;
+                DebugLine('');      }
+                
+                if OpenLCBUtilities_NullNodeID(WiFiInfo.Servers[i].Connections[j].NodeID) then
+                begin
+           //       DebugLine('Setting Node ID');
+                  WiFiInfo.Servers[i].Connections[j].NodeID[0] := 0;
+                  WiFiInfo.Servers[i].Connections[j].NodeID[1] := 0;
+                  Higher(WiFiInfo.Servers[i].Connections[j].NodeID[0]) := WiFiInfo.Servers[i].Connections[j].ReceiveBuffer.DataArray[19];
+                  Hi(WiFiInfo.Servers[i].Connections[j].NodeID[0]) := WiFiInfo.Servers[i].Connections[j].ReceiveBuffer.DataArray[20];
+                  Lo(WiFiInfo.Servers[i].Connections[j].NodeID[0]) := WiFiInfo.Servers[i].Connections[j].ReceiveBuffer.DataArray[21];
+                  Higher(WiFiInfo.Servers[i].Connections[j].NodeID[1]) := WiFiInfo.Servers[i].Connections[j].ReceiveBuffer.DataArray[22];
+                  Hi(WiFiInfo.Servers[i].Connections[j].NodeID[1]) := WiFiInfo.Servers[i].Connections[j].ReceiveBuffer.DataArray[23];
+                  Lo(WiFiInfo.Servers[i].Connections[j].NodeID[1]) := WiFiInfo.Servers[i].Connections[j].ReceiveBuffer.DataArray[24];
+                end;
+                ReceivedOnTcp(@WiFiInfo.Servers[i].Connections[j].ReceiveBuffer);
+              end;
+            end
+          end
+        end
+      end
+    end
+  end;
+  {$ENDIF}
+end;
+
+procedure MCW1001_DataStructures_WriteHandler;
+var
+  i, j: Integer;
+  LocalHandle: Byte;
+  MTI: Word;
+  TargetNodeID: TNodeID;
+  OutgoingMessagePtr: POPStackTcpMessageArray;
+  MessageCount: DWord;
+  
+  w: Integer;
+  b: Byte;
+  
+  
+begin
+  {$IFDEF CLIENTSOCKETS}
+  for i := 0 to MAX_CLIENT_SOCKETS - 1 do
+  begin
+    if WiFiInfo.Clients[i].Handle < SOCKET_CREATE_INVALID_RESULT then
+    begin
+      LocalHandle := WiFiInfo.Clients[i].Handle;
+      // TODO
+    end;
+  end;
+  {$ENDIF}
+
+  {$IFDEF SERVERSOCKETS}
+  if WiFiInfo.SendBuffers.Count > 0 then
+  begin   // Something to Send.....
+    OutgoingMessagePtr := @WiFiInfo.SendBuffers.Buffers[WiFiInfo.SendBuffers.Tail];
+    
+    MTI := 0;
+    Hi(MTI) := OutgoingMessagePtr^[17];
+    Hi(MTI) := OutgoingMessagePtr^[18];
+
+    TargetNodeID[0] := 0;
+    TargetNodeID[1] := 0;
+    MessageCount := 0;
+    Higher(TargetNodeID[0]) := OutgoingMessagePtr^[25]; // Destination Node ID...
+    Hi(TargetNodeID[0])     := OutgoingMessagePtr^[26];
+    Lo(TargetNodeID[0])     := OutgoingMessagePtr^[27];
+    Higher(TargetNodeID[1]) := OutgoingMessagePtr^[28];
+    Hi(TargetNodeID[1])     := OutgoingMessagePtr^[29];
+    Lo(TargetNodeID[1])     := OutgoingMessagePtr^[30];
+    Higher(MessageCount)    := OutgoingMessagePtr^[2];
+    Hi(MessageCount)        := OutgoingMessagePtr^[3];
+    Lo(MessageCount)        := OutgoingMessagePtr^[4];
+    
+    for i := 0 to MAX_SERVER_SOCKETS - 1 do
+      for j := 0 to MAX_SERVER_CONNECTION_SOCKETS - 1 do
+      begin
+        LocalHandle := WiFiInfo.Servers[i].Connections[j].Handle;
+        if LocalHandle < SOCKET_CREATE_INVALID_RESULT then
+        begin
+          if MTI and MTI_ADDRESSED_MASK = MTI_ADDRESSED_MASK then
+          begin   // Addressed message only goes down the pipe that had the correct destination node on the other end (or if the connection has not sent a message so we don't know what is on the other end
+            
+            DebugLine('Filtered');
+            
+            if OpenLCBUtilities_NullNodeID(WiFiInfo.Servers[i].Connections[j].NodeID) or OpenLCBUtilities_EqualNodeID(WiFiInfo.Servers[i].Connections[j].NodeID, TargetNodeID) then
+            begin
+            
+            
+              DebugLine('Filtered Pipe');
+              
+              
+              MCW1001_SocketSend(LocalHandle, MessageCount + 5, @OutgoingMessagePtr^[0], True);
+              if MCW1001_ErrorEvent.Valid then
+              begin
+                MCW1001_SocketClose(LocalHandle);                                    // TODO Right thing to do is close it?  Throttle may have gone to sleep and wants to recover....
+                ResetConnection(WiFiInfo.Servers[i].Connections[j]);
+              end else
+              if MCW1001_SocketSendResult.Valid then
+              begin
+
+              end
+            end
+          end else
+          begin   // Non-addressed message is global and goes down all pipes
+            MCW1001_SocketSend(LocalHandle, MessageCount + 5, @OutgoingMessagePtr^[0], True);
+            if MCW1001_ErrorEvent.Valid then
+            begin
+              MCW1001_SocketClose(LocalHandle);                                    // TODO Right thing to do is close it?  Throttle may have gone to sleep and wants to recover....
+              ResetConnection(WiFiInfo.Servers[i].Connections[j]);
+            end else
+            if MCW1001_SocketSendResult.Valid then
+            begin
+
+            end
+          end
+        end // Valid Handle
+      end;
+      
+    // Recover this buffer space for another message
+    Inc(WiFiInfo.SendBuffers.Tail);
+    if WiFiInfo.SendBuffers.Tail >= MAX_OLCB_TCP_SEND_BUFFERS then
+      WiFiInfo.SendBuffers.Tail := 0;
+    Dec(WiFiInfo.SendBuffers.Count);
+  end
+  {$ENDIF}
+end;
+
+end.

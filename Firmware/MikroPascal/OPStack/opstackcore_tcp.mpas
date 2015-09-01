@@ -1,0 +1,614 @@
+unit opstackcore_tcp;
+
+uses
+  opstack_debug,
+  template_buffers,
+  opstack_types,
+  opstack_buffers,
+  opstack_defines;
+
+{$I Options.inc}
+
+type
+  TEthernetConnection = record
+    Port: Word;
+    AddressIp: TOlcbIpAddress;
+    ReceiveBuffer: TOPStackTcpIncomingMessage;
+    NodeID: TNodeID;                              // NodeID of node at the other end of the TCP connection
+  end;
+  PEthernetConnection = ^TEthernetConnection;
+
+  
+procedure OPStackcoreTCP_Initialize;
+procedure OPstackcoreTCP_ResetMessage(var TcpMessage: TOPStackTcpIncomingMessage);
+
+function OPStackcoreTcp_DecodeMachine(NextByte: Byte; var TcpMessage: TOPStackTcpIncomingMessage): Boolean;
+function OPStackMessage_To_TcpMessage(OPStackMessage: POPStackMessage; OPStackTcpMessage: POPStackTcpMessageArray; var CaptureTime: TTcpCaptureTime): Boolean;
+function OPStackTcpMessage_To_OPStackBuffer(OPStackTcpMessage: POPStackTcpMessageArray; var OPStackMessage: POPStackMessage; var DestNode: POpenLCBNode): Boolean;
+
+function OPStackcoreTCP_NullIpAddress(var IpAddress: TOlcbIpAddress): Boolean;
+function OPStackcoreTCP_EqualOlcbIpAddresses(var IpAddress1: TOlcbIpAddress; var IpAddress2: TOlcbIpAddress): Boolean;
+procedure OPStackcoreTCP_CopyOlcbIpAddresses(var IpAddressSource: TOlcbIpAddress; var IpAddressTarget: TOlcbIpAddress);
+procedure OPStackcoreTCP_ClearOlcbIpAddress(var IpAddress: TOlcbIpAddress);
+
+procedure OPStackcoreTCP_PrintIpAddress(var OlcbIpAddress: TOlcbIpAddress);
+procedure OPStackcoreTCP_PrintMacAddress(var OlcbMacAddress: TOlcbMacAddress);
+procedure OPStackcoreTCP_PrintTCPMessage(var OPStackTcpMessage: TOPStackTcpIncomingMessage);
+procedure OPStackcoreTCP_PrintEthernetConnection(var Connection: TEthernetConnection);
+procedure OPStackcoreTCP_PrintOPStackTcpMessage(var OPStackTcpMessage: TOPStackTcpIncomingMessage);
+procedure OPStackcoreTCP_PrintOPStackTcpMessageArray(var OPStackTcpMessageArray: TOPStackTcpMessageArray);
+procedure OPStackcoreTCP_PrintOPStackTcpOutgoingMessages(var OPStackTcpOutgoingMessages: TOPStackTcpOutgoingMessages);
+
+// Externals
+function OPStackNode_FindByID(var ID: TNodeID): POpenLCBNode; external;
+procedure DuplicateSourceDetected(AMessage: POPStackMessage; SourceNode: POpenLCBNode); external;
+procedure OptionalInteractionRejected(var Source: TNodeInfo; var Dest: TNodeInfo; MTI: DWord; IsPermenent: Boolean); external;
+
+
+implementation
+
+const
+  STATE_FLAGS_BYTE_1 = 0;
+  STATE_FLAGS_BYTE_2 = 1;
+  STATE_SIZE_BYTE_1  = 2;
+  STATE_SIZE_BYTE_2  = 3;
+  STATE_SIZE_BYTE_3  = 4;
+  STATE_GATEWAY_BYTE_1 = 5;
+  STATE_GATEWAY_BYTE_2 = 6;
+  STATE_GATEWAY_BYTE_3 = 7;
+  STATE_GATEWAY_BYTE_4 = 8;
+  STATE_GATEWAY_BYTE_5 = 9;
+  STATE_GATEWAY_BYTE_6 = 10;
+  STATE_CAPTURE_TIME_BYTE_1 = 11;
+  STATE_CAPTURE_TIME_BYTE_2 = 12;
+  STATE_CAPTURE_TIME_BYTE_3 = 13;
+  STATE_CAPTURE_TIME_BYTE_4 = 14;
+  STATE_CAPTURE_TIME_BYTE_5 = 15;
+  STATE_CAPTURE_TIME_BYTE_6 = 16;
+  STATE_NEXT_MESSAGE_BYTE = 17;
+
+  
+procedure OPStackcoreTCP_Initialize;
+begin
+end;
+
+procedure OPstackcoreTCP_ResetMessage(var OlcbTcpMessage: TOPStackTcpIncomingMessage);
+var
+  i: Integer;
+begin
+  OlcbTcpMessage.ReceiveState := 0;
+  OlcbTcpMessage.iMessage := 0;
+  OlcbTcpMessage.MessageSize := 0;
+  OlcbTcpMessage.CaptureTime[0] := 0;
+  OlcbTcpMessage.CaptureTime[1] := 0;
+  for i := 0 to MAX_OLCB_TCP_MESSAGE_ARRAY - 1 do
+    OlcbTcpMessage.DataArray[i] := 0;
+end;
+
+procedure IncCaptureTime(var CaptureTime: TTcpCaptureTime);
+begin
+  if CaptureTime[1] = $00FFFFFF then
+  begin
+    if CaptureTime[0] < $00FFFFFF then
+      Inc(CaptureTime[0])
+    else begin
+      CaptureTime[1] := 0;   // 24 bit rollover
+      CaptureTime[0] := 0;
+    end
+  end else
+  begin
+    if CaptureTime[0] = $00FFFFFF then
+    begin
+      Inc(CaptureTime[1]);
+      CaptureTime[0] := 0;
+    end else
+      Inc(CaptureTime[0])
+  end;
+end;
+  
+function OPStackcoreTcp_DecodeMachine(NextByte: Byte; var OPStackTcpMessage: TOPStackTcpIncomingMessage): Boolean;
+var
+  Flags: Word;
+begin
+  Result := False;
+  case OPStackTcpMessage.ReceiveState of
+    STATE_FLAGS_BYTE_1 :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_FLAGS_BYTE_2  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_SIZE_BYTE_1  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_SIZE_BYTE_2  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_SIZE_BYTE_3  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_GATEWAY_BYTE_1  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_GATEWAY_BYTE_2  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_GATEWAY_BYTE_3  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_GATEWAY_BYTE_4  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_GATEWAY_BYTE_5  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_GATEWAY_BYTE_6  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_CAPTURE_TIME_BYTE_1  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_CAPTURE_TIME_BYTE_2  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_CAPTURE_TIME_BYTE_3  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_CAPTURE_TIME_BYTE_4  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_CAPTURE_TIME_BYTE_5  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        Exit;
+      end;
+    STATE_CAPTURE_TIME_BYTE_6  :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.ReceiveState] := NextByte;
+        Inc(OPStackTcpMessage.ReceiveState);
+        
+        Flags := 0;
+        Hi(Flags) := OPStackTcpMessage.DataArray[0];
+        Lo(Flags) := OPStackTcpMessage.DataArray[1];
+        if Flags and OPSTACK_TCP_FLAG_CHAINING = OPSTACK_TCP_FLAG_CHAINING then
+          OPStackTcpMessage.ReceiveState := STATE_FLAGS_BYTE_1
+        else begin
+          OPStackTcpMessage.MessageSize := 0;
+          Higher(OPStackTcpMessage.MessageSize) := OPStackTcpMessage.DataArray[2];
+          Hi(OPStackTcpMessage.MessageSize) := OPStackTcpMessage.DataArray[3];
+          Lo(OPStackTcpMessage.MessageSize) := OPStackTcpMessage.DataArray[4];
+          OPStackTcpMessage.MessageSize := OPStackTcpMessage.MessageSize + 5;     // Header + Message
+          OPStackTcpMessage.iMessage := OPStackTcpMessage.ReceiveState;
+        end;
+        Exit;
+      end;
+    STATE_NEXT_MESSAGE_BYTE :
+      begin
+        OPStackTcpMessage.DataArray[OPStackTcpMessage.iMessage] := NextByte;
+        Inc(OPStackTcpMessage.iMessage);
+        if OPStackTcpMessage.iMessage >= OPStackTcpMessage.MessageSize then
+        begin
+          OPStackTcpMessage.ReceiveState := STATE_FLAGS_BYTE_1;      // Next Message
+          OPStackTcpMessage.MessageSize := OPStackTcpMessage.MessageSize;
+          Result := True;
+        end;
+      end;
+  end
+end;
+
+function OPStackMessage_To_TcpMessage(OPStackMessage: POPStackMessage; OPStackTcpMessage: POPStackTcpMessageArray; var CaptureTime: TTcpCaptureTime): Boolean;
+var
+  PayloadOffset: Word;
+  i: Integer;
+  Size, iOffset: DWord;
+begin
+  Result := False;
+  if OPStackMessage^.MessageType and MT_CAN_TYPE = 0 then
+  begin
+    OPStackTcpMessage^[0] := Hi(OPSTACK_TCP_FLAG_OLCB_MESSAGE);
+    OPStackTcpMessage^[1] := Lo(OPSTACK_TCP_FLAG_OLCB_MESSAGE);
+
+    if OPStackMessage^.MTI and MTI_ADDRESSED_MASK = MTI_ADDRESSED_MASK then
+      Size := OPStackMessage^.Buffer^.DataBufferSize +  26  // MAX_HEADER_ONLY_LEN + MAX_OLCB_TCP_MESSAGE_PREAMBLE - 5   [17+14-5=26]
+    else
+      Size := OPStackMessage^.Buffer^.DataBufferSize + 20;   // MAX_HEADER_ONLY_LEN + MIN_OLCB_TCP_MESSAGE_PREAMBLE - 5   [17+8-5=20]
+    OPStackTcpMessage^[2] := Higher(Size);
+    OPStackTcpMessage^[3] := Hi(Size);
+    OPStackTcpMessage^[4] := Lo(Size);
+
+    // Originating Node
+    OPStackTcpMessage^[5] := Higher(OPStackMessage^.Source.ID[1]);
+    OPStackTcpMessage^[6] := Hi(OPStackMessage^.Source.ID[1]);
+    OPStackTcpMessage^[7] := Lo(OPStackMessage^.Source.ID[1]);
+    OPStackTcpMessage^[8] := Higher(OPStackMessage^.Source.ID[0]);
+    OPStackTcpMessage^[9] := Hi(OPStackMessage^.Source.ID[0]);
+    OPStackTcpMessage^[10] := Lo(OPStackMessage^.Source.ID[0]);
+
+    // CaptureTime
+    IncCaptureTime(CaptureTime);
+    OPStackTcpMessage^[11] := Higher(CaptureTime[1]);
+    OPStackTcpMessage^[12] := Hi(CaptureTime[1]);
+    OPStackTcpMessage^[13] := Lo(CaptureTime[1]);
+    OPStackTcpMessage^[14] := Higher(CaptureTime[0]);
+    OPStackTcpMessage^[15] := Hi(CaptureTime[0]);
+    OPStackTcpMessage^[16] := Lo(CaptureTime[0]);
+
+    // MTI
+    OPStackTcpMessage^[17] := Hi(OPStackMessage^.MTI);
+    OPStackTcpMessage^[18] := Lo(OPStackMessage^.MTI);
+
+    // Source ID
+    OPStackTcpMessage^[19] := Higher(OPStackMessage^.Source.ID[1]);
+    OPStackTcpMessage^[20] := Hi(OPStackMessage^.Source.ID[1]);
+    OPStackTcpMessage^[21] := Lo(OPStackMessage^.Source.ID[1]);
+    OPStackTcpMessage^[22] := Higher(OPStackMessage^.Source.ID[0]);
+    OPStackTcpMessage^[23] := Hi(OPStackMessage^.Source.ID[0]);
+    OPStackTcpMessage^[24] := Lo(OPStackMessage^.Source.ID[0]);
+    iOffset := 25;
+
+    if OPStackMessage^.MTI and MTI_ADDRESSED_MASK = MTI_ADDRESSED_MASK then
+    begin    // Dest ID
+      OPStackTcpMessage^[25] := Higher(OPStackMessage^.Dest.ID[1]);
+      OPStackTcpMessage^[26] := Hi(OPStackMessage^.Dest.ID[1]);
+      OPStackTcpMessage^[27] := Lo(OPStackMessage^.Dest.ID[1]);
+      OPStackTcpMessage^[28] := Higher(OPStackMessage^.Dest.ID[0]);
+      OPStackTcpMessage^[29] := Hi(OPStackMessage^.Dest.ID[0]);
+      OPStackTcpMessage^[30] := Lo(OPStackMessage^.Dest.ID[0]);
+      iOffset := 31;
+    end;
+
+    for i := 0 to OPStackMessage^.Buffer^.DataBufferSize - 1 do
+      OPStackTcpMessage^[i + iOffset] := OPStackMessage^.Buffer^.DataArray[i];
+    Result := True;
+  end;
+end;
+
+procedure CopyData(OPStackTcpMessage: POPStackTcpIncomingMessage; OPStackMessage: POPStackMessage; DataSize: DWord);
+var
+  i: Integer;
+begin
+  OPStackMessage^.Buffer^.DataBufferSize := DataSize;
+  for i := 0 to DataSize - 1 do
+    OPStackMessage^.Buffer^.DataArray[i] := OPStackTcpMessage^.DataArray[31 + i];  // 31
+end;
+
+function OPStackTcpMessage_To_OPStackBuffer(OPStackTcpMessage: POPStackTcpMessageArray; var OPStackMessage: POPStackMessage; var DestNode: POpenLCBNode): Boolean;
+var
+  SourceNode: POpenLCBNode;
+  AllocatedMessagePtr: POPStackMessage;
+  i: Integer;
+  Size, iMessage: DWord;
+  Flags, DataSize: Word;
+begin
+  // OPStackMessage is assumed to be a variable on the stack (not allocated from the buffer pool),
+  // has been intialized with default values and has a SimpleBuffer assigned to the databuffer.  
+  // It is a temporary structure
+  Result := False;
+  DestNode := nil;
+
+  Flags := 0;
+  Hi(Flags) := OPStackTcpMessage^[0];
+  Lo(Flags) := OPStackTcpMessage^[1];
+
+  if Flags and OPSTACK_TCP_FLAG_OLCB_MESSAGE = OPSTACK_TCP_FLAG_OLCB_MESSAGE then
+  begin
+    Size := 0;
+    Higher(Size) := OPStackTcpMessage^[2];
+    Hi(Size) := OPStackTcpMessage^[3];
+    Lo(Size) := OPStackTcpMessage^[4];
+
+    // Skip the Originating Node ID and Capture Time
+    
+    // Extract the MTI
+    Hi(OPStackMessage^.MTI) := OPStackTcpMessage^[17];
+    Lo(OPStackMessage^.MTI) := OPStackTcpMessage^[18];
+
+    // Extract the Source NodeID
+    OPStackMessage^.Source.ID[0] := 0;
+    OPStackMessage^.Source.ID[1] := 0;
+    Higher(OPStackMessage^.Source.ID[1]) := OPStackTcpMessage^[19];
+    Hi(OPStackMessage^.Source.ID[1]) := OPStackTcpMessage^[20];
+    Lo(OPStackMessage^.Source.ID[1]) := OPStackTcpMessage^[21];
+    Higher(OPStackMessage^.Source.ID[0]) := OPStackTcpMessage^[22];
+    Hi(OPStackMessage^.Source.ID[0]) := OPStackTcpMessage^[23];
+    Lo(OPStackMessage^.Source.ID[0]) := OPStackTcpMessage^[24];
+    
+    SourceNode := OPStackNode_FindByID(OPStackMessage^.Source.ID);
+    
+    if SourceNode <> nil then
+    begin
+      DuplicateSourceDetected(OPStackMessage, SourceNode);
+      Exit;
+    end else
+    begin
+      if OPStackMessage^.MTI and MTI_ADDRESSED_MASK = MTI_ADDRESSED_MASK then
+      begin   
+        // Extract the Destination NodeID
+        OPStackMessage^.Dest.ID[0] := 0;
+        OPStackMessage^.Dest.ID[1] := 0;
+        Higher(OPStackMessage^.Dest.ID[1]) := OPStackTcpMessage^[25];
+        Hi(OPStackMessage^.Dest.ID[1]) := OPStackTcpMessage^[26];
+        Lo(OPStackMessage^.Dest.ID[1]) := OPStackTcpMessage^[27];
+        Higher(OPStackMessage^.Dest.ID[0]) := OPStackTcpMessage^[28];
+        Hi(OPStackMessage^.Dest.ID[0]) := OPStackTcpMessage^[29];
+        Lo(OPStackMessage^.Dest.ID[0]) := OPStackTcpMessage^[30];
+        DestNode := OPStackNode_FindByID(OPStackMessage^.Dest.ID);
+        if DestNode <> nil then
+        begin
+          AllocatedMessagePtr := nil;
+          DataSize := Size - 26;  // 31 - 5
+          if OPStackMessage^.MTI = MTI_DATAGRAM then
+          begin
+            Result := OPStackBuffers_AllocateDatagramMessage(AllocatedMessagePtr, OPStackMessage^.Source, OPStackMessage^.Dest, $00);
+            if Result then
+            begin
+              AllocatedMessagePtr^.Buffer^.DataBufferSize := DataSize;
+              for i := 0 to DataSize - 1 do
+                AllocatedMessagePtr^.Buffer^.DataArray[i] := OPStackTcpMessage^[31 + i];  // 31
+              OPStackMessage := AllocatedMessagePtr;
+            end else
+              OptionalInteractionRejected(OPStackMessage^.Dest, OPStackMessage^.Source, OPStackMessage^.MTI, False); // Out of buffers, try again later
+          end else
+          if OPStackMessage^.MTI = MTI_STREAM_SEND then
+          begin 
+          end else
+          if DataSize > MAX_SIMPLE_BYTES - 2 then   //  CAN Message can only be 6 bytes as the other 2 are the dest MTI in a CAN messages
+          begin
+            if DataSize <= USER_MAX_MULTI_FRAME_BYTES then
+            begin
+              Result := OPStackBuffers_AllocateMultiFrameMessage(AllocatedMessagePtr, OPStackMessage^.MTI, OPStackMessage^.Source, OPStackMessage^.Dest);
+              if Result then
+              begin
+                AllocatedMessagePtr^.Buffer^.DataBufferSize := DataSize;
+                for i := 0 to DataSize - 1 do
+                  AllocatedMessagePtr^.Buffer^.DataArray[i] := OPStackTcpMessage^[31 + i];  // 31
+                OPStackMessage := AllocatedMessagePtr;
+              end else
+                OptionalInteractionRejected(OPStackMessage^.Dest, OPStackMessage^.Source, OPStackMessage^.MTI, False); // Out of buffers, try again later
+            end else
+            if DataSize <= USER_MAX_MULTIFRAME_STRING_BYTES then
+            begin
+              Result := OPStackBuffers_Allocate_MultiFrameString_Message(AllocatedMessagePtr, OPStackMessage^.MTI, OPStackMessage^.Source, OPStackMessage^.Dest);
+              if Result then
+              begin
+                AllocatedMessagePtr^.Buffer^.DataBufferSize := DataSize;
+                for i := 0 to DataSize - 1 do
+                  AllocatedMessagePtr^.Buffer^.DataArray[i] := OPStackTcpMessage^[31 + i];  // 31
+                OPStackMessage := AllocatedMessagePtr;
+              end else
+                OptionalInteractionRejected(OPStackMessage^.Dest, OPStackMessage^.Source, OPStackMessage^.MTI, False); // Out of buffers, try again later
+            end
+          end else
+          begin // It is a small payload that would have fit in a OPStackMessage so the library is designed to allocate a message if needed.  If it does not then it assumes this message is NOT allocated as it won't free the message
+            DataSize := Size - 20;  // 25 - 5
+            OPStackMessage^.Buffer^.DataBufferSize := DataSize;
+            for i := 0 to DataSize - 1 do
+              OPStackMessage^.Buffer^.DataArray[i] := OPStackTcpMessage^[25 + i];  // 25
+            // Set the MessageType as simple so it will flow correctly in the library, but DO NOT set the allocated so it won't try to deallocate it
+            OPStackMessage^.MessageType := MT_SIMPLE;
+            Result := True;
+          end
+        end;
+      end else
+      begin
+        DataSize := Size - 20;  // 25 - 5
+        OPStackMessage^.Buffer^.DataBufferSize := DataSize;
+        for i := 0 to DataSize - 1 do
+          OPStackMessage^.Buffer^.DataArray[i] := OPStackTcpMessage^[25 + i];  // 25
+        // Set the MessageType as simple so it will flow correctly in the library, but DO NOT set the allocated so it won't try to deallocate it
+        OPStackMessage^.MessageType := MT_SIMPLE;
+        Result := True;
+      end
+    end
+  end else
+  begin
+    // Link message
+  end;
+end;
+
+function OPStackcoreTCP_NullIpAddress(var IpAddress: TOlcbIpAddress): Boolean;
+begin
+  Result := IpAddress[0] + IpAddress[1] + IpAddress[2] + IpAddress[3] = 0;
+end;
+
+function OPStackcoreTCP_EqualOlcbIpAddresses(var IpAddress1: TOlcbIpAddress; var IpAddress2: TOlcbIpAddress): Boolean;
+begin
+  Result := False;
+  if (IpAddress1[0] = IpAddress2[0]) then
+    if (IpAddress1[1] = IpAddress2[1]) then
+      if (IpAddress1[2] = IpAddress2[2]) then
+        if (IpAddress1[3] = IpAddress2[3]) then
+          Result := True;
+end;
+
+procedure OPStackcoreTCP_CopyOlcbIpAddresses(var IpAddressSource: TOlcbIpAddress; var IpAddressTarget: TOlcbIpAddress);
+begin
+  IpAddressTarget[0] := IpAddressSource[0];
+  IpAddressTarget[1] := IpAddressSource[1];
+  IpAddressTarget[2] := IpAddressSource[2];
+  IpAddressTarget[3] := IpAddressSource[3];
+end;
+
+procedure OPStackcoreTCP_ClearOlcbIpAddress(var IpAddress: TOlcbIpAddress);
+begin
+  IpAddress[0] := 0;
+  IpAddress[1] := 0;
+  IpAddress[2] := 0;
+  IpAddress[3] := 0;
+end;
+
+procedure OPStackcoreTCP_PrintIpAddress(var OlcbIpAddress: TOlcbIpAddress);
+begin
+  ByteToStr(OlcbIpAddress[0], s1);
+  DebugStr(s1 + '.');
+  ByteToStr(OlcbIpAddress[1], s1);
+  DebugStr(s1 + '.');
+  ByteToStr(OlcbIpAddress[2], s1);
+  DebugStr(s1 + '.');
+  ByteToStr(OlcbIpAddress[3], s1);
+  DebugLine(s1);
+end;
+
+procedure OPStackcoreTCP_PrintMacAddress(var OlcbMacAddress: TOlcbMacAddress);
+begin
+  ByteToStr(OlcbMacAddress[0], s1);
+  DebugStr(s1 + '.');
+  ByteToStr(OlcbMacAddress[1], s1);
+  DebugStr(s1 + '.');
+  ByteToStr(OlcbMacAddress[2], s1);
+  DebugStr(s1 + '.');
+  ByteToStr(OlcbMacAddress[3], s1);
+  DebugStr(s1 + '.');
+  ByteToStr(OlcbMacAddress[4], s1);
+  DebugStr(s1 + '.');
+  ByteToStr(OlcbMacAddress[5], s1);
+  DebugLine(s1);
+end;
+
+procedure OPStackcoreTCP_PrintTCPMessage(var OPStackTcpMessage: TOPStackTcpIncomingMessage);
+var
+  i: Integer;
+begin
+  DebugLine('TCP Message -----------');
+  WordToStr(OPStackTcpMessage.ReceiveState, s1);
+  DebugLine('ReceiveState: ' + s1);
+  LongWordToStr(OPStackTcpMessage.iMessage, s1);
+  DebugLine('iMessage: ' + s1);
+  LongWordToStr(OPStackTcpMessage.MessageSize, s1);
+  DebugLine('MessageSize: ' + s1);
+  DebugStr('Header : ');
+  for i := 0 to 16 do
+  begin
+    ByteToHex(OPStackTcpMessage.DataArray[i], s1);
+    DebugStr(' ' + s1);
+  end;
+  DebugLine('');
+  DebugStr('Nessage : ');
+  for i := 17 to OPStackTcpMessage.MessageSize - 1 do
+  begin
+    ByteToHex(OPStackTcpMessage.DataArray[i], s1);
+    DebugStr(' ' + s1);
+  end;
+  DebugLine('');
+  DebugLine('-----------------');
+end;
+
+procedure OPStackcoreTCP_PrintEthernetConnection(var Connection: TEthernetConnection);
+begin
+  DebugLine('....Ethernet Connection....');
+  WordToStr(Connection.Port, s1);
+  DebugLine('Port: ' + s1);
+  OPStackcoreTCP_PrintIpAddress(Connection.AddressIp);
+  OPStackcoreTCP_PrintOPStackTcpMessage(Connection.ReceiveBuffer);
+  DebugLine('..........');
+end;
+
+procedure OPStackcoreTCP_PrintOPStackTcpMessage(var OPStackTcpMessage: TOPStackTcpIncomingMessage);
+var
+  i: Integer;
+begin
+  DebugLine('......Ethernet OPStackTcpMessage....');
+  WordToStr(OPStackTcpMessage.ReceiveState, s1);
+  DebugLine('ReceiveState: ' + s1);
+  LongWordToStr(OPStackTcpMessage.iMessage, s1);
+  DebugLine('iMessage: ' + s1);
+  LongWordToStr(OPStackTcpMessage.MessageSize, s1);
+  DebugLine('MessageSize: ' + s1);
+  LongWordToStr(OPStackTcpMessage.MessageSize, s1);
+  DebugLine('MessageSize: ' + s1);
+  LongWordToStr(OPStackTcpMessage.CaptureTime[1], s1);
+  DebugLine('CaptureTime Hi: ' + s1);
+  LongWordToStr(OPStackTcpMessage.CaptureTime[1], s1);
+  DebugLine('CaptureTime Lo: ' + s1);
+  DebugLine('Message: ' + s1);
+  OPStackcoreTCP_PrintOPStackTcpMessageArray(OPStackTcpMessage.DataArray);
+  DebugLine('..........');
+end;
+
+procedure OPStackcoreTCP_PrintOPStackTcpOutgoingMessages(var OPStackTcpOutgoingMessages: TOPStackTcpOutgoingMessages);
+var
+  i: Integer;
+begin
+  DebugLine('......Ethernet OPStackTcpOutgoingMessages....');
+  IntToStr(MAX_OLCB_TCP_SEND_BUFFERS, s1);
+  DebugLine('Max Buffers: ' + s1);
+  IntToStr(OPStackTcpOutgoingMessages.Count, s1);
+  DebugLine('Count: ' + s1);
+  IntToStr(OPStackTcpOutgoingMessages.Head, s1);
+  DebugLine('Head: ' + s1);
+  IntToStr(OPStackTcpOutgoingMessages.Tail, s1);
+  DebugLine('Tail: ' + s1);
+  for i := 0 to OPStackTcpOutgoingMessages.Count - 1 do
+    OPStackcoreTCP_PrintOPStackTcpMessageArray(OPStackTcpOutgoingMessages.Buffers[i]);
+  DebugLine('..........');
+end;
+
+procedure OPStackcoreTCP_PrintOPStackTcpMessageArray(var OPStackTcpMessageArray: TOPStackTcpMessageArray);
+var
+  Size: DWord;
+  i: Integer;
+begin
+  DebugLine('......Ethernet OPStackTcpOutgoingMessages....');
+  Size := 0;
+  Higher(Size) := OPStackTcpMessageArray[2];
+  Hi(Size) := OPStackTcpMessageArray[3];
+  Lo(Size) := OPStackTcpMessageArray[4];
+  Size := Size + 5;
+  if Size > MAX_OLCB_TCP_MESSAGE_ARRAY then
+    Size := MAX_OLCB_TCP_MESSAGE_ARRAY;
+  for i := 0 to Size - 1 do
+  begin
+    ByteToHex(OPStackTcpMessageArray[i], s1);
+    DebugStr(s1 + ' ');
+  end;
+  DebugLine('');
+  DebugLine('..........');
+end;
+
+end.

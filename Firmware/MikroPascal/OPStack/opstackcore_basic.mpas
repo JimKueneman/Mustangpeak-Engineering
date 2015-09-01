@@ -1,0 +1,88 @@
+unit opstackcore_basic;
+
+{$I Options.inc}
+
+uses
+  template_hardware,
+  opstack_buffers,
+  opstack_node,
+  opstack_utilities,
+  opstack_defines;
+
+procedure VerifyNodeIdByDestination(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+procedure VerifyNodeId(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+procedure OptionalInteractionRejected(var Source: TNodeInfo; var Dest: TNodeInfo; MTI: DWord; IsPermenent: Boolean);
+procedure DatagramRejected(Dest, Source: PNodeInfo; ErrorCode: Word);
+function UnLinkDeAllocateAndTestForMessageToSend(Node: POpenLCBNode; MessageToSend, AMessage: POPStackMessage): Boolean;
+
+implementation
+
+procedure VerifyNodeIdByDestination(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+begin
+  if DestNode <> nil then
+    OPStackNode_SetFlag(DestNode, MF_VERIFY_NODE_ID);      // All messages addressed to node get replies even if the payload is wrong!
+end;
+
+procedure VerifyNodeId(DestNode: POpenLCBNode; AMessage: POPStackMessage);
+begin
+   if AMessage^.Buffer^.DataBufferSize = 0 then
+    OPStackNode_SetFlags(MF_VERIFY_NODE_ID)
+  else begin
+    OpenLCBUtilities_SimpleDataToNodeID(@AMessage^.Buffer^.DataArray, AMessage^.Dest.ID);
+    DestNode := OPStackNode_Find(AMessage, FIND_BY_DEST);
+    if DestNode <> nil then  // The full Source ID was filled above so it will be used to search
+      OPStackNode_SetFlag(DestNode, MF_VERIFY_NODE_ID);
+  end;
+end;
+
+procedure OptionalInteractionRejected(var Source: TNodeInfo;
+  var Dest: TNodeInfo; MTI: DWord; IsPermenent: Boolean);
+var
+  OptionalInteractionMessage: TOPStackMessage;
+  OptionalnteractionBuffer: TSimpleBuffer;
+begin
+  OPStackBuffers_ZeroSimpleBuffer(@OptionalnteractionBuffer, False);
+  OPStackBuffers_ZeroMessage(@OptionalInteractionMessage);
+  OptionalInteractionMessage.Buffer := @OptionalnteractionBuffer;
+  OPStackBuffers_LoadOptionalInteractionRejected(@OptionalInteractionMessage, Source, Dest, MTI, IsPermenent);    // Unknown MTI sent to addressed node
+  OutgoingCriticalMessage(@OptionalInteractionMessage, True);
+end;
+
+procedure DatagramRejected(Dest, Source: PNodeInfo; ErrorCode: Word);
+var
+  OptionalInteractionMessage: TOPStackMessage;
+  OptionalnteractionBuffer: TSimpleBuffer;
+  DatagramError: PSimpleDataArray;
+begin
+  OPStackBuffers_ZeroSimpleBuffer(@OptionalnteractionBuffer, False);
+  OPStackBuffers_ZeroMessage(@OptionalInteractionMessage);
+  OptionalInteractionMessage.Buffer := @OptionalnteractionBuffer;
+
+  case ErrorCode of
+    DATAGRAM_PROCESS_ERROR_BUFFER_FULL         : DatagramError := PSimpleDataArray( @DATAGRAM_RESULT_REJECTED_BUFFER_FULL);
+    DATAGRAM_PROCESS_ERROR_OUT_OF_ORDER        : DatagramError := PSimpleDataArray(@DATAGRAM_RESULT_REJECTED_OUT_OF_ORDER);
+    DATAGRAM_PROCESS_ERROR_SOURCE_NOT_ACCEPTED : DatagramError := PSimpleDataArray(@DATAGRAM_RESULT_REJECTED_SOURCE_DATAGRAMS_NOT_ACCEPTED);
+  end;
+  OPStackBuffers_LoadMessage(@OptionalInteractionMessage, MTI_DATAGRAM_REJECTED_REPLY, Source^, Dest^, 0);
+  OptionalInteractionMessage.MessageType := MT_SIMPLE;
+  OPStackBuffers_CopyDataArray(OptionalInteractionMessage.Buffer, DatagramError, 2, True);
+  OutgoingCriticalMessage(@OptionalInteractionMessage, True);
+end;
+
+// *****************************************************************************
+//  procedure UnLinkDeAllocateAndTestForMessageToSend
+//     Parameters:
+//     Returns:
+//     Description:
+// *****************************************************************************
+function UnLinkDeAllocateAndTestForMessageToSend(Node: POpenLCBNode; MessageToSend, AMessage: POPStackMessage): Boolean;
+begin
+  OPStackNode_IncomingMessageUnLink(Node, AMessage);
+  OPStackBuffers_DeAllocateMessage(AMessage);
+  if MessageToSend <> nil then
+    Result := True
+   else
+    Result := False;
+end;
+
+end.

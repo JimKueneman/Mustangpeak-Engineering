@@ -1,0 +1,230 @@
+unit HTTP_Server;
+
+uses dspic_additional_string_library,def_io,lib1_enc600_V3_5_b,df_lib_SPI1,config;  // HTML PAGE
+
+procedure HTTPProcDataIn(len_ : word; j : byte);
+
+const HTTP_Port = 80;
+
+implementation
+
+procedure HTTPProcDataIn(len_ : word; j : byte);
+var txt31 : string[32];
+    txt5 : string[5];
+    txt3 : string[3];
+    i,k : word;
+begin
+  Socket[j].Keep_Alive := false;
+
+  if Socket[j].Start_addr <> Socket[j].Stop_addr then exit;
+  
+  if len_ > 64 then len_ := 64;
+
+  CopyEthMem_CPToRam(word(@Socket[j].TCP_buf), len_);
+
+  txt31 := httpMethod;
+
+  if Mem_Cmp(@Socket[j].TCP_buf, @txt31, Str_Len(txt31)) <> 0 then exit;      // only GET method is supported here
+
+  txt31 := 'v.txt';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+      Socket[j].TCP_buf := httpHeader3;
+
+      txt31 := '{"v01":"';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      if T_err[0] = 0 then Str_Cat(Socket[j].TCP_buf,SNMP_string_result_temp[0])
+      else Str_Cat(Socket[j].TCP_buf,'error');
+
+      k := 2;
+
+      i := 1;
+      while i < 8 do
+        begin
+          txt31 := '","v';
+          Byte2StrWithZeros(k,txt3);
+          Str_Cut_Left(txt3,1);
+          Str_Cat(txt31,txt3);
+          Str_Cat(txt31,'":"');
+          Str_Cat(Socket[j].TCP_buf,txt31);
+          if T_err[i] = 0 then Str_Cat(Socket[j].TCP_buf,SNMP_string_result_temp[i])
+          else Str_Cat(Socket[j].TCP_buf,'error');
+          inc(i);
+          inc(k);
+        end;
+
+      i := 0;
+      while i < 8 do
+        begin
+          txt31 := '","v';
+          Byte2StrWithZeros(k,txt3);
+          Str_Cut_Left(txt3,1);
+          Str_Cat(txt31,txt3);
+          Str_Cat(txt31,'":"');
+          Str_Cat(Socket[j].TCP_buf,txt31);
+          if Rom_Code_Stored[i][1] = $26 then Str_Cat(Socket[j].TCP_buf,SNMP_string_result_hum[i])
+          else Str_Cat(Socket[j].TCP_buf,'error');
+          inc(i);
+          inc(k);
+        end;
+        
+      i := 0;
+      while i < 8 do
+        begin
+          txt31 := '","v';
+          Byte2StrWithZeros(k,txt3);
+          Str_Cut_Left(txt3,1);
+          Str_Cat(txt31,txt3);
+          Str_Cat(txt31,'":"');
+          Str_Cat(Socket[j].TCP_buf,txt31);
+          Str_Cat(Socket[j].TCP_buf,Sensors_Name[i]);
+          inc(i);
+          inc(k);
+        end;
+
+      i := 0;
+      while i < 8 do
+        begin
+          txt31 := '","v';
+          Byte2StrWithZeros(k,txt3);
+          Str_Cut_Left(txt3,1);
+          Str_Cat(txt31,txt3);
+          Str_Cat(txt31,'":"');
+          Str_Cat(Socket[j].TCP_buf,txt31);
+          Str_Cat(Socket[j].TCP_buf,Sensors_Name[i]);
+          inc(i);
+          inc(k);
+        end;
+        
+      k := 51;
+      
+      i := 0;
+      while i < 4 do
+        begin
+          txt31 := '","v';
+          Byte2StrWithZeros(k,txt3);
+          Str_Cut_Left(txt3,1);
+          Str_Cat(txt31,txt3);
+          Str_Cat(txt31,'":"');
+          Str_Cat(Socket[j].TCP_buf,txt31);
+          Str_Cat(Socket[j].TCP_buf,IO_Name[i]);
+          inc(i);
+          inc(k);
+        end;
+        
+      txt31 := '","v41":"';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      Str_Cat(Socket[j].TCP_buf,SNMP_string_result1[0]);
+
+      txt31 := '","v42":"';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      Str_Cat(Socket[j].TCP_buf,SNMP_string_result1[1]);
+
+      txt31 := '","v43":"';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      Str_Cat(Socket[j].TCP_buf,SNMP_string_result1[2]);
+
+      txt31 := '","v44":"';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      Str_Cat(Socket[j].TCP_buf,SNMP_string_result1[3]);
+
+      txt31 := '","SysDescr":"';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+      Str_Cat(Socket[j].TCP_buf,sysDescr);      // System Description
+      
+      txt31 := '"}';
+      Str_Cat(Socket[j].TCP_buf,txt31);
+
+      Socket[j].RAM_ROM := 0;
+
+      Socket[j].Start_addr := @Socket[j].TCP_buf;
+      Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+      
+      exit;
+    end;
+
+  txt31 := 'reset';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+      reset_flag := 1;
+      CC5s := 30;
+
+      Socket[j].TCP_buf := httpHeader3;
+
+      Str_Cat(Socket[j].TCP_buf, 'Device will reset in 2 seconds');
+
+      Socket[j].RAM_ROM := 0;
+
+      Socket[j].Start_addr := @Socket[j].TCP_buf;
+      Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+      
+      exit;
+    end;
+
+  txt31 := 'ping';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+
+      Socket[j].TCP_buf := httpHeader3;
+
+      if wdt_ip[0] <> 255 then
+        begin
+          Byte2Str(lost_ping_cnt,txt31);
+
+          Str_Cat(Socket[j].TCP_buf,txt31);
+
+          Str_Cat(Socket[j].TCP_buf, ' ICMP lost');
+        end
+      else Str_Cat(Socket[j].TCP_buf, 'WDT ICMP disabled');
+
+      Socket[j].RAM_ROM := 0;
+
+      Socket[j].Start_addr := @Socket[j].TCP_buf;
+      Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+      
+      exit;
+    end;
+
+  txt31 := 'dissableaccess';
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+      access_config := 0;
+      unlock_cnt := 0;
+
+      Socket[j].TCP_buf := httpHeader3;
+
+      Str_Cat(Socket[j].TCP_buf, 'Access to config file was disabled');
+
+      Socket[j].RAM_ROM := 0;
+
+      Socket[j].Start_addr := @Socket[j].TCP_buf;
+      Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+      
+      exit;
+    end;
+
+  Word2StrWithZeros(pass,txt5);
+  Str_Cut_Left(txt5,1);
+  txt31 := 'unlock';
+  Str_Cat(txt31,txt5);
+  if Mem_Cmp(word(@Socket[j].TCP_buf[5]), word(@txt31), Str_Len(txt31)) = 0 then
+    begin
+      Socket[j].TCP_buf := httpHeader3;
+
+      access_config := 1;
+      unlock_cnt := 0;
+
+      Str_Cat(Socket[j].TCP_buf,'Access to config file, port 8080');
+
+      Socket[j].RAM_ROM := 0;
+
+      Socket[j].Start_addr := @Socket[j].TCP_buf;
+      Socket[j].Stop_addr := @Socket[j].TCP_buf + Str_Len(Socket[j].TCP_buf);
+      
+      exit;
+    end;
+
+  PutWebPageFromDF(j,'index.html');
+end;
+
+end.

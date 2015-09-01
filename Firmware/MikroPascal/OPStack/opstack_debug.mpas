@@ -1,0 +1,26 @@
+unit opstack_debug;
+
+{$I Options.inc}
+
+procedure DebugStr(var degugstring: string[256]);
+procedure DebugLine(var degugstring: string[256]);
+procedure DebugChar(var AChar: Char);
+
+implementation
+
+procedure DebugStr(var degugstring: string[256]);
+begin
+  UART1_Write_Text(degugstring);
+end;
+
+procedure DebugLine(var degugstring: string[256]);
+begin
+  UART1_Write_Text(degugstring + #13+#10);
+end;
+
+procedure DebugChar(var AChar: Char);
+begin
+  UART1_Write(AChar);
+end;
+
+end.

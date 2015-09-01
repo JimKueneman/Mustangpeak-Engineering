@@ -1,0 +1,137 @@
+unit packet_utilities;
+
+uses
+  dspic_additional_string_library,
+  Lib_Delays_LIO,
+  definitions_ENC600,
+  lib1_enc600_V3_5_b,
+  enc_lib_user,
+  def_io;
+  
+function Eth_ReadPacket : word;
+procedure Eth_SendPacket(length_w : word);
+procedure Eth_MacSwap;
+procedure Eth_IpSwap;
+procedure Eth_MacSwap_User;
+procedure Eth_IpSwap_User;
+Procedure Eth_Reject;
+
+implementation
+
+//******************************************************************************
+//* Name    : Eth_ReadPacket                                                   *
+//* Purpose : Read Packet from Ethernet module                                 *
+//******************************************************************************
+function Eth_ReadPacket : word;
+begin
+  CopyEthMemToEthMem(NextPacket, GPSTART, 1600);   // Move the next RX buffer to the first area of the General Purpose
+
+  Eth_WriteReg(EGPRDPT_, NextPacket);    // Set the write pointer
+  Lo(NextPacket) := Eth_GetByte;
+  Hi(NextPacket) := Eth_GetByte;
+
+  Eth_WriteReg(EGPRDPT_, (GPSTART + 20));    // Set the lower write pointer
+  Hi(Result) := Eth_GetByte;
+  Lo(Result) := Eth_GetByte;
+
+  AddrPacket := (GPSTART + 8);
+
+  Eth_BSF(ECON1_, ECON1_PKTDEC_);               // Decrement the number of packets
+
+  if NextPacket = RXSTART then
+    Eth_WriteReg(ERXTAIL_, $5FFE)
+  else
+    Eth_WriteReg(ERXTAIL_, NextPacket - 2);
+end;
+
+//******************************************************************************
+//* Name    : Eth_SendPacket                                                         *
+//* Purpose : Send Packet to Ethernet module                                   *
+//******************************************************************************
+procedure Eth_SendPacket(length_w : word);
+var address : word;
+begin
+  ClrWdt;
+
+  Eth_WriteReg(ETXST_, TXSTART);    // Set the start of packet
+
+  Eth_WriteReg(ETXLEN_, length_w);
+
+  Eth_BSF(ECON1_,ECON1_TXRTS_);
+
+  address := 1;
+  while (Eth_ReadReg(ECON1_) and ECON1_TXRTS_) <> 0 do
+    begin
+      if inc(address) = 0 then break;
+    end;
+end;
+
+procedure Eth_MacSwap;
+begin
+  CopyEthMemToEthMem(AddrPacket+6, TXSTART, 6);   // Setup the Destination Hardware Address: the source that sent the packet is now the destination
+  CopyRamToEthMem(@eth_mac, TXSTART+6, 6);        // Setup the Source Hardware Address     : the destination in the old received message could be a global FF.FF.FF.FF.FF.FF so transfer our local copy to the ENC as the source
+end;
+
+procedure Eth_IpSwap;
+begin
+  CopyRamToEthMem(@eth_ip_addr, TXSTART+26, 4);
+  CopyEthMemToEthMem(AddrPacket+26, TXSTART+30, 4);
+end;
+
+procedure Eth_MacSwap_User;
+begin
+  CopyRamToEthMem(@dest_mac, TXSTART,6);
+  CopyRamToEthMem(@eth_mac, TXSTART+6, 6);
+end;
+
+procedure Eth_IpSwap_User;
+begin
+  CopyRamToEthMem(@eth_ip_addr, TXSTART+26, 4);
+  CopyRamToEthMem(@dest_ip_addr, TXSTART+30, 4);
+end;
+
+//******************************************************************************
+//* Name    : Eth_Reject                                                       *
+//* Purpose : Reject unwanted packets                                          *
+//******************************************************************************
+Procedure Eth_Reject;
+var cksum,PacketSize : word;
+Begin
+  Hi(PacketSize) := ReadFromEthMem(AddrPacket+16);
+  Lo(PacketSize) := Eth_GetByte;
+  PacketSize := PacketSize + 28;
+  Eth_MacSwap;
+
+  WriteToEthMem(TXSTART+12,$08);            // ETHType
+  Eth_PutByte($00);                         // ETHType
+
+  Eth_PutByte($45);                         // Version
+  Eth_PutByte($C0);                         // Type of service
+  Eth_PutByte(Hi(PacketSize));              // Hi Total length
+  Eth_PutByte(Lo(PacketSize));              // Lo Total length
+  Eth_PutByte($AC);
+  Eth_PutByte($80);
+  Eth_PutByte($00);
+  Eth_PutByte($00);
+  Eth_PutByte($80);                         // Time to live
+  Eth_PutByte($01);                         // ICMP Protocol
+  Eth_PutByte($00);
+  Eth_PutByte($00);
+  Eth_IpSwap;
+  // fin checksum
+  cksum := Eth_Cksum(TXSTART+14,20);
+  WriteToEthMem(TXSTART+24,Hi(cksum));
+  Eth_PutByte(Lo(cksum));
+
+  WriteToEthMem(TXSTART+34,$03);
+  Eth_PutByte($03);
+  EthMemSet_CP(0,6);
+
+  CopyEthMemToEthMem(AddrPacket+14,TXSTART+42,PacketSize-28);
+  cksum := Eth_Cksum(TXSTART+34,PacketSize-20);
+  WriteToEthMem(TXSTART+36,Hi(cksum));
+  Eth_PutByte(Lo(cksum));
+  Eth_SendPacket(PacketSize+14);
+End;
+
+end.

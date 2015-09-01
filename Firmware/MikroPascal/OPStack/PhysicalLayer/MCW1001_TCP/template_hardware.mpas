@@ -1,0 +1,227 @@
+unit template_hardware;
+
+
+{$I Options.inc}
+
+uses
+  opstackcore_tcp,
+  MCW1001,
+  MCW1001_Helper,
+  opstack_buffers,
+  opstack_types,
+  opstack_debug,
+  opstack_defines;
+
+
+procedure Hardware_Initialize;
+procedure Hardware_SearchandDestroyAbandonMessagesInMessageStacks;
+// The OPStack calls these functions to control and/or send messages through the hardware layer
+procedure Hardware_DisableInterrupts;
+procedure Hardware_EnableInterrupts;
+
+procedure OutgoingCriticalMessage(AMessage: POPStackMessage; FreeMessage: Boolean);  // Called _back_ from within the IncomingMessageDispatch if we can't allocate buffers, unknown MTI's etc.  For CAN this is expected to be immediatly replied back to the sender as these are very high priority CAN headers
+procedure OutgoingMessage(AMessage: POPStackMessage; FreeMessage: Boolean);          // Expects that IsOutgoingBufferAvailable was called and returned True to ensure success in transmitting
+procedure ProcessHardwareMessages;
+function IsOutgoingBufferAvailable: Boolean;
+
+procedure ReceivedOnTcp(TcpMessage: POPStackTcpMessage);
+
+procedure Hardware_Print;
+
+procedure IncomingMessageDispatch(OlcbMessage: POPStackMessage; DestNode: POpenLCBNode); external;
+
+const
+  MAX_TCP_SOCKETS = 7;
+
+var
+  CaptureTime: TTcpCaptureTime;
+  OPStack_TimerInterruptEnable : sbit; sfr; external;
+
+
+
+implementation
+
+type
+  THardware = record
+    InterruptDisableCount: Integer;                                             // Allows stacked calls to Disable/Enable Interrupts (if used)
+    OutgoingTxBuffer: TOpenLCBCanBuffer;
+    OutgoingHighPriortyTxBuffer: TOpenLCBCanBuffer;
+    OutgoingBufferOverrun,
+    OutgoingHighPriorityBufferOverrun: Boolean;
+  end;
+
+var
+  Hardware: THardware;
+
+procedure Hardware_Print;
+begin
+  if Hardware.OutgoingBufferOverrun then
+    UART1_Write_Text('OutgoingBufferOverrun = True' + LF)
+  else
+    UART1_Write_Text('OutgoingBufferOverrun = False' + LF);
+  if Hardware.OutgoingHighPriorityBufferOverrun then
+    UART1_Write_Text('OutgoingHighPriorityBufferOverrun = True' + LF)
+  else
+    UART1_Write_Text('OutgoingHighPriorityBufferOverrun = False' + LF);
+  IntToStr(Hardware.InterruptDisableCount, s1);
+  UART1_Write_Text('InterruptDisableCount = ' + s1 + LF);
+end;
+
+// *****************************************************************************
+//  procedure Hardware_Initialize
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+procedure Hardware_Initialize;
+var
+  i, j: Integer;
+begin
+  MCW1001_Initialize;
+  OPStackcoreTCP_Initialize;
+  Hardware.InterruptDisableCount := 0;
+  Hardware.OutgoingBufferOverrun := False;
+  Hardware.OutgoingHighPriorityBufferOverrun := False;
+  CaptureTime[0] := 0;
+  CaptureTime[1] := 0;
+end;
+
+ // *****************************************************************************
+//  procedure Hardware_SearchandDestroyAbandonMessagesInMessageStacks
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+procedure Hardware_SearchandDestroyAbandonMessagesInMessageStacks;
+begin
+
+end;
+
+// *****************************************************************************
+//  procedure Hardware_DisableInterrupts
+//    Parameters:
+//    Result:
+//    Description:   called when lists or similar are being maniuplated that
+//                   could be in an interterminate state if an interrupt driven
+//                   system is called in the middle of the manipulation. Use this
+//                   function to disable asyncronous access to library variable
+//                   during this call
+// *****************************************************************************
+procedure Hardware_DisableInterrupts;
+begin
+  // Disable Any interrupts here
+  Inc(Hardware.InterruptDisableCount);
+  if Hardware.InterruptDisableCount = 1 then
+  begin
+    OPStack_TimerInterruptEnable := 0;      // Disable the OPStackTimer so it won't add to the time we are blind to the CAN interrupt
+    MCW1001_EnableInterrupt(False);
+  end;
+end;
+
+// *****************************************************************************
+//  procedure Hardware_EnableInterrupts
+//    Parameters:
+//    Result:
+//    Description:   called when lists or similar are being maniuplated that
+//                   could be in an interterminate state if an interrupt driven
+//                   system is called in the middle of the manipulation. Use this
+//                   function to re enable asyncronous access to library variable
+//                   during this call
+// *****************************************************************************
+procedure Hardware_EnableInterrupts;
+var
+  Timer: real;
+begin
+  Dec(Hardware.InterruptDisableCount);
+  if Hardware.InterruptDisableCount <= 0 then
+  begin
+    // Enable any Interrupts here
+    MCW1001_EnableInterrupt(True);
+    Hardware.InterruptDisableCount := 0;
+    OPStack_TimerInterruptEnable := 1;
+  end;
+end;
+
+// *****************************************************************************
+//  procedure OutgoingCriticalMessage
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+procedure OutgoingCriticalMessage(AMessage: POPStackMessage; FreeMessage: Boolean);
+begin
+  OutgoingMessage(AMessage, FreeMessage);
+end;
+
+// *****************************************************************************
+//  procedure OutgoingMessage
+//    Parameters:
+//    Result:
+//    Description:   called to send a message on the physical layer, must call
+//                   IsOutgoingBufferAvailable before to ensure a buffer is
+//                   available to use
+// *****************************************************************************
+procedure OutgoingMessage(OPStackMessage: POPStackMessage; FreeMessage: Boolean);
+var
+  i: Integer;
+  ArraySize: DWord;
+begin
+  if IsOutgoingBufferAvailable then
+  begin
+    // Build the Message
+    if OPStackMessage_To_TcpMessage(OPStackMessage, @WiFiInfo.SendBuffers.Buffers[WiFiInfo.SendBuffers.Head], CaptureTime) then
+    begin
+      Inc(WiFiInfo.SendBuffers.Head);
+      if WiFiInfo.SendBuffers.Head >= MAX_OLCB_TCP_SEND_BUFFERS then
+        WiFiInfo.SendBuffers.Head := 0;
+      Inc(WiFiInfo.SendBuffers.Count);
+    end;
+    if FreeMessage then
+      OPStackBuffers_DeAllocateMessage(OPStackMessage);
+  end else
+  begin
+    Hardware.OutgoingBufferOverrun := True;
+    if FreeMessage then
+      OPStackBuffers_DeAllocateMessage(OPStackMessage);
+  end;
+end;
+
+// *****************************************************************************
+//  procedure IsOutgoingBufferAvailable
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+function IsOutgoingBufferAvailable: Boolean;
+begin
+  Result := WiFiInfo.SendBuffers.Count < MAX_OLCB_TCP_SEND_BUFFERS;
+end;
+
+// *****************************************************************************
+//  procedure ProcessHardwareMessages
+//    Parameters:
+//    Result:
+//    Description:
+// *****************************************************************************
+procedure ProcessHardwareMessages;
+begin
+  // Nothing to do
+end;
+
+procedure ReceivedOnTcp(TcpMessage: POPStackTcpMessage);
+var
+  OPStackMessagePtr: POPStackMessage;
+  OPStackMessage: TOPStackMessage;
+  Buffer: TSimpleBuffer;
+  DestNode: POpenLCBNode;
+begin
+  DestNode := nil;
+  OPStackBuffers_ZeroMessage(@OPStackMessage);
+  OPStackBuffers_ZeroSimpleBuffer(@Buffer, True);
+  OPStackMessage.Buffer := @Buffer;
+  OPStackMessagePtr := @OPStackMessage;
+  if OPStackTcpMessage_To_OPStackBuffer(TcpMessage, OPStackMessagePtr, DestNode) then
+    IncomingMessageDispatch(OPStackMessagePtr, DestNode);
+end;
+
+end.

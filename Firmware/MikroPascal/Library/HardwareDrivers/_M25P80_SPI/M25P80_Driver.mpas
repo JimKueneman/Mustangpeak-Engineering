@@ -1,0 +1,364 @@
+unit M25P80_Driver;
+
+{*
+  Serial Flash driver
+
+*}
+{************************************************************************
+* Declaration of functions and procedures
+************************************************************************}
+procedure SerialFlash_Init();
+procedure SerialFlash_WriteEnable();
+function SerialFlash_IsWriteBusy(): byte;
+procedure SerialFlash_WriteByte(_data: byte; address: dword);
+procedure SerialFlash_WriteWord(_data: integer; address: dword);
+function SerialFlash_ReadID(): byte;
+function SerialFlash_ReadByte(address: dword): byte;
+function SerialFlash_ReadWord(address: dword): word;
+function SerialFlash_WriteArray(address: dword; nCount : word; _pData: ^byte; Verify: Boolean): byte;
+function SerialFlash_WritePage(address: dword; nCount : word; _pData: ^byte): byte;
+procedure SerialFlash_ReadArray(address: dword; nCount: word; _pData: ^byte);
+procedure SerialFlash_ChipErase();
+procedure SerialFlash_ResetWriteProtection();
+procedure SerialFlash_SectorErase(address: dword);
+function SerialFlash_ReadStatus: Byte;
+{************************************************************************
+* SerialFlash Commands
+* -----------------------------------------------------------------------
+* Overview: Constants that represent commands
+* Input: none
+* Output: none
+************************************************************************}
+const _SERIAL_FLASH_CMD_RDID  = 0x9F;  // 25P80
+const _SERIAL_FLASH_CMD_READ  = 0x03;
+const _SERIAL_FLASH_CMD_WRITE = 0x02;
+const _SERIAL_FLASH_CMD_WREN  = 0x06;
+const _SERIAL_FLASH_CMD_RDSR  = 0x05;
+const _SERIAL_FLASH_CMD_ERASE = 0xC7;   // 25P80
+const _SERIAL_FLASH_CMD_EWSR  = 0x06;   // 25P80
+const _SERIAL_FLASH_CMD_WRSR  = 0x01;
+const _SERIAL_FLASH_CMD_SER   = 0xD8;    //25P80
+
+var CS_Serial_Flash_bit: sbit; sfr; external;
+var CS_Serial_Flash_Direction_bit: sbit; sfr; external;
+
+{************************************************************************
+* Function SerialFlash_init()
+* -----------------------------------------------------------------------
+* Overview: Function that initializes SerialFlash by setting Chip select
+* Input: none
+* Output: none
+************************************************************************}
+implementation
+
+procedure SerialFlash_init();
+begin
+  CS_Serial_Flash_bit := 1;
+  CS_Serial_Flash_Direction_bit := 0;
+end;
+
+{************************************************************************
+* Function SerialFlash_WriteEnable()
+* -----------------------------------------------------------------------
+* Overview: Function that sends write enable command to the chip
+* Input: none
+* Output: none
+************************************************************************}
+procedure SerialFlash_WriteEnable();
+begin
+  CS_Serial_Flash_bit := 0;
+  SPI_Wr_Ptr(_SERIAL_FLASH_CMD_WREN);
+  CS_Serial_Flash_bit := 1;
+end;
+
+{************************************************************************
+* Function SerialFlash_IsWriteBusy()
+* -----------------------------------------------------------------------
+* Overview: Function that checks whether chip finished write operation
+* Input: none
+* Output: 1 - if still busy, 0 - if write completed
+************************************************************************}
+function SerialFlash_IsWriteBusy(): byte;
+var
+  temp: byte;
+begin
+  CS_Serial_Flash_bit := 0;
+  SPI_Wr_Ptr(_SERIAL_FLASH_CMD_RDSR);
+  temp := SPI_Rd_Ptr(0);
+  CS_Serial_Flash_bit := 1;
+
+  result := temp and 0x01;
+end;
+
+{************************************************************************
+* Function SerialFlash_WriteByte()
+* -----------------------------------------------------------------------
+* Overview: Function that writes a single byte
+* Input: Data to be written and the address to which to store the data
+* Output: none
+************************************************************************}
+procedure SerialFlash_WriteByte(_data: byte; address: dword);
+begin
+    SerialFlash_WriteEnable();
+
+    CS_Serial_Flash_bit := 0;
+    SPI_Wr_Ptr(_SERIAL_FLASH_CMD_WRITE);
+    SPI_Wr_Ptr(Higher(address));
+    SPI_Wr_Ptr(Hi(address));
+    SPI_Wr_Ptr(Lo(address));
+    SPI_Wr_Ptr(_data);
+    CS_Serial_Flash_bit := 1;
+
+    // Wait for write end
+    while(SerialFlash_isWriteBusy()) do
+    begin
+    end;
+end;
+
+{************************************************************************
+* Function SerialFlash_WriteWord()
+* -----------------------------------------------------------------------
+* Overview: Function that writes 2 succesive bytes of a word variable
+* Input: Word data to be written and the address to which to store the data
+* Output: none
+************************************************************************}
+procedure SerialFlash_WriteWord(_data: integer; address: dword);
+begin
+  SerialFlash_WriteByte(Hi(_data),address);
+  SerialFlash_WriteByte(Lo(_data),address+1);
+end;
+
+{************************************************************************
+* Function SerialFlash_ReadID()
+* -----------------------------------------------------------------------
+* Overview: Function that reads the CHIP ID
+* Input: none
+* Output: ID byte value
+************************************************************************}
+function SerialFlash_ReadID(): byte;
+var
+  temp : byte;
+begin
+
+  CS_Serial_Flash_bit := 0;
+  SPI_Wr_Ptr(_SERIAL_FLASH_CMD_RDID);
+  temp := SPI_Rd_Ptr(0);
+  CS_Serial_Flash_bit := 1;
+
+  result := temp;
+end;
+
+{************************************************************************
+* Function SerialFlash_ReadByte()
+* -----------------------------------------------------------------------
+* Overview: Function that reads the byte from the address
+* Input: address to be read
+* Output: byte data from the address
+************************************************************************}
+function SerialFlash_ReadByte(address: dword): byte;
+var
+  temp : byte;
+begin
+  CS_Serial_Flash_bit := 0;
+
+  SPI_Wr_Ptr(_SERIAL_FLASH_CMD_READ);
+  SPI_Wr_Ptr(Higher(address));
+  SPI_Wr_Ptr(Hi(address));
+  SPI_Wr_Ptr(Lo(address));
+  temp := SPI_Rd_Ptr(0);
+
+  CS_Serial_Flash_bit := 1;
+  result := temp;
+end;
+
+{************************************************************************
+* Function SerialFlash_ReadWord()
+* -----------------------------------------------------------------------
+* Overview: Function that reads the word from the address
+* Input: address to be read
+* Output: word data stored in two successive addresses
+************************************************************************}
+function SerialFlash_ReadWord(address: dword): word;
+var
+  temp: word;
+begin
+
+  Hi(temp) := SerialFlash_ReadByte(address);
+  Lo(temp) := SerialFlash_ReadByte(address+1);
+
+  result := temp;
+end;
+
+{************************************************************************
+* Function SerialFlash_WriteArray()
+* -----------------------------------------------------------------------
+* Overview: Function that writes data to successive addresses
+* Input: address of the begining, pointer to buffer containing data,
+         number of bytes to be written
+* Output: 1 - if write succeeded, 0 - if write failed
+************************************************************************}
+function SerialFlash_WriteArray(address: dword; nCount : word;_pData: ^byte; Verify: Boolean): byte;
+var
+  addr : dword;
+  pD : ^byte;
+  counter : word;
+begin
+  addr := address;
+  pD   := _pData;
+
+  // WRITE
+
+  for counter := 1 to nCount do
+  begin
+    SerialFlash_WriteByte(pD^, addr);
+    Inc(addr);
+    Inc(pD);
+  end;
+
+  if Verify then
+  begin
+    // VERIFY
+    result := 1;
+    for counter := 1 to nCount do
+    begin
+      if not(_pData^ = SerialFlash_ReadByte(address)) then
+      begin
+        result := 0;
+        break;
+      end;
+      Inc(_pData);
+      Inc(address);
+    end;
+  end;
+end;
+
+function SerialFlash_WritePage(address: dword; nCount : word; _pData: ^byte): byte;
+var
+  i: Integer;
+  x: char;
+begin
+  Result := 0;
+  
+  SerialFlash_WriteEnable();
+
+  CS_Serial_Flash_bit := 0;
+  SPI_Wr_Ptr(_SERIAL_FLASH_CMD_WRITE);
+  SPI_Wr_Ptr(Higher(address));
+  SPI_Wr_Ptr(Hi(address));
+  SPI_Wr_Ptr(Lo(address));
+  
+  for i := 0 to nCount - 1 do
+  begin
+    SPI_Write(_pData^);
+    Inc(_pData);
+  end;
+  
+  CS_Serial_Flash_bit := 1;
+
+  // Wait for write end
+  while(SerialFlash_isWriteBusy()) do
+  begin
+  end;
+end;
+
+{************************************************************************
+* Function SerialFlash_ReadArray()
+* -----------------------------------------------------------------------
+* Overview: Function that reads data from successive addresses
+* Input: address of the begining, pointer to buffer where to store read data,
+         number of bytes to be read
+* Output: none
+************************************************************************}
+procedure SerialFlash_ReadArray(address: dword; nCount: word; _pData: ^byte);
+begin
+  CS_Serial_Flash_bit := 0;
+  SPI_Wr_Ptr(_SERIAL_FLASH_CMD_READ);
+  SPI_Wr_Ptr(Higher(address));
+  SPI_Wr_Ptr(Hi(address));
+  SPI_Wr_Ptr(Lo(address));
+
+  while (nCount > 0) do
+  begin    
+    _pData^ := SPI_Read(0);
+    Inc(_pData);
+    Dec(nCount);
+  end;
+  CS_Serial_Flash_bit := 1;
+end;
+
+{************************************************************************
+* Function SerialFlash_ChipErase()
+* -----------------------------------------------------------------------
+* Overview: Function that sends Chip Erase command
+* Input: none
+* Output: none
+************************************************************************}
+procedure SerialFlash_ChipErase();
+begin
+
+  SerialFlash_WriteEnable();
+
+  CS_Serial_Flash_bit := 0;
+  SPI_Wr_Ptr(_SERIAL_FLASH_CMD_ERASE);
+  CS_Serial_Flash_bit := 1;
+
+  // Wait for write end
+  while(SerialFlash_IsWriteBusy() > 0) do
+  begin
+  end;
+end;
+
+{************************************************************************
+* Function SerialFlash_ResetWriteProtection()
+* -----------------------------------------------------------------------
+* Overview: Function that sends Reset Write Protection command
+* Input: none
+* Output: none
+************************************************************************}
+procedure SerialFlash_ResetWriteProtection();
+begin
+  CS_Serial_Flash_bit := 0;
+  SPI_Wr_Ptr(_SERIAL_FLASH_CMD_EWSR);
+  CS_Serial_Flash_bit := 1;
+
+
+  CS_Serial_Flash_bit := 0;
+  SPI_Wr_Ptr(_SERIAL_FLASH_CMD_EWSR);
+  SPI_Wr_Ptr(0);
+  CS_Serial_Flash_bit := 1;
+end;
+
+{************************************************************************
+* Function SerialFlash_SectorErase()
+* -----------------------------------------------------------------------
+* Overview: Function that sends Sector Erase command
+* Input: address of the sector to be erased
+* Output: none
+************************************************************************}
+procedure SerialFlash_SectorErase(address: dword);
+begin
+
+  SerialFlash_WriteEnable();
+
+  CS_Serial_Flash_bit := 0;
+  SPI_Wr_Ptr(_SERIAL_FLASH_CMD_SER);
+  SPI_Wr_Ptr(Higher(address));
+  SPI_Wr_Ptr(Hi(address));
+  SPI_Wr_Ptr(Lo(address));
+  CS_Serial_Flash_bit := 1;
+
+  // Wait for write end
+  while(SerialFlash_IsWriteBusy() > 0) do
+  begin
+  end;
+end;
+
+function SerialFlash_ReadStatus: Byte;
+begin
+  CS_Serial_Flash_bit := 0;
+  SPI_Write(_SERIAL_FLASH_CMD_RDSR);
+  Result := SPI_Read(0);
+  CS_Serial_Flash_bit := 1;
+end;
+
+end.

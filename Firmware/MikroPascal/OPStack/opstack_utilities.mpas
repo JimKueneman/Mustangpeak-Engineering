@@ -1,0 +1,359 @@
+unit opstack_utilities;
+
+{$IFDEF FPC}
+interface
+{$ENDIF}
+
+{$I Options.inc}
+
+uses
+  template_node,
+  {$IFDEF SUPPORT_VIRTUAL_NODES}
+  template_vnode,
+  {$ENDIF}
+  opstack_defines,
+  opstack_nodedefines,
+  opstack_types;
+
+function OpenLCBUtilities_CreateAliasID(var Seed: TNodeID; Regenerate: Boolean): Word;
+function OpenLCBUtilities_GenerateID_Alias_From_Seed(var Seed: TNodeID): Word;
+procedure OpenLCBUtilities_PsudoRandomNumberGeneratorOnSeed(var Seed: TNodeID);
+procedure OpenLCBUtilities_LoadSimpleDataWith48BitNodeID(NodeID: PNodeID; DataArray: PSimpleDataArray);
+function OpenLCBUtilities_Load48BitNodeIDWithSimpleData(var NodeID: TNodeID; var DataArray: TSimpleDataArray): PNodeID;
+procedure OpenLCBUtilities_LoadSimpleDataWithEventID(EventID: PEventID; DataArray: PSimpleDataArray);
+procedure OpenLCBUtilities_SimpleDataToNodeID(DataArray: PSimpleDataArray; var NodeID: TNodeID);
+function OpenLCBUtilities_EqualEventID(Event1, Event2: PEventID): Boolean;
+function OpenLCBUtilities_EqualNodeIDInfo(var Info1: TNodeInfo; var Info2: TNodeInfo): Boolean;
+function OpenLCBUtilities_NullNodeIDInfo(var Info1: TNodeInfo): Boolean;
+function OpenLCBUtilities_NullNodeID(var Info1: TNodeID): Boolean;
+function OpenLCBUtilities_EqualNodeID(var NodeID1: TNodeID; var NodeID2: TNodeID): Boolean;
+function OpenLCBUtilities_NodeSupportsProtcol(Node: POpenLCBNode; Protocol: PPIVProtocolValueArray): Boolean;
+procedure OpenLCBUtilities_OPStackMessageToEthernetMessage(AMessage: POPStackMessage; var AEthernetMessage: TOPStackEthernetMessage);
+procedure OpenLCBUtilities_AppendStringToMultiFrameStringBuffer(StringPtr: ^Char; MultiFrameStringBufferPtr: PMultiFrameStringBuffer; MaxLen: Integer;);
+procedure OpenLCBUtilities_AppendBytesToMultiFrameStringBuffer(DataByte: ^Byte; MultiFrameStringBufferPtr: PMultiFrameStringBuffer; Count: Integer; Reverse: Boolean);
+
+
+implementation
+
+procedure OpenLCBUtilities_AppendStringToMultiFrameStringBuffer(StringPtr: ^Char; MultiFrameStringBufferPtr: PMultiFrameStringBuffer; MaxLen: Integer;);
+var
+  i: Integer;
+begin
+  i := 0;
+  while i < MaxLen do
+  begin
+    if StringPtr^ <> #0 then
+    begin
+      MultiFrameStringBufferPtr^.DataArray[MultiFrameStringBufferPtr^.DataBufferSize] := StringPtr^;
+      Inc(MultiFrameStringBufferPtr^.DataBufferSize);
+      Inc(StringPtr);
+    end else
+      Break;
+    Inc(i);
+  end;
+  MultiFrameStringBufferPtr^.DataArray[MultiFrameStringBufferPtr^.DataBufferSize] := #0;
+  Inc(MultiFrameStringBufferPtr^.DataBufferSize);
+end;
+
+procedure OpenLCBUtilities_AppendBytesToMultiFrameStringBuffer(DataByte: ^Byte; MultiFrameStringBufferPtr: PMultiFrameStringBuffer; Count: Integer; Reverse: Boolean);
+//
+// Reverse = True to implement Litte Endian encoding if the bytes represent an integer/word/longword/etc
+//
+var
+  i: Integer;
+begin
+  if Reverse then
+  begin
+    for i := Count - 1 downto 0 do
+    begin
+      MultiFrameStringBufferPtr^.DataArray[MultiFrameStringBufferPtr^.DataBufferSize] := DataByte^;
+      Inc(MultiFrameStringBufferPtr^.DataBufferSize);
+      Inc(DataByte);
+    end;
+  end else
+  begin
+    for i := 0 to Count - 1 do
+    begin
+      MultiFrameStringBufferPtr^.DataArray[MultiFrameStringBufferPtr^.DataBufferSize] := DataByte^;
+      Inc(MultiFrameStringBufferPtr^.DataBufferSize);
+      Inc(DataByte);
+    end;
+  end;
+end;
+
+// *****************************************************************************
+//  procedure OpenLCBUtilities_CreateAliasID
+//     Parameters:
+//     Returns:
+//     Description:
+// *****************************************************************************
+function OpenLCBUtilities_CreateAliasID(var Seed: TNodeID; Regenerate: Boolean): Word;
+begin
+  if Regenerate then
+    OpenLCBUtilities_PsudoRandomNumberGeneratorOnSeed(Seed);
+  Result := OpenLCBUtilities_GenerateID_Alias_From_Seed(Seed);
+  if Result = 0 then
+  begin
+    OpenLCBUtilities_PsudoRandomNumberGeneratorOnSeed(Seed);
+    Result := OpenLCBUtilities_GenerateID_Alias_From_Seed(Seed);
+  end
+end;
+
+// *****************************************************************************
+//  function OpenLCBUtilities_GenerateID_Alias_From_Global_Seed
+//     Parameters:
+//     Returns:
+//
+//     Description:
+//
+// *****************************************************************************
+function OpenLCBUtilities_GenerateID_Alias_From_Seed(var Seed: TNodeID): Word;
+begin
+  Result := (Seed[0] xor Seed[1] xor (Seed[0] shr 12) xor (Seed[1] shr 12)) and $00000FFF;
+end;
+
+// *****************************************************************************
+//  procedure PsudoRandomNumberGenerator
+//     Parameters:
+//     Returns:
+//
+//     Description:
+//
+// *****************************************************************************
+procedure OpenLCBUtilities_PsudoRandomNumberGeneratorOnSeed(var Seed: TNodeID);
+var
+  temp1,              // Upper 24 Bits of temp 48 bit number
+  temp2: DWORD;       // Lower 24 Bits of temp 48 Bit number
+begin
+  temp1 := ((Seed[1] shl 9) or ((Seed[0] shr 15) and $000001FF)) and $00FFFFFF;   // x(i+1)(2^9 + 1)*x(i) + C  = 2^9 * x(i) + x(i) + C
+  temp2 := (Seed[0] shl 9) and $00FFFFFF;                                                                  // Calculate 2^9 * x
+
+  Seed[0] := Seed[0] + temp2 + $7A4BA9;   // Now y = 2^9 * x so all we have left is x(i+1) = y + x + c
+  Seed[1] := Seed[1] + temp1 + $1B0CA3;
+
+  Seed[1] := (Seed[1] and $00FFFFFF) or (Seed[0] and $FF000000) shr 24;   // Handle the carries of the lower 24 bits into the upper
+  Seed[0] := Seed[0] and $00FFFFFF;
+end;
+
+// *****************************************************************************
+//  procedure OpenLCBUtilities_LoadSimpleDataWith48BitNodeID
+//     Parameters:
+//     Returns:
+//     Description:
+// *****************************************************************************
+procedure OpenLCBUtilities_LoadSimpleDataWith48BitNodeID(NodeID: PNodeID; DataArray: PSimpleDataArray);
+begin
+  {$IFNDEF FPC}
+  DataArray^[0] := Higher( NodeID^[1]); // But these all need the 48 Bit Full ID in the Byte Fields
+  DataArray^[1] := Hi( NodeID^[1]);
+  DataArray^[2] := Lo( NodeID^[1]);
+  DataArray^[3] := Higher( NodeID^[0]);
+  DataArray^[4] := Hi( NodeID^[0]);
+  DataArray^[5] := Lo( NodeID^[0]);
+  {$ELSE}
+  DataArray^[0] := Byte( DWord( NodeID^[1] shr 16));  // But these all need the 48 Bit Full ID in the Byte Fields
+  DataArray^[1] := Byte( DWord( NodeID^[1] shr 8));
+  DataArray^[2] := Byte( NodeID^[1]);
+  DataArray^[3] := Byte( DWord( NodeID^[0] shr 16));
+  DataArray^[4] := Byte( DWord( NodeID^[0] shr 8));
+  DataArray^[5] := Byte( NodeID^[0]);
+  {$ENDIF}
+end;
+
+
+// *****************************************************************************
+//  procedure OpenLCBUtilities_Load48BitNodeIDWithSimpleData
+//     Parameters:
+//     Returns:
+//     Description:
+// *****************************************************************************
+function OpenLCBUtilities_Load48BitNodeIDWithSimpleData(var NodeID: TNodeID; var DataArray: TSimpleDataArray): PNodeID;
+begin
+  Result := @NodeID;
+  NodeID[1] := (DataArray[0] shl 16) or (DataArray[1] shl 8) or DataArray[2];
+  NodeID[0] := (DataArray[3] shl 16) or (DataArray[4] shl 8) or DataArray[5];
+end;
+
+// *****************************************************************************
+//  procedure OpenLCBUtilities_LoadSimpleDataWithEventID
+//     Parameters:
+//     Returns:
+//     Description:
+// *****************************************************************************
+procedure OpenLCBUtilities_LoadSimpleDataWithEventID(EventID: PEventID; DataArray: PSimpleDataArray);
+begin
+  DataArray^[0] := EventID^[0];
+  DataArray^[1] := EventID^[1];
+  DataArray^[2] := EventID^[2];
+  DataArray^[3] := EventID^[3];
+  DataArray^[4] := EventID^[4];
+  DataArray^[5] := EventID^[5];
+  DataArray^[6] := EventID^[6];
+  DataArray^[7] := EventID^[7];
+end;
+
+// *****************************************************************************
+//  procedure OpenLCBUtilities_SimpleBufferBytesToNodeID
+//     Parameters:
+//     Returns:
+//     Description:
+// *****************************************************************************
+procedure OpenLCBUtilities_SimpleDataToNodeID(DataArray: PSimpleDataArray; var NodeID: TNodeID);
+begin
+  NodeID[1] := DataArray^[2];
+  NodeID[1] := NodeID[1] or DataArray^[1] shl 8;
+  NodeID[1] := NodeID[1] or DataArray^[0] shl 16;
+  NodeID[0] := DataArray^[5];
+  NodeID[0] := NodeID[0] or DataArray^[4] shl 8;
+  NodeID[0] := NodeID[0] or DataArray^[3] shl 16;
+end;
+
+// *****************************************************************************
+//  procedure OpenLCBUtilities_EqualEventID
+//     Parameters:
+//     Returns:
+//
+//     Description:
+//
+// *****************************************************************************
+function OpenLCBUtilities_EqualEventID(Event1, Event2: PEventID): Boolean;
+var
+  i: Integer;
+begin
+  Result := True;
+  i := 0;
+  while (i < 8) and Result do
+  begin
+    if Event1^[i] <> Event2^[i] then
+    begin
+      Result := False;
+      Break
+    end;
+    Inc(i);
+  end;
+end;
+
+// *****************************************************************************
+//  procedure OpenLCBUtilities_EqualNodeIDInfo
+//     Parameters:
+//     Returns:
+//
+//     Description:
+//
+// *****************************************************************************
+function OpenLCBUtilities_EqualNodeIDInfo(var Info1: TNodeInfo; var Info2: TNodeInfo): Boolean;
+begin
+  Result := False;
+  if ((Info1.ID[0] = 0) and (Info1.ID[0] = 0)) or ((Info2.ID[0] = 0) and (Info2.ID[0] = 0)) then
+    Result := Info1.AliasID = Info2.AliasID
+  else begin
+    if Info1.AliasID = Info2.AliasID then
+      if Info1.ID[0] = Info2.ID[0] then
+        if Info1.ID[1] = Info2.ID[1] then
+          Result := True;
+  end;
+end;
+
+function OpenLCBUtilities_NullNodeIDInfo(var Info1: TNodeInfo): Boolean;
+begin
+  Result := False;
+  if Info1.AliasID = 0 then
+    if Info1.ID[0] = 0 then
+      if Info1.ID[1] = 0 then
+        Result := True;
+end;
+
+function OpenLCBUtilities_NullNodeID(var Info1: TNodeID): Boolean;
+begin
+  Result := False;
+  if Info1[0] = 0 then
+    if Info1[1] = 0 then
+      Result := True;
+end;
+
+// *****************************************************************************
+//  procedure OpenLCBUtilities_EqualNodeID
+//     Parameters:
+//     Returns:
+//
+//     Description:
+//
+// *****************************************************************************
+function OpenLCBUtilities_EqualNodeID(var NodeID1: TNodeID; var NodeID2: TNodeID): Boolean;
+begin
+  Result := False;
+  if NodeID1[0] = NodeID2[0] then
+    if NodeID1[1] = NodeID2[1] then
+      Result := True;
+end;
+
+function OpenLCBUtilities_NodeSupportsProtcol(Node: POpenLCBNode; Protocol: PPIVProtocolValueArray): Boolean;
+var
+  i, j: Integer;
+begin
+  Result := False;
+  if Node^.iIndex = 0 then
+  begin
+    for i := 0 to USER_PIV_SUPPORTED_PROTOCOL_COUNT - 1 do
+    begin
+      Result := True;
+      for j := 0 to LEN_PIV_PROTOCOL - 1 do
+      begin
+        if USER_PIV_SUPPORTED_PROTOCOLS[i][j] <> Protocol^[j] then
+        begin
+          Result := False;
+          Break
+        end;
+      end;
+      if Result then
+        Break
+    end;
+  end {$IFDEF SUPPORT_VIRTUAL_NODES} else
+  begin
+    for i := 0 to USER_PIV_VNODE_SUPPORTED_PROTOCOL_COUNT - 1 do
+    begin
+      Result := True;
+      for j := 0 to LEN_PIV_PROTOCOL - 1 do
+      begin
+        if USER_PIV_VNODE_SUPPORTED_PROTOCOLS[i][j] <> Protocol^[j] then
+        begin
+          Result := False;
+          Break
+        end;
+      end;
+      if Result then
+        Break
+    end;
+  end; {$ENDIF}
+end;
+
+procedure OpenLCBUtilities_OPStackMessageToEthernetMessage(AMessage: POPStackMessage; var AEthernetMessage: TOPStackEthernetMessage);
+var
+  Count: Word;
+  i: Integer;
+begin
+  AEthernetMessage[0] := Hi( AMessage^.MTI);
+  AEthernetMessage[1] := Lo( AMessage^.MTI);
+  AEthernetMessage[2] := (AMessage^.Source.ID[1] shr 16);
+  AEthernetMessage[3] := (AMessage^.Source.ID[1] shr 8);
+  AEthernetMessage[4] := (AMessage^.Source.ID[1]);
+  AEthernetMessage[5] := (AMessage^.Source.ID[0] shr 16);
+  AEthernetMessage[6] := (AMessage^.Source.ID[0] shr 8);
+  AEthernetMessage[7] := (AMessage^.Source.ID[0]);
+  if AMessage^.MTI and $0080 <> 0 then // Dest present
+  begin
+    AEthernetMessage[2] := (AMessage^.Dest.ID[1] shr 16);
+    AEthernetMessage[3] := (AMessage^.Dest.ID[1] shr 8);
+    AEthernetMessage[4] := (AMessage^.Dest.ID[1]);
+    AEthernetMessage[5] := (AMessage^.Dest.ID[0] shr 16);
+    AEthernetMessage[6] := (AMessage^.Dest.ID[0] shr 8);
+    AEthernetMessage[7] := (AMessage^.Dest.ID[0]);
+    Count := 14;
+  end else
+    Count := 8;
+  for i := 0 to AMessage^.Buffer^.DataBufferSize - 1 do
+    AEthernetMessage[i + Count] := AMessage^.Buffer^.DataArray[i];
+  Count := Count + AMessage^.Buffer^.DataBufferSize;
+end;
+
+end.

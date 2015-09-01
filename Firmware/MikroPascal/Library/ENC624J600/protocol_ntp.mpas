@@ -1,0 +1,381 @@
+unit protocol_ntp;
+
+{$DEFINE DEBUG_STRING}
+
+uses
+  dspic_additional_string_library,
+  lib1_enc600_V3_5_b,
+  port_utilities,
+  packet_utilities,
+  protocol_defines,
+  protocol_udp,
+  protocol_arp;
+  
+type
+  TNtpRec = Record
+    Rfc          : dWord;
+    Unix         : dWord;
+    Year         : word;
+    Month        : byte;
+    Day          : byte;
+    Hour         : byte;
+    Min          : byte;
+    Sec          : byte;
+    SSec         : byte;
+    Str          : string[24];
+  end;
+  
+  TNtpTimeStamp = array[2] of DWord;
+  
+  // NTP Packet Message Data structure
+  TNtpMessageData = record
+    Flags              : Byte;           // Flags; Leap Indicator, Version Number, Mode
+    Strabum            : Byte;           // Stratum; The quality of the clock
+    Polling            : Short;           // [shortint] Poll; how often to poll in log2 seconds
+    Precision          : Short;           // [shortint] Precision of time in log2 seconds  (signed number)
+    RootDelay          : DWord;          // Root Delay = Round Trip delay Hi Word is seconds Lo Word is milliseconds
+    RootDispersion     : DWord;          // Root Dispersion; Maximum Error relative to the primary reference source at the root of the the syncronization subnet in seconds (how far is our local clock off of the "good" clock if we are acting as a local NTP server)
+    ReferenceIdentifier: DWord;          // Refernece ID (Clock type)
+    ReferenceTimeStamp : TNtpTimeStamp;  // Reference Timestamp; Time when the syem clock wsa last set or corrected
+    OriginTimeStamp    : TNtpTimeStamp;  // Origin Timestamp; Time at the client when the reqest departed for the server
+    ReceiveTimeStamp   : TNtpTimeStamp;  // Transmit Timestamp; Time at the server when the response left for the client
+    TransmitTimeStamp  : TNtpTimeStamp;  // Destination Timestamp; Time at the client when the reply arrived from the server
+  end;
+
+const
+  NTP_REQUEST_MESSAGE: TNtpMessageData = (                 //EthMemSet(TXSTART+42,0,48);
+    0xD9,                       // 1 Offset 42    0        Eth_PutByte($d9); Leap Indicator b11xxxxxx = Unsyncronized; Version number = 3 bxx011xxx; Mode = symmetric active bxxxxx001
+    0,                          // 1 Offset 43    1        Eth_PutByte($00); Stratum = Unspecified
+    0x0A,                       // 1 Offset 44    2        Eth_PutByte($0a); Poll = log2 seconds = 10 between polls (1024 seconds)
+    -6,                         // 1 Offset 45    3        Eth_PutByte($fa); = Precision = -6  (0.015625 seconds)
+    0,                          // 4 Offset 46    4        Root Delay = Round Trip delay (unknown = 0)
+    00010290,                   // 4 Offset 50    8        WriteToEthMem(TXSTART+42+9,$01); Eth_PutByte($02); Eth_PutByte($90);
+    0,                          // 4 Offset 54    12       Refernece ID (Clock type)  Kiss of Death "Kiss Code" = nulls
+    (0, 0),                     // 8 Offset 58    16       Reference Timestamp; Time when the syem clock wsa last set or corrected
+    (0, 0),                     // 8 Offset 66    24       Origin Timestamp; Time at the client when the reqest departed for the servicer
+    (0, 0),                     // 8 Offset 54    32       Transmit Timestamp; Time at the server when the response left for the client
+    (0, 0)                      // 8 Offset 62    40       Destination Timestamp; Time at the client when the reply arrived from the server
+  );
+  
+type
+  TFarConstPtr = ^const byte;
+    
+procedure Eth_SendNtpRequest(var NtpServer: IPHeader);
+procedure Eth_Ntp_ReceiveHandler(Slot: ^TUdpSlotReceive);
+
+function String2NTP(var strin : string[32]) : dword;
+procedure NTP2String(buf : dWord; var TTime_Str : string[19]);
+
+procedure Get_Time;
+function Process_NTP(var data_in : array[48] of byte; len_ : byte) : byte;
+
+procedure Eth_EnableTimer_1s(Enable: Boolean); external;
+
+var
+  TimeRec : TNtpRec;
+  NTP_Sync: Boolean;
+  NTP_Time : dWord;
+  NTP_Sec, 
+  NTP_ReSync : Word;
+  Offset_Time : longint;
+  Offset_clock_err : short;
+
+implementation
+
+procedure Eth_SendNtpRequest(var NtpServer: IPHeader);
+var
+  UdpSlot: ^TUdpSlot;
+  i: Integer;
+  NtpRequestPtr: TFarConstPtr;
+begin
+
+  {$IFDEF DEBUG_STRING}Eth_Udp_PrintPorts;UART1_Write_Text('Opening NTP Port 123' + CRLF);{$ENDIF}
+  if Eth_OpenUdpPort(NTP_PORT) then
+  begin
+    {$IFDEF DEBUG_STRING}UART1_Write_Text('Port 123 open, allocating UDP Slot' + CRLF);Eth_Udp_PrintPorts;{$ENDIF}
+    UdpSlot := Eth_AllocateUdpSlot;
+    if UdpSlot <> nil then
+    begin
+      {$IFDEF DEBUG_STRING}UART1_Write_Text('Udp Slot open' + CRLF);{$ENDIF}
+      memcpy(@UdpSlot^.DestIP[0], @NtpServer[0], 4);
+      memcpy(@UdpSlot^.SourceIP[0], @eth_ip_addr[0], 4);
+      memcpy(@UdpSlot^.SourceMAC[0], @eth_mac[0], 6);
+      UdpSlot^.Broadcast := nil;
+      UdpSlot^.WaitForResult := False;
+      UdpSlot^.ValidatewithARP := True;
+      UdpSlot^.DestPort := NTP_PORT;               // NTP
+      UdpSlot^.SourcePort := NTP_PORT;             // Back at me
+      UdpSlot^.DataLen := 48;
+      NtpRequestPtr := @NTP_REQUEST_MESSAGE.Flags;
+      for i := 0 to 47 do
+      begin
+        UdpSlot^.DataArray[i] := NtpRequestPtr^;
+        Inc(NtpRequestPtr);
+      end;
+      Eth_SendUdpMessage(UdpSlot);
+      Eth_FreeUdpSlot(UdpSlot);
+    end;
+  end;
+end;
+
+procedure Eth_Ntp_ReceiveHandler(Slot: ^TUdpSlotReceive);
+var
+  buft : dword;
+  TimeStr: string[19];
+begin
+  if (Slot^.DataLen = 48) then
+  begin
+    {$IFDEF DEBUG_STRING}UART1_Write_Text('NTP Reply Handler: ' + CRLF);{$ENDIF}
+    CopyEthMemToRam_Inv(AddrPacket+82, @buft, 4);
+    Eth_EnableTimer_1s(False);
+    {$IFDEF DEBUG_STRING} NTP2String(NTP_Time, TimeStr); UART1_Write_Text('NTP Time: ' + TimeStr + CRLF);{$ENDIF}
+    NTP_Time := buft + Offset_Time;
+    {$IFDEF DEBUG_STRING} NTP2String(NTP_Time, TimeStr); UART1_Write_Text('NTP Time: ' + TimeStr + CRLF);{$ENDIF}
+    Eth_EnableTimer_1s(True);
+    NTP_Sync := True;
+    NTP_Sec := 0;
+    NTP_ReSync := 0;
+  end;
+  Eth_CloseUdpPort(NTP_PORT);
+  Exit;
+end;
+
+procedure Get_Time;
+var
+  buf : dWord;
+  TempDay,
+  TempMonth,
+  buf_d : word;
+  text : string[3];
+begin
+  DisableInt;
+  TimeRec.Rfc := NTP_Time;
+  EnableInt;
+  TimeRec.Unix := TimeRec.Rfc - 2208988800;
+  buf := TimeRec.Unix;
+  TimeRec.SSec := word(NTP_Sec div 10);
+  TimeRec.Sec := dword(buf Mod 60);
+  buf := buf div 60;
+  TimeRec.Min := dword(buf Mod 60);
+  buf := buf div 60;
+  TimeRec.Hour := dword(buf Mod 24);
+  buf := buf div 24;
+  buf_d := Word(buf);
+  TimeRec.Year := (buf_d div 1461)*4 + 1970;
+  buf_d := buf_d Mod 1461;
+  While true do
+    begin
+      TempDay := 365;
+      If (TimeRec.Year And $03) = 0 Then TempDay := 366;
+      If TempDay > buf_d Then break;
+      buf_d := buf_d - TempDay;
+      Inc (TimeRec.Year);
+    end;
+  inc(buf_d);
+  For TimeRec.Month := 1 To 12 do
+    begin
+      TempMonth := Months_Days[TimeRec.Month];
+      if (TimeRec.Month = 2) and (TempDay = 366) then TempMonth := 29;
+      If buf_d <= TempMonth Then break;
+      buf_d := buf_d - TempMonth;
+    end;
+  TimeRec.Day := buf_d;
+
+  Byte2StrWithZeros(TimeRec.Day, TimeRec.Str);
+  Str_Cut_Left(TimeRec.Str,1);
+  Str_Cat(TimeRec.Str, '.');
+
+  Byte2StrWithZeros(TimeRec.Month, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TimeRec.Str, text);
+
+  Str_Cat(TimeRec.Str, '.');
+
+  Word2Str(TimeRec.Year,text);
+  Str_Cat(TimeRec.Str, text);
+
+  Str_Cat(TimeRec.Str, ' ');
+
+  Byte2StrWithZeros(TimeRec.Hour, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TimeRec.Str, text);
+  Str_Cat(TimeRec.Str, ':');
+  Byte2StrWithZeros(TimeRec.Min, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TimeRec.Str, text);
+  Str_Cat(TimeRec.Str, ':');
+  Byte2StrWithZeros(TimeRec.Sec, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TimeRec.Str, text);
+end;
+
+//******************************************************************************
+//* Name    : Process_NTP                                                      *
+//* Purpose : NTP Response for NTP Server                                      *
+//******************************************************************************
+function Process_NTP(var data_in : array[48] of byte; len_ : byte) : byte;
+begin
+  result := 0;
+  if (len_ <> 48) or ((data_in[0] and $03) <> 1) then exit; // simmetric active
+
+  data_in[0] := $1A;
+  data_in[1] := $01;
+  data_in[2] := $08;
+  data_in[3] := $E3;
+  memset(@data_in[4], 0, 8);
+  data_in[12] := $41;
+  data_in[13] := $43;
+  data_in[14] := $54;
+  data_in[15] := $53;
+
+  Mem_Cpy(@data_in[24], @data_in[40], 8);
+
+  DisableInt;
+  data_in[32] := Highest(Ntp_Time);
+  data_in[33] := Higher(Ntp_Time);
+  data_in[34] := Hi(Ntp_Time);
+  data_in[35] := Lo(Ntp_Time);
+  EnableInt;
+  data_in[36] := 0;
+  data_in[37] := 0;
+  data_in[38] := 0;
+  data_in[39] := 0;
+
+  Mem_Cpy(@data_in[40], @data_in[32], 8);
+  Mem_Cpy(@data_in[16], @data_in[32], 8);
+
+  result := 48;
+end;
+
+function String2NTP(var strin : string[32]) : dword;  // 26.11.2009 12:34:05
+var year_, day_buf : word;
+    month_, day_, hour_, min_, sec_, feb : byte;
+    str_buf : string[4];
+begin
+  result := 3502828800;//2208988800;
+  if Str_Len(strin) <> 19 then exit;
+
+  str_buf[0] := strin[6];
+  str_buf[1] := strin[7];
+  str_buf[2] := strin[8];
+  str_buf[3] := strin[9];
+  str_buf[4] := 0;
+
+  year_ := Str2Word(str_buf);
+
+  str_buf[0] := strin[3];
+  str_buf[1] := strin[4];
+  str_buf[2] := 0;
+
+  month_ := Str2Byte(str_buf);
+
+  str_buf[0] := strin[0];
+  str_buf[1] := strin[1];
+  str_buf[2] := 0;
+
+  day_ := Str2Byte(str_buf);
+
+  str_buf[0] := strin[11];
+  str_buf[1] := strin[12];
+  str_buf[2] := 0;
+
+  hour_ := Str2Byte(str_buf);
+
+  str_buf[0] := strin[14];
+  str_buf[1] := strin[15];
+  str_buf[2] := 0;
+
+  min_ := Str2Byte(str_buf);
+
+  str_buf[0] := strin[17];
+  str_buf[1] := strin[18];
+  str_buf[2] := 0;
+
+  sec_ := Str2Byte(str_buf);
+
+  result := year_ - 1970;
+  if ((result-2) mod 4) = 0 then feb := 29
+  else feb := 28;
+  result := result*365 + ((result-3) div 4);
+
+  case month_ of
+    1 : day_buf := day_;
+    2 : day_buf := day_ + 31;
+    3 : day_buf := day_ + (31 + feb);
+    4 : day_buf := day_ + (31 + feb + 31);
+    5 : day_buf := day_ + (31 + feb + 31 + 30);
+    6 : day_buf := day_ + (31 + feb + 31 + 30 + 31);
+    7 : day_buf := day_ + (31 + feb + 31 + 30 + 31 + 30);
+    8 : day_buf := day_ + (31 + feb + 31 + 30 + 31 + 30 + 31);
+    9 : day_buf := day_ + (31 + feb + 31 + 30 + 31 + 30 + 31 + 31);
+    10 : day_buf := day_ + (31 + feb + 31 + 30 + 31 + 30 + 31 + 31 + 30);
+    11 : day_buf := day_ + (31 + feb + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31)
+    else  day_buf := day_ + (31 + feb + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30);
+  end;
+
+  result := (result + day_buf) * 86400 + (hour_ * 3600) + (min_ * 60) + sec_ + 2208988800;
+end;
+
+procedure NTP2String(buf : dWord; var TTime_Str : string[19]);
+var TempDay, TempMonth, buf_d : word;
+    text : string[5];
+    TTime_Sec,TTime_Min,TTime_Hour,TTime_Month,TTime_Day : byte;
+    TTime_Year : word;
+begin
+  buf := buf - 2208988800;
+  TTime_Sec := dword(buf Mod 60);
+  buf := buf div 60;
+  TTime_Min := dword(buf Mod 60);
+  buf := buf div 60;
+  TTime_Hour := dword(buf Mod 24);
+  buf := buf div 24;
+  buf_d := Word(buf);
+  TTime_Year := (buf_d div 1461)*4 + 1970;
+  buf_d := buf_d Mod 1461;
+  While true do
+    begin
+      TempDay := 365;
+      If (TTime_Year And $03) = 0 Then TempDay := 366;
+      If TempDay > buf_d Then break;
+      buf_d := buf_d - TempDay;
+      Inc(TTime_Year);
+    end;
+  inc(buf_d);
+  For TTime_Month := 1 To 12 do
+    begin
+      TempMonth := Months_Days[TTime_Month];
+      if (TTime_Month = 2) and (TempDay = 366) then TempMonth := 29;
+      If buf_d <= TempMonth Then break;
+      buf_d := buf_d - TempMonth;
+    end;
+  TTime_Day := buf_d;
+
+  Byte2StrWithZeros(TTime_Day, TTime_Str);
+  Str_Cut_Left(TTime_Str,1);
+  Str_Cat(TTime_Str, '.');
+
+  Byte2StrWithZeros(TTime_Month, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TTime_Str, text);
+
+  Str_Cat(TTime_Str, '.');
+
+  Word2Str(TTime_Year,text);
+  Str_Cat(TTime_Str, text);
+
+  Str_Cat(TTime_Str, ' ');
+
+  Byte2StrWithZeros(TTime_Hour, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TTime_Str, text);
+  Str_Cat(TTime_Str, ':');
+  Byte2StrWithZeros(TTime_Min, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TTime_Str, text);
+  Str_Cat(TTime_Str, ':');
+  Byte2StrWithZeros(TTime_Sec, text);
+  Str_Cut_Left(text,1);
+  Str_Cat(TTime_Str, text);
+end;
+
+end.

@@ -1,0 +1,342 @@
+unit lib2_enc600_V3_5_b;
+
+uses dspic_additional_string_library,Lib_Delays_LIO,definitions_ENC600,lib1_enc600_V3_5_b,
+     def_io,df_lib_SPI1,Tftp_Server;
+
+Procedure Eth_Init_;
+function Eth_ReadPacket : word;
+procedure Eth_Send(length_w : word);
+procedure Eth_MacSwap;
+procedure Eth_IpSwap;
+procedure Eth_MacSwap_User;
+procedure Eth_IpSwap_User;
+procedure Eth_ARPResponse;
+Procedure Eth_PingResponse;
+procedure Eth_SendUDP(dest_portA, source_portA, PacketLenA : word);
+procedure Eth_ProcessUDP;
+procedure Eth_DoPacket;
+procedure Wait_for_LAN;
+
+var ENC_CS : sbit; sfr; external;
+    ENC_CS_dir : sbit; sfr; external;
+    ENC_INT : sbit; sfr; external;
+    ENC_INT_dir : sbit; sfr; external;
+    
+implementation
+
+//******************************************************************************
+//* Name    : Eth_Init                                                         *
+//* Purpose : Init Ethernet module                                             *
+//******************************************************************************
+Procedure Eth_Init_;
+var buf : word;
+Begin
+  ENC_INT_dir := 1;
+  ENC_CS := 1;
+  nop;
+  ENC_CS_dir := 0;
+  delayms(10);
+  Eth_UnSelect;
+  delayms(10);
+  Eth_SendSystemReset;
+
+  Eth_WriteReg(ERXST_,RXSTART);
+  Eth_WriteReg(ERXTAIL_,$5FFE);
+  Eth_WriteReg(EUDAST_,$6000);
+  Eth_WriteReg(EUDAND_,$6001);
+
+  Eth_WriteReg(ERXRDPT_,RXSTART);
+  NextPacket := RXSTART;
+  Eth_WriteReg(ETXST_,TXSTART);
+
+  Eth_WriteReg(EGPRDPT_, GPSTART);
+  
+  Eth_WriteReg(MAMXF_, max_packet);
+  Eth_WriteReg(MABBIPG_,$15);
+
+  buf := Eth_ReadReg(MAADR1_);
+  eth_mac[0] := Lo(buf);
+  eth_mac[1] := Hi(buf);
+  buf := Eth_ReadReg(MAADR2_);
+  eth_mac[2] := Lo(buf);
+  eth_mac[3] := Hi(buf);
+  buf := Eth_ReadReg(MAADR3_);
+  eth_mac[4] := Lo(buf);
+  eth_mac[5] := Hi(buf);
+
+  buf := Eth_ReadReg(MACON2_);
+  buf := buf or $0001;
+  Eth_WriteReg(MACON2_, buf);
+
+  Eth_WritePHYReg(PHANA_,$05E1);
+
+  // enables reception
+  Eth_BSF(ECON1_,0x0001);    //RXEN
+  
+  udp_counter := 1024; // start UDP counter with this value
+End;
+
+//******************************************************************************
+//* Name    : Eth_ReadPacket                                                   *
+//* Purpose : Read Packet from Ethernet module                                 *
+//******************************************************************************
+function Eth_ReadPacket : word;
+begin
+  CopyEthMemToEthMem(NextPacket,GPSTART,1600);
+  
+  Eth_WriteReg(EGPRDPT_, NextPacket);    // Set the write pointer
+  Lo(NextPacket) := Eth_GetByte;
+  Hi(NextPacket) := Eth_GetByte;
+
+  Eth_WriteReg(EGPRDPT_, (GPSTART + 20));    // Set the lower write pointer
+  Hi(result) := Eth_GetByte;
+  Lo(result) := Eth_GetByte;
+  
+  AddrPacket := (GPSTART + 8);
+
+  Eth_BSF(ECON1_,ECON1_PKTDEC_);               // Decrement the number of packets
+
+  if NextPacket = RXSTART then Eth_WriteReg(ERXTAIL_, $5FFE)
+  else Eth_WriteReg(ERXTAIL_,NextPacket - 2);
+end;
+
+//******************************************************************************
+//* Name    : Eth_Send                                                         *
+//* Purpose : Send Packet to Ethernet module                                   *
+//******************************************************************************
+procedure Eth_Send(length_w : word);
+var address : word;
+begin
+  ClrWdt;
+
+  Eth_WriteReg(ETXST_, TXSTART);    // Set the start of packet
+
+  Eth_WriteReg(ETXLEN_, length_w);
+
+  Eth_BSF(ECON1_,ECON1_TXRTS_);
+
+  address := 1;
+  while (Eth_ReadReg(ECON1_) and ECON1_TXRTS_) <> 0 do
+    begin
+      if inc(address) = 0 then break;
+    end;
+end;
+
+procedure Eth_MacSwap;
+begin
+  CopyEthMemToEthMem(AddrPacket+6,TXSTART,6);
+  CopyRamToEthMem(@eth_mac,TXSTART+6,6);
+end;
+
+procedure Eth_IpSwap;
+begin
+  CopyRamToEthMem(@eth_ip_addr,TXSTART+26,4);
+  CopyEthMemToEthMem(AddrPacket+26,TXSTART+30,4);
+end;
+
+procedure Eth_MacSwap_User;
+begin
+  CopyRamToEthMem(@dest_mac,TXSTART,6);
+  CopyRamToEthMem(@eth_mac,TXSTART+6,6);
+end;
+
+procedure Eth_IpSwap_User;
+begin
+  CopyRamToEthMem(@eth_ip_addr,TXSTART+26,4);
+  CopyRamToEthMem(@dest_ip_addr,TXSTART+30,4);
+end;
+
+//******************************************************************************
+//* Name    : Eth_ARPResponse                                                  *
+//* Purpose : Response to ARP request                                          *
+//******************************************************************************
+procedure Eth_ARPResponse;
+begin
+  Eth_MacSwap;
+  WriteToEthMem(TXSTART+12,$08);
+  Eth_PutByte($06);
+  Eth_PutByte($00);
+  Eth_PutByte($01);
+  Eth_PutByte($08);
+  Eth_PutByte($00);
+  Eth_PutByte($06);
+  Eth_PutByte($04);
+  Eth_PutByte($00);
+  Eth_PutByte($02);
+  CopyRamToEthMem(@eth_mac,TXSTART+22,6);
+  CopyEthMemToEthMem(AddrPacket+38,TXSTART+28,4);
+  CopyEthMemToEthMem(AddrPacket+6,TXSTART+32,6);
+  CopyEthMemToEthMem(AddrPacket+28,TXSTART+38,4);
+  Eth_Send(42);
+end;
+
+//******************************************************************************
+//* Name    : Eth_PingResponse                                                 *
+//* Purpose : Response to ICMP request                                         *
+//******************************************************************************
+Procedure Eth_PingResponse;
+var cksum,PacketSize : word;
+Begin
+  Hi(PacketSize) := ReadFromEthMem(AddrPacket+16);
+  Lo(PacketSize) := Eth_GetByte;
+  PacketSize := PacketSize + 14;
+  Eth_MacSwap;
+  CopyEthMemToEthMem(AddrPacket+12,TXSTART+12,14);
+  Eth_IpSwap;
+  EthMemSet(TXSTART+34,0,4);
+  CopyEthMemToEthMem(AddrPacket+38,TXSTART+38,PacketSize-38);
+  cksum := Eth_Cksum(TXSTART+34,PacketSize-34);
+  WriteToEthMem(TXSTART+36,Hi(cksum));
+  Eth_PutByte(Lo(cksum));
+  Eth_Send(PacketSize);
+End;
+
+//******************************************************************************
+//* Name    : Eth_SendUDP                                                      *
+//* Purpose : Send UDP packet, used by library                                 *
+//******************************************************************************
+procedure Eth_SendUDP(dest_portA, source_portA, PacketLenA : word);
+var TotalLen : word;
+    Align : byte;
+begin
+  WriteToEthMem(TXSTART+12,$08);
+  Eth_PutByte($00);
+  Eth_PutByte($45);
+  Eth_PutByte($00);
+  inc(udp_counter);
+  TotalLen := PacketLenA + 28;
+  Eth_PutByte(Hi(TotalLen));
+  Eth_PutByte(Lo(TotalLen));
+  Eth_PutByte(Hi(udp_counter));
+  Eth_PutByte(Lo(udp_counter));
+  Eth_PutByte_00;
+  Eth_PutByte($80);
+  Eth_PutByte($11);
+  Eth_PutByte_00;
+  cksum_ip := Eth_Cksum(TXSTART+14,20);
+  WriteToEthMem(TXSTART+24,Hi(cksum_ip));
+  Eth_PutByte(Lo(cksum_ip));
+  WriteToEthMem(TXSTART+34,Hi(source_portA));
+  Eth_PutByte(Lo(source_portA));
+  Eth_PutByte(Hi(dest_portA));
+  Eth_PutByte(Lo(dest_portA));
+  TotalLen := PacketLenA + 8;
+  Eth_PutByte(Hi(TotalLen));
+  Eth_PutByte(Lo(TotalLen));
+  Eth_PutByte_00;
+  Align := TotalLen and $01;
+  WriteToEthMem(TXSTART+PacketLenA+42,$00);
+  Eth_PutByte($00);
+  CopyEthMemToEthMem(TXSTART+26,TXSTART+PacketLenA+Align+42,8);
+  WriteToEthMem(TXSTART+PacketLenA+Align+42+8,$00);
+  Eth_PutByte($11);
+  Eth_PutByte(Hi(TotalLen));
+  Eth_PutByte(Lo(TotalLen));
+  cksum_udp := Eth_Cksum(TXSTART+34,TotalLen + Align + 12);
+  if cksum_udp = 0 then cksum_udp := $FFFF;
+  WriteToEthMem(TXSTART+40,Hi(cksum_udp));
+  Eth_PutByte(Lo(cksum_udp));
+  TotalLen := PacketLenA + 42;
+  Eth_Send(TotalLen);
+end;
+
+//******************************************************************************
+//* Name    : Eth_ProcessUDP                                                   *
+//* Purpose : Process incomming UDP packets                                    *
+//******************************************************************************
+procedure Eth_ProcessUDP;
+var PacketLen,source_port1,dest_port1 : word;
+    Align,end_loop : byte;
+    buft : dword;
+begin
+  Hi(source_port1) := ReadFromEthMem(AddrPacket+36);
+  Lo(source_port1) := Eth_GetByte;
+  if source_port1 <> TFTP_Port then exit;
+  Hi(cksum_ip) := ReadFromEthMem(AddrPacket+24);
+  Lo(cksum_ip) := Eth_GetByte;
+  Hi(cksum_udp) := ReadFromEthMem(AddrPacket+40);
+  Lo(cksum_udp) := Eth_GetByte;
+  Hi(len) := ReadFromEthMem(AddrPacket+16);
+  Lo(len) := Eth_GetByte;
+  CopyEthMemToEthMem(AddrPacket,TXSTART,len+14);
+  WriteToEthMem(TXSTART+24,$00);
+  Eth_PutByte($00);
+  if cksum_ip <> Eth_Cksum(TXSTART+14,20) then exit;
+  if len <= 28 then exit;
+  Align := len and $01;
+  WriteToEthMem(TXSTART+40,$00);
+  Eth_PutByte($00);
+  WriteToEthMem(TXSTART+len+14,$00);
+  Eth_PutByte($00);
+  CopyEthMemToEthMem(TXSTART+26,TXSTART+len+Align+14,8);
+  WriteToEthMem(TXSTART+len+Align+14+8,$00);
+  Eth_PutByte($11);
+  len := len - 20;
+  Eth_PutByte(Hi(len));
+  Eth_PutByte(Lo(len));
+  if cksum_udp <> Eth_Cksum(TXSTART+34,len + Align + 12) then exit;
+  len := len - 8;
+  Hi(dest_port1) := ReadFromEthMem(AddrPacket+34);
+  Lo(dest_port1) := Eth_GetByte;
+  CopyEthMemToRam(AddrPacket + 26,@dest_ip_addr1,4);
+  WriteToEthMem(TXSTART+41,$00); // put tx pointer
+  ReadFromEthMem(AddrPacket + 41); // put rx pointer to start of UDP data.
+  if len > 2 then PacketLen := UDP_Data_In(len)
+  else exit;
+  if PacketLen = 0 then exit;
+  Eth_MacSwap;
+  Eth_IpSwap;
+  Eth_SendUDP(dest_port1, source_port1, PacketLen);
+end;
+
+//******************************************************************************
+//* Name    : Eth_DoPacket                                                     *
+//* Purpose : Process incomming Ethernet packets, without TCP/IP Stack         *
+//******************************************************************************
+procedure Eth_DoPacket;
+begin
+  ClrWdt;
+  if (Eth_ReadReg(EIR_) and $0040) <> 0 then
+    begin
+      case Eth_ReadPacket of
+        ETH_ARP :
+        begin
+          if EthMemCompareWithRam(AddrPacket+38,@eth_ip_addr,4) <> 0 then
+          if ReadFromEthMem(AddrPacket+21) = ETH_ARP_REQ then Eth_ARPResponse;
+        end;
+        ETH_IP :
+        begin
+          if EthMemCompareWithRam(AddrPacket+30,@eth_ip_addr,4) <> 0 then
+            begin
+              case ReadFromEthMem(AddrPacket+23) of
+                ETH_IP_ICMP :
+                begin
+                  if ReadFromEthMem(AddrPacket+34) = ETH_IP_ICMP_ECHO then Eth_PingResponse;
+                end;
+                ETH_IP_UDP : Eth_ProcessUDP;
+              end;
+            end;
+        end;
+      end;
+    end;
+end;
+
+//******************************************************************************
+//* Name    : Wait_for_LAN                                                     *
+//* Purpose : Wait for LAN                                                     *
+//******************************************************************************
+procedure Wait_for_LAN;
+var contorw : word;
+begin
+  contorw := 0;
+  while contorw < 60000 do
+    begin
+      ClrWdt;
+      if (Eth_ReadReg(EIR_) and $0040) <> 0 then Eth_ReadPacket;
+      delay_100us_;
+      if Check_Link <> 0 then break;
+      inc(contorw);
+    end;
+end;
+
+end.

@@ -1,0 +1,123 @@
+unit enc_lib_user;
+
+uses dspic_additional_string_library,
+     def_io,
+     lib1_enc600_V3_5_b;
+     
+procedure Read_Stored_Rom_Code;
+Procedure Eth_SetParameters(type_ : byte);   // set your parameters here
+procedure Save_Configuration;
+procedure Save_Configuration1;
+procedure Init_SNMP_var;
+procedure Eth_UserProcess_Main;
+procedure Eth_UserProcess;
+procedure Eth_UserTCP(var dest_ip_addr_T : IpHeader; var source_port_T, dest_port_T, len_T : word; CC_Sock : byte);
+function Eth_UserUDP(var dest_ip_addr_U : IpHeader; var dest_port_U, source_port_U, len_U : word) : word;
+
+const my_data : array[76] of byte =
+(
+192,193,194,40,
+255,255,255,0,
+192,193,194,1,
+192,43,244,18,
+8,8,8,8,
+255,168,1,1,
+0,    // DHCP Flag
+$D2,  // Lo pass, default 1234
+$04,  // Hi pass
+0,    // Board Type
+0,0,0,0,
+'S','M','S','C',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // sysName, string 31 char
+192,168,1,101, // TRIAC1 IP
+192,168,1,102, // RELAY1 IP
+192,168,1,103  // VOLATGE OUT1 IP
+); far;
+
+const my_data1 : array[192] of byte =
+(
+'S','e','n','s','o','r','_','N','a','m','e','0','1',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','2',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','3',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','4',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','5',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','6',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','7',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','8',0,0,0,
+'I','O','_','N','a','m','e','0','1',0,0,0,0,0,0,0,
+'I','O','_','N','a','m','e','0','2',0,0,0,0,0,0,0,
+'I','O','_','N','a','m','e','0','3',0,0,0,0,0,0,0,
+'I','O','_','N','a','m','e','0','4',0,0,0,0,0,0,0
+); far;
+
+implementation
+
+procedure Save_Configuration;
+begin
+
+end;
+
+procedure Save_Configuration1;
+begin
+end;
+
+procedure Read_Stored_Rom_Code;
+begin
+end;
+
+Procedure Eth_SetParameters(type_ : byte);   // set your parameters here
+
+Begin
+  eth_ip_addr[0] := 192;
+  eth_ip_addr[1] := 168;
+  eth_ip_addr[2] := 0;
+  eth_ip_addr[3] := 44;
+
+  eth_mask[0] := 255;
+  eth_mask[1] := 255;
+  eth_mask[2] := 255;
+  eth_mask[3] := 0;
+
+  eth_gateway[0] := 192;
+  eth_gateway[1] := 168;
+  eth_gateway[2] := 0;
+  eth_gateway[3] := 1;
+  
+  eth_ntp_addr[0] := 132;   // NIST
+  eth_ntp_addr[1] := 163;
+  eth_ntp_addr[2] := 4;
+  eth_ntp_addr[3] := 101;
+
+  eth_dns_addr[0] := 192;
+  eth_dns_addr[1] := 168;
+  eth_dns_addr[2] := 0;
+  eth_dns_addr[3] := 1;
+
+end;
+
+procedure Init_SNMP_var;
+var i,j : word;
+begin
+  
+end;
+
+procedure Eth_UserProcess_Main;
+begin
+
+end;
+
+procedure Eth_UserProcess;
+begin
+
+end;
+
+procedure Eth_UserTCP(var dest_ip_addr_T : IpHeader; var source_port_T, dest_port_T, len_T : word; CC_Sock : byte);
+begin
+
+end;
+      
+function Eth_UserUDP(var dest_ip_addr_U : IpHeader; var dest_port_U, source_port_U, len_U : word) : word;
+begin
+  result := 0;
+end;
+
+end.

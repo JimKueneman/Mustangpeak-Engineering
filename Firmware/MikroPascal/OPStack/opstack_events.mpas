@@ -1,0 +1,162 @@
+unit opstack_events;
+
+// ******************************************************************************
+//
+// * Copyright:
+//     (c) Mustangpeak Software 2012.
+//
+//     The contents of this file are subject to the GNU GPL v3 licence/ you maynot use
+//     this file except in compliance with the License. You may obtain a copy of the
+//     License at http://www.gnu.org/licenses/gpl.html
+//
+// * Revision History:
+//     2012-04-01:   1.0.0.0 Created
+//     2012-10-07:   Version 1.0
+//
+// * Description:
+//                Implements callback Application Events ( _NOT_ OLCB/LCC events )
+//
+// ******************************************************************************
+{$I Options.inc}
+
+uses
+  opstack_defines,
+  template_configuration;
+  
+procedure Events_Initialize;
+
+{ There is a bug in the mE compilers that crashes the compiler if I use the real types
+  for the passed paramters.  Thus I have to use genaric pointers and they must be
+  typecast in the implmentations... sucks but oh well.....
+
+  // Definitions of Parameter types to typecast
+  NodePtr          = POpenLCBNode;
+  SourceNodeInfo   = PNodeInfo;
+  DestNodeInfo     = PNodeInfo;
+  DatagramData     = is a true pointer to the byte in the Datagram Array and is increased by Inc(DatagramData)
+  EventID          = PEventID;
+  SourceNodeID     = PNodeID;
+  DestNodeID       = PNodeID;
+  OPStackMessage   = POPStackMessage
+}
+  
+// Event Types
+type
+  TOnOPStackProc = procedure();
+  TOnOPStackEvent = procedure(NodePtr: ^Byte);
+  TOnOPStackConfigMemReplyEvent = procedure(NodePtr: ^Byte; OPStackMessage: ^Byte; Success: Boolean);
+  TOnOPStackAferConfigEvent = procedure(NodePtr: ^Byte; ConfigAddress: DWord; Count: Word);
+  TOnOPStackConfigurationEvent = procedure(NodePtr: ^Byte; SourceNodeInfo: ^Byte; ConfigAddress: DWord; ReadWriteCount: Word; DatagramData: ^Byte; var Handled: Boolean; var Ack_Flags: Byte);
+  TOnOPStackIdentifiedEvent = procedure(SourceNodeInfo: ^Byte; MTI: Word; EventID: ^Byte);
+  TOnOPStackNodeEvent = procedure(NodePtr: ^Byte);
+  TOnAddressedMessageReplyEvent = procedure(NodePtr: ^Byte; OPStackMessage: ^Byte);
+  TOnOPStackEventReceiveEvent = procedure(SourceNodeInfo: ^Byte; EventID: ^Byte);
+  TOnOPStackNodeIDReceiveEvent = procedure(SourceNodeInfo: ^Byte; NodeID: PNodeID);
+
+  {$IFDEF SUPPORT_TRACTION}
+type
+  TOnOPStackTractionFunctionConfigurationEvent = procedure(NodePtr: ^Byte; SourceNodeInfo: ^Byte; ConfigAddress: DWord; ReadWriteCount: Word; DatagramData: ^Word);
+  TOnOPStackTractionReadFDIEvent = function(NodePtr: ^Byte; ConfigAddress: DWord; ReadCount: Word; DatagramData: ^Byte): Word;
+  {$ENDIF}
+  {$IFDEF SUPPORT_TRACTION_PROXY}
+type
+  TOnOPStackTractionProxyProtocol = procedure(NodePtr: ^Byte; OPStackMessage: ^Byte; SourceHasLock: Boolean);
+  TOnOPStackTractionProxyProtocolReply = procedure(NodePtr: ^Byte; OPStackMessage: ^Byte);
+  {$ENDIF}
+
+// The instancation of the events**************************************************
+
+var
+  OnStateMachineProcess: ^TOnOPStackEvent;
+  OnTimer_1s: ^TOnOPStackProc;
+  
+var
+  OnNodeInitializeEvent: ^TOnOPStackNodeEvent;
+  OnNodeFinalizeEvent  : ^TOnOPStackNodeEvent;
+  
+var
+  OnSimpleNodeInfoReply: ^TOnAddressedMessageReplyEvent;
+  OnProtocolSupportReplyEvent: ^TOnAddressedMessageReplyEvent;
+  OnRemoteButtonReplyEvent: ^TOnAddressedMessageReplyEvent;
+ 
+// Caution, these are called from the hardware layer interrupt since they are global
+// messages and only set flags in the OPStack then are dropped.  Don't do excessive
+// processing in these event or you will overrun the receive buffer
+var
+  OnLearnEvent: ^TOnOPStackEventReceiveEvent;
+  OnPcEventReportEvent: ^TOnOPStackEventReceiveEvent;
+  OnVerifiedNodeID: ^TOnOPStackNodeIDReceiveEvent;
+  OnConsumerIdentifiedEvent: ^TOnOPStackIdentifiedEvent;
+  OnProducerIdentifiedEvent: ^TOnOPStackIdentifiedEvent;
+
+var
+  OnAfterConfigWrite: ^TOnOPStackAferConfigEvent;                               // Called after a Configuration Write has occured
+  OnAfterConfigRead: ^TOnOPStackAferConfigEvent;                                // Called after a Configuration Read has occured
+  OnConfigRead: ^TOnOPStackConfigurationEvent;                                  // Override to implement custom handling of the Configuration Read implementation
+  OnConfigWrite: ^TOnOPStackConfigurationEvent;                                 // Override to implement custom handling of the Configuration Write implementation
+  OnConfigMemWriteReplyEvent: ^TOnOPStackConfigMemReplyEvent;                   // Override to receive after requesting a Config Mem Write
+  OnConfigMemReadReplyEvent: ^TOnOPStackConfigMemReplyEvent;                    // Override to receive after requesting a Config Mem Read
+  OnConfigMemStreamWriteReplyEvent: ^TOnOPStackConfigMemReplyEvent;             // Override to receive after requesting a Config Mem Write by Stream
+  OnConfigMemStreamReadReplyEvent: ^TOnOPStackConfigMemReplyEvent;              // Override to receive after requesting a Config Mem Read by Stream
+  
+var
+  OnInitializationComplete: ^TOnOPStackNodeIDReceiveEvent;                      // Called after a node has been created and has been put on the OLCB bus
+  
+  {$IFDEF SUPPORT_TRACTION}
+var
+  OnTractionFunctionConfigRead: ^TOnOPStackTractionFunctionConfigurationEvent;
+  OnTractionFunctionConfigWrite: ^TOnOPStackTractionFunctionConfigurationEvent;
+  OnTractionReadFDI: ^TOnOPStackTractionReadFDIEvent;
+  OnSimpleTrainNodeInfoReply: ^TOnAddressedMessageReplyEvent;
+  {$ENDIF}
+  {$IFDEF SUPPORT_TRACTION_PROXY}
+var
+  OnOPStackTractionProxyProtocol: ^TOnOPStackTractionProxyProtocol;
+  OnOPStackTractionProxyProtocolReply: ^TOnOPStackTractionProxyProtocolReply;
+  {$ENDIF}
+  
+
+implementation
+
+procedure Events_Initialize;
+begin
+  OnAfterConfigWrite := nil;
+  OnAfterConfigRead := nil;
+  OnConfigRead := nil;
+  OnConfigWrite := nil;
+  OnConfigMemWriteReplyEvent := nil;
+  OnConfigMemReadReplyEvent := nil;
+  OnConfigMemStreamWriteReplyEvent := nil;
+  OnConfigMemStreamReadReplyEvent := nil;
+  
+  OnInitializationComplete := nil;
+  
+  {$IFDEF SUPPORT_TRACTION_PROXY}
+  OnTractionFunctionConfigRead := nil;
+  OnTractionFunctionConfigWrite := nil;
+  OnTractionReadFDI := nil;
+  OnSimpleTrainNodeInfoReply := nil;
+  {$ENDIF}
+  {$IFDEF SUPPORT_TRACTION_PROXY}
+  OnOPStackTractionProxyProtocol := nil;
+  OnOPStackTractionProxyProtocolReply := nil;
+  {$ENDIF}
+  
+  OnLearnEvent := nil;
+  OnPcEventReportEvent := nil;
+  OnVerifiedNodeID := nil;
+  OnConsumerIdentifiedEvent := nil;
+  OnProducerIdentifiedEvent := nil;
+  
+  OnNodeInitializeEvent := nil;
+  OnNodeFinalizeEvent := nil;
+  
+  OnSimpleNodeInfoReply := nil;
+  OnProtocolSupportReplyEvent := nil;
+  OnRemoteButtonReplyEvent := nil;
+  
+  OnStateMachineProcess := nil;
+  OnTimer_1s := nil;
+end;
+
+end.

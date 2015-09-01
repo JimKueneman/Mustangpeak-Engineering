@@ -1,0 +1,260 @@
+program TFTP_Bootloader_8K;
+
+uses dspic_additional_string_library,lib_Delays_LIO,def_io,lib1_enc600_V3_5_b,
+     lib2_enc600_V3_5_b,df_lib_SPI1,crc16_lib,Tftp_Server; // Don't touch this lines !!!!!
+
+const MCU_Flash_Size = $15800;                   // 128GP
+const MCU_Flash_Size_byte = (MCU_Flash_Size div 2) * 3;
+const MCU_Erase_Block = 1024;
+const Bootloader_Size  = (8 * MCU_Erase_Block); // don't touch this...
+const EntryProgPoint = MCU_Flash_Size - Bootloader_Size - 6;
+const val1 = MCU_Flash_Size - Bootloader_Size - MCU_Erase_Block;
+
+const DF_Start_addr = (12*512); // page 1
+
+var data_ : array[1536] of byte;
+    reset_vector,start_vector,reset_vector1,start_vector1 : dword;
+    address1,address2,led_old : dword;
+    i : byte;
+    size_,j,k :dword;
+    jj,kk,kk1,CRC,CRC_calc : word;
+
+label next_1;
+
+procedure EntryProgramPoint; org EntryProgPoint;
+begin
+  asm
+    CLR W0         // bootloader will write here your start address
+    GOTO W0
+  end;
+end;
+
+Function EEP_CRC_Calculate : boolean;   // calculate CRC16 in EEP
+var address : dword;
+begin
+  result := false;
+  address := address2 + MCU_Flash_Size_byte - 2;
+  Hi(CRC) := DF_ContRead(address);
+  inc(address);
+  Lo(CRC) := DF_ContRead(address);
+  if CRC = $FFFF then exit;
+  if CRC = DF_ContArrayCRC(address2,MCU_Flash_Size_byte - 2) then result := true;
+end;
+
+function Flash_Read_24(address : dword) : dword;
+begin
+  TBLPAG := Higher(address);
+  W0 := word(address);
+  asm
+    TBLRDH [W0],W3 // Read high byte to W3
+    TBLRDL [W0],W4 // Read low word to W4
+  end;
+  result := W4;
+  Higher(result) := Lo(W3);
+end;
+
+procedure Flash_Write_24(address : dword; var data_in : array[1536] of byte);  // Flash erase/write
+var i,j,ii,bb : word;
+    aa : byte;
+begin
+  FLASH_Erase(address);
+  delayms(10);
+  ClrWdt;
+  i := 0;
+  j := 0;
+  while j < 8 do
+    begin
+      asm
+        MOV #0x4001, W0
+        MOV W0, NVMCON // Initialize NVMCON
+      end;
+      TBLPAG := Higher(address);
+      W8 := word(address);
+      ii := 0;
+      while ii < 64 do
+        begin
+          aa := data_in[i+2];
+          Hi(bb) := data_in[i+1];
+          Lo(bb) := data_in[i];
+          i := i + 3;
+          asm
+            PUSH W7
+            PUSH W9
+          end;
+          W7 := aa;
+          W9 := bb;
+          asm
+            TBLWTL W9, [W8]     // Write PM low word into program latch
+            TBLWTH W7, [W8++]   // Write PM high byte into program latch
+            POP W9
+            POP W7
+          end;
+          inc(ii);
+        end;
+      asm
+        DISI #5               // Block all interrupts with priority <7 for next 5 instructions
+        MOV #0x55, W0
+        MOV W0, NVMKEY        // Write the 55 key
+        MOV #0xAA, W1
+        MOV W1, NVMKEY        // Write the AA key
+        BSET NVMCON, #15      // Start the erase sequence
+        NOP
+        NOP
+        BTSC NVMCON, #15      // and wait for it to be
+        BRA $-2               // completed
+      end;
+      address := address + 128;
+      inc(j);
+    end;
+end;
+
+function check_jumper : word;
+begin
+  result := 0;
+  TRISB.0 := 1;
+  TRISB.1 := 1;
+  nop;
+  if (PORTB.0 = 0) or (PORTB.1 = 0) then exit;
+  TRISB.0 := 0;
+  TRISB.1 := 1;
+  nop;
+  LATB.0 := 1;
+  nop;
+  result.0 := PORTB.1;
+  LATB.0 := 0;
+  nop;
+  result.1 := not(PORTB.1);
+  nop;
+  LATB.0 := 1;
+  nop;
+  result.2 := PORTB.1;
+  LATB.0 := 0;
+  nop;
+  result.3 := not(PORTB.1);
+  TRISB.0 := 1;
+end;
+
+begin
+  OrgAll(EntryProgPoint);
+  
+  CLRWDT;
+  
+  CLKDIV := CLKDIV and $FF3F;
+  PLLFBD := 18;  // 20 MIPS
+//  PLLFBD := 38;  // 40 MIPS
+  
+  delayms(100);
+  
+  AD1PCFGL := 0xFFFF;
+  CNPU1.4 := 1; // RB0 pull up
+  CNPU1.5 := 1; // RB1 pull up
+  
+  if check_jumper = 15 then goto next_1;
+  
+  Unlock_IOLOCK();
+
+  PPS_Mapping(7, _INPUT, _SDI2);      // Ethernet
+  PPS_Mapping(22, _OUTPUT, _SDO2);
+  PPS_Mapping(9, _OUTPUT, _SCK2OUT);
+
+  PPS_Mapping(19, _INPUT, _SDI1);      // AT45DB161D
+  PPS_Mapping(20, _OUTPUT, _SDO1);
+  PPS_Mapping(21, _OUTPUT, _SCK1OUT);
+  
+  Lock_IOLOCK();
+
+  LED1 := 0;
+  nop;
+  LED1_dir := 0;
+  
+  MOS := 0;
+  nop;
+  MOS_dir := 0;
+  
+  Spi1_Init_Advanced(_SPI_MASTER, _SPI_8_BIT, _SPI_PRESCALE_SEC_2, _SPI_PRESCALE_PRI_1,
+                     _SPI_SS_DISABLE, _SPI_DATA_SAMPLE_MIDDLE, _SPI_CLK_IDLE_LOW, _SPI_IDLE_2_ACTIVE);
+  // AT45DB161D on SPI1
+  if DF_Init = false then reset;
+  
+  // Ethernet on SPI2
+  Spi2_Init_Advanced(_SPI_MASTER, _SPI_8_BIT, _SPI_PRESCALE_SEC_2, _SPI_PRESCALE_PRI_1,
+                     _SPI_SS_DISABLE, _SPI_DATA_SAMPLE_MIDDLE, _SPI_CLK_IDLE_LOW, _SPI_IDLE_2_ACTIVE);
+  
+  if PORTB.0 = 1 then
+    begin
+      LED1 := 1;
+{
+      eth_ip_addr[0] := 192;
+      eth_ip_addr[1] := 193;
+      eth_ip_addr[2] := 194;
+      eth_ip_addr[3] := 40;
+}
+      eth_ip_addr[0] := 192;
+      eth_ip_addr[1] := 168;
+      eth_ip_addr[2] := 1;
+      eth_ip_addr[3] := 100;
+
+      Eth_Init_;
+
+      Wait_for_LAN;
+
+      while PORTB.0 = 1 do Eth_DoPacket;
+      
+      if check_jumper = 15 then goto next_1;
+    end;
+    
+  address2 := DF_Start_addr;
+  if EEP_CRC_Calculate <> 0 then           // check for CRC
+    begin
+      reset_vector := Flash_Read_24(0);
+      reset_vector1 := Flash_Read_24(2);
+      DF_ContArrayReadN(data_, address2, 1536);
+      Higher(start_vector) := data_[0];
+      Hi(start_vector) := data_[1];
+      Lo(start_vector) := data_[2];
+      Higher(start_vector1) := data_[3];
+      Hi(start_vector1) := data_[4];
+      Lo(start_vector1) := data_[5];
+      data_[5] := Higher(reset_vector1);
+      data_[4] := Hi(reset_vector1);
+      data_[3] := Lo(reset_vector1);
+      data_[2] := Higher(reset_vector);
+      data_[1] := Hi(reset_vector);
+      data_[0] := Lo(reset_vector);
+      Flash_Write_24(0,data_);
+      address1 := MCU_Erase_Block;
+      address2 := address2 + 1536;
+      while true do
+        begin
+          DF_ContArrayReadN(data_, address2, 1536);
+          Flash_Write_24(address1,data_);
+          address2 := address2 + 1536;
+          address1 := address1 + MCU_Erase_Block;
+          if address1 >= val1 then break;
+          LED1 := not LED1;
+        end;
+      Mem_Set(@data_,$FF,1536);
+      data_[1527] := Higher(start_vector);
+      data_[1528] := Hi(start_vector);
+      data_[1529] := Lo(start_vector);
+      data_[1530] := Higher(start_vector1);
+      data_[1531] := Hi(start_vector1);
+      data_[1532] := Lo(start_vector1);
+      data_[1533] := $00;
+      data_[1534] := $00;
+      data_[1535] := $06;
+      Flash_Write_24(val1,data_);
+      DF_BufferFill(255,1);
+      DF_BufferToPage((DF_Start_addr + MCU_Flash_Size_byte - 2) div 512,1); // delete, last page from firmware, destroy CRC
+    end;
+
+next_1:
+
+  LED1_dir := 1;
+  
+  asm
+    GOTO $137FA
+  end;
+    
+  EntryProgramPoint;
+end.

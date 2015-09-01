@@ -1,0 +1,107 @@
+unit protocol_dns;
+
+uses
+  dspic_additional_string_library,
+  lib1_enc600_V3_5_b,
+  protocol_defines,
+  port_utilities,
+  packet_utilities,
+  protocol_udp,
+  protocol_arp;
+  
+  
+function Dns_query(var text_in : string[40]) : boolean;
+function Dns_Resolve(var text_in_ : string[40]; var dns_ip : IpHeader) : boolean;
+
+procedure Do_EthernetProc(n : word); external;
+
+var 
+  DNSHeader : DNS_HEADER;
+  DNSAnswerHeader : DNS_ANSWER_HEADER;
+  DNS_TR_ID : word;
+  
+  DNS_resp: Boolean;
+
+implementation
+
+//******************************************************************************
+//* Name    : Dns_query                                                        *
+//* Purpose : Send DNS request                                                 *
+//******************************************************************************
+function Dns_query(var text_in : string[40]) : boolean;
+var data_ : array[64] of byte;
+    i, j : byte;
+    data_len : word;
+    pt1, pt2 : ^byte;
+begin
+  if Str_Len(text_in) < 3 then 
+    Exit;
+  DNS_TR_ID := $00B5;
+  memset(@data_, 0, 64); // clear data
+  data_[1] := $B5;
+  data_[2] := $01;
+  data_[5] := $01;
+  data_[12] := '.';
+  i := Str_Len(text_in);
+  Mem_Cpy(@data_[13], @text_in, i);
+  data_[15+i] := $01;
+  data_[17+i] := $01;
+  data_len := 18 + i;
+  pt2 := @data_[12];
+  pt1 := pt2 + 1;
+  while pt2^ <> 0 do
+    begin
+      j := 0;
+      while (pt1^ <> '.') and (pt1^ <> 0) do
+        begin
+          inc(j);
+          pt1 := pt1 + 1;
+        end;
+      pt2^ := j;
+      pt2 := pt1;
+      pt1 := pt1 + 1;
+    end;
+
+  Result := False;
+ // if SendUDPWithValidARP(eth_dns_addr, 53, 23456, data_len, data_) = False then
+ //   Exit;
+  Result := True;
+end;
+
+//******************************************************************************
+//* Name    : Dns_Resolve                                                      *
+//* Purpose : Send DNS request                                                 *
+//******************************************************************************
+function Dns_Resolve(var text_in_ : string[40]; var dns_ip : IpHeader) : boolean;
+var CountBuf : word;
+    i : byte;
+begin
+  memset(@dns_ip, 0, 4);
+  Result := False;
+  i := 0;
+  while i < 3 do
+    begin
+      if Check_Link = False then Exit;
+      DNS_resp := False;
+      if Dns_query(text_in_) = False then Exit;
+      UDP_Open_Port(23456);
+      TickCounter1 := 0;
+      CountBuf := 0;
+      while CountBuf < UDP_Wait do
+        begin
+          Do_EthernetProc(1);
+          if DNS_resp <> 0 then break;
+          CountBuf := TickCounter1;
+        end;
+      UDP_Close_Port(23456);
+      if DNS_resp <> 0 then break;
+      inc(i);
+    end;
+
+  if DNS_resp = False then Exit;
+
+  Mem_Cpy(@dns_ip, @resp_ip_addr, 4);
+  Result := True;
+end;
+
+end.

@@ -1,0 +1,598 @@
+unit MCW1001_Print;
+
+{.$DEFINE FULL_SOCKETACCEPT_LOGGING}  // If enabled the Accept Polling creates a message every poll when logging. Turn that off here to only capture true connects
+{.$DEFINE FULL_SOCKETRECEIVE_LOGGING} // If enabled the Receive Polling creates a message every poll when logging. Turn that off here to only capture true connects
+
+uses
+  opstack_types,
+  opstack_debug,
+  MCW1001_Defines;
+  
+procedure MCW1001_PrintIpAddressAssigned(IpAddr: PWiFiIpAddressAssignedEvent);
+procedure MCW1001_PrintConnectionStatusChanged(ConnectStatus: PWiFiConnectionStatusChangedEvent);
+procedure MCW1001_PrintScanResultsReady(ScanResults: PWiFiScanResultsReadyEvent);  
+procedure MCW1001_PrintScanResult(ScanResult: PWiFiScanResult; Index: Integer);
+procedure MCW1001_PrintPingResponse(PingResponse: PWiFiPingResponseEvent);
+procedure MCW1001_PrintError(Error: PWiFiErrorEvent);
+procedure MCW1001_PrintStartup(Startup: PWiFiStartupEvent);
+procedure MCW1001_PrintNetworkStatus(NetworkStatus: PWiFiNetworkStatus);
+procedure MCW1001_PrintWPAKey(BinaryWPAKey: PWiFiWPAKeyResult);
+procedure MCW1001_PrintChannels(var Channels: TChannelList);
+
+procedure MCW1001_PrintIpAddress(var IpAddress: TOlcbIpAddress);
+procedure MCW1001_PrintMacAddress(var MacAddress: TOlcbMacAddress);
+
+procedure MCW1001_PrintSocketCreateResult(SocketCreateResult: PSocketCreateResult);
+procedure MCW1001_PrintSocketBindResult(SocketBindResult: PSocketBindResult);
+procedure MCW1001_PrintSocketConnectResult(SocketConnectResult: PSocketConnectResult);
+procedure MCW1001_PrintSocketListenResult(SocketListenResult: PSocketListenResult);
+procedure MCW1001_PrintSocketAcceptResult(SocketAcceptResult: PSocketAcceptResult);
+procedure MCW1001_PrintSocketSendResult(SocketSendResult: PSocketSendResult);
+procedure MCW1001_PrintSocketReceiveResult(SocketReceiveResult: PSocketReceiveResult);
+procedure MCW1001_PrintSocketSendToResult(SocketSendToResult: PSocketSendToResult);
+procedure MCW1001_PrintSocketReceiveFromResult(SocketReceiveFromResult: PSocketReceiveFromResult);
+procedure MCW1001_PrintSocketAllocateResult(SocketAllocateResult: PSocketAllocateResult);
+
+procedure MCW1001_PrintIpAddress(var IpAddress: TOlcbIpAddress);
+
+implementation
+
+var
+  s1: string[128];
+  
+procedure MCW1001_PrintIpAddress(var IpAddress: TOlcbIpAddress);
+begin
+  ByteToStr(IpAddress[0], s1);
+  lTrim(s1);
+  DebugStr(s1 + '.');
+  ByteToStr(IpAddress[1], s1);
+  lTrim(s1);
+  DebugStr(s1 + '.');
+  ByteToStr(IpAddress[2], s1);
+  lTrim(s1);
+  DebugStr(s1 + '.');
+  ByteToStr(IpAddress[3], s1);
+  lTrim(s1);
+  DebugStr(s1);
+end;
+
+procedure MCW1001_PrintMacAddress(var MacAddress: TOlcbMacAddress);
+begin
+  ByteToStr(MacAddress[0], s1);
+  lTrim(s1);
+  DebugStr(s1 + '.');
+  ByteToStr(MacAddress[1], s1);
+  lTrim(s1);
+  DebugStr(s1 + '.');
+  ByteToStr(MacAddress[2], s1);
+  lTrim(s1);
+  DebugStr(s1 + '.');
+  ByteToStr(MacAddress[3], s1);
+  lTrim(s1);
+  DebugStr(s1 + '.');
+  ByteToStr(MacAddress[4], s1);
+  lTrim(s1);
+  DebugStr(s1 + '.');
+  ByteToStr(MacAddress[5], s1);
+  lTrim(s1);
+  DebugStr(s1);
+end;
+
+procedure ConnectionStatusChangedStatusToStr(StatusCode: Byte; var Str: string[128]);
+begin
+  case StatusCode of
+    1 : Str := '1: Connection attempt succeeded';
+    2 : Str := '2: Connection attempt failed';
+    3 : Str := '3: Connection temporarily lost, WiComm-Socket is retrying';
+    4 : Str := '4: Connection reestablished, WiComm-Socket reestablished the link';
+    5 : Str := '5: Connection permanently lost, retries exhausted'
+  else begin
+      ByteToStr(StatusCode, s1);
+      ltrim(s1);
+      Str := 'Unknown status code: ' + s1;
+    end;
+  end
+end;
+
+procedure ConnectionStatusChangedDataToStr(StatusCode, EventData: Byte; var Str: string[128]);
+begin
+  case StatusCode of
+    1, 4 : Str := 'Event Data Field not used for the Status Code';
+    2 : begin
+          case EventData of
+            2 :  Str := 'Join failure';
+            3 :  Str := 'Authentication failure';
+            4 :  Str := 'Association failure';
+            5 :  Str := 'WEP handshake failure';
+            6 :  Str := 'PSK calculation failure';
+            7 :  Str := 'PSK handshake failure';
+            8 :  Str := 'ad hoc join failure';
+            9 :  Str := 'Security mismatch failure';
+            10 : Str := 'No suitable AP found failure';
+            11 : Str := 'Retry forever not supported failure'
+          else begin
+              ByteToStr(EventData, s1);
+              ltrim(s1);
+              Str := 'Unknown event data';
+            end;
+          end
+        end;
+    3, 5 : begin
+            case EventData of
+              1 :  Str := 'Beacon time out';
+              2 :  Str := 'Deauth ReceivedDE';
+              3 :  Str := 'Disassociate received'
+            else begin
+                ByteToStr(EventData, s1);
+                ltrim(s1);
+                Str := 'Unknown event data: ' + s1;
+              end;
+            end;
+          end
+  else begin
+      ByteToStr(StatusCode, s1);
+      ltrim(s1);
+      Str := 'Unknown status code: ' + s1;
+    end;
+  end;
+end;
+
+procedure ErrorCodeToStr(ErrorCode: Byte; var Str: string[128]);
+begin
+  case ErrorCode of
+    60 :  Str := '60 - Baud rate generator error';
+    61 :  Str := '61 - Invalid Connection Profile ID';
+    62 :  Str := '62 - Wi-Fi already connected error';
+    63 :  Str := '63 - Wi-Fi already disconnected error';
+    64 :  Str := '64 - Close socket failed error';
+    65 :  Str := '65 - Socket Sendto Time out Error (ARP request Timed Out)';
+    66 :  Str := '66 - Scan Index Out of Range Error';
+    67 :  Str := '67 - ICMP Ping Flood Error';
+    68 :  Str := '68 - ICMP Ping In Use Error';
+    69 :  Str := '69 - Socket RecvFrom Failed';
+    71 :  Str := '71 - Serial Transmit Buffer Allocation Error';
+    72 :  Str := '72 - General Assert Error';
+    73 :  Str := '73 - Invalid Powersave Mode Error';
+    74 :  Str := '74 - Busy (Hibernate Mode) Error';
+    75 :  Str := '75 - Busy (Scan Mode) Error'
+  else begin
+      ByteToStr(ErrorCode, s1);
+      ltrim(s1);
+      Str := 'Unknown error code: ' + s1;
+    end;
+  end;
+end;
+
+procedure StartupConditionToStr(StartupMask: Byte; var Str: string[128]);
+begin
+  Str := '[ ';
+  if StartupMask and SM_POWER_ON_RESET <> 0 then
+    Str := Str + '0x01 - Power On Reset ';
+  if StartupMask and SM_BROWN_OUT_RESET <> 0 then
+    Str := Str + '0x02 - Brown Out Reset ';
+  if StartupMask and SM_IDLE_RESET <> 0 then
+    Str := Str + '0x04 - Idle Reset ';
+  if StartupMask and SM_SLEEP_RESET <> 0 then
+    Str := Str + '0x08 - Sleep Reset ';
+  if StartupMask and SM_WATCHDOG_RESET <> 0 then
+    Str := Str + '0x10 - Watchdog Reset ';
+  if StartupMask and SM_SOFTWARE_RESET <> 0 then
+    Str := Str + '0x40 - Software Reset ';
+  if StartupMask and SM_HARDWARE_RESET <> 0 then
+    Str := Str + '0x80 - Hardware Reset ';
+  Str := Str + ' ]'
+end;
+
+procedure NetworkStatusToStr(Status: Byte; var Str: string[128]);
+begin
+  case Status of
+    0 : Str := '0 = Not Connected Static IP';
+    1 : Str := '1 = Connected Static IP';
+    2 : Str := '2 = Not Connected DHCP';
+    3 : Str := '3 = Connected DHCP'
+  else begin
+      ByteToStr(Status, s1);
+      ltrim(s1);
+      Str := 'Unknown status code: ' + s1;
+    end;
+  end;
+end;
+
+procedure MCW1001_PrintIpAddressAssigned(IpAddr: PWiFiIpAddressAssignedEvent);
+var
+  i: Integer;
+begin
+  DebugLine('_________________IP Address Changed Event__________________');
+  DebugStr('IP Address = ');
+  MCW1001_PrintIpAddress(IpAddr^.IpAddress);
+  DebugLine('');
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintConnectionStatusChanged(ConnectStatus: PWiFiConnectionStatusChangedEvent);
+begin
+  DebugLine('______________Connection Status Changed Event______________');
+  ConnectionStatusChangedStatusToStr(ConnectStatus^.Status, s1);
+  DebugLine(' Status Code: ' + s1);
+  
+  ConnectionStatusChangedDataToStr(ConnectStatus^.Status, ConnectStatus^.EventData, s1);
+  DebugLine(' Data Code: ' + s1);
+
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintScanResultsReady(ScanResults: PWiFiScanResultsReadyEvent);
+begin
+  DebugLine('__________Connection Scan Results Ready Event______________');
+  
+  ByteToStr(ScanResults^.NumberOfResults, s1);
+  DebugLine(' Number of Results Found: ' + s1);
+
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintScanResult(ScanResult: PWiFiScanResult; Index: Integer);
+var
+  i: Integer;
+begin
+  DebugLine('_________________Connection Scan Result____________________');
+  ByteToStr(Index, s1);
+  ltrim(s1);
+  DebugLine('Index: ' + s1);
+
+  DebugStr('BSSID [MAC Address] (Hex): ');
+  for i := 0 to 5 do
+  begin
+    ByteToHex(ScanResult^.BSSID[i], s1);
+    ltrim(s1);
+    if i < 5 then
+      DebugStr(s1+':')
+    else
+      DebugLine(s1)
+  end;
+
+  ByteToStr(ScanResult^.SSIDLen, s1);
+  ltrim(s1);
+  DebugLine('SSID Length: ' + s1);
+
+  DebugStr('SSID: ');
+  ScanResult^.SSID[ScanResult^.SSIDLen] := 0;  // Add the null
+  DebugLine( ScanResult^.SSID);
+
+  DebugLine('Access Point (AP) Configuration Bits: ');
+  if ScanResult^.APConfig and AP_CONFIG_IE <> 0 then
+    DebugLine('---- Access Point (AP) broadcasting one or more information elements');
+  if ScanResult^.APConfig and AP_CONFIG_RES1 <> 0 then
+    DebugLine('---- Access Point (AP) Reserved Bit 1 set');
+  if ScanResult^.APConfig and AP_CONFIG_RES2 <> 0 then
+    DebugLine('---- Access Point (AP) Reserved Bit 2 set');
+  if ScanResult^.APConfig and AP_CONFIG_RES3 <> 0 then
+    DebugLine('---- Access Point (AP) Reserved Bit 3 set');
+  if ScanResult^.APConfig and AP_CONFIG_PRIVACY <> 0 then
+    DebugLine('---- Access Point (AP)  using security; if neither WPA or WPA2 is set then security is WEP.')
+  else
+    DebugLine('---- Access Point (AP)  is open (no security)');
+  if ScanResult^.APConfig and AP_CONFIG_PREAMBLE <> 0 then
+    DebugLine('---- Access Point (AP)  transmitting with long preamble')
+  else
+    DebugLine('---- Access Point (AP)  transmitting with short preamble');
+
+  if ScanResult^.APConfig and AP_CONFIG_PRIVACY <> 0 then
+  begin
+    if ScanResult^.APConfig and AP_CONFIG_WPA <> 0 then
+      DebugLine('---- Access Point (AP)  supports WPA')
+    else
+      DebugLine('---- Access Point (AP)  does not support WPA');
+    if ScanResult^.APConfig and AP_CONFIG_WPA2 <> 0 then
+      DebugLine('---- Access Point (AP)  supports WPA2')
+    else
+      DebugLine('---- Access Point (AP)  does not support WPA2')
+  end;
+
+  WordToStr(ScanResult^.BeaconPeriod, s1);
+  ltrim(s1);
+  DebugLine('Beacon Period: ' + s1);
+  WordToStr(ScanResult^.ATIMWindow, s1);
+  ltrim(s1);
+  DebugLine('ATIM Window: ' + s1);
+
+  DebugStr('Basic Rates (need to decode TODO): ');
+  for i := 0 to 7 do
+  begin
+    ByteToStr(ScanResult^.BasicRates[i], s1);
+    ltrim(s1);
+    if i < 7 then
+      DebugStr(s1+'.')
+    else
+      DebugLine(s1)
+  end;
+
+  WordToStr(ScanResult^.DTIMPeriod, s1);
+  ltrim(s1);
+  DebugLine('DTIM Period: ' + s1);
+
+  WordToStr(ScanResult^.BSSType, s1);
+  ltrim(s1);
+  DebugLine('BSS Type [1: Infrastructure; 2: Ad Hoc] ' + s1);
+
+  WordToStr(ScanResult^.ChannelNumber, s1);
+  ltrim(s1);
+  DebugLine('Channel Number: ' + s1);
+
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintPingResponse(PingResponse: PWiFiPingResponseEvent);
+begin
+  DebugLine('______________Connection Ping Response Event_______________');
+
+  if PingResponse^.Received then
+    DebugLine(' Ping received')
+  else
+    DebugLine(' Ping not received');
+
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintError(Error: PWiFiErrorEvent);
+begin
+  DebugLine('__________________Connection Error Event___________________');
+
+  ErrorCodeToStr(Error^.ErrorType, s1);
+  DebugLine(' Error Code: ' + s1);
+  
+  DebugStr(' Error Data : ');
+  ByteToHex(Error^.ErrorData[0], s1);
+  DebugStr('[0x' + s1);
+  ByteToHex(Error^.ErrorData[1], s1);
+  DebugStr(', 0x' + s1);
+  ByteToHex(Error^.ErrorData[2], s1);
+  DebugStr(', 0x' + s1);
+  ByteToHex(Error^.ErrorData[3], s1);
+  DebugStr(', 0x' + s1);
+
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintStartup(Startup: PWiFiStartupEvent);
+begin
+  DebugLine('______________________Startup Event________________________');
+
+  StartupConditionToStr(Startup^.ConditionMask, s1);
+  DebugLine('Startup Conditions: ' + s1);
+  WordToStr(Startup^.SocketVersion, s1);
+  DebugLine('Socket Version: ' + s1);
+  WordToStr(Startup^.RadioVersion, s1);
+  DebugLine('Radio Version: ' + s1);
+
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintNetworkStatus(NetworkStatus: PWiFiNetworkStatus);
+begin
+  DebugLine('______________________Network Status________________________');
+  
+  DebugStr('Mac Address: ');
+  MCW1001_PrintMacAddress(NetworkStatus^.MacAddress);
+  DebugLine('');
+  DebugStr('IP Address: ');
+  MCW1001_PrintIpAddress(NetworkStatus^.IpAddress);
+  DebugLine('');
+  DebugStr('Mask: ');
+  MCW1001_PrintIpAddress(NetworkStatus^.Mask);
+  DebugLine('');
+  DebugStr('Gateway Address: ');
+  MCW1001_PrintIpAddress(NetworkStatus^.GatewayAddress);
+  DebugLine('');
+
+  NetworkStatusToStr(NetworkStatus^.Status, s1);
+  DebugLine('Network Status: ' + s1);
+
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintWPAKey(BinaryWPAKey: PWiFiWPAKeyResult);
+var
+  i: Integer;
+begin
+  DebugLine('___________________________________________________________');
+  DebugLine('Binary WPA Key: ');
+  for i := 0 to 31 do
+  begin
+    ByteToHex(BinaryWPAKey^.BinaryKey[i], s1);
+    if i < 31 then
+      DebugStr('$' + s1 + ', ')
+    else
+     DebugLine('$' + s1)
+  end;
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintChannels(var Channels: TChannelList);
+var
+  i: Integer;
+begin
+  DebugLine('___________________________________________________________');
+  DebugLine('Channels: ');
+  for i := 0 to 10 do
+  begin
+    ByteToStr(Channels[i], s1);
+    if i < 10 then
+      DebugStr(s1 + ', ')
+    else
+     DebugLine(s1)
+  end;
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintSocketCreateResult(SocketCreateResult: PSocketCreateResult);
+begin
+  DebugLine('___________________________________________________________');
+  DebugLine('Socket Create: ');
+  ByteToStr(SocketCreateResult^.Handle, s1);
+  DebugLine('Handle = ' + s1);
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintSocketBindResult(SocketBindResult: PSocketBindResult);
+begin
+  DebugLine('___________________________________________________________');
+  DebugLine('Socket Bind: ');
+  WordToStr(SocketBindResult^.Port, s1);
+  DebugLine('Port = ' + s1);
+  case SocketBindResult^.BindResult of
+    $00 : DebugLine('Success')
+  else
+    DebugLine('Failed');
+  end;
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintSocketConnectResult(SocketConnectResult: PSocketConnectResult);
+begin
+  DebugLine('___________________________________________________________');
+  DebugLine('Socket Connect: ');
+  case SocketConnectResult^.ConnectResult of
+    $FF : DebugLine('Connection Failed');
+    $FE : DebugLine('Connection in progress');
+    $00 : DebugLine('Success')
+  else
+    DebugLine('Unknown result');
+  end;
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintSocketListenResult(SocketListenResult: PSocketListenResult);
+begin
+  DebugLine('___________________________________________________________');
+  DebugLine('Socket Listen: ');
+  case SocketListenResult^.ListenResult of
+    $FF : DebugLine('Connection Failed');
+    $FE : DebugLine('Connection in progress');
+    $00 : DebugLine('Success')
+  else
+    DebugLine('Unknown result');
+  end;
+  ByteToStr(SocketListenResult^.BackLog, s1);
+  DebugLine('Remaining Available Listening Sockets = ' + s1);
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintSocketAcceptResult(SocketAcceptResult: PSocketAcceptResult);
+begin
+  {$IFDEF FULL_SOCKETACCEPT_LOGGING}
+  DebugLine('___________________________________________________________');
+  DebugLine('Socket Accept: ');
+  case SocketAcceptResult^.Handle of
+    SOCKET_ACCEPT_INVALID_RESULT : DebugLine('Failed to Accept');
+  else begin
+      ByteToStr(SocketAcceptResult^.Handle, s1);
+      DebugLine('Handle = ' + s1);
+      WordToStr(SocketAcceptResult^.RemotePort, s1);
+      DebugLine('Remote Port = ' + s1);
+      DebugStr('Remote IP: ');
+      MCW1001_PrintIpAddress(SocketAcceptResult^.RemoteIP);
+      DebugLine('');
+    end;
+  end;
+  DebugLine('___________________________________________________________');
+  {$ELSE}
+  if SocketAcceptResult^.Handle < SOCKET_ACCEPT_INPROCESS_RESULT then
+  begin
+    DebugLine('___________________________________________________________');
+    DebugLine('Socket Accept: ');
+    ByteToStr(SocketAcceptResult^.Handle, s1);
+    DebugLine('Handle = ' + s1);
+    WordToStr(SocketAcceptResult^.RemotePort, s1);
+    DebugLine('Remote Port = ' + s1);
+    DebugStr('Remote IP: ');
+    MCW1001_PrintIpAddress(SocketAcceptResult^.RemoteIP);
+    DebugLine('');
+    DebugLine('___________________________________________________________');
+  end;
+  {$ENDIF}
+end;
+
+procedure MCW1001_PrintSocketSendResult(SocketSendResult: PSocketSendResult);
+begin
+  DebugLine('___________________________________________________________');
+  DebugLine('Socket Send: ');
+  WordToStr(SocketSendResult^.Count, s1);
+  DebugLine('ByteCount = ' + s1);
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintSocketReceiveResult(SocketReceiveResult: PSocketReceiveResult);
+var
+  i: Integer;
+begin
+ {$IFDEF FULL_SOCKETRECEIVE_LOGGING}
+  DebugLine('___________________________________________________________');
+  DebugLine('Socket Receive: ');
+  ByteToStr(SocketReceiveResult^.Handle, s1);
+  DebugLine('Handle = ' + s1);
+  WordToStr(SocketReceiveResult^.Count, s1);
+  DebugLine('ByteCount = ' + s1);
+  for i := 0 to SocketReceiveResult^.Count - 1 do
+    DebugChar(SocketReceiveResult^.ReceiveBuffer[i]);
+  DebugLine('');
+  DebugLine('___________________________________________________________');
+  {$ELSE}
+  if SocketReceiveResult^.Count > 0 then
+  begin
+    DebugLine('___________________________________________________________');
+    DebugLine('Socket Receive: ');
+    ByteToStr(SocketReceiveResult^.Handle, s1);
+    DebugLine('Handle = ' + s1);
+    WordToStr(SocketReceiveResult^.Count, s1);
+    DebugLine('ByteCount = ' + s1);
+    for i := 0 to SocketReceiveResult^.Count - 1 do
+      DebugChar(SocketReceiveResult^.ReceiveBuffer[i]);
+    DebugLine('');
+    DebugLine('___________________________________________________________');
+  end;
+  {$ENDIF}
+end;
+
+procedure MCW1001_PrintSocketSendToResult(SocketSendToResult: PSocketSendToResult);
+begin
+  DebugLine('___________________________________________________________');
+  DebugLine('Socket Send To: ');
+  WordToStr(SocketSendToResult^.Count, s1);
+  DebugLine('ByteCount = ' + s1);
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintSocketReceiveFromResult(SocketReceiveFromResult: PSocketReceiveFromResult);
+begin
+  DebugLine('___________________________________________________________');
+  DebugLine('Socket Receive From: ');
+  ByteToStr(SocketReceiveFromResult^.Handle, s1);
+  DebugLine('Handle = ' + s1);
+  WordToStr(SocketReceiveFromResult^.SenderPort, s1);
+  DebugLine('Sender Port = ' + s1);
+  DebugStr('Sender IP: ');
+  MCW1001_PrintIpAddress(SocketReceiveFromResult^.SenderIp);
+  DebugLine('');
+  WordToStr(SocketReceiveFromResult^.Count, s1);
+  DebugLine('ByteCount = ' + s1);
+  DebugLine('___________________________________________________________');
+end;
+
+procedure MCW1001_PrintSocketAllocateResult(SocketAllocateResult: PSocketAllocateResult);
+begin
+  DebugLine('___________________________________________________________');
+  DebugLine('Socket Allocate: ');
+  case SocketAllocateResult^.AllocationResult of
+    $FF : DebugLine('Max Socket count exceeded');
+    $FE : DebugLine('Max Socket buffer size exceeded');
+    $00 : DebugLine('Success')
+  else
+    DebugLine('Unkown Result');
+  end;
+  ByteToStr(SocketAllocateResult^.Count, s1);
+  DebugLine('Total Sockets = ' + s1);
+  DebugLine('___________________________________________________________');
+end;
+
+end.

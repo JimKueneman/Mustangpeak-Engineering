@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type='text/xsl' href='http://openlcb.org/trunk/prototypes/xml/xslt/fdi.xsl'?>
+<fdi xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://openlcb.org/trunk/prototypes/xml/schema/fdi.xsd">
+  <segment space="250" origin="0">
+    <name>Default NMRA Functions</name>
+    <description>Generic mapping of the NMRA functions</description>
+    <group>
+      <name>NMRA Functions</name>
+      <function origin="0">
+        <name>F0</name>
+      </function>
+      <function origin="1">
+        <name>F1</name>
+      </function>
+      <function origin="2">
+        <name>F2</name>
+      </function>
+      <function origin="3">
+        <name>F3</name>
+      </function>
+      <function origin="4">
+        <name>F4</name>
+      </function>
+      <function origin="5">
+        <name>F5</name>
+      </function>
+      <function origin="6">
+        <name>F6</name>
+      </function>
+      <function origin="7">
+        <name>F7</name>
+      </function>
+      <function origin="8">
+        <name>F8</name>
+      </function>
+      <function origin="9">
+        <name>F9</name>
+      </function>
+      <function origin="10">
+        <name>F10</name>
+      </function >
+      <function origin="11">
+        <name>F11</name>
+      </function>
+      <function origin="12">
+        <name>F12</name>
+      </function>
+      <function origin="13">
+        <name>F13</name>
+      </function>
+      <function origin="14">
+        <name>F14</name>
+      </function>
+      <function origin="15">
+        <name>F15</name>
+      </function>
+      <function origin="16">
+        <name>F16</name>
+      </function>
+      <function origin="17">
+        <name>F17</name>
+      </function>
+      <function origin="18">
+        <name>F18</name>
+      </function>
+      <function origin="19">
+        <name>F19</name>
+      </function>
+      <function origin="20">
+        <name>F20</name>
+      </function>
+      <function origin="21">
+        <name>F21</name>
+      </function>
+      <function origin="22">
+        <name>F22</name>
+      </function>
+      <function origin="23">
+        <name>F23</name>
+      </function>
+      <function origin="24">
+        <name>F24</name>
+      </function>
+      <function origin="25">
+        <name>F25</name>
+      </function>
+      <function origin="26">
+        <name>F26</name>
+      </function>
+      <function origin="27">
+        <name>F27</name>
+      </function>
+       <function origin="28">
+        <name>F28</name>
+      </function>
+    </group>
+  </segment>
+</fdi>

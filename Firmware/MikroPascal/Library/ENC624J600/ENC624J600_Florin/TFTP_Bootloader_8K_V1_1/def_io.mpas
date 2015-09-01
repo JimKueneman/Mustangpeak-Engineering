@@ -1,0 +1,21 @@
+unit def_io;
+
+uses dspic_additional_string_library,Lib_Delays_LIO;
+      
+var ENC_CS : sbit at LATC.7;           // SPI2
+    ENC_CS_dir : sbit at TRISC.7;
+    ENC_INT : sbit at PORTB.8;
+    ENC_INT_dir : sbit at TRISB.8;
+    
+    DF_CS : sbit at LATB.5;            // SPI1
+    DF_CS_dir : sbit at TRISB.5;
+    
+    LED1 : sbit at LATB.13;
+    LED1_dir : sbit at TRISB.13;
+    
+    MOS : sbit at LATA.7;
+    MOS_dir : sbit at TRISA.7;
+    
+implementation
+
+end.

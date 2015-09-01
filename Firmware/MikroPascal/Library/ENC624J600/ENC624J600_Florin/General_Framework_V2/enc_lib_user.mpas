@@ -1,0 +1,734 @@
+unit enc_lib_user;
+
+uses dspic_additional_string_library,def_io,lib1_enc600_V3_5_b,
+     Tftp_Server,SNMP_Library,SNMP_OID,df_lib_SPI1,HTTP_Server,crc16_lib,
+     config;
+     
+procedure Read_Stored_Rom_Code;
+Procedure Eth_SetParameters(type_ : byte);   // set your parameters here
+procedure Save_Configuration;
+procedure Save_Configuration1;
+procedure Init_SNMP_var;
+procedure Eth_UserProcess_Main;
+procedure Eth_UserProcess;
+procedure Eth_UserTCP(var dest_ip_addr_T : IpHeader; var source_port_T, dest_port_T, len_T : word; CC_Sock : byte);
+function Eth_UserUDP(var dest_ip_addr_U : IpHeader; var dest_port_U, source_port_U, len_U : word) : word;
+
+const my_data : array[76] of byte =
+(
+192,193,194,40,
+255,255,255,0,
+192,193,194,1,
+192,43,244,18,
+8,8,8,8,
+255,168,1,1,
+0,    // DHCP Flag
+$D2,  // Lo pass, default 1234
+$04,  // Hi pass
+0,    // Board Type
+0,0,0,0,
+'S','M','S','C',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // sysName, string 31 char
+192,168,1,101, // TRIAC1 IP
+192,168,1,102, // RELAY1 IP
+192,168,1,103  // VOLATGE OUT1 IP
+); far;
+
+const my_data1 : array[192] of byte =
+(
+'S','e','n','s','o','r','_','N','a','m','e','0','1',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','2',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','3',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','4',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','5',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','6',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','7',0,0,0,
+'S','e','n','s','o','r','_','N','a','m','e','0','8',0,0,0,
+'I','O','_','N','a','m','e','0','1',0,0,0,0,0,0,0,
+'I','O','_','N','a','m','e','0','2',0,0,0,0,0,0,0,
+'I','O','_','N','a','m','e','0','3',0,0,0,0,0,0,0,
+'I','O','_','N','a','m','e','0','4',0,0,0,0,0,0,0
+); far;
+
+implementation
+
+procedure Save_Configuration;
+var pt : ^byte;
+    i,j,CRC : word;
+begin
+  if DHCP_flag__ > 1 then DHCP_flag__ := 1;
+
+  DF_BufferFill(0,1);
+
+  i := 0;
+
+  pt := @ip_;
+  j := 0;
+  while j < 4 do
+    begin
+      DF_BufferWriteByte(i,pt^,1);
+      inc(i);
+      inc(j);
+      inc(pt)
+    end;
+
+  pt := @mask_;
+  j := 0;
+  while j < 4 do
+    begin
+      DF_BufferWriteByte(i,pt^,1);
+      inc(i);
+      inc(j);
+      inc(pt)
+    end;
+
+  pt := @gat_;
+  j := 0;
+  while j < 4 do
+    begin
+      DF_BufferWriteByte(i,pt^,1);
+      inc(i);
+      inc(j);
+      inc(pt)
+    end;
+
+  pt := @eth_ntp_addr;
+  j := 0;
+  while j < 4 do
+    begin
+      DF_BufferWriteByte(i,pt^,1);
+      inc(i);
+      inc(j);
+      inc(pt)
+    end;
+
+  pt := @dns_;
+  j := 0;
+  while j < 4 do
+    begin
+      DF_BufferWriteByte(i,pt^,1);
+      inc(i);
+      inc(j);
+      inc(pt)
+    end;
+
+  pt := @wdt_ip;
+  j := 0;
+  while j < 4 do
+    begin
+      DF_BufferWriteByte(i,pt^,1);
+      inc(i);
+      inc(j);
+      inc(pt)
+    end;
+
+  DF_BufferWriteByte(i,DHCP_flag__,1);
+  inc(i);
+  DF_BufferWriteByte(i,Lo(pass),1);
+  inc(i);
+  DF_BufferWriteByte(i,Hi(pass),1);
+  inc(i);
+  DF_BufferWriteByte(i,board_type,1);
+  
+  i := 32;
+  pt := @sysName;
+  j := 0;
+  while j < 32 do
+    begin
+      DF_BufferWriteByte(i,pt^,1);
+      inc(i);
+      inc(j);
+      inc(pt)
+    end;
+
+  i := 64;
+  pt := @tr1_ip;
+  j := 0;
+  while j < 4 do
+    begin
+      DF_BufferWriteByte(i,pt^,1);
+      inc(i);
+      inc(j);
+      inc(pt)
+    end;
+
+  pt := @re1_ip;
+  j := 0;
+  while j < 4 do
+    begin
+      DF_BufferWriteByte(i,pt^,1);
+      inc(i);
+      inc(j);
+      inc(pt)
+    end;
+
+  pt := @vo1_ip;
+  j := 0;
+  while j < 4 do
+    begin
+      DF_BufferWriteByte(i,pt^,1);
+      inc(i);
+      inc(j);
+      inc(pt)
+    end;
+    
+  DF_BufferToPage(0,1);
+  CRC := DF_ContArrayCRC(0,510);
+  DF_BufferWriteByte(510,Lo(CRC),1);
+  DF_BufferWriteByte(511,Hi(CRC),1);
+  DF_BufferToPage(0,1);
+end;
+
+procedure Save_Configuration1;
+var pt : ^byte;
+    i : word;
+begin
+  pt := @Sensors_Name;
+  i := 0;
+  while i < 128 do
+    begin
+      DF_BufferWriteByte(i,pt^,1);
+      inc(i);
+      inc(pt)
+    end;
+
+  pt := @IO_Name;
+  i := 0;
+  while i < 64 do
+    begin
+      DF_BufferWriteByte(i+128,pt^,1);
+      inc(i);
+      inc(pt)
+    end;
+    
+  DF_BufferToPage(1,1);
+end;
+
+procedure Read_Stored_Rom_Code;
+var pt : ^byte;
+    i : word;
+begin
+  pt := @Rom_Code_Stored;
+
+  i := 0;
+  while i < 64 do
+    begin
+      pt^ := DF_ContRead(i+1024);
+      inc(i);
+      inc(pt)
+    end;
+    
+  i := 0;
+  while i < 8 do
+    begin
+      RomCode2Str(Rom_Code_Stored[i],SNMP_string_SN[i]);
+      inc(i);
+    end;
+end;
+
+function get_my_data(addr : word; type_ : byte) : byte;
+begin
+  if type_ = 0 then result := my_data[addr]
+  else
+    begin
+      result := DF_ContRead(addr);
+    end;
+end;
+
+function get_my_data1(addr : word; type_ : byte) : byte;
+begin
+  if type_ = 0 then result := my_data1[addr]
+  else
+    begin
+      result := DF_ContRead(addr+512);
+    end;
+end;
+
+Procedure Eth_SetParameters(type_ : byte);   // set your parameters here
+var i,j,k : word;
+Begin
+  i := 0;
+  eth_ip_addr[0] := get_my_data(i,type_);
+  inc(i);
+  eth_ip_addr[1] := get_my_data(i,type_);
+  inc(i);
+  eth_ip_addr[2] := get_my_data(i,type_);
+  inc(i);
+  eth_ip_addr[3] := get_my_data(i,type_);
+  inc(i);
+  eth_mask[0] := get_my_data(i,type_);
+  inc(i);
+  eth_mask[1] := get_my_data(i,type_);
+  inc(i);
+  eth_mask[2] := get_my_data(i,type_);
+  inc(i);
+  eth_mask[3] := get_my_data(i,type_);
+  inc(i);
+  eth_gateway[0] := get_my_data(i,type_);
+  inc(i);
+  eth_gateway[1] := get_my_data(i,type_);
+  inc(i);
+  eth_gateway[2] := get_my_data(i,type_);
+  inc(i);
+  eth_gateway[3] := get_my_data(i,type_);
+  inc(i);
+  eth_ntp_addr[0] := get_my_data(i,type_);
+  inc(i);
+  eth_ntp_addr[1] := get_my_data(i,type_);
+  inc(i);
+  eth_ntp_addr[2] := get_my_data(i,type_);
+  inc(i);
+  eth_ntp_addr[3] := get_my_data(i,type_);
+  inc(i);
+  eth_dns_addr[0] := get_my_data(i,type_);
+  inc(i);
+  eth_dns_addr[1] := get_my_data(i,type_);
+  inc(i);
+  eth_dns_addr[2] := get_my_data(i,type_);
+  inc(i);
+  eth_dns_addr[3] := get_my_data(i,type_);
+  inc(i);
+  wdt_ip[0] := get_my_data(i,type_);
+  inc(i);
+  wdt_ip[1] := get_my_data(i,type_);
+  inc(i);
+  wdt_ip[2] := get_my_data(i,type_);
+  inc(i);
+  wdt_ip[3] := get_my_data(i,type_);
+  inc(i);
+  DHCP_flag__ := get_my_data(i,type_);
+  inc(i);
+  Lo(pass) := get_my_data(i,type_);
+  inc(i);
+  Hi(pass) := get_my_data(i,type_);
+  inc(i);
+  board_type := get_my_data(i,type_);
+  
+  i := 32;
+  j := 0;
+  while j < 31 do
+    begin
+      sysName[j] := get_my_data(i,type_);
+      inc(i);
+      inc(j);
+    end;
+  sysName[j] := 0; // end of string
+
+  i:= 64;
+  tr1_ip[0] := get_my_data(i,type_);
+  inc(i);
+  tr1_ip[1] := get_my_data(i,type_);
+  inc(i);
+  tr1_ip[2] := get_my_data(i,type_);
+  inc(i);
+  tr1_ip[3] := get_my_data(i,type_);
+  inc(i);
+  re1_ip[0] := get_my_data(i,type_);
+  inc(i);
+  re1_ip[1] := get_my_data(i,type_);
+  inc(i);
+  re1_ip[2] := get_my_data(i,type_);
+  inc(i);
+  re1_ip[3] := get_my_data(i,type_);
+  inc(i);
+  vo1_ip[0] := get_my_data(i,type_);
+  inc(i);
+  vo1_ip[1] := get_my_data(i,type_);
+  inc(i);
+  vo1_ip[2] := get_my_data(i,type_);
+  inc(i);
+  vo1_ip[3] := get_my_data(i,type_);
+
+  k := 0;
+  i := 0;
+  while i < 8 do
+    begin
+      j := 0;
+      while j < 15 do
+        begin
+          Sensors_Name[i][j] := get_my_data1(k,type_);
+          inc(j);
+          inc(k);
+        end;
+      Sensors_Name[i][j] := 0; // end of string
+      inc(k);
+      inc(i);
+    end;
+
+  i := 0;
+  while i < 4 do
+    begin
+      j := 0;
+      while j < 15 do
+        begin
+          IO_Name[i][j] := get_my_data1(k,type_);
+          inc(j);
+          inc(k);
+        end;
+      IO_Name[i][j] := 0; // end of string
+      inc(k);
+      inc(i);
+    end;
+
+  Mem_Cpy(word(@ip_),word(@eth_ip_addr),4);
+  Mem_Cpy(word(@gat_),word(@eth_gateway),4);
+  Mem_Cpy(word(@mask_),word(@eth_mask),4);
+  Mem_Cpy(word(@dns_),word(@eth_dns_addr),4);
+
+  if type_ = 0 then
+    begin
+      Save_Configuration;
+      Save_Configuration1;
+    end;
+
+  save_config := 0;
+  save_config1 := 0;
+  unlock_cnt := 0;
+  settodefault := 0;
+
+  if pass = 0 then access_config := 1
+  else access_config := 0;
+  
+  use_user_MAC := false;
+end;
+
+procedure Init_SNMP_var;
+var i,j : word;
+begin
+
+  sysDescr := sysDescr_;                     // sysDescr, string
+  sysObjectID := sysObjectID_;               // sysObjectID, OID
+  sysUpTime := 0;                            // sysUpTime, timeticks
+  sysName := 'SMSC';                         // sysName, string
+
+  i := 0;
+  while i < 8 do
+    begin
+      SNMP_string_result_temp[i] := '00.00';
+      SNMP_string_result_hum[i] := '00.00';
+      Sensors_Name[i] := ' ';
+      SNMP_string_SN[i] := '0000000000000000';
+      inc(i);
+    end;
+
+  i := 0;
+  while i < 4 do
+    begin
+      IO_Name[i] := ' ';
+      inc(i);
+    end;
+    
+  i := 0;
+  while i < 4 do
+    begin
+      SNMP_string_result1[i] := '0';
+      inc(i);
+    end;
+    
+  Mem_Set(@Rom_Code_New,0,64);
+  Mem_Set(@Rom_Code_Stored,0,64);
+  Mem_Set(@Rom_Code,0,64);
+  Mem_Set(@tmp,0,16);
+  Mem_Set(@hum,0,16);
+  Nb_dev := 0;
+
+  lost_ping_cnt := 0;
+  
+  Mem_Set(@IO_,0,8);
+    
+  i := 0;
+
+  response_address[i] := @sysDescr;
+  response_type[i] := string_;
+  access_type[i] := readOnly_; // read only
+  max_response_len[i] := 16;
+  inc(i);
+
+  response_address[i] := @sysObjectID;
+  response_type[i] := oid_;
+  access_type[i] := readOnly_; // read only
+  max_response_len[i] := 32;
+  inc(i);
+
+  response_address[i] := @sysUpTime;
+  response_type[i] := timeticks_;
+  access_type[i] := readOnly_; // read only
+  max_response_len[i] := 4;
+  inc(i);
+
+  response_address[i] := @sysName;
+  response_type[i] := string_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 31;
+  inc(i);
+
+  response_address[i] := @ip_;
+  response_type[i] := ipaddress_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 4;
+  inc(i);
+
+  response_address[i] := @mask_;
+  response_type[i] := ipaddress_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 4;
+  inc(i);
+
+  response_address[i] := @gat_;
+  response_type[i] := ipaddress_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 4;
+  inc(i);
+
+  response_address[i] := @eth_ntp_addr;
+  response_type[i] := ipaddress_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 4;
+  inc(i);
+
+  response_address[i] := @dns_;
+  response_type[i] := ipaddress_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 4;
+  inc(i);
+
+  response_address[i] := @wdt_ip;
+  response_type[i] := ipaddress_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 4;
+  inc(i);
+
+  response_address[i] := @tr1_ip;
+  response_type[i] := ipaddress_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 4;
+  inc(i);
+  
+  response_address[i] := @re1_ip;
+  response_type[i] := ipaddress_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 4;
+  inc(i);
+  
+  response_address[i] := @vo1_ip;
+  response_type[i] := ipaddress_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 4;
+  inc(i);
+  
+  response_address[i] := @mac_;
+  response_type[i] := string_;
+  access_type[i] := readOnly_; // read Only
+  max_response_len[i] := 12;
+  inc(i);
+
+  response_address[i] := @DHCP_flag__;
+  response_type[i] := uinteger_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 1;
+  inc(i);
+
+  response_address[i] := @pass;
+  response_type[i] := uinteger_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 2;
+  inc(i);
+
+  response_address[i] := @save_config;
+  response_type[i] := uinteger_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 1;
+  inc(i);
+
+  j := 0;
+  while j < 8 do
+    begin
+      response_address[i] := @Sensors_Name[j];
+      response_type[i] := string_;
+      access_type[i] := readWrite_; // read write
+      max_response_len[i] := 15;
+      inc(i);
+      inc(j);
+    end;
+
+  j := 0;
+  while j < 4 do
+    begin
+      response_address[i] := @IO_Name[j];
+      response_type[i] := string_;
+      access_type[i] := readWrite_; // read write
+      max_response_len[i] := 15;
+      inc(i);
+      inc(j);
+    end;
+    
+  response_address[i] := @save_config1;
+  response_type[i] := uinteger_;
+  access_type[i] := readWrite_; // read write
+  max_response_len[i] := 1;
+  inc(i);
+
+  j := 0;
+  while j < 8 do
+    begin
+      response_address[i] := @t_err[j];
+      response_type[i] := uinteger_;
+      access_type[i] := readOnly_; // read only
+      max_response_len[i] := 1;
+      inc(i);
+      inc(j);
+    end;
+    
+  j := 0;
+  while j < 8 do
+    begin
+      response_address[i] := @tmp[j];
+      response_type[i] := integer_;
+      access_type[i] := readOnly_; // read only
+      max_response_len[i] := 2;
+      inc(i);
+      inc(j);
+    end;
+
+  j := 0;
+  while j < 8 do
+    begin
+      response_address[i] := @SNMP_string_result_temp[j];
+      response_type[i] := string_;
+      access_type[i] := readOnly_; // read only
+      max_response_len[i] := 8;
+      inc(i);
+      inc(j);
+    end;
+
+  j := 0;
+  while j < 8 do
+    begin
+      response_address[i] := @hum[j];
+      response_type[i] := uinteger_;
+      access_type[i] := readOnly_; // read only
+      max_response_len[i] := 2;
+      inc(i);
+      inc(j);
+    end;
+
+  j := 0;
+  while j < 8 do
+    begin
+      response_address[i] := @SNMP_string_result_hum[j];
+      response_type[i] := string_;
+      access_type[i] := readOnly_; // read only
+      max_response_len[i] := 8;
+      inc(i);
+      inc(j);
+    end;
+    
+  j := 0;
+  while j < 8 do
+    begin
+      response_address[i] := @SNMP_string_SN[j];
+      response_type[i] := string_;
+      access_type[i] := readOnly_; // read only
+      max_response_len[i] := 16;
+      inc(i);
+      inc(j);
+    end;
+
+  j := 0;
+  while j < 4 do
+    begin
+      response_address[i] := @IO_[j];
+      response_type[i] := uinteger_;
+      access_type[i] := readOnly_; // read only
+      max_response_len[i] := 2;
+      inc(i);
+      inc(j);
+    end;
+    
+  j := 0;
+  while j < 4 do
+    begin
+      response_address[i] := @SNMP_string_result1[j];
+      response_type[i] := string_;
+      access_type[i] := readOnly_; // read only
+      max_response_len[i] := 16;
+      inc(i);
+      inc(j);
+    end;
+  
+end;
+
+procedure Eth_UserProcess_Main;
+begin
+
+end;
+
+procedure Eth_UserProcess;
+begin
+
+end;
+
+procedure Eth_UserTCP(var dest_ip_addr_T : IpHeader; var source_port_T, dest_port_T, len_T : word; CC_Sock : byte);
+begin
+  if source_port_T = HTTP_Port then
+    begin
+      HTTPProcDataIn(len_T, CC_Sock);
+      exit;
+    end;
+  if access_config <> 0 then
+  if source_port_T = Config_Port then
+    begin
+      HTTPProcDataInConfig(len_T, CC_Sock);
+      exit;
+    end;
+end;
+      
+function Eth_UserUDP(var dest_ip_addr_U : IpHeader; var dest_port_U, source_port_U, len_U : word) : word;
+var getRequest : string[128];
+begin
+  result := 0;
+  
+  if source_port_U = TFTP_Port then
+    begin
+      if len_U > 2 then Result := UDP_Data_In(len_U);
+      exit;
+    end;
+  
+  if source_port_U = SNMP_Port then
+    begin
+      if len_U > 128 then len_U := 128;
+      CopyEthMem_CPToRam(word(@getRequest), len_U);
+      result := Process_SNMP(getRequest, len_U);
+      if result > 0 then CopyRamToEthMem_CP(word(@getRequest), result);
+      exit;
+    end;
+    
+  if source_port_U = 45678 then
+    begin
+      if len_U <> 10 then exit;
+      CopyEthMem_CPToRam(word(@getRequest), len_U);
+      
+      if getRequest[8] <> 'R' then exit;
+      if getRequest[9] <> 'E' then exit;
+{
+      if getRequest[8] <> 'T' then exit;
+      if getRequest[9] <> 'R' then exit;
+      
+      if getRequest[8] <> 'V' then exit;
+      if getRequest[9] <> 'O' then exit;
+}
+      if getRequest[0] <> 0 then              // mask
+      IO_[0] := getRequest[4];
+      if getRequest[1] <> 0 then              // mask
+      IO_[1] := getRequest[5];
+      if getRequest[2] <> 0 then              // mask
+      IO_[2] := getRequest[6];
+      if getRequest[3] <> 0 then              // mask
+      IO_[3] := getRequest[7];
+      
+      result := 10;
+      CopyRamToEthMem_CP(word(@getRequest), result);
+      exit;
+    end;
+end;
+
+end.

@@ -1,0 +1,78 @@
+unit dsPIC_CAN_RawBuffers;
+
+// ******************************************************************************
+//
+// * Copyright:
+//     (c) Mustangpeak Software 2012.
+//
+//     The contents of this file are subject to the GNU GPL v3 licence/ you maynot use
+//     this file except in compliance with the License. You may obtain a copy of the
+//     License at http://www.gnu.org/licenses/gpl.html
+//
+// * Revision History:
+//     2012-04-01:   1.0.0.0 Created
+//     2012-10-07:   Version 1.0
+//
+// * Description:
+//    Implements a FIFO data structure for CAN Message Buffers
+//
+// ******************************************************************************
+
+{$I Options.inc}
+
+const
+  MAX_ECAN_TX_BUFFER = 3;
+  MAX_ECAN_RX_BUFFER = 29;
+
+const
+
+  CAN_DIRECTION_READ = 1;
+  CAN_DIRECTION_WRITE = 0;
+
+type
+  // ***************************************************************************
+  // CAN Message Buffers in raw form that can be loaded into the CAN controller
+  // registers
+  //   NOTE: For the dsPIC33 RX and TX are identical, for the dsPIC30 the bit
+  //         patterns are different between RX and TX
+  // ***************************************************************************
+  TCANRawBuffer = record
+    Word0    : Word;   // if Standard Message then SID else EID upper Bits
+    Word1    : Word;   // if Standard Message then Data Length Code else low bits of EID and upper bits of SID
+    Word2    : Word;   // if Standard Message then Data 0 and Data 1 else low bits of SID and Data Length Code
+    Word3    : Word;   // if Standard Message then Data 2 and Data 3 else Data 0 and Data 1
+    Word4    : Word;   // if Standard Message then Data 4 and Data 5 else Data 2 and Data 3
+    Word5    : Word;   // if Standard Message then Data 6 and Data 7 else Data 4 and Data 5
+    Word6    : Word;   // if Standard Message then, not used, else Data 6 and Data 7
+    Word7    : Word;   // dsPIC33 only, For TX not used for RX the Filter that passed the message
+  end;
+  PCANRawBuffer = ^TCANRawBuffer;
+  
+const
+  {$IFDEF P33FJ256GP710A}
+  CAN_DMA_DATA_OFFSET = $7800;
+  {$ELSE}
+  CAN_DMA_DATA_OFFSET = $1000;                  // This is the start of the X-Data area.  Some of the dsPIC33s require DMA RAM to be
+ {$ENDIF}                                       // located in this lower area.  Look at your chips datasheet to make sure this is acceptable
+
+type
+  TCAN_RxRawBufferArray = array[0..MAX_ECAN_RX_BUFFER-1] of TCANRawBuffer;
+  TCAN_TxRawBufferArray = array[0..MAX_ECAN_TX_BUFFER-1] of TCANRawBuffer;
+ 
+
+{$IFDEF P33EP512MU810}
+var
+  TX_Main_RawBufferArray: TCAN_TxRawBufferArray; far; dma; absolute $D000;  // Transmit buffer for all filters.  The software pulls the data to the right list
+  RX_Main_RawBufferArray: TCAN_RxRawBufferArray; far; dma; absolute ($D000 + (SizeOf(TCANRawBuffer)*MAX_ECAN_TX_BUFFER));  // Recieve buffer for all filters.  The software moves the data to the right list
+{$ELSE}
+var
+  TX_Main_RawBufferArray: TCAN_TxRawBufferArray; absolute CAN_DMA_DATA_OFFSET;                                                 // Transmit buffer for all filters.  The software pulls the data to the right list
+  RX_Main_RawBufferArray: TCAN_RxRawBufferArray; absolute (CAN_DMA_DATA_OFFSET + (SizeOf(TCANRawBuffer)*MAX_ECAN_TX_BUFFER));  // Recieve buffer for all filters.  The software moves the data to the right list
+{$ENDIF}
+
+var
+  Dummy: Word;
+
+implementation
+
+end.

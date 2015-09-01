@@ -1,0 +1,707 @@
+unit dsPIC33_DMA;
+
+// ******************************************************************************
+//
+// * Copyright:
+//     (c) Mustangpeak Software 2012.
+//
+//     The contents of this file are subject to the GNU GPL v3 licence/ you maynot use
+//     this file except in compliance with the License. You may obtain a copy of the
+//     License at http://www.gnu.org/licenses/gpl.html
+//
+// * Revision History:
+//     2012-04-01:   1.0.0.0 Created
+//     2012-10-07:   Version 1.0
+//
+// * Description:
+//    Implements an easy to use interface into the dsPIC33 DMA Registers.  It is
+//    fast, no.  Is it efficient, no.  Is it easy to experiment with to try to
+//    understand how this module works, YES
+//
+// ******************************************************************************
+
+{$I Options.inc}
+
+{$DEFINE PRINT_DMA_BUFFERS}
+
+
+// WARNING:  For the dsPIC33EP this library only supports memory access in the DMAxSTAL and DMAxSBL space (16 bit memory address only)  The upper 8 bits MUST be 0 in the allocated RAM
+{$IFDEF P33EP32GP502} {$DEFINE dsPIC33EP_DMA} {$ENDIF}
+{$IFDEF P33EP64GP502} {$DEFINE dsPIC33EP_DMA} {$ENDIF}
+{$IFDEF P33EP128GP502} {$DEFINE dsPIC33EP_DMA}{$ENDIF}
+{$IFDEF P33EP256GP502} {$DEFINE dsPIC33EP_DMA}{$ENDIF}
+{$IFDEF P33EP512MU810} {$DEFINE dsPIC33EP_DMA}{$ENDIF}
+
+{$IFDEF P33FJ256GP710A} {$DEFINE dsPIC33_DMA} {$ENDIF}
+
+uses
+  dsPIC_CAN_RawBuffers;
+  
+
+
+const
+  ADDRESS_MODE_REG_INDIRECT_POST_INCREMENT    = 0;                              // The datasheet says this: The user application determines the latest DPSRAM transfer address offset by 
+                                                                                // reading the DPSRAM Start Address Offset register. However, the contents of this register are not modified 
+                                                                                // by the DMA controller."  Well that is ONLY TRUE IF AND ONLY IF the correct number of Words are transfered
+                                                                                // via the dsPIC33_DMA_TransferCount, read the nodes in this function definition for more details.
+                                                                                // Also in this Mode DMA_AddressOffsetA and DMA_AddressOffsetB appear to be mapped to the same address, changing
+                                                                                // one changes the other.  This may be true for anything other than Ping-Pong Mode.
+  ADDRESS_MODE_REG_INDIRECT_NO_POST_INCREMENT = 1;                              // In the CAN Module this mode only moves one word at a time and the software much trap the DMA interrupt
+                                                                                // and increment the Address Offset (A or B) on Word at a time.  Useless....
+  ADDRESS_MODE_PERIPHERAL_INDIRECT            = 2;                              // In the CAN Module this contains a bug in many versions of the silicon that only allows one Transmit Buffer
+                                                                                // (0 only) or the SID from Buffer 0 will be used in other Transmit buffers.
+                                                                                // Also in some silicon if a TX with higer priority is sent from Buffer 1 a lower priority message in Buffer 0 may
+                                                                                // not get sent.... Useless....
+                                                                                // Basically the ECAN module is a piece of crap......
+  
+  OPERATING_MODE_CONTINIOUS                   = 0;
+  OPERATING_MODE_ONESHOT                      = 1;
+  OPERATING_MODE_CONTINIOUS_PINGPONG          = 2;
+  OPERATING_MODE_ONESHOT_PINGPONG             = 3;
+  
+  DATASIZE_BYTE                               = 0;
+  DATASIZE_WORD                               = 1;
+  
+  DIRECTION_RAM_TO_PERIPHERAL                 = 0;
+  DIRECTION_PERIPHERAL_TO_RAM                 = 1;
+  
+  // Interrupts that the peripheral generate that are assigned to the DMA module that trigger the
+  // DMA transfer.  They must be assigned to make the DMA/peripheral transfer work
+  IRQ_INT0_EXTERNAL                    = 0;
+  IRQ_IC1_INPUT_CAPTURE                = 1;
+  IRQ_OC1_OUTPUT_COMPARE_1             = 2;
+  IRQ_IC2_INPUT_CAPTURE                = 5;
+  IRQ_OC2_OUTPUT_COMARE_2              = 6;
+  IRQ_TMR2_TIMER_2                     = 7;
+  IRQ_TMR3_TIMER_3                     = 8;
+  IRQ_SPI1                             = 10;
+  IRQ_UART1_RX                         = 11;
+  IRQ_UART1_TX                         = 12;
+  IRQ_ADC1                             = 13;
+  IRQ_ADC2                             = 21;
+  IRQ_UART2_RX                         = 30;
+  IRQ_UART2_TX                         = 31;
+  IRQ_SPI2                             = 33;
+  IRQ_ECAN1_RX_DATA_READY              = 34;
+  IRQ_ECAN2_RX_DATA_READY              = 55;
+  IRQ_DCI_CODEC_TRANSFER_DONE          = 60;
+  IRQ_ECAN1_TX_DATA_READY              = 70;
+  IRQ_ECAN2_TX_DATA_READY              = 71;
+  
+  // Current Register for Ping Pong mode, see dsPIC33_DMA_CurrentPingPongRegister
+  PING_PONG_REG_A                      = 0;
+  PING_PONG_REG_B                      = 1;
+  
+  NO_DMA_TRANSFER                      = $000F;
+  
+  {$IFDEF dsPIC33EP_DMA}
+    DMA_CHANNEL_STRUCTURE_SIZE = 8;   // dsPIC33EP DMA structure size for each channel is 8 words
+  {$ENDIF}
+  {$IFDEF dsPIC33_DMA}
+    DMA_CHANNEL_STRUCTURE_SIZE = 6;  // dsPIC33 DMA structure size for each channel is 6 words
+  {$ENDIF}
+
+  
+
+procedure dsPIC33_DMA_Enable(ChannelNumber: Word; Enable: Boolean);
+procedure dsPIC33_DMA_DataSize(ChannelNumber: Word; _Size: Word);               // See DATASIZE_xxxx constants
+procedure dsPIC33_DMA_Direction(ChannelNumber: Word; Direction: Word);          // See DIRECTION_xxxx constants
+procedure dsPIC33_DMA_HalfBlockTransferInterrupt(ChannelNumber: Word; HalfBlockInterrupt: Boolean);
+procedure dsPIC33_DMA_NullWrite(ChannelNumber: Word; Enable: Boolean);
+procedure dsPIC33_DMA_AddressMode(ChannelNumber: Word; Mode: Word);             // See ADDRESS_MODE_xxxx constants
+procedure dsPIC33_DMA_OperatingMode(ChannelNumber: Word; Mode: Word);           // See OPERATING_MODE_xxxx constants
+procedure dsPIC33_DMA_InterruptSelect(ChannelNumber: Word; IRQ_Select: Word);   // See IRQ_xxxx constants
+procedure dsPIC33_DMA_ManualDMATransfer(ChannelNumber: Word; Manual: Boolean);
+procedure dsPIC33_DMA_AddressOffsetA(ChannelNumber: Word; Address: Word);
+procedure dsPIC33_DMA_AddressOffsetB(ChannelNumber: Word; Address: Word);
+procedure dsPIC33_DMA_PeripheralAddress(ChannelNumber: Word; Address: Word);
+procedure dsPIC33_DMA_TransferCount(ChannelNumber: Word; Count: Word);
+function dsPIC33_DMA_MostRecentRAM_Address: Word;
+function dsPIC33_DMA_PeripheralWriteCollisionDetected(ChannelNumber: Word): Boolean;
+function dsPIC33_DMA_DSPRAMWriteCollisionDetected(ChannelNumber: Word): Boolean;
+function dsPIC33_DMA_CurrentPingPongRegister(ChannelNumber: Word): Word;        // See PING_PONG_xxxx constants
+function dsPIC33_DMA_LastActiveChannel: Word;
+
+{$IFDEF PRINT_DMA_BUFFERS}
+procedure PrintDMABuffers;
+{$ENDIF}
+
+
+implementation
+
+// *****************************************************************************
+//  procedure MapToChannelReg;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7)
+//              Channel_0_Reg:  A pointer to the Register to access but referenced
+//                              to Channel 0. For example DMAxCON, DMAxIRQ, DMAxSTA, 
+//                              DMAxSTB, etc.  The Channel Number will offset it
+//                              to the correct pointer for that channel
+//
+//  Result:                     A pointer to the same register but offset for the
+//                              passed Channel
+//
+//  Description:
+// *****************************************************************************
+function MapToChannelReg(ChannelNumber: Word; Channel_0_Reg: ^Word): ^Word;
+begin
+  Result := Channel_0_Reg;
+  Result := Result + (DMA_CHANNEL_STRUCTURE_SIZE * ChannelNumber);    // Compiler known the operand is a word so the Size is the number of words to increment
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_Enable;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//              Enable       :  Enable/Disable the Channel
+//
+//  Result:
+//
+//  Description:
+// *****************************************************************************
+procedure dsPIC33_DMA_Enable(ChannelNumber: Word; Enable: Boolean);
+var
+  RegPtr: ^Word;
+begin
+  RegPtr := MapToChannelReg(ChannelNumber, @DMA0CON);
+  if Enable then
+    RegPtr^.CHEN := 1
+  else
+    RegPtr^.CHEN := 0
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_DataSize;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//              _Size        :  Byte or Word transfers, see the DATASIZE_xxxx constants
+//
+//  Result:
+//
+//  Description:
+// *****************************************************************************
+procedure dsPIC33_DMA_DataSize(ChannelNumber: Word; _Size: Word);
+var
+  RegPtr: ^Word;
+begin
+  RegPtr := MapToChannelReg(ChannelNumber, @DMA0CON);
+  if _Size = DATASIZE_BYTE then
+    RegPtr^.SIZE := 1
+  else
+    RegPtr^.SIZE := 0
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_Direction;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//              _Size        :  Transfer is from Memory to Peripheral or vise-versa
+//                              see the DIRECTION_xxxx constants
+//
+//  Result:
+//
+//  Description:
+// *****************************************************************************
+procedure dsPIC33_DMA_Direction(ChannelNumber: Word; Direction: Word);
+var
+  RegPtr: ^Word;
+begin
+  RegPtr := MapToChannelReg(ChannelNumber, @DMA0CON);
+  if Direction = DIRECTION_RAM_TO_PERIPHERAL then
+    RegPtr^.13 := 1                                 // DIR is not consistent across Def files, some have DIR_ some have DIR, just use the value
+  else
+    RegPtr^.13 := 0
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_HalfBlockTransferInterrupt;
+//
+//  Parameters: ChannelNumber      :  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//              HalfBlockInterrupt :  Fire the DMA Interrupt when half the data is
+//                                    moved or wait until all the data is moved
+//                                    See the Datasheet for tricks to fire it at
+//                                    both events (set to False within the interrupt
+//                                    that fired at half)
+//
+//  Result:
+//
+//  Description:
+// *****************************************************************************
+procedure dsPIC33_DMA_HalfBlockTransferInterrupt(ChannelNumber: Word; HalfBlockInterrupt: Boolean);
+var
+  RegPtr: ^Word;
+begin
+  RegPtr := MapToChannelReg(ChannelNumber, @DMA0CON);
+  if HalfBlockInterrupt then
+    RegPtr^.HALF := 1
+  else
+    RegPtr^.HALF := 0
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_NullWrite;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//              Enable       :  Enabled Null Write, see the datasheet for more details
+//
+//  Result:
+//
+//  Description:
+// *****************************************************************************
+procedure dsPIC33_DMA_NullWrite(ChannelNumber: Word; Enable: Boolean);
+var
+  RegPtr: ^Word;
+begin
+  RegPtr := MapToChannelReg(ChannelNumber, @DMA0CON);
+  if Enable then
+    RegPtr^.NULLW := 1
+  else
+    RegPtr^.NULLW := 0
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_AddressMode;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//              Mode         :  Sets the Address Mode for the Channel, See ADDRESS_MODE_xxxx constants
+//
+//  Result:
+//
+//  Description:
+// *****************************************************************************
+procedure dsPIC33_DMA_AddressMode(ChannelNumber: Word; Mode: Word);
+var
+  RegPtr: ^Word;
+begin
+  RegPtr := MapToChannelReg(ChannelNumber, @DMA0CON);
+  RegPtr^ := RegPtr^ and $FFCF;                                                 // Clear the Address Mode Bits
+  RegPtr^ := RegPtr^ or (Mode shl 4);
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_OperatingMode;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//              Mode         :  Sets the Operating Mode for the Channel, See OPERATING_MODE_xxxx constants
+//
+//  Result:
+//
+//  Description:
+// *****************************************************************************
+procedure dsPIC33_DMA_OperatingMode(ChannelNumber: Word; Mode: Word);
+var
+  RegPtr: ^Word;
+begin
+  RegPtr := MapToChannelReg(ChannelNumber, @DMA0CON);
+  RegPtr^ := RegPtr^ and $FFFC;                                                 // Clear the Operating Mode Bits
+  RegPtr^ := RegPtr^ or Mode;
+end;
+
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_InterruptSelect;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//              Mode         :  Sets the Interrupt for the Channel, See IRQ_xxxx constants
+//
+//  Result:
+//
+//  Description: NOTE: This MUST be set in order to trigger the transfer from the Peripheral
+// *****************************************************************************
+procedure dsPIC33_DMA_InterruptSelect(ChannelNumber: Word; IRQ_Select: Word);  // See IRQ_xxxx constants
+var
+  RegPtr: ^Word;
+begin
+  RegPtr := MapToChannelReg(ChannelNumber, @DMA0REQ);
+  RegPtr^ := RegPtr^ and $FF80;                                                 // Clear the bottom 6 bits
+  RegPtr^ := RegPtr^ or IRQ_Select
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_ManualDMATransfer;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//              Manual       :  Must Manually start a transfer in code, see the datasheet
+//
+//  Result:
+//
+//  Description:
+// *****************************************************************************
+procedure dsPIC33_DMA_ManualDMATransfer(ChannelNumber: Word; Manual: Boolean);
+var
+  RegPtr: ^Word;
+begin
+  RegPtr := MapToChannelReg(ChannelNumber, @DMA0REQ);
+  if Manual then
+    RegPtr^.FORCE := 1
+  else
+    RegPtr^.FORCE := 0
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_AddressOffsetA;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//              Offset       :  Offset from the beginning of DSPRAM to make the transfer from
+//
+//  Result:
+//
+//  Description: NOTE: Usage depend on the Operating Mode, Channel MUST be disabled first
+// *****************************************************************************
+procedure dsPIC33_DMA_AddressOffsetA(ChannelNumber: Word; Address: Word);
+var
+  RegPtr: ^Word;
+begin
+  {$IFDEF dsPIC33EP_DMA}
+    RegPtr := MapToChannelReg(ChannelNumber, @DMA0STAL);
+    RegPtr^ := Address;
+    RegPtr := MapToChannelReg(ChannelNumber, @DMA0STAH);
+    RegPtr^ := Address
+  {$ENDIF}
+  {$IFDEF dsPIC33_DMA}
+    RegPtr := MapToChannelReg(ChannelNumber, @DMA0STA);
+    RegPtr^ := Address
+  {$ENDIF}
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_AddressOffsetB;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//              Offset       :  Offset from the beginning of DSPRAM to make the transfer from
+//
+//  Result:
+//
+//  Description: NOTE: Usage depend on the Operating Mode, mostly used with Ping-Pong Mode, Channel must be disabled first
+// *****************************************************************************
+procedure dsPIC33_DMA_AddressOffsetB(ChannelNumber: Word; Address: Word);
+var
+  RegPtr: ^Word;
+begin
+  {$IFDEF dsPIC33EP_DMA}
+    RegPtr := MapToChannelReg(ChannelNumber, @DMA0STBL);
+    RegPtr^ := Address;
+    RegPtr := MapToChannelReg(ChannelNumber, @DMA0STBH);
+    RegPtr^ := Address
+  {$ENDIF}
+  {$IFDEF dsPIC33_DMA}
+    RegPtr := MapToChannelReg(ChannelNumber, @DMA0STB);
+    RegPtr^ := Address
+  {$ENDIF}
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_PeripheralAddress;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//              Address      :  Address of the special register within the Peripheral where
+//                              the source or target register is.  The DMA moves
+//                              data from the DSPRAM to and from this special register in
+//                              the assigned Peripheral
+//
+//  Result:
+//
+//  Description: NOTE: Usage depend on the Peripheral
+// *****************************************************************************
+procedure dsPIC33_DMA_PeripheralAddress(ChannelNumber: Word; Address: Word);
+var
+  RegPtr: ^Word;
+begin
+  RegPtr := MapToChannelReg(ChannelNumber, @DMA0PAD);
+  RegPtr^ := Address
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_TransferCount;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//              Count        :  The number of Bytes or Words (depending on dsPIC33_DMA_DataSize)
+//                              that are moved in a transfer cycle. Depends on the Peripheral.
+//
+//  Result:
+//
+//  Description: NOTE:  If running in Register Indirect with Post-Increment and in TX mode then be careful.  
+//                      The documentation states "When the DMA data transfer takes place, the 
+//                      DPSRAM Address does not increment to the next location"
+//                      Which is ONLY TRUE if you pass in THE EXACT NUMBER OF WORDS THAT WILL ACTUALLY
+//                      BE TRANSMITTED.  What that means is you MUST look at the DLC Byte Count and set
+//                      the minimum number of Words needed to transfer the SID, EID, DLC, and the number
+//                      of bytes (rounded up to words) that will be sent based on the DLC. If you don't the
+//                      Address Offset will be not be left in the original state, it will be incremented
+//                      the the delta between what is passed to the function and the number of words that
+//                      actually NEEDED to be transfered by DMA as defined the by the value in DLC.
+//
+//                      Also note that if it is a Standard ID it will by one less than the Extended ID
+//                      as defined by the errata sheet of the dsPIC33FJ64MC204... but with the
+//                      REAL definition of the bits in the first 3 words this is not possible...
+//                      TEST: This is not true for the dsPIC33FJ256FJ710A you must still account for the
+//                      three first words, SID, EID, DCL.  So does this mean that the bit pattern
+//                      for the dsPIC33FJ64MC204 actually matches the datasheet and this is true
+//                      for that part?  I don't know.  I do know that Microchip has given flat wrong
+//                      information out through tech support on the CAN module so I don't trust what
+//                      they say as it is not clear they know how the module works.
+//
+//                      If you pass the same value as for a RX then the DPSRAM Address
+//                      will increment to an incorrect value... For a RX Channel you must pass an 8 
+//                      (so Register will have a 7 per the datasheet) TBD that this is true
+//
+//                      If running in Peripheral Indirect mode then the offset MUST be on an even Byte Boundry
+//                      as well as the correct number of LSB "0"s based on the Address Offset.  See the datasheet
+//                      for more information.  This mode does not need the TransferCount modified depending on DLC
+//                      in software but it has other issues (see the notes under ADDRESS_MODE_PERIPHERAL_INDIRECT constant
+// *****************************************************************************
+procedure dsPIC33_DMA_TransferCount(ChannelNumber: Word; Count: Word);
+var
+  RegPtr: ^Word;
+begin
+  RegPtr := MapToChannelReg(ChannelNumber, @DMA0CNT);
+  RegPtr^ := Count - 1                                                          // 0 Counts!  An 8 Bit transfer = 7 in this register
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_MostRecentRAM_Address;
+//
+//  Parameters:
+//
+//  Result:    The address of the most recent data transfer byte or word depending on
+//             dsPIC33_DMA_DataSize
+//
+//  Description:
+// *****************************************************************************
+function dsPIC33_DMA_MostRecentRAM_Address: Word;
+begin
+  {$IFDEF dsPIC33EP_DMA}
+     Result := 0;
+  {$ENDIF}                                              // TODO: NOT IMPLEMENTED CORRECTLY
+  {$IFDEF dsPIC33_DMA}
+    Result := DSADR
+  {$ENDIF}
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_PeripheralWriteCollisionDetected;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//
+//  Result:    True if a Write Collision was detected.  See the datasheet for the
+//             definintion of a collision
+//
+//  Description:
+// *****************************************************************************
+function dsPIC33_DMA_PeripheralWriteCollisionDetected(ChannelNumber: Word): Boolean;
+begin
+  {$IFDEF dsPIC33EP_DMA}
+    Result := DMAPWC.ChannelNumber = 1
+  {$ENDIF}
+  {$IFDEF dsPIC33_DMA}
+    Result := DMACS0.ChannelNumber = 1
+  {$ENDIF}
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_DSPRAMWriteCollisionDetected;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//
+//  Result:    True if a Write Collision was detected.  See the datasheet for the
+//             definintion of a collision
+//
+//  Description:
+// *****************************************************************************
+function dsPIC33_DMA_DSPRAMWriteCollisionDetected(ChannelNumber: Word): Boolean;
+{$IFDEF dsPIC33_DMA}
+var
+  Offset: Word;
+{$ENDIF}
+begin
+  {$IFDEF dsPIC33EP_DMA}
+     Result := DMARQC.ChannelNumber = 1
+  {$ENDIF}
+  {$IFDEF dsPIC33_DMA}
+    Offset := ChannelNumber + 8;
+    Result := DMACS0.Offset = 1
+  {$ENDIF}
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_CurrentPingPongRegister;
+//
+//  Parameters: ChannelNumber:  The Channel to work on (0..7) [0..15 on dsPIC33E]
+//
+//  Result:    The current Register that being used accessed, see the PING_PONG_xxxx constants
+//
+//  Description: Only used for Ping-Pong mode.  The software can access the buffer
+//               that is not returned from the is function
+// *****************************************************************************
+function dsPIC33_DMA_CurrentPingPongRegister(ChannelNumber: Word): Word;
+begin
+  {$IFDEF dsPIC33EP_DMA}
+    if DMAPPS.ChannelNumber = 1 then
+      Result := PING_PONG_REG_B
+    else
+      Result := PING_PONG_REG_A
+  {$ENDIF}
+  {$IFDEF dsPIC33_DMA}
+    if DMACS1.ChannelNumber = 1 then
+      Result := PING_PONG_REG_B
+    else
+      Result := PING_PONG_REG_A
+  {$ENDIF}
+end;
+
+// *****************************************************************************
+//  procedure dsPIC33_DMA_LastActiveChannel;
+//
+//  Parameters:
+//
+//  Result:   The last Active Channel (0..7) that had a data transfer
+//
+//  Description: If No DMA transfer has occured sent system reset then return NO_DMA_TRANSFER
+// *****************************************************************************
+function dsPIC33_DMA_LastActiveChannel: Word;
+begin
+  {$IFDEF dsPIC33EP_DMA}
+    Result := DMALCA
+  {$ENDIF}
+  {$IFDEF dsPIC33_DMA}                           // TODO: NOT IMPLEMENTED CORRECTLY
+    Result := (DMACS1 and $0F00) shr 8;
+  {$ENDIF}
+end;
+
+{$IFDEF PRINT_DMA_BUFFERS}
+procedure PrintDMABuffers;
+const
+  LF = #13+#10;
+var
+  i: Integer;
+  s1: array[128] of char;
+begin
+  IntTohex(DMA0CON, s1);
+  UART1_Write_Text('DMA0CON = '+s1+'  ');
+  IntTohex(DMA0REQ, s1);
+  UART1_Write_Text('DMA0REQ = '+s1+'  ');
+  IntTohex(DMA0STAL, s1);
+  UART1_Write_Text('DMA0STAL = '+s1+'  ');
+  IntTohex(DMA0STAH, s1);
+  UART1_Write_Text('DMA0STAH = '+s1+'  ');
+  IntTohex(DMA0STBL, s1);
+  UART1_Write_Text('DMA0STBL = '+s1+'  ');
+  IntTohex(DMA0STBH, s1);
+  UART1_Write_Text('DMA0STBH = '+s1+'  ');
+  IntTohex(DMA0PAD, s1);
+  UART1_Write_Text('DMA0PAD = '+s1+'  ');
+  IntTohex(DMA0CNT, s1);
+  UART1_Write_Text('DMA0CNT = '+s1+'  ');
+  UART1_Write_Text(LF);
+
+  IntTohex(DMA1CON, s1);
+  UART1_Write_Text('DMA1CON = '+s1+'  ');
+  IntTohex(DMA1REQ, s1);
+  UART1_Write_Text('DMA1REQ = '+s1+'  ');
+  IntTohex(DMA1STAL, s1);
+  UART1_Write_Text('DMA1STAL = '+s1+'  ');
+  IntTohex(DMA1STAH, s1);
+  UART1_Write_Text('DMA1STAH = '+s1+'  ');
+  IntTohex(DMA1STBL, s1);
+  UART1_Write_Text('DMA1STBL = '+s1+'  ');
+  IntTohex(DMA1STBH, s1);
+  UART1_Write_Text('DMA1STBH = '+s1+'  ');
+  IntTohex(DMA1PAD, s1);
+  UART1_Write_Text('DMA1PAD = '+s1+'  ');
+  IntTohex(DMA1CNT, s1);
+  UART1_Write_Text('DMA1CNT = '+s1+'  ');
+  UART1_Write_Text(LF);
+
+  IntTohex(DMA2CON, s1);
+  UART1_Write_Text('DMA2CON = '+s1+'  ');
+  IntTohex(DMA2REQ, s1);
+  UART1_Write_Text('DMA2REQ = '+s1+'  ');
+  IntTohex(DMA2STAL, s1);
+  UART1_Write_Text('DMA2STAL = '+s1+'  ');
+  IntTohex(DMA2STAH, s1);
+  UART1_Write_Text('DMA2STAH = '+s1+'  ');
+  IntTohex(DMA2STBL, s1);
+  UART1_Write_Text('DMA2STBL = '+s1+'  ');
+  IntTohex(DMA2STBH, s1);
+  UART1_Write_Text('DMA2STBH = '+s1+'  ');
+  IntTohex(DMA2PAD, s1);
+  UART1_Write_Text('DMA2PAD = '+s1+'  ');
+  IntTohex(DMA2CNT, s1);
+  UART1_Write_Text('DMA2CNT = '+s1+'  ');
+
+  UART1_Write_Text(LF);
+  IntTohex(DMA3CON, s1);
+  UART1_Write_Text('DMA3CON = '+s1+'  ');
+  IntTohex(DMA3REQ, s1);
+  UART1_Write_Text('DMA3REQ = '+s1+'  ');
+  IntTohex(DMA3STAL, s1);
+  UART1_Write_Text('DMA3STAL = '+s1+'  ');
+  IntTohex(DMA3STAH, s1);
+  UART1_Write_Text('DMA3STAH = '+s1+'  ');
+  IntTohex(DMA3STBL, s1);
+  UART1_Write_Text('DMA3STBL = '+s1+'  ');
+  IntTohex(DMA3STBH, s1);
+  UART1_Write_Text('DMA3STBH = '+s1+'  ');
+  IntTohex(DMA3PAD, s1);
+  UART1_Write_Text('DMA3PAD = '+s1+'  ');
+  IntTohex(DMA3CNT, s1);
+  UART1_Write_Text('DMA3CNT = '+s1+'  ');
+  
+  
+  UART1_Write_Text(LF);
+  IntTohex(DMAPWC, s1);
+  UART1_Write_Text('DMAPWC = '+s1+'  ');
+  IntTohex(DMARQC, s1);
+  UART1_Write_Text('DMARQC = '+s1+'  ');
+  IntTohex(DMALCA, s1);
+  UART1_Write_Text('DMALCA = '+s1+'  ');
+  IntTohex(DMAPPS, s1);
+  UART1_Write_Text('DMAPPS = '+s1+LF);
+
+  UART1_Write_Text(LF);
+  UART1_Write_Text('TX Buffer'+LF);
+  for i := 0 to MAX_ECAN_TX_BUFFER - 1 do
+  begin
+    IntToHex(TX_Main_RawBufferArray[i].Word0, s1);
+    UART1_Write_Text('Word0 = '+s1+'  ');
+    IntToHex(TX_Main_RawBufferArray[i].Word1, s1);
+    UART1_Write_Text('Word1 = '+s1+'  ');
+    IntToHex(TX_Main_RawBufferArray[i].Word2, s1);
+    UART1_Write_Text('Word2 = '+s1+'  ');
+    IntToHex(TX_Main_RawBufferArray[i].Word3, s1);
+    UART1_Write_Text('Word3 = '+s1+'  ');
+    IntToHex(TX_Main_RawBufferArray[i].Word4, s1);
+    UART1_Write_Text('Word4 = '+s1+'  ');
+    IntToHex(TX_Main_RawBufferArray[i].Word5, s1);
+    UART1_Write_Text('Word5 = '+s1+'  ');
+    IntToHex(TX_Main_RawBufferArray[i].Word6, s1);
+    UART1_Write_Text('Word6 = '+s1+'  ');
+    IntToHex(TX_Main_RawBufferArray[i].Word7, s1);
+    UART1_Write_Text('Word7 = '+s1+'  '+LF);
+  end;
+
+  UART1_Write_Text(LF);
+  UART1_Write_Text('RX Buffer'+LF);
+  for i := 0 to MAX_ECAN_RX_BUFFER - 1 do
+  begin
+    IntToHex(RX_Main_RawBufferArray[i].Word0, s1);
+    UART1_Write_Text('Word0 = '+s1+'  ');
+    IntToHex(RX_Main_RawBufferArray[i].Word1, s1);
+    UART1_Write_Text('Word1 = '+s1+'  ');
+    IntToHex(RX_Main_RawBufferArray[i].Word2, s1);
+    UART1_Write_Text('Word2 = '+s1+'  ');
+    IntToHex(RX_Main_RawBufferArray[i].Word3, s1);
+    UART1_Write_Text('Word3 = '+s1+'  ');
+    IntToHex(RX_Main_RawBufferArray[i].Word4, s1);
+    UART1_Write_Text('Word4 = '+s1+'  ');
+    IntToHex(RX_Main_RawBufferArray[i].Word5, s1);
+    UART1_Write_Text('Word5 = '+s1+'  ');
+    IntToHex(RX_Main_RawBufferArray[i].Word6, s1);
+    UART1_Write_Text('Word6 = '+s1+'  ');
+    IntToHex(RX_Main_RawBufferArray[i].Word7, s1);
+    UART1_Write_Text('Word7 = '+s1+'  '+LF);
+  end;
+end;
+{$ENDIF}
+
+end.
