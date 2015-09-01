@@ -1,0 +1,246 @@
+unit UARTUtils;
+
+// Version 0.1
+//
+// The contents of this file are subject to the Mozilla Public License
+// Version 1.1 (the "License"); you may not use this file except in compliance
+// with the License. You may obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Alternatively, you may redistribute this library, use and/or modify it under the terms of the
+// GNU Lesser General Public License as published by the Free Software Foundation;
+// either version 2.1 of the License, or (at your option) any later version.
+// You may obtain a copy of the LGPL at http://www.gnu.org/copyleft/.
+//
+// Software distributed under the License is distributed on an "AS IS" basis,
+// WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for the
+// specific language governing rights and limitations under the License.
+//
+// The initial developer of this code is Jim Kueneman <jimkueneman@yahoo.com> and Vcc
+//
+
+// This unit provides a means to set a communiction UART port and a debug UART port.
+// It uses generic routines in the same way as UART_Set_Active works, but this unit sets two ports (communication and debug).
+// Applications which do not use UART communication do not need setting the UART communication port.
+// Also there is no need to set UART debug port if not debugging using UART.
+// Ports are assigned according to what is defined in ConditionalDefines.inc.
+// Version 1.0 - for PIC32 only
+
+{$I ConditionalDefines.inc}
+type
+  TUART_Init_Ptr = procedure(baud_rate: DWord);
+  TUART_Init_Advanced_Ptr = procedure(baud_rate, freq_Khz: DWord; high_low, parity, stop_bits: Byte);
+  TUART_Write_Text_Ptr = procedure(var uart_text: string);
+  TUART_Read_Text_Ptr = procedure(var output, delimiter: string; Attempts: Byte);
+  
+{$IFDEF UsingUARTInitAdvanced}
+  procedure Set_Communication_UART_InitProcs(Init_Advanced_Ptr: ^TUART_Init_Advanced_Ptr);
+{$ELSE}
+  procedure Set_Communication_UART_InitProcs(Init_Ptr: ^TUART_Init_Ptr);
+{$ENDIF}
+procedure Set_Communication_UART_RWProcs(Read_Ptr: ^TUART_Rd_Ptr; Write_Ptr: ^TUART_Wr_Ptr);
+procedure Set_Communication_UART_RWTextProcs(Read_Text_Ptr: ^TUART_Read_Text_Ptr; Write_Text_Ptr: ^TUART_Write_Text_Ptr);
+procedure Set_Communication_UART_HandShakeProcs(Ready_Ptr: ^TUART_Rdy_Ptr; TX_Idle_Ptr: ^TUART_TX_Idle_Ptr);
+
+
+{$IFDEF UsingUARTInitAdvanced}
+  procedure Set_Debug_UART_InitProcs(Init_Advanced_Ptr: ^TUART_Init_Advanced_Ptr);
+{$ELSE}
+  procedure Set_Debug_UART_InitProcs(Init_Ptr: ^TUART_Init_Ptr);
+{$ENDIF}
+procedure Set_Debug_UART_RWProcs(Read_Ptr: ^TUART_Rd_Ptr; Write_Ptr: ^TUART_Wr_Ptr);
+procedure Set_Debug_UART_RWTextProcs(Read_Text_Ptr: ^TUART_Read_Text_Ptr; Write_Text_Ptr: ^TUART_Write_Text_Ptr);
+procedure Set_Debug_UART_HandShakeProcs(Ready_Ptr: ^TUART_Rdy_Ptr; TX_Idle_Ptr: ^TUART_TX_Idle_Ptr);
+
+
+//The following routines are defined to avoid calling by pointer in code. This would break code compatibility.
+//Generic UART routines for communication. UART port is selected at compile time in ConditionalDefines.inc.
+//The above Set_* routines are needed before using any of the communication routines.
+procedure UARTComm_Init(baud_rate: DWord);
+procedure UARTComm_Init_Advanced(baud_rate, freq_Khz: DWord; high_low, parity, stop_bits: Byte);
+procedure UARTComm_Write(data_: Word);
+function UARTComm_Data_Ready: Word;
+function UARTComm_Read: Word;
+function UARTComm_TX_Idle: Word;
+procedure UARTComm_Write_Text(var uart_text: string);
+procedure UARTComm_Read_Text(var output, delimiter: string; Attempts: Byte);
+
+//Generic UART routines for debugging. UART port is selected at compile time in ConditionalDefines.inc.
+//The above Set_* routines are needed before using any of the communication routines.
+procedure UARTDbg_Init(baud_rate: DWord);
+procedure UARTDbg_Init_Advanced(baud_rate, freq_Khz: DWord; high_low, parity, stop_bits: Byte);
+procedure UARTDbg_Write(data_: Word);
+function UARTDbg_Data_Ready: Word;
+function UARTDbg_Read: Word;
+function UARTDbg_TX_Idle: Word;
+procedure UARTDbg_Write_Text(var uart_text: string);
+procedure UARTDbg_Read_Text(var output, delimiter: string; Attempts: Byte);
+
+implementation
+
+//The following variables are used to call both communication and debug UART routines.
+var
+  PUARTComm_Init: ^TUART_Init_Ptr;
+  PUARTComm_Init_Advanced: ^TUART_Init_Advanced_Ptr;
+  PUARTComm_Write: ^TUART_Wr_Ptr; //TUART_Wr_Ptr defined in UART library
+  PUARTComm_Data_Ready: ^TUART_Rdy_Ptr; //TUART_Rdy_Ptr defined in UART library
+  PUARTComm_Read: ^TUART_Rd_Ptr; //TUART_Rd_Ptr defined in UART library
+  PUARTComm_TX_Idle: ^TUART_TX_Idle_Ptr; //TUART_TX_Idle_Ptr defined in UART library
+  PUARTComm_Write_Text: ^TUART_Write_Text_Ptr;
+  PUARTComm_Read_Text: ^TUART_Read_Text_Ptr;
+
+  PUARTDbg_Init: ^TUART_Init_Ptr;
+  PUARTDbg_Init_Advanced: ^TUART_Init_Advanced_Ptr;
+  PUARTDbg_Write: ^TUART_Wr_Ptr; //TUART_Wr_Ptr defined in UART library
+  PUARTDbg_Data_Ready: ^TUART_Rdy_Ptr; //TUART_Rdy_Ptr defined in UART library
+  PUARTDbg_Read: ^TUART_Rd_Ptr; //TUART_Rd_Ptr defined in UART library
+  PUARTDbg_TX_Idle: ^TUART_TX_Idle_Ptr; //TUART_TX_Idle_Ptr defined in UART library
+  PUARTDbg_Write_Text: ^TUART_Write_Text_Ptr;
+  PUARTDbg_Read_Text: ^TUART_Read_Text_Ptr;
+
+{$IFDEF UsingUARTInitAdvanced}
+  procedure Set_Communication_UART_InitProcs(Init_Advanced_Ptr: ^TUART_Init_Advanced_Ptr);
+  begin
+    PUARTComm_Init_Advanced := Init_Advanced_Ptr;
+  end;
+{$ELSE}
+  procedure Set_Communication_UART_InitProcs(Init_Ptr: ^TUART_Init_Ptr);
+  begin
+    PUARTComm_Init := Init_Ptr;
+  end;
+{$ENDIF}
+
+procedure Set_Communication_UART_RWProcs(Read_Ptr: ^TUART_Rd_Ptr; Write_Ptr: ^TUART_Wr_Ptr);
+begin
+  PUARTComm_Write := Write_Ptr;
+  PUARTComm_Read := Read_Ptr;
+end;
+
+procedure Set_Communication_UART_RWTextProcs(Read_Text_Ptr: ^TUART_Read_Text_Ptr; Write_Text_Ptr: ^TUART_Write_Text_Ptr);
+begin
+  PUARTComm_Write_Text := Write_Text_Ptr;
+  PUARTComm_Read_Text := Read_Text_Ptr;
+end;
+
+procedure Set_Communication_UART_HandShakeProcs(Ready_Ptr: ^TUART_Rdy_Ptr; TX_Idle_Ptr: ^TUART_TX_Idle_Ptr);
+begin
+  PUARTComm_Data_Ready := Ready_Ptr;
+  PUARTComm_TX_Idle := TX_Idle_Ptr;
+end;
+
+
+
+{$IFDEF UsingUARTInitAdvanced}
+  procedure Set_Debug_UART_InitProcs(Init_Advanced_Ptr: ^TUART_Init_Advanced_Ptr);
+  begin
+    PUARTDbg_Init_Advanced := Init_Advanced_Ptr;
+  end;
+{$ELSE}
+  procedure Set_Debug_UART_InitProcs(Init_Ptr: ^TUART_Init_Ptr);
+  begin
+    PUARTDbg_Init := Init_Ptr;
+  end;
+{$ENDIF}
+
+procedure Set_Debug_UART_RWProcs(Read_Ptr: ^TUART_Rd_Ptr; Write_Ptr: ^TUART_Wr_Ptr);
+begin
+  PUARTDbg_Write := Write_Ptr;
+  PUARTDbg_Read := Read_Ptr;
+end;
+
+procedure Set_Debug_UART_RWTextProcs(Read_Text_Ptr: ^TUART_Read_Text_Ptr; Write_Text_Ptr: ^TUART_Write_Text_Ptr);
+begin
+  PUARTDbg_Write_Text := Write_Text_Ptr;
+  PUARTDbg_Read_Text := Read_Text_Ptr;
+end;
+
+procedure Set_Debug_UART_HandShakeProcs(Ready_Ptr: ^TUART_Rdy_Ptr; TX_Idle_Ptr: ^TUART_TX_Idle_Ptr);
+begin
+  PUARTDbg_Data_Ready := Ready_Ptr;
+  PUARTDbg_TX_Idle := TX_Idle_Ptr;
+end;
+
+
+
+//Generic UART routines for communication. UART port is selected at compile time in ConditionalDefines.inc.
+procedure UARTComm_Init(baud_rate: DWord);
+begin
+  PUARTComm_Init^(baud_rate);
+end;
+
+procedure UARTComm_Init_Advanced(baud_rate, freq_Khz: DWord; high_low, parity, stop_bits: Byte);
+begin
+  PUARTComm_Init_Advanced^(baud_rate, freq_Khz, high_low, parity, stop_bits);
+end;
+
+procedure UARTComm_Write(data_: Word);
+begin
+  PUARTComm_Write^(data_);
+end;
+
+function UARTComm_Data_Ready: Word;
+begin
+  Result := PUARTComm_Data_Ready^;
+end;
+
+function UARTComm_Read: Word;
+begin
+  Result := PUARTComm_Read^;
+end;
+
+function UARTComm_TX_Idle: Word;
+begin
+  Result := PUARTComm_TX_Idle^;
+end;
+
+procedure UARTComm_Write_Text(var uart_text: string);
+begin
+  PUARTComm_Write_Text^(uart_text);
+end;
+
+procedure UARTComm_Read_Text(var output, delimiter: string; Attempts: Byte);
+begin
+  PUARTComm_Read_Text^(output, delimiter, Attempts);
+end;
+
+//Generic UART routines for debugging. UART port is selected at compile time in ConditionalDefines.inc.
+procedure UARTDbg_Init(baud_rate: DWord);
+begin
+  PUARTDbg_Init^(baud_rate);
+end;
+
+procedure UARTDbg_Init_Advanced(baud_rate, freq_Khz: DWord; high_low, parity, stop_bits: Byte);
+begin
+  PUARTDbg_Init_Advanced^(baud_rate, freq_Khz, high_low, parity, stop_bits);
+end;
+
+procedure UARTDbg_Write(data_: Word);
+begin
+  PUARTDbg_Write^(data_);
+end;
+
+function UARTDbg_Data_Ready: Word;
+begin
+  Result := PUARTDbg_Data_Ready^;
+end;
+
+function UARTDbg_Read: Word;
+begin
+  Result := PUARTDbg_Read^;
+end;
+
+function UARTDbg_TX_Idle: Word;
+begin
+  Result := PUARTDbg_TX_Idle^;
+end;
+
+procedure UARTDbg_Write_Text(var uart_text: string);
+begin
+  PUARTDbg_Write_Text^(uart_text);
+end;
+
+procedure UARTDbg_Read_Text(var output, delimiter: string; Attempts: Byte);
+begin
+  PUARTDbg_Read_Text^(output, delimiter, Attempts);
+end;
+
+end.

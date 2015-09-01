@@ -1,0 +1,145 @@
+object FormMemoryMap: TFormMemoryMap
+  Left = 638
+  Height = 422
+  Top = 181
+  Width = 497
+  Caption = 'Memory Map'
+  ClientHeight = 422
+  ClientWidth = 497
+  OnCreate = FormCreate
+  OnShow = FormShow
+  LCLVersion = '1.2.0.3'
+  object StringGridWrite: TStringGrid
+    Left = 0
+    Height = 136
+    Top = 224
+    Width = 497
+    Align = alClient
+    DefaultColWidth = 100
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goThumbTracking, goSmoothScroll, goRowHighlight]
+    TabOrder = 0
+    OnSelectCell = StringGridWriteSelectCell
+  end
+  object Splitter1: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 8
+    Top = 216
+    Width = 497
+    Align = alTop
+    ResizeAnchor = akTop
+  end
+  object Panel2: TPanel
+    Left = 0
+    Height = 216
+    Top = 0
+    Width = 497
+    Align = alTop
+    ClientHeight = 216
+    ClientWidth = 497
+    TabOrder = 2
+    object ButtonSaveToFileErase: TButton
+      Left = 176
+      Height = 22
+      Top = 190
+      Width = 150
+      Anchors = [akRight, akBottom]
+      Caption = 'Save To File...'
+      ModalResult = 1
+      OnClick = ButtonSaveToFileEraseClick
+      TabOrder = 0
+    end
+    object ButtonLoadFromFileErase: TButton
+      Left = 336
+      Height = 22
+      Top = 190
+      Width = 150
+      Anchors = [akRight, akBottom]
+      Caption = 'Load From File...'
+      ModalResult = 1
+      OnClick = ButtonLoadFromFileEraseClick
+      TabOrder = 1
+    end
+    object StringGridErase: TStringGrid
+      Left = 1
+      Height = 183
+      Top = 1
+      Width = 495
+      Align = alTop
+      Anchors = [akTop, akLeft, akRight, akBottom]
+      DefaultColWidth = 100
+      Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goAutoAddRows, goSmoothScroll, goRowHighlight]
+      TabOrder = 2
+      OnSelectCell = StringGridEraseSelectCell
+    end
+  end
+  object Panel3: TPanel
+    Left = 0
+    Height = 62
+    Top = 360
+    Width = 497
+    Align = alBottom
+    ClientHeight = 62
+    ClientWidth = 497
+    TabOrder = 3
+    object ButtonClose2: TButton
+      Left = 336
+      Height = 22
+      Top = 32
+      Width = 150
+      Anchors = [akRight, akBottom]
+      Caption = 'Close'
+      ModalResult = 1
+      OnClick = ButtonCloseClick
+      TabOrder = 0
+    end
+    object LabelAddress: TLabel
+      Left = 64
+      Height = 13
+      Top = 8
+      Width = 60
+      Caption = '$000000000'
+      ParentColor = False
+    end
+    object Label5: TLabel
+      Left = 8
+      Height = 13
+      Top = 8
+      Width = 39
+      Caption = 'Address'
+      ParentColor = False
+    end
+    object ButtonSaveToFileWrite: TButton
+      Left = 176
+      Height = 22
+      Top = 8
+      Width = 150
+      Anchors = [akRight, akBottom]
+      Caption = 'Save To File...'
+      ModalResult = 1
+      OnClick = ButtonSaveToFileWriteClick
+      TabOrder = 1
+    end
+    object ButtonLoadFromFileWrite: TButton
+      Left = 336
+      Height = 22
+      Top = 8
+      Width = 150
+      Anchors = [akRight, akBottom]
+      Caption = 'Load From File...'
+      ModalResult = 1
+      OnClick = ButtonLoadFromFileWriteClick
+      TabOrder = 2
+    end
+  end
+  object SaveDialog: TSaveDialog
+    DefaultExt = '.log'
+    Filter = 'log files (*.log)|*.log'
+    left = 220
+    top = 278
+  end
+  object OpenDialog: TOpenDialog
+    left = 327
+    top = 300
+  end
+end

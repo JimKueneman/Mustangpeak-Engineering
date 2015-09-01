@@ -1,0 +1,304 @@
+unit mcu_bootloader;
+
+// Version 0.1
+//
+// The contents of this file are subject to the Mozilla Public License
+// Version 1.1 (the "License"); you may not use this file except in compliance
+// with the License. You may obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Alternatively, you may redistribute this library, use and/or modify it under the terms of the
+// GNU Lesser General Public License as published by the Free Software Foundation;
+// either version 2.1 of the License, or (at your option) any later version.
+// You may obtain a copy of the LGPL at http://www.gnu.org/copyleft/.
+//
+// Software distributed under the License is distributed on an "AS IS" basis,
+// WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for the
+// specific language governing rights and limitations under the License.
+//
+// The initial developer of this code is Jim Kueneman <jimkueneman@yahoo.com> and Vcc
+//
+
+{$IFDEF FPC}
+{$mode objfpc}{$H+}
+
+interface
+{$ENDIF}
+
+{$I options_user.inc}
+
+uses
+  {$IFDEF USER_DEBUG}bootloader_userdebug,{$ENDIF}
+  bootloader_driver,
+  bootloader_mcu,
+  bootloader_user,
+  bootloader_common;
+  
+const
+  // The length of time the mcu waits for a connection with the bootloader app then runs the application code
+  USER_BOOTLOADER_WAIT_TIME = 5000;   // in milli seconds
+
+procedure bootloader_main;
+
+{$IFDEF P33}procedure main(); external;{$ENDIF}
+{$IFDEF P30}procedure main(); external;{$ENDIF}
+{$IFDEF P24}procedure main(); external;{$ENDIF}
+{$IFDEF P18}procedure main(); external;{$ENDIF}
+{$IFDEF P16}procedure main(); external;{$ENDIF}
+
+var
+  BootInfo: TBootInfo;
+  CurrentAddresses: TCurrentAddresses;
+  RawBuffer: TRawBuffer;
+  McuInfoLoaded: Boolean;      // For debugging in Lazarus
+
+implementation
+
+procedure Initialize;
+begin
+  BootInfo.StructSize := BOOTINFO_REC_SIZE;   // NOTE:  SizeOf(TBootInfo) does not work reliably because of padding the compiler may do
+  BootInfo.EraseBlockSize := USER_BOOTLOADER_ERASE_BLOCK;
+  BootInfo.WriteBufferSize := USER_BOOTLOADER_WRITE_BLOCK;
+  BootInfo.ProgramFlashSize := USER_BOOTLOADER_FLASH_SIZE;
+  BootInfo.BootloaderAddress := USER_BOOTLOADER_ADDRESS;
+  BootInfo.BootloaderSize := USER_BOOTLOADER_SIZE;
+  BootInfo.ConfigurationAddress := USER_BOOTLOADER_CONFIG_ADDRESS;
+  BootInfo.McuFamily := USER_BOOTLOADER_MCU_FAMILY;
+  BootInfo.Revision[0] := USER_BOOTLOADER_REV_LO;
+  BootInfo.Revision[1] := USER_BOOTLOADER_REV_HI;
+  BootInfo.ApplicationName := USER_BOOTLOADER_APP_NAME;
+
+  McuInfoLoaded := True;
+
+  CurrentAddresses.Write := $00000000;
+  CurrentAddresses.Erase := $00000000;
+end;
+
+procedure SendByte(AByte: Byte);
+begin
+  Bootloader_Driver_SendByte(AByte);
+end;
+
+procedure SendWord(AWord: Word);
+begin
+  Bootloader_Driver_SendByte( Lo(AWord));       // Little Endian
+  Bootloader_Driver_SendByte( Hi(AWord));       // Little Endian
+end;
+
+procedure SendDWord(var ADWord: DWord);   // Bug in mPascal for PIC32 v3.3.3;  Needs the var keyword here or the wrong value is passed
+begin
+  Bootloader_Driver_SendByte( Lo(ADWord));       // Little Endian
+  Bootloader_Driver_SendByte( Hi(ADWord));       // Little Endian
+  Bootloader_Driver_SendByte( Higher(ADWord));   // Little Endian
+  Bootloader_Driver_SendByte( Highest(ADWord));  // Little Endian
+end;
+
+function WaitForBootLinkDetected: Boolean;
+var
+  DelayTime: Word;
+  ReceivedByte: Byte;
+begin
+  Result := False;
+  DelayTime := 0;
+  ReceivedByte := 0;
+  while (DelayTime < USER_BOOTLOADER_WAIT_TIME) do
+  begin
+    if Bootloader_Driver_ReadByte(ReceivedByte) then
+      Result :=  ReceivedByte = CMD_SYNC;
+    if Result then
+      Break;
+    DelayTime := DelayTime + 100;
+    Delay_ms(100);                   // This is okay because we are only sending one byte so the Buffer won't overrun
+  end
+end;
+
+function ReadInMessage(var Buffer: TRawBuffer): Byte;
+const
+  SIZE_WRITE_COUNT = 4;
+  SIZE_WRITE_CMD = 0;
+  SIZE_WRITE_BUFFER_CMD = SIZE_WRITE_COUNT;
+var
+  iBuffer: Word;
+  LocalCount: DWord;
+begin
+  Result := $FF;
+  iBuffer := 0;
+  LocalCount := 0;
+  while True do
+  begin
+    if Bootloader_Driver_ReadByte(Buffer[iBuffer]) then
+    begin
+      case Result of
+        $FF : begin
+              Result := Buffer[iBuffer]; // First Byte is the Command
+              if (Result and CMD_PARAMETERLESS_MASK <> 0) then
+                Exit            // Single byte message
+              // else more coming and don't put the command in the Raw buffer so don't increase the iBuffer
+            end;
+        CMD_SET_ADDRESS :
+            begin
+              Inc(iBuffer);
+              if iBuffer > 4 then         // 6 bytes of data
+                Exit;
+            end;
+        CMD_ERASE_BLOCKS :
+            begin
+              Inc(iBuffer);
+              if iBuffer > 3 then         // 5 bytes of data
+                Exit;
+            end;
+        CMD_WRITE_BLOCK :
+            begin
+              if (iBuffer >= SIZE_WRITE_CMD + USER_BOOTLOADER_WRITE_BLOCK - 1) then         // zero index
+                Exit;
+              Inc(iBuffer);
+            end;
+        CMD_WRITE :
+            begin
+              if iBuffer > 2 then
+              begin
+                if (iBuffer = 3) then
+                  LocalCount := Address2DWord_LittleEndian(@RawBuffer[0])
+                else begin
+                  if (iBuffer >= SIZE_WRITE_BUFFER_CMD + LocalCount - 1) then   // zero index
+                    Exit;
+                end;
+              end;
+              Inc(iBuffer);
+            end
+      {$IFDEF USER_DEBUG}
+      else
+         SendDebugStr('Unknown Command');
+      {$ELSE}
+        ;
+      {$ENDIF}
+      end;
+    end;
+  end;
+end;
+
+var
+  i: Integer;
+  Count: DWord;
+
+procedure bootloader_main;
+begin
+  // All code must be placed high in the memory space
+  OrgAll(USER_BOOTLOADER_ADDRESS - PROGRAM_START_VECTOR_SIZE);
+  // The bootloader is on an EraseBlock boundry, and the ProgramStart (ResetVector)
+  // needs to be written with the jump to the bootloaded application.  Because of
+  // this we need to erase these ResetVector area to write in the jump.  In order to
+  // erase just these small space it must be in its own EraseBlock segment...
+  // Put it just below the Bootloader (which we don't want to erase when we erase
+  // the ResetVector
+  SetOrg(Bootloader_StartProgram_Vector, USER_BOOTLOADER_ADDRESS - PROGRAM_START_VECTOR_SIZE);
+  
+  {$IFDEF P32}
+    // Some MCUs such as the PIC32 have a Boot Flash area and a Program Flash area
+    // In these cases we need a stub in the Boot Flash area to jump to the Program
+    // Flash area
+    SetFuncCall(BootFlash_ResetVector); // force BootResetVector allocation
+    // Specialized functions compiler specific
+    SetOrg(__BootStartUp, USER_BOOTLOADER_ADDRESS);
+  {$ENDIF}
+  SetOrg(BootFlash_ResetVector, RESET_VECTOR_START_ADDRESS);
+  {$IFDEF P33}SetOrg(main, USER_BOOTLOADER_ADDRESS);{$ENDIF}                    // Points the reset jump to the bootloader main program
+  {$IFDEF P30}SetOrg(main, USER_BOOTLOADER_ADDRESS);{$ENDIF}                    // Points the reset jump to the bootloader main program
+  {$IFDEF P24}SetOrg(main, USER_BOOTLOADER_ADDRESS);{$ENDIF}                    // Points the reset jump to the bootloader main program
+  {$IFDEF P18}SetOrg(main, USER_BOOTLOADER_ADDRESS);{$ENDIF}                    // Points the reset jump to the bootloader main program
+  {$IFDEF P16}SetOrg(main, USER_BOOTLOADER_ADDRESS);{$ENDIF}                    // Points the reset jump to the bootloader main program
+  Initialize;
+  Bootloader_Driver_Initialization;
+  Bootloader_Mcu_Initialization;
+  User_Init;    
+  {$IFDEF USER_DEBUG}InitDebugLink;{$ENDIF}
+  SendByte(CMD_LINK);
+
+  if WaitForBootLinkDetected then
+  begin
+    {$IFDEF USER_DEBUG} SendDebugStr('Sync');{$ENDIF}
+    SendByte(CMD_SYNC);
+    while True do   // Only way out of here is a reset
+    begin
+      case ReadInMessage(RawBuffer) of
+        CMD_REQEUST_FLASH_DATA :
+            begin
+              SendByte(CMD_REQEUST_FLASH_DATA);
+              SendWord(BootInfo.StructSize);
+              SendDWord( BootInfo.EraseBlockSize);
+              SendDWord( BootInfo.WriteBufferSize);
+              SendDWord( BootInfo.ProgramFlashSize);
+              SendDWord( BootInfo.BootloaderAddress);
+              SendDWord( BootInfo.BootloaderSize);
+              SendByte(BootInfo.McuFamily);
+              SendByte(BootInfo.Revision[0]);
+              SendByte(BootInfo.Revision[1]);
+              for i := 0 to 31 do
+                SendByte(Ord( BootInfo.ApplicationName[i]));
+              {$IFDEF USER_DEBUG} SendDebugStr('Request Flash');{$ENDIF}
+            end;
+        CMD_SET_ADDRESS :
+            begin
+              case RawBuffer[0] of
+                CMD_SET_ADDRESS_WRITE : begin
+                        CurrentAddresses.Write := Address2DWord_LittleEndian(@RawBuffer[1]);
+                        {$IFDEF USER_DEBUG}LongWordToHex(CurrentAddresses.Write, s1);SendDebugStr('Set WriteAddress: 0x' + s1);{$ENDIF}
+                      end;
+                CMD_SET_ADDRESS_ERASE : begin
+                        CurrentAddresses.Erase := Address2DWord_LittleEndian(@RawBuffer[1]);
+                        {$IFDEF USER_DEBUG}LongWordToHex(CurrentAddresses.Erase, s1);SendDebugStr('Set EraseAddress: 0x' + s1);{$ENDIF}
+                      end;
+              end;
+            end;
+        CMD_RESET :
+            begin
+              SendByte(CMD_UNLINK); 
+              {$IFDEF USER_DEBUG}SendDebugStr('Reset');{$ENDIF}
+              User_Finalize;
+              Delay_ms(500);       // Make sure it is sent
+              {$IFDEF P16}
+              asm
+                goto $0000;
+              end;
+              {$ELSE}
+              Reset;
+              {$ENDIF}
+            end;
+        CMD_ERASE_BLOCKS :
+            begin
+              {$IFDEF USER_DEBUG}SendDebugStr('Erase Blocks');{$ENDIF}
+              Count := Address2DWord_LittleEndian(@RawBuffer[0]);
+              for i := 0 to Count - 1 do
+                Bootloader_Mcu_EraseFlash(CurrentAddresses.Erase);
+              SendByte(CMD_ERASE_BLOCKS);  // Done
+            end;
+        CMD_WRITE_BLOCK :
+            begin
+              {$IFDEF USER_DEBUG}SendDebugStr('Write Block');{$ENDIF}
+              Bootloader_Mcu_WriteFlash(CurrentAddresses.Write, USER_BOOTLOADER_WRITE_BLOCK, @RawBuffer[0]);
+              SendByte(CMD_WRITE_BLOCK);  // Done
+            end;
+        CMD_WRITE :
+            begin
+              {$IFDEF USER_DEBUG}SendDebugStr('Write');{$ENDIF}
+              Count := Address2DWord_LittleEndian(@RawBuffer[0]);
+              // the mcu driver must update the Address based on the number of bytes it wrote
+              if Count > 0 then
+                Bootloader_Mcu_WriteFlash(CurrentAddresses.Write, Count, @RawBuffer[4]);
+              SendByte(CMD_WRITE);  // Done
+            end;
+      end;
+    end;
+  end else
+  begin
+    Bootloader_Driver_Finalization;
+    User_Finalize;
+    SendByte(CMD_UNLINK);
+    {$IFDEF USER_DEBUG} SendDebugStr('UnLink');{$ENDIF}
+    {$IFDEF USER_DEBUG}FinalizeDebugLink;{$ENDIF}
+    Delay_ms(500);
+    // Jump to code
+    Bootloader_StartProgram_Vector;
+  end;
+end;
+
+end.

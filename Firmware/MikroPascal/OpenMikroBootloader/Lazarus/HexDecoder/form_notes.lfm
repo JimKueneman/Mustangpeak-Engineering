@@ -1,0 +1,42 @@
+object FormNotes: TFormNotes
+  Left = 431
+  Height = 291
+  Top = 204
+  Width = 547
+  Caption = 'Notes'
+  ClientHeight = 291
+  ClientWidth = 547
+  LCLVersion = '1.2.0.3'
+  object Label1: TLabel
+    Left = 0
+    Height = 249
+    Top = 0
+    Width = 547
+    Align = alClient
+    AutoSize = False
+    Caption = 'Configuration Bits may or may not be displayed correctly.   Some MCUs use a different addressing scheme than the program memory and  for that case we need to know the specific MCU as this may different within a MCU family.  The bootloader does not need to worry about this because it will not write anything above the bootloader program code  and the config bits are always above the program memory. It could render the bootloader unusable if a program was bootloaded and it changed the configuration  bits so a requirment is the application and bootloader have the same configuration setup.'
+    ParentColor = False
+    WordWrap = True
+  end
+  object Panel1: TPanel
+    Left = 0
+    Height = 42
+    Top = 249
+    Width = 547
+    Align = alBottom
+    Anchors = [akLeft, akBottom]
+    ClientHeight = 42
+    ClientWidth = 547
+    TabOrder = 0
+    object Button1: TButton
+      Left = 389
+      Height = 22
+      Top = 8
+      Width = 120
+      Anchors = [akRight, akBottom]
+      Caption = 'Ok'
+      ModalResult = 1
+      TabOrder = 0
+    end
+  end
+end

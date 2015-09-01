@@ -1,0 +1,61 @@
+program FlashTest;
+
+{ Declarations section }
+
+const
+  AddressStart = $400;
+  
+  
+procedure Test; org $400;
+begin
+end;
+
+var
+  Address: Word;
+  _Data: array[1024] of Byte;
+  i: Integer;
+begin
+  { Main program }
+  SetOrg(Main, $2000);
+  
+  Test();
+
+  i := 0;
+  while i < 1023 do
+  begin
+    _Data[i] := $AA;
+    Inc(i);
+    _Data[i] := $BB;
+    Inc(i);
+    _Data[i] := $CC;
+    Inc(i);
+  end;
+  
+ // FLASH_Erase32(AddressStart);
+  
+  //FLASH_Write_Init(AddressStart, @_Data);
+  //FLASH_Write_Loadlatch4_Compact;
+  //FLASH_Write_DoWrite;
+  
+  FLASH_Read4_Compact(AddressStart, @_Data);
+
+
+  FLASH_Erase32(AddressStart);              // 8 Addresses per erase? = 96 bytes/3 bytes per instruction * 2 instructions per address
+  
+  i := 0;
+  while i < 1023 do
+  begin
+    _Data[i] := $11;
+    Inc(i);
+    _Data[i] := $22;
+    Inc(i);
+    _Data[i] := $33;
+    Inc(i);
+  end;
+
+  FLASH_Write_Init(AddressStart, @_Data);
+  FLASH_Write_Loadlatch4_Compact;
+  FLASH_Write_DoWrite;
+  
+ // FLASH_Erase32(AddressStart);              // 8 Addresses per erase? = 96 bytes/3 bytes per instruction * 2 instructions per address
+end.

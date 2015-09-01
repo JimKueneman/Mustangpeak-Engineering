@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="9"/>
+    <BuildModes Active="Default"/>
+    <Units Count="10">
+      <Unit0>
+        <Filename Value="openMB_xml2inc.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="openMB_xml2inc"/>
+        <UsageCount Value="23"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="Forms\main_form.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form1"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="main_form"/>
+        <EditorIndex Value="0"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="109"/>
+        <CursorPos X="32" Y="126"/>
+        <UsageCount Value="23"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="C:\lazarus\components\lazutils\laz2_xmlread.pas"/>
+        <UnitName Value="laz2_XMLRead"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="46"/>
+        <CursorPos X="11" Y="59"/>
+        <UsageCount Value="11"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="C:\lazarus\fpc\2.6.2\source\rtl\objpas\sysutils\finah.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="10"/>
+        <CursorPos X="24" Y="25"/>
+        <UsageCount Value="11"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="C:\lazarus\components\lazutils\laz2_dom.pas"/>
+        <UnitName Value="Laz2_DOM"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="2328"/>
+        <CursorPos X="1" Y="2340"/>
+        <UsageCount Value="11"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="Y:\usr\local\share\fpcsrc\rtl\inc\varianth.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="497"/>
+        <CursorPos X="10" Y="510"/>
+        <UsageCount Value="10"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="Y:\usr\local\share\fpcsrc\rtl\inc\variant.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1118"/>
+        <CursorPos X="14" Y="1141"/>
+        <UsageCount Value="10"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="Y:\usr\local\share\fpcsrc\rtl\inc\ustrings.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1519"/>
+        <CursorPos X="55" Y="1527"/>
+        <UsageCount Value="10"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="Z:\trunk\scratchpads\jkueneman\OPStack\Projects\PIC18F46K80_Basic\Templates\Options.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
+        <UsageCount Value="10"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="S:\Mustangpeak\mikroPascal\Projects\dsPIC33EPxxxMU8xx\CommandStation\Templates\Options.inc"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="11" Y="13"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit9>
+    </Units>
+    <General>
+      <ActiveWindowIndexAtStart Value="0"/>
+    </General>
+    <JumpHistory Count="25" HistoryIndex="24">
+      <Position1>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="51" Column="1" TopLine="29"/>
+      </Position1>
+      <Position2>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="62" Column="87" TopLine="47"/>
+      </Position2>
+      <Position3>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="64" Column="152" TopLine="43"/>
+      </Position3>
+      <Position4>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="63" Column="111" TopLine="50"/>
+      </Position4>
+      <Position5>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="84" Column="77" TopLine="48"/>
+      </Position5>
+      <Position6>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="55" Column="1" TopLine="48"/>
+      </Position6>
+      <Position7>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="56" Column="1" TopLine="48"/>
+      </Position7>
+      <Position8>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="57" Column="1" TopLine="48"/>
+      </Position8>
+      <Position9>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="59" Column="1" TopLine="48"/>
+      </Position9>
+      <Position10>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="60" Column="1" TopLine="48"/>
+      </Position10>
+      <Position11>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="61" Column="1" TopLine="48"/>
+      </Position11>
+      <Position12>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="63" Column="1" TopLine="48"/>
+      </Position12>
+      <Position13>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="84" Column="81" TopLine="75"/>
+      </Position13>
+      <Position14>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="64" Column="33" TopLine="55"/>
+      </Position14>
+      <Position15>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="46" Column="67" TopLine="37"/>
+      </Position15>
+      <Position16>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="50" Column="83" TopLine="37"/>
+      </Position16>
+      <Position17>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="111" Column="41" TopLine="94"/>
+      </Position17>
+      <Position18>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="50" Column="1" TopLine="34"/>
+      </Position18>
+      <Position19>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="51" Column="1" TopLine="34"/>
+      </Position19>
+      <Position20>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="50" Column="105" TopLine="40"/>
+      </Position20>
+      <Position21>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="53" Column="46" TopLine="40"/>
+      </Position21>
+      <Position22>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="51" Column="1" TopLine="40"/>
+      </Position22>
+      <Position23>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="110" Column="40" TopLine="91"/>
+      </Position23>
+      <Position24>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="111" Column="27" TopLine="92"/>
+      </Position24>
+      <Position25>
+        <Filename Value="Forms\main_form.pas"/>
+        <Caret Line="116" Column="17" TopLine="111"/>
+      </Position25>
+    </JumpHistory>
+  </ProjectSession>
+  <EditorMacros Count="0"/>
+</CONFIG>

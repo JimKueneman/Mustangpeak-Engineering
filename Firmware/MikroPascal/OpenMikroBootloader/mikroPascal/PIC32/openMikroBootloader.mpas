@@ -1,0 +1,8 @@
+program mikroBootloader;
+
+{ Declarations section }
+
+begin
+  { Main program }
+   bootloader_main;
+end.

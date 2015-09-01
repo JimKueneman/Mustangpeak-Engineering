@@ -1,0 +1,17 @@
+msc {
+     hscale = "2";
+     "PC", "Micro"";
+     
+     "PC" box "PC" 			  [ label = "Listening"];
+ 
+     "PC" -> "Micro"               [ label = "Identify Producer IsIdleProxy" ];
+     "PC" <- "Micro"               [ label = "Producer Identified Valid: IsIdleProxy" ];
+     "PC" -> "Micro"               [ label = "Traction: Reserve Instruction" ];
+     "PC" -> "Micro"               [ label = "Traction: Allocate DCC Node" ];
+     "DCC Train Node 1" box "DCC Train Node 1" [ label = "Dynamic Node Starts" ];
+     "DCC Train Node 1" -> *                   [ label = "Initialization Complete" ];
+     "DCC Train Node 1" -> *                   [ label = "Producer Identified Valid: IsTrain Event" ];
+     "Throttle 1" <- "DCC Proxy"	       [ label = "Traction: Allocate DCC Node Reply - Node ID of DCC Train Node 1" ];
+     "Throttle 1" <- "DCC Proxy"	       [ label = "Traction: Release Instruction" ];
+     "Throttle 1" box "DCC Train Node 1"       [ label = "Operate Train" ]; 	            
+}

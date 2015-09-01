@@ -1,0 +1,60 @@
+unit bootloader_mcu_flash;
+
+uses
+  bootloader_common;
+
+{$IFDEF P32}
+procedure P32_Flash_WriteWord(Address, _Data: DWord);
+procedure P32_Flash_WriteRow(Address, _Data: ^Byte);
+procedure P32_Flash_Erase(Address: DWord);
+{$ENDIF}
+
+implementation
+
+{$IFDEF P32}
+procedure P32_Unlock(opCode: DWord);
+begin
+  // Disable Interrupts
+  // Enable Flash Write/Erase Operations and Select Operaion to Perform
+  NVMCON := opCode;
+  // Write Special Keys
+  NVMKEY := $AA996655;
+  NVMKEY := $556699AA;
+  // Start the Operation
+  NVMCONSET := $8000;
+  // Wait for the Write to finish
+  while NVMCON and $8000 <> 0 do;
+  // Reenable Interrupts
+  // Disable NVM write enable
+  NVMCONCLR := $0004000
+end;
+{$ENDIF}
+
+{$IFDEF P32}
+procedure P32_Flash_WriteWord(Address, _Data: DWord);
+begin
+  NVMDATA := _Data;
+  NVMADDR := Address;
+  P32_Unlock($4001);
+end;
+{$ENDIF}
+
+{$IFDEF P32}
+procedure P32_Flash_Erase(Address: DWord);
+begin
+  NVMADDR := Address;
+  P32_Unlock($4004);
+end;
+{$ENDIF}
+
+{$IFDEF P32}
+procedure P32_Flash_WriteRow(Address, _Data: ^Byte);
+begin
+  NVMDATA := _Data;
+  NVMADDR := Address;
+  P32_Unlock($4003);
+end;
+{$ENDIF}
+
+
+end.

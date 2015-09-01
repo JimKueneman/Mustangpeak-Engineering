@@ -1,0 +1,299 @@
+unit BootloaderConnectionDrivers;
+
+// Version 0.1
+//
+// The contents of this file are subject to the Mozilla Public License
+// Version 1.1 (the "License"); you may not use this file except in compliance
+// with the License. You may obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Alternatively, you may redistribute this library, use and/or modify it under the terms of the
+// GNU Lesser General Public License as published by the Free Software Foundation;
+// either version 2.1 of the License, or (at your option) any later version.
+// You may obtain a copy of the LGPL at http://www.gnu.org/copyleft/.
+//
+// Software distributed under the License is distributed on an "AS IS" basis,
+// WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for the
+// specific language governing rights and limitations under the License.
+//
+// The initial developer of this code is Jim Kueneman <jimkueneman@yahoo.com> and Vcc
+//
+
+{$I ConditionalDefines.inc}
+
+uses
+  BootloaderDefines, 
+  PIC32_Bootloader_Options,
+  UARTUtils;
+  
+var
+  DebugLED: bit; sfr; external;  //defined in main unit (PIC32_Bootloader.mpas)
+  
+procedure SetupUART_Debug;
+procedure BootLinkInitialize;
+procedure BootLinkSendByte(AByte: Byte);
+function BootLinkDetected: Boolean;
+procedure BootLinkReadInMessage(var Buffer: TRawBuffer);
+procedure BootLinkWriteFlash(Address: DWord; BufferLen: Word; Buffer: ^Byte);
+procedure BootLinkEraseFlash(Address: DWord);
+
+implementation
+
+procedure SetupUART_Debug;
+begin
+  {$IFDEF UART1_Dbg}
+    {$IFDEF UsingUARTInitAdvanced}
+      Set_Debug_UART_InitProcs(@UART1_Init_Advanced);
+    {$ELSE}
+      Set_Debug_UART_InitProcs(@UART1_Init);
+    {$ENDIF}
+    Set_Debug_UART_RWProcs(@UART1_Read, @UART1_Write);
+    Set_Debug_UART_RWTextProcs(@UART1_Read_Text, @UART1_Write_Text);
+    Set_Debug_UART_HandShakeProcs(@UART1_Data_Ready, @UART1_TX_Idle);
+  {$ENDIF}
+
+  {$IFDEF UART2_Dbg}
+    {$IFDEF UsingUARTInitAdvanced}
+      Set_Debug_UART_InitProcs(@UART2_Init_Advanced);
+    {$ELSE}
+      Set_Debug_UART_InitProcs(@UART2_Init);
+    {$ENDIF}
+    Set_Debug_UART_RWProcs(@UART2_Read, @UART2_Write);
+    Set_Debug_UART_RWTextProcs(@UART2_Read_Text, @UART2_Write_Text);
+    Set_Debug_UART_HandShakeProcs(@UART2_Data_Ready, @UART2_TX_Idle);
+  {$ENDIF}
+
+  {$IFDEF UART3_Dbg}
+    {$IFDEF UsingUARTInitAdvanced}
+      Set_Debug_UART_InitProcs(@UART3_Init_Advanced);
+    {$ELSE}
+      Set_Debug_UART_InitProcs(@UART3_Init);
+    {$ENDIF}
+    Set_Debug_UART_RWProcs(@UART3_Read, @UART3_Write);
+    Set_Debug_UART_RWTextProcs(@UART3_Read_Text, @UART3_Write_Text);
+    Set_Debug_UART_HandShakeProcs(@UART3_Data_Ready, @UART3_TX_Idle);
+  {$ENDIF}
+
+  {$IFDEF UART4_Dbg}
+    {$IFDEF UsingUARTInitAdvanced}
+      Set_Debug_UART_InitProcs(@UART4_Init_Advanced);
+    {$ELSE}
+      Set_Debug_UART_InitProcs(@UART4_Init);
+    {$ENDIF}
+    Set_Debug_UART_RWProcs(@UART4_Read, @UART4_Write);
+    Set_Debug_UART_RWTextProcs(@UART4_Read_Text, @UART4_Write_Text);
+    Set_Debug_UART_HandShakeProcs(@UART4_Data_Ready, @UART4_TX_Idle);
+  {$ENDIF}
+
+  {$IFDEF UART5_Dbg}
+    {$IFDEF UsingUARTInitAdvanced}
+      Set_Debug_UART_InitProcs(@UART5_Init_Advanced);
+    {$ELSE}
+      Set_Debug_UART_InitProcs(@UART5_Init);
+    {$ENDIF}
+    Set_Debug_UART_RWProcs(@UART5_Read, @UART5_Write);
+    Set_Debug_UART_RWTextProcs(@UART5_Read_Text, @UART5_Write_Text);
+    Set_Debug_UART_HandShakeProcs(@UART5_Data_Ready, @UART5_TX_Idle);
+  {$ENDIF}
+
+  {$IFDEF UART6_Dbg}
+    {$IFDEF UsingUARTInitAdvanced}
+      Set_Debug_UART_InitProcs(@UART6_Init_Advanced);
+    {$ELSE}
+      Set_Debug_UART_InitProcs(@UART6_Init);
+    {$ENDIF}
+    Set_Debug_UART_RWProcs(@UART6_Read, @UART6_Write);
+    Set_Debug_UART_RWTextProcs(@UART6_Read_Text, @UART6_Write_Text);
+    Set_Debug_UART_HandShakeProcs(@UART6_Data_Ready, @UART6_TX_Idle);
+  {$ENDIF}
+
+
+  //use the above generic routines to configure UART link
+  {$IFDEF UsingUARTInitAdvanced}
+    UARTDbg_Init_Advanced(UART_BAUD_RATE_DEBUG, UART_PERIPHERAL_FREQUENCY_DEBUG, _UART_Low_SPEED, _UART_8BIT_NOPARITY, _UART_ONE_STOPBIT);
+  {$ELSE}
+    UARTDbg_Init(UART_BAUD_RATE_DEBUG);
+  {$ENDIF}
+end;
+
+procedure BootLinkInitialize;
+begin
+  {$IFDEF LINK_TYPE_UART}
+    {$IFDEF UART1}
+      {$IFDEF UsingUARTInitAdvanced}
+        Set_Communication_UART_InitProcs(@UART1_Init_Advanced);
+      {$ELSE}
+        Set_Communication_UART_InitProcs(@UART1_Init);
+      {$ENDIF}
+      Set_Communication_UART_RWProcs(@UART1_Read, @UART1_Write);
+      Set_Communication_UART_RWTextProcs(@UART1_Read_Text, @UART1_Write_Text);
+      Set_Communication_UART_HandShakeProcs(@UART1_Data_Ready, @UART1_TX_Idle);
+    {$ENDIF}
+    
+    {$IFDEF UART2}
+      {$IFDEF UsingUARTInitAdvanced}
+        Set_Communication_UART_InitProcs(@UART2_Init_Advanced);
+      {$ELSE}
+        Set_Communication_UART_InitProcs(@UART2_Init);
+      {$ENDIF}
+      Set_Communication_UART_RWProcs(@UART2_Read, @UART2_Write);
+      Set_Communication_UART_RWTextProcs(@UART2_Read_Text, @UART2_Write_Text);
+      Set_Communication_UART_HandShakeProcs(@UART2_Data_Ready, @UART2_TX_Idle);
+    {$ENDIF}
+    
+    {$IFDEF UART3}
+      {$IFDEF UsingUARTInitAdvanced}
+        Set_Communication_UART_InitProcs(@UART3_Init_Advanced);
+      {$ELSE}
+        Set_Communication_UART_InitProcs(@UART3_Init);
+      {$ENDIF}
+      Set_Communication_UART_RWProcs(@UART3_Read, @UART3_Write);
+      Set_Communication_UART_RWTextProcs(@UART3_Read_Text, @UART3_Write_Text);
+      Set_Communication_UART_HandShakeProcs(@UART3_Data_Ready, @UART3_TX_Idle);
+    {$ENDIF}
+    
+    {$IFDEF UART4}
+      {$IFDEF UsingUARTInitAdvanced}
+        Set_Communication_UART_InitProcs(@UART4_Init_Advanced);
+      {$ELSE}
+        Set_Communication_UART_InitProcs(@UART4_Init);
+      {$ENDIF}
+      Set_Communication_UART_RWProcs(@UART4_Read, @UART4_Write);
+      Set_Communication_UART_RWTextProcs(@UART4_Read_Text, @UART4_Write_Text);
+      Set_Communication_UART_HandShakeProcs(@UART4_Data_Ready, @UART4_TX_Idle);
+    {$ENDIF}
+    
+    {$IFDEF UART5}
+      {$IFDEF UsingUARTInitAdvanced}
+        Set_Communication_UART_InitProcs(@UART5_Init_Advanced);
+      {$ELSE}
+        Set_Communication_UART_InitProcs(@UART5_Init);
+      {$ENDIF}
+      Set_Communication_UART_RWProcs(@UART5_Read, @UART5_Write);
+      Set_Communication_UART_RWTextProcs(@UART5_Read_Text, @UART5_Write_Text);
+      Set_Communication_UART_HandShakeProcs(@UART5_Data_Ready, @UART5_TX_Idle);
+    {$ENDIF}
+    
+    {$IFDEF UART6}
+      {$IFDEF UsingUARTInitAdvanced}
+        Set_Communication_UART_InitProcs(@UART6_Init_Advanced);
+      {$ELSE}
+        Set_Communication_UART_InitProcs(@UART6_Init);
+      {$ENDIF}
+      Set_Communication_UART_RWProcs(@UART6_Read, @UART6_Write);
+      Set_Communication_UART_RWTextProcs(@UART6_Read_Text, @UART6_Write_Text);
+      Set_Communication_UART_HandShakeProcs(@UART6_Data_Ready, @UART6_TX_Idle);
+    {$ENDIF}
+    
+    
+    //use the above generic routines to configure UART link
+    {$IFDEF UsingUARTInitAdvanced}
+      UARTComm_Init_Advanced(UART_BAUD_RATE, UART_PERIPHERAL_FREQUENCY, _UART_HI_SPEED, _UART_8BIT_NOPARITY, _UART_ONE_STOPBIT);
+    {$ELSE}
+      UARTComm_Init(UART_BAUD_RATE);
+    {$ENDIF}
+        
+    Delay_ms(100);
+  {$ENDIF}
+  //Other links:
+  //USBHID
+  //USBCDC
+  //Ethernet
+  //etc
+end;
+
+function BootLinkDetected: Boolean;
+begin
+  Result := False;
+  if UARTComm_Data_Ready = 1 then
+  begin
+    case UARTComm_Read of
+      CMD_SYNC :
+        begin
+         Result := True;
+        end;
+    end;
+  end
+end;
+
+procedure BootLinkReadInMessage(var Buffer: TRawBuffer);
+var
+  iState: Byte;
+  iBuffer: Word;
+  LocalCount: DWord;
+begin
+  iState := $FF;
+  iBuffer := 0;
+  while True do
+  begin
+  
+    DebugLED := not DebugLED;
+         
+    if UARTComm_Data_Ready = 1 then
+    begin
+      Buffer[iBuffer] := UARTComm_Read;
+      case iState of
+        $FF : begin
+              iState := Buffer[iBuffer]; // First Byte is the Command
+              if (iState and CMD_PARAMETERLESS_MASK <> 0) then
+                Exit            // Single byte message
+              else
+                Inc(iBuffer);   // More coming
+            end;
+        CMD_SET_ADDRESS :
+            begin
+              Inc(iBuffer);
+              if iBuffer > 5 then         // 6 bytes of data
+                Exit;
+            end;
+        CMD_ERASE_BLOCKS :
+            begin
+              Inc(iBuffer);
+              if iBuffer > 4 then         // 5 bytes of data
+                Exit;
+            end;
+        CMD_WRITE_BLOCK :
+            begin
+              Inc(iBuffer);
+              if (iBuffer > MAX_WRITE_BUFFER_SIZE + MAX_MESSAGE_OVERHEAD - 1) then         // 6 bytes of data
+                Exit;
+            end;
+        CMD_WRITE :
+            begin
+              Inc(iBuffer);
+              if (iBuffer = 5) then
+                LocalCount := PDWord( @RawBuffer[1])^;
+              if iBuffer > 5 then
+              begin
+                if (iBuffer > LocalCount + 3 - 1) then
+                  Exit;
+              end;
+            end;
+      end;
+    end;
+  end;
+end;
+
+procedure BootLinkWriteFlash(Address: DWord; BufferLen: Word; Buffer: ^Byte);
+var
+  i: Integer;
+begin
+  i := 0;
+  while i < BufferLen do
+  begin
+    Flash_Write_Word(Address, PFlashDataPtr( Buffer)^);      // mikroE says they had issues with Page write on some PIC32s
+    Buffer := Buffer + FlashDataSize;
+    i := i + FlashDataSize;
+  end;
+end;
+
+procedure BootLinkEraseFlash(Address: DWord);
+begin
+  Flash_Erase_Page(Address);
+end;
+
+procedure BootLinkSendByte(AByte: Byte);
+begin
+  UARTComm_Write(AByte);
+end;
+
+end.

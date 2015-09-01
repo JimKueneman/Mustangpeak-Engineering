@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="9"/>
+    <BuildModes Active="Default"/>
+    <Units Count="15">
+      <Unit0>
+        <Filename Value="OpenMikroBootloader.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="OpenMikroBootloader"/>
+        <EditorIndex Value="4"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="26" Y="14"/>
+        <UsageCount Value="228"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="unitmainform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FormBootloader"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="unitmainform"/>
+        <EditorIndex Value="0"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="619"/>
+        <CursorPos X="21" Y="618"/>
+        <UsageCount Value="228"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="../Common/bootloader.pas"/>
+        <UnitName Value="bootloader"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="69"/>
+        <UsageCount Value="110"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="../Common/comport_thread.pas"/>
+        <UnitName Value="comport_thread"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="506"/>
+        <CursorPos X="31" Y="513"/>
+        <UsageCount Value="96"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="../Common/intel_hex_parser.pas"/>
+        <UnitName Value="intel_hex_parser"/>
+        <EditorIndex Value="5"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="65" Y="1034"/>
+        <UsageCount Value="119"/>
+        <Loaded Value="True"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="mcu_loaders/mcu_loader_base.pas"/>
+        <UnitName Value="mcu_loader_base"/>
+        <EditorIndex Value="6"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="86"/>
+        <CursorPos X="61" Y="105"/>
+        <UsageCount Value="111"/>
+        <Loaded Value="True"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="../Common/common_settings.pas"/>
+        <UnitName Value="common_settings"/>
+        <EditorIndex Value="3"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="39" Y="173"/>
+        <UsageCount Value="108"/>
+        <Loaded Value="True"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="../Common/ConnectionDefines.pas"/>
+        <UnitName Value="ConnectionDefines"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="141"/>
+        <CursorPos X="51" Y="160"/>
+        <UsageCount Value="106"/>
+        <Loaded Value="True"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="../Common/connection_threads.pas"/>
+        <UnitName Value="connection_threads"/>
+        <EditorIndex Value="7"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="31"/>
+        <CursorPos X="29" Y="45"/>
+        <UsageCount Value="100"/>
+        <Loaded Value="True"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="mapform.pas"/>
+        <ComponentName Value="FormMemoryMap"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="mapform"/>
+        <EditorIndex Value="2"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="61"/>
+        <CursorPos X="42" Y="74"/>
+        <UsageCount Value="101"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="C:/lazarus/lcl/include/control.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="3228"/>
+        <CursorPos X="1" Y="3243"/>
+        <UsageCount Value="1"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="C:/lazarus/fpc/2.6.2/source/rtl/objpas/classes/classesh.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="334"/>
+        <CursorPos X="15" Y="347"/>
+        <UsageCount Value="2"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="C:/lazarus/lcl/grids.pas"/>
+        <UnitName Value="Grids"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="8934"/>
+        <CursorPos X="26" Y="8923"/>
+        <UsageCount Value="1"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="/Developer/lazarus/lcl/lcltype.pp"/>
+        <UnitName Value="LCLType"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="28"/>
+        <CursorPos X="13" Y="31"/>
+        <UsageCount Value="10"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="../mikroPascal/dsPIC30/bootloader_user/options_user.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="22"/>
+        <CursorPos X="3" Y="47"/>
+        <UsageCount Value="10"/>
+      </Unit14>
+    </Units>
+    <General>
+      <ActiveWindowIndexAtStart Value="0"/>
+    </General>
+    <JumpHistory Count="30" HistoryIndex="29">
+      <Position1>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="844" Column="115" TopLine="836"/>
+      </Position1>
+      <Position2>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="199" Column="27" TopLine="190"/>
+      </Position2>
+      <Position3>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="240" Column="72" TopLine="222"/>
+      </Position3>
+      <Position4>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="333" Column="25" TopLine="314"/>
+      </Position4>
+      <Position5>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="395" Column="25" TopLine="376"/>
+      </Position5>
+      <Position6>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="637" Column="45" TopLine="622"/>
+      </Position6>
+      <Position7>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="638" Column="43" TopLine="622"/>
+      </Position7>
+      <Position8>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="249" Column="1" TopLine="244"/>
+      </Position8>
+      <Position9>
+        <Filename Value="mcu_loaders/mcu_loader_base.pas"/>
+        <Caret Line="241" Column="34" TopLine="224"/>
+      </Position9>
+      <Position10>
+        <Filename Value="mcu_loaders/mcu_loader_base.pas"/>
+        <Caret Line="237" Column="96" TopLine="227"/>
+      </Position10>
+      <Position11>
+        <Filename Value="mcu_loaders/mcu_loader_base.pas"/>
+        <Caret Line="230" Column="1" TopLine="226"/>
+      </Position11>
+      <Position12>
+        <Filename Value="mcu_loaders/mcu_loader_base.pas"/>
+        <Caret Line="234" Column="64" TopLine="226"/>
+      </Position12>
+      <Position13>
+        <Filename Value="mcu_loaders/mcu_loader_base.pas"/>
+        <Caret Line="232" Column="1" TopLine="226"/>
+      </Position13>
+      <Position14>
+        <Filename Value="mcu_loaders/mcu_loader_base.pas"/>
+        <Caret Line="236" Column="1" TopLine="226"/>
+      </Position14>
+      <Position15>
+        <Filename Value="mcu_loaders/mcu_loader_base.pas"/>
+        <Caret Line="237" Column="1" TopLine="226"/>
+      </Position15>
+      <Position16>
+        <Filename Value="mcu_loaders/mcu_loader_base.pas"/>
+        <Caret Line="349" Column="34" TopLine="336"/>
+      </Position16>
+      <Position17>
+        <Filename Value="mcu_loaders/mcu_loader_base.pas"/>
+        <Caret Line="240" Column="141" TopLine="224"/>
+      </Position17>
+      <Position18>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="522" Column="16" TopLine="514"/>
+      </Position18>
+      <Position19>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="3" Column="27" TopLine="1"/>
+      </Position19>
+      <Position20>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="973" Column="70" TopLine="961"/>
+      </Position20>
+      <Position21>
+        <Filename Value="../Common/ConnectionDefines.pas"/>
+        <Caret Line="169" Column="10" TopLine="151"/>
+      </Position21>
+      <Position22>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="872" Column="32" TopLine="868"/>
+      </Position22>
+      <Position23>
+        <Filename Value="mapform.pas"/>
+        <Caret Line="69" Column="38" TopLine="61"/>
+      </Position23>
+      <Position24>
+        <Filename Value="mapform.pas"/>
+        <Caret Line="68" Column="38" TopLine="60"/>
+      </Position24>
+      <Position25>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="6" Column="31" TopLine="1"/>
+      </Position25>
+      <Position26>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="190" Column="1" TopLine="26"/>
+      </Position26>
+      <Position27>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="406" Column="46" TopLine="386"/>
+      </Position27>
+      <Position28>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="414" Column="59" TopLine="401"/>
+      </Position28>
+      <Position29>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="417" Column="42" TopLine="401"/>
+      </Position29>
+      <Position30>
+        <Filename Value="unitmainform.pas"/>
+        <Caret Line="333" Column="57" TopLine="325"/>
+      </Position30>
+    </JumpHistory>
+  </ProjectSession>
+  <Debugging>
+    <Watches Count="1">
+      <Item1>
+        <Expression Value="State_EraseBlockIndex"/>
+      </Item1>
+    </Watches>
+  </Debugging>
+  <EditorMacros Count="0"/>
+</CONFIG>

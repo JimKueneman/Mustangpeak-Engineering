@@ -1,0 +1,197 @@
+program PIC32_Bootloader;
+
+// Version 0.1
+//
+// The contents of this file are subject to the Mozilla Public License
+// Version 1.1 (the "License"); you may not use this file except in compliance
+// with the License. You may obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Alternatively, you may redistribute this library, use and/or modify it under the terms of the
+// GNU Lesser General Public License as published by the Free Software Foundation;
+// either version 2.1 of the License, or (at your option) any later version.
+// You may obtain a copy of the LGPL at http://www.gnu.org/copyleft/.
+//
+// Software distributed under the License is distributed on an "AS IS" basis,
+// WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for the
+// specific language governing rights and limitations under the License.
+//
+// The initial developer of this code is Jim Kueneman <jimkueneman@yahoo.com> and Vcc
+//
+
+{$I ConditionalDefines.inc}
+
+uses
+  PIC32_Bootloader_Options,
+  BootloaderDefines,
+  BootloaderConnectionDrivers;
+  
+const
+  BOOTLOADER_START = PA_TO_KVA0(0x1D00F000);
+  RESET_VECTOR_SIZE = 16;   // RETHINK WHERE THIS GOES AND WHAT IT DOES
+  
+var
+  DebugLED: sbit at LATF.13;
+  DebugLED_Dir: sbit at TRISF.13;
+  //DebugLED: sbit at LATG.12;
+  //DebugLED_Dir: sbit at TRISG.12;
+  
+procedure StartProgram();
+begin
+  // nops to accomodate MCU reset vector size.
+  asm nop end;
+  {$IFDEF P32}
+  asm nop end;
+  {$ENDIF}
+end;
+
+
+procedure BootResetVector();
+begin
+  R30 := BOOTLOADER_START; // Load R30 with bootloader main address.
+  asm
+    JR R30                 // Perform indirect jump to bootloader application,
+    NOP                    // thus changing the kseg as well.
+  end;
+end;
+  
+procedure ConfigureMemorySpaces;
+begin
+ { SetFuncCall(BootResetVector); // force BootResetVector allocation
+  OrgAll(BOOTLOADER_START-RESET_VECTOR_SIZE);
+  SetOrg(StartProgram, BOOTLOADER_START-RESET_VECTOR_SIZE);
+  SetOrg(BootResetVector, 0xBFC00000);
+  SetOrg(__BootStartUp, BOOTLOADER_START);  }
+end;
+  
+procedure Initialize;
+begin
+  LinkInfo.StructSize := 57;   // NOTE:  SizeOf(TLinkInfo) does not work reliably because of padding the compiler may do      - if SizeOf(TLinkInfo) is a multiple of 4, no padding is required
+  LinkInfo.EraseBlockSize := 0;
+  LinkInfo.WriteBlockSize := MAX_WRITE_BUFFER_SIZE;
+  LinkInfo.ProgramFlashSize := 0;
+  LinkInfo.BootloaderAddress := BOOTLOADER_START;
+  LinkInfo.BootloaderSize := 0;
+  LinkInfo.McuFamily := FAMILY_PIC32MX;
+  LinkInfo.Revision[0] := 0;
+  LinkInfo.Revision[1] := 1;
+  LinkInfo.ApplicationName := 'No Name' + #0;
+    
+  CurrentAddresses.FlashWrite := 0x00000000;
+  CurrentAddresses.Erase      := 0x00000000;
+end;
+
+procedure SendWord(AWord: Word);
+begin
+  BootLinkSendByte( Lo(AWord));      // Little Endian
+  BootLinkSendByte( Hi(AWord));      // Little Endian
+end;
+
+procedure SendDWord(ADWord: DWord);
+begin
+  BootLinkSendByte( Lo(ADWord));       // Little Endian
+  BootLinkSendByte( Hi(ADWord));       // Little Endian
+  BootLinkSendByte( Higher(ADWord));   // Little Endian
+  BootLinkSendByte( Highest(ADWord));  // Little Endian
+end;
+
+function WaitForBootLinkDetected: Boolean;
+var
+  DelayTime: Word;
+begin
+  Result := False;
+  DelayTime := 0;
+  while DelayTime < BOOTLOADER_WAIT_TIME do
+  begin
+  
+    DebugLED := not DebugLED;
+  
+    Result := BootLinkDetected;
+    if Result then
+      Break;
+    DelayTime := DelayTime + 100;
+    Delay_ms(100);                   // This is okay because we are only sending one byte so the Buffer won't overrun
+    //For USB HID link, and possibly for USB CDC, a timer should be used in polling mode, not interrupt mode, instead of using delays. Windows8 does not like delays when talking to a HID device.
+  end
+end;
+
+var
+  i: Integer;
+  Ptr: PByte;
+  
+begin      
+  { Main program }        
+  DebugLED_Dir := 0;
+  
+  Initialize;
+  BootLinkInitialize;
+  ConfigureMemorySpaces; 
+  BootLinkSendByte(CMD_LINK);
+  BootLinkSendByte(CMD_LINK);
+  BootLinkSendByte(CMD_LINK);
+  if WaitForBootLinkDetected then
+  begin
+    BootLinkSendByte(CMD_SYNC);
+    while True do   // Only way out of here is a reset
+    begin
+      BootLinkReadInMessage(RawBuffer);
+      case RawBuffer[0] of
+        CMD_REQEUST_FLASH_DATA :
+            begin
+              BootLinkSendByte(CMD_REQEUST_FLASH_DATA);
+              SendWord(LinkInfo.StructSize);
+              SendDWord( LinkInfo.EraseBlockSize);
+              SendDWord( LinkInfo.WriteBlockSize);
+              SendDWord( LinkInfo.ProgramFlashSize);
+              SendDWord( LinkInfo.BootloaderAddress);
+              SendDWord( LinkInfo.BootloaderSize);
+              BootLinkSendByte(LinkInfo.McuFamily);
+              BootLinkSendByte(LinkInfo.Revision[0]);
+              BootLinkSendByte(LinkInfo.Revision[1]);
+              for i := 0 to 31 do
+                BootLinkSendByte(LinkInfo.ApplicationName[i]);
+            end;
+        CMD_SET_ADDRESS :
+            begin
+              case RawBuffer[1] of
+                0x00 : CurrentAddresses.FlashWrite := PDWord( @RawBuffer[2])^;
+                0x01 : CurrentAddresses.Erase := PDWord( @RawBuffer[2])^;
+              end;
+            end;
+        CMD_RESET :
+            begin
+              Reset;
+            end;
+        CMD_ERASE_BLOCKS :
+            begin
+              for i := 0 to PDWord( @RawBuffer[1])^ do
+              begin
+                BootLinkEraseFlash(CurrentAddresses.Erase);
+                CurrentAddresses.Erase := CurrentAddresses.Erase + LinkInfo.EraseBlockSize;
+              end;
+              BootLinkSendByte(RawBuffer[0]);  // Done
+            end;
+        CMD_WRITE_BLOCK :
+            begin
+              BootLinkWriteFlash(CurrentAddresses.FlashWrite, LinkInfo.WriteBlockSize, @RawBuffer[1]);
+              CurrentAddresses.FlashWrite := CurrentAddresses.FlashWrite + LinkInfo.WriteBlockSize;
+              BootLinkSendByte(RawBuffer[0]);  // Done
+            end;
+        CMD_WRITE :
+            begin
+              BootLinkWriteFlash(CurrentAddresses.FlashWrite,  PDWord( @RawBuffer[1])^, @RawBuffer[3]);
+              CurrentAddresses.FlashWrite := CurrentAddresses.FlashWrite + PDWord( @RawBuffer[1])^;
+              BootLinkSendByte(RawBuffer[0]);  // Done
+            end;
+      end;
+    end;
+  end else
+  begin  
+    BootLinkSendByte(CMD_UNLINK);
+    // Jump to code
+    while True do
+    begin
+      Delay_ms(500);
+      DebugLED := not DebugLED
+    end;
+  end;
+end.

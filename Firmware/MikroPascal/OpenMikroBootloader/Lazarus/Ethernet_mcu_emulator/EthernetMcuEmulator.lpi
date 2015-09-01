@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="9"/>
+    <PathDelim Value="\"/>
+    <General>
+      <SessionStorage Value="InProjectDir"/>
+      <MainUnit Value="0"/>
+      <Title Value="EthernetMcuEmulator"/>
+      <ResourceType Value="res"/>
+      <UseXPManifest Value="True"/>
+      <Icon Value="0"/>
+    </General>
+    <i18n>
+      <EnableI18N LFM="False"/>
+    </i18n>
+    <VersionInfo>
+      <StringTable ProductVersion=""/>
+    </VersionInfo>
+    <BuildModes Count="1">
+      <Item1 Name="Default" Default="True"/>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <FormatVersion Value="1"/>
+      </local>
+    </RunParams>
+    <RequiredPackages Count="1">
+      <Item1>
+        <PackageName Value="LCL"/>
+      </Item1>
+    </RequiredPackages>
+    <Units Count="8">
+      <Unit0>
+        <Filename Value="EthernetMcuEmulator.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="EthernetMcuEmulator"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="unit_mainform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form1"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="unit_mainform"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="mcu_bootloader.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="mcu_bootloader"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="bootloader_driver_usb.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="bootloader_driver_usb"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="bootloader_user.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="bootloader_user"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="bootloader_common.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="bootloader_common"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="options_user.inc"/>
+        <IsPartOfProject Value="True"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="..\..\Common\file_utilities.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="file_utilities"/>
+      </Unit7>
+    </Units>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <PathDelim Value="\"/>
+    <Target>
+      <Filename Value="Compiled_Binaries\$(TargetCPU)-$(TargetOS)\EthernetMcuEmulator.app\Contents\MacOS\EthernetMcuEmulator"/>
+    </Target>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value="..\Library;..\Components\synapse40\source\lib;..\Components\kHexEditor\source;..\Components\RackCtls;..\..\Common;..\..\Components\synapse40\source\lib"/>
+      <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
+    <Conditionals Value="if TargetOS = 'darwin' then
+begin
+  CustomOptions += '-k-macosx_version_min -k10.4';
+  CustomOptions += '-XR/Developer/SDKs/MacOSX10.4u.sdk/';
+  CustomOptions += ' -dUseCThreads';
+end;
+if TargetOS = 'linux' then
+  CustomOptions += ' -dUseCThreads';"/>
+    <BuildMacros>
+      <Count Value="1"/>
+      <Item1>
+        <Identifier Value="MustangpeakCompilerOptions"/>
+        <Description Value="Compiler Options for Platforms"/>
+      </Item1>
+    </BuildMacros>
+    <CodeGeneration>
+      <Optimizations>
+        <OptimizationLevel Value="0"/>
+      </Optimizations>
+    </CodeGeneration>
+    <Linking>
+      <Debugging>
+        <UseValgrind Value="True"/>
+      </Debugging>
+      <Options>
+        <Win32>
+          <GraphicApplication Value="True"/>
+        </Win32>
+      </Options>
+    </Linking>
+    <Other>
+      <CompilerMessages>
+        <MsgFileName Value=""/>
+      </CompilerMessages>
+      <CompilerPath Value="$(CompPath)"/>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="3">
+      <Item1>
+        <Name Value="EAbort"/>
+      </Item1>
+      <Item2>
+        <Name Value="ECodetoolError"/>
+      </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

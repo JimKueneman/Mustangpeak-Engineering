@@ -1,0 +1,589 @@
+unit CPULib;
+
+// Version 0.1
+//
+// The contents of this file are subject to the Mozilla Public License
+// Version 1.1 (the "License"); you may not use this file except in compliance
+// with the License. You may obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Alternatively, you may redistribute this library, use and/or modify it under the terms of the
+// GNU Lesser General Public License as published by the Free Software Foundation;
+// either version 2.1 of the License, or (at your option) any later version.
+// You may obtain a copy of the LGPL at http://www.gnu.org/copyleft/.
+//
+// Software distributed under the License is distributed on an "AS IS" basis,
+// WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for the
+// specific language governing rights and limitations under the License.
+//
+// The initial developer of this code is Jim Kueneman <jimkueneman@yahoo.com> and Vcc
+//
+
+{Provides access to CP0 registers for debug purposes.}
+// Firsst draft - never tested.
+
+//Please read the comments for a better understanding.
+
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+//The following routines assume that R25 (rx) is used as proc/func parameter and
+//R2 (rx) is used as function result. These settings were obtained with SSA optimization on / Level4.
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+//Comment the following compiler directives if you don't want config or debug registers to be read.
+{$DEFINE ReadFromConfigRegisters} //Read Config
+{$DEFINE ReadFromDebugRegisters}  //Read Debug
+
+//Uncomment the following line if the IncludeConfigRegisters and IncludeDebugRegisters directives are read from an external file (useful when the same structure is used on debugger side).
+//{$DEFINE ExternalSwitchForIncludingRegisters} //If defined, the IncludeConfigRegisters and IncludeDebugRegisters are read from an external file.
+
+{$IFDEF ExternalSwitchForIncludingRegisters}
+  {$I ConditionalDefines.inc}
+{$ELSE}                           //IncludeConfigRegisters and IncludeDebugRegisters are set here.
+  //Comment the following compiler directives if you don't want config or debug registers to be included in TCP0Regs structure.
+  {$DEFINE IncludeConfigRegisters}  //Include Config Registers in TCP0Regs record.
+  {$DEFINE IncludeDebugRegisters}   //Include Debug Registers in TCP0Regs record.
+{$ENDIF}
+
+type
+  //COPROCESSOR 0 (CP0) REGISTERS
+  //Maximum record size is 100 bytes (4 * 25) when both IncludeConfigRegisters and IncludeDebugRegisters are included.
+  //Config registers have a total of 16 bytes (4 * 4) when included.
+  //Debug registers have a total of 24 bytes (4 * 6) when included.
+  //Record size is 60 bytes when config and debug registers are not included.
+  TCP0Regs = record               //Registers' descriptions can be found in DS61113E  (Section 2. CPU for Devices with M4K®Core)
+    Reg_CP0_HWREna: DWord;        //Enables access via the RDHWRinstruction to selected hardware registers in Non-privileged mode.
+    Reg_CP0_BADVADDR: DWord;      //Reports the address for the most recent address-related exception.
+    Reg_CP0_COUNT: DWord;         //Processor cycle count.
+    Reg_CP0_COMPARE: DWord;       //Core timer interrupt control.
+    
+    Reg_CP0_STATUS: DWord;        //Processor status and control.
+    Reg_CP0_INTCTL: DWord;        //Interrupt control of vector spacing.
+    Reg_CP0_SRSCtl: DWord;        //Shadow register set control.
+    Reg_CP0_SRSMap: DWord;        //Shadow register mapping control.
+    
+    Reg_CP0_CAUSE: DWord;         //Describes the cause of the last exception.
+    Reg_CP0_EPC: DWord;           //Program counter at last exception.
+    Reg_CP0_PRID: DWord;          //Processor identification and revision.
+    Reg_CP0_Ebase: DWord;         //Exception base address of exception vectors.
+    
+    {$IFDEF IncludeConfigRegisters}
+      Reg_CP0_Config: DWord;        //Configuration register.
+      Reg_CP0_Config1: DWord;       //Configuration register 1.
+      Reg_CP0_Config2: DWord;       //Configuration register 2.
+      Reg_CP0_Config3: DWord;       //Configuration register 3.
+    {$ENDIF}
+    
+    {$IFDEF IncludeDebugRegisters}
+      Reg_CP0_Debug: DWord;         //Debug control/exception status.
+      Reg_CP0_TraceControl: DWord;  //EJTAG trace control.
+      Reg_CP0_TraceControl2: DWord; //EJTAG trace control 2.
+      Reg_CP0_UserTraceData: DWord; //User format type trace record trigger.
+      Reg_CP0_TraceBPC: DWord;      //Control tracing using an EJTAG Hardware breakpoint.
+      Reg_CP0_Debug2: DWord;        //Debug control/exception status 1.
+    {$ENDIF}
+    
+    Reg_CP0_DEPC: DWord;          //Program counter at last debug exception.
+    Reg_CP0_ErrorEPC: DWord;      //Program counter at last error.
+    Reg_CP0_DeSAVE: DWord;        //Debug handler scratchpad register.
+  end;
+  
+var
+  CP0Regs: TCP0Regs;
+  
+{Useful for sending out all CP0 register values to a debugger.
+CP0 registers are copied in CP0Regs global variable.}
+procedure GetCP0Status;
+
+
+//Functions for reading individual CP0 registers. See TCP0Regs definition above for details.
+function GetCP0_HWREna: DWord;
+function GetCP0_BADVADDR: DWord;
+function GetCP0_COUNT: DWord;
+function GetCP0_COMPARE: DWord;
+
+function GetCP0_Status: DWord;
+function GetCP0_INTCTL: DWord;
+function GetCP0_SRSCtl: DWord;
+function GetCP0_SRSMap: DWord;
+
+function GetCP0_CAUSE: DWord;
+function GetCP0_EPC: DWord;
+
+function GetCP0_PRID: DWord;
+function GetCP0_Ebase: DWord;
+
+function GetCP0_Debug: DWord;
+function GetCP0_TraceControl: DWord;
+function GetCP0_TraceControl2: DWord;
+function GetCP0_UserTraceData: DWord;
+function GetCP0_TraceBPC: DWord;
+function GetCP0_Debug2: DWord;
+
+function GetCP0_DEPC: DWord;
+function GetCP0_ErrorEPC: DWord;
+function GetCP0_DeSAVE: DWord;
+
+
+//Procedures for writing to individual CP0 registers. See TCP0Regs definition above for details.
+//There may be readonly registers with Set procedure implemented. Not verified.
+procedure SetCP0_HWREna(NewRegValue: DWord);
+//BADVADDR register is readonly
+procedure SetCP0_COUNT(NewRegValue: DWord);
+procedure SetCP0_COMPARE(NewRegValue: DWord);
+
+procedure SetCP0_Status(NewRegValue: DWord);
+procedure SetCP0_INTCTL(NewRegValue: DWord);
+procedure SetCP0_SRSCtl(NewRegValue: DWord);
+procedure SetCP0_SRSMap(NewRegValue: DWord);
+
+procedure SetCP0_CAUSE(NewRegValue: DWord);
+procedure SetCP0_EPC(NewRegValue: DWord);
+
+procedure SetCP0_PRID(NewRegValue: DWord);
+procedure SetCP0_Ebase(NewRegValue: DWord);
+
+//procedures for writing Config registers are not implemented yet
+
+procedure SetCP0_Debug(NewRegValue: DWord);
+procedure SetCP0_TraceControl(NewRegValue: DWord);
+procedure SetCP0_TraceControl2(NewRegValue: DWord);
+procedure SetCP0_UserTraceData(NewRegValue: DWord);
+procedure SetCP0_TraceBPC(NewRegValue: DWord);
+procedure SetCP0_Debug2(NewRegValue: DWord);
+
+procedure SetCP0_DEPC(NewRegValue: DWord);
+procedure SetCP0_ErrorEPC(NewRegValue: DWord);
+procedure SetCP0_DeSAVE(NewRegValue: DWord);
+
+
+implementation
+
+//Get various CP0 registers.
+
+function GetCP0_HWREna: DWord;
+begin
+  asm
+    MFC0 R2, 7, 0  //Move from CP0.CP0_HWRena to R2 with Select0
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_BADVADDR: DWord;
+begin
+  asm
+    MFC0 R2, 8, 0  //Move from CP0.CP0_BADVADDRto R2 with Select0
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_COUNT: DWord;
+begin
+  asm
+    MFC0 R2, 9, 0  //Move from CP0.CP0_COUNT to R2 with Select0
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_COMPARE: DWord;
+begin
+  asm
+    MFC0 R2, 11, 0  //Move from CP0.CP0_COMPARE to R2 with Select0
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+
+
+function GetCP0_Status: DWord;
+begin
+  asm
+    MFC0 R2, 12, 0  //Move from CP0.CP0_Status to R2 with Select0
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_INTCTL: DWord;
+begin
+  asm
+    MFC0 R2, 12, 1  //Move from CP0.CP0_INTCTL to R2 with Select1
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_SRSCtl: DWord;
+begin
+  asm
+    MFC0 R2, 12, 2  //Move from CP0.CP0_SRSCtl to R2 with Select2
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_SRSMap: DWord;
+begin
+  asm
+    MFC0 R2, 12, 3  //Move from CP0.CP0_SRSMap to R2 with Select3
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+
+
+function GetCP0_CAUSE: DWord;
+begin
+  asm
+    MFC0 R2, 13, 0  //Move from CP0.CP0_CAUSE to R2 with Select0
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_EPC: DWord;
+begin
+  asm
+    MFC0 R2, 14, 0  //Move from CP0.CP0_EPC to R2 with Select0
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+
+
+function GetCP0_PRID: DWord;
+begin
+  asm
+    MFC0 R2, 15, 0  //Move from CP0.CP0_PRID to R2 with Select0
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_Ebase: DWord;
+begin
+  asm
+    MFC0 R2, 15, 1  //Move from CP0.CP0_Ebase to R2 with Select1
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+
+
+function GetCP0_Config: DWord;
+begin
+  asm
+    MFC0 R2, 16, 0  //Move from CP0.CP0_Config to R2 with Select0
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_Config1: DWord;
+begin
+  asm
+    MFC0 R2, 16, 1  //Move from CP0.CP0_Config1 to R2 with Select1
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_Config2: DWord;
+begin
+  asm
+    MFC0 R2, 16, 2  //Move from CP0.CP0_Config2 to R2 with Select2
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_Config3: DWord;
+begin
+  asm
+    MFC0 R2, 16, 3  //Move from CP0.CP0_Config3 to R2 with Select3
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+
+
+function GetCP0_Debug: DWord;
+begin
+  asm
+    MFC0 R2, 23, 0  //Move from CP0.CP0_Debug to R2 with Select0
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_TraceControl: DWord;
+begin
+  asm
+    MFC0 R2, 23, 1  //Move from CP0.CP0_TraceControl to R2 with Select1
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_TraceControl2: DWord;
+begin
+  asm
+    MFC0 R2, 23, 2  //Move from CP0.CP0_TraceControl2 to R2 with Select2
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_UserTraceData: DWord;
+begin
+  asm
+    MFC0 R2, 23, 3  //Move from CP0.CP0_UserTraceData to R2 with Select3
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_TraceBPC: DWord;
+begin
+  asm
+    MFC0 R2, 23, 4  //Move from CP0.CP0_TraceBPC to R2 with Select4
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_Debug2: DWord;
+begin
+  asm
+    MFC0 R2, 23, 5  //Move from CP0.CP0_Debug2 to R2 with Select5
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+
+
+function GetCP0_DEPC: DWord;
+begin
+  asm
+    MFC0 R2, 24, 0  //Move from CP0.CP0_DEPC to R2 with Select0
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_ErrorEPC: DWord;
+begin
+  asm
+    MFC0 R2, 30, 0  //Move from CP0.CP0_ErrorEPC to R2 with Select0
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+function GetCP0_DeSAVE: DWord;
+begin
+  asm
+    MFC0 R2, 31, 0  //Move from CP0.CP0_DeSAVE to R2 with Select0
+  end;
+  Result := R2;   // R3 := R2;  R2 := R3;
+end;
+
+
+procedure GetCP0Status;     //useful for sending out all CP0 register values to a debugger
+begin
+  with CP0Regs do
+  begin
+    Reg_CP0_HWREna := CP0_GET(CP0_HWREna);
+    Reg_CP0_BADVADDR := CP0_GET(CP0_BADVADDR);
+    Reg_CP0_COUNT := CP0_GET(CP0_COUNT);
+    Reg_CP0_COMPARE := CP0_GET(CP0_COMPARE);
+
+    Reg_CP0_STATUS := GetCP0_Status;
+    Reg_CP0_INTCTL := GetCP0_INTCTL;
+    Reg_CP0_SRSCtl := GetCP0_SRSCtl;
+    Reg_CP0_SRSMap := GetCP0_SRSMap;
+
+    Reg_CP0_CAUSE := CP0_GET(CP0_CAUSE);
+    Reg_CP0_EPC := CP0_GET(CP0_EPC);
+
+    Reg_CP0_PRID := GetCP0_PRID;
+    Reg_CP0_Ebase := GetCP0_Ebase;
+
+    {$IFDEF IncludeConfigRegisters}
+      {$IFDEF ReadFromConfigRegisters}
+        Reg_CP0_Config := GetCP0_Config;
+        Reg_CP0_Config1 := GetCP0_Config1;
+        Reg_CP0_Config2 := GetCP0_Config2;
+        Reg_CP0_Config3 := GetCP0_Config3;
+      {$ENDIF}
+    {$ENDIF}
+
+    {$IFDEF IncludeDebugRegisters}
+      {$IFDEF ReadFromDebugRegisters}
+        Reg_CP0_Debug := GetCP0_Debug;
+        Reg_CP0_TraceControl := GetCP0_TraceControl;
+        Reg_CP0_TraceControl2 := GetCP0_TraceControl2;
+        Reg_CP0_UserTraceData := GetCP0_UserTraceData;
+        Reg_CP0_TraceBPC := GetCP0_TraceBPC;
+        Reg_CP0_Debug2 := GetCP0_Debug2;
+      {$ENDIF}
+    {$ENDIF}
+
+    Reg_CP0_DEPC := CP0_GET(CP0_DEPC);
+    Reg_CP0_ErrorEPC := CP0_GET(CP0_ErrorEPC);
+    Reg_CP0_DeSAVE := CP0_GET(CP0_DeSAVE);
+  end;
+end;
+
+
+//Set various CP0 registers. These procedures are the pairs of the above Get functions.
+
+procedure SetCP0_HWREna(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 7, 0  //Move to CP0.CP0_HWRena the value of NewRegValue contained by R25 with Select0
+  end;
+end;
+
+//BADVADDR register is readonly
+
+procedure SetCP0_COUNT(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 9, 0  //Move to CP0.CP0_COUNT the value of NewRegValue contained by R25 with Select0
+  end;
+end;
+
+procedure SetCP0_COMPARE(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 11, 0  //Move to CP0.CP0_COMPARE the value of NewRegValue contained by R25 with Select0
+  end;
+end;
+
+
+
+procedure SetCP0_Status(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 12, 0  //Move to CP0.CP0_Status the value of NewRegValue contained by R25 with Select0
+  end;
+end;
+
+procedure SetCP0_INTCTL(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 12, 1  //Move to CP0.CP0_INTCTL the value of NewRegValue contained by R25 with Select1
+  end;
+end;
+
+procedure SetCP0_SRSCtl(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 12, 2  //Move to CP0.CP0_SRSCtl the value of NewRegValue contained by R25 with Select2
+  end;
+end;
+
+procedure SetCP0_SRSMap(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 12, 3  //Move to CP0.CP0_SRSMap the value of NewRegValue contained by R25 with Select3
+  end;
+end;
+
+
+
+procedure SetCP0_CAUSE(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 13, 0  //Move to CP0.CP0_CAUSE the value of NewRegValue contained by R25 with Select0
+  end;
+end;
+
+procedure SetCP0_EPC(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 14, 0  //Move to CP0.CP0_EPC the value of NewRegValue contained by R25 with Select0
+  end;
+end;
+
+
+
+procedure SetCP0_PRID(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 15, 0  //Move to CP0.CP0_PRID the value of NewRegValue contained by R25 with Select0
+  end;
+end;
+
+procedure SetCP0_Ebase(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 15, 1  //Move to CP0.CP0_Ebase the value of NewRegValue contained by R25 with Select1
+  end;
+end;
+
+
+
+//procedures for writing Config registers are not implemented yet
+
+
+
+procedure SetCP0_Debug(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 23, 0  //Move to CP0.CP0_Debug the value of NewRegValue contained by R25 with Select0
+  end;
+end;
+
+procedure SetCP0_TraceControl(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 23, 1  //Move to CP0.CP0_TraceControl the value of NewRegValue contained by R25 with Select1
+  end;
+end;
+
+procedure SetCP0_TraceControl2(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 23, 2  //Move to CP0.CP0_TraceControl2 the value of NewRegValue contained by R25 with Select2
+  end;
+end;
+
+procedure SetCP0_UserTraceData(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 23, 3  //Move to CP0.CP0_UserTraceData the value of NewRegValue contained by R25 with Select3
+  end;
+end;
+
+procedure SetCP0_TraceBPC(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 23, 4  //Move to CP0.CP0_TraceBPC the value of NewRegValue contained by R25 with Select4
+  end;
+end;
+
+procedure SetCP0_Debug2(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 23, 5  //Move to CP0.CP0_Debug2 the value of NewRegValue contained by R25 with Select5
+  end;
+end;
+
+
+
+procedure SetCP0_DEPC(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 24, 0  //Move to CP0.CP0_DEPC the value of NewRegValue contained by R25 with Select0
+  end;
+end;
+
+procedure SetCP0_ErrorEPC(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 30, 0  //Move to CP0.CP0_ErrorEPC the value of NewRegValue contained by R25 with Select0
+  end;
+end;
+
+procedure SetCP0_DeSAVE(NewRegValue: DWord);
+begin
+  asm
+    MTC0 R25, 31, 0  //Move to CP0.CP0_DeSAVE the value of NewRegValue contained by R25 with Select0
+  end;
+end;
+
+end.

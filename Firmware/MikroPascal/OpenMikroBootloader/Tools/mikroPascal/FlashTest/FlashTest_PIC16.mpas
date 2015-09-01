@@ -1,0 +1,50 @@
+program FlashTest_PIC16;
+
+{ Declarations section }
+
+var
+  SomeArray: array[8] of Byte;
+  SomeArrayWord: array[4] of Word;
+  i: Integer;
+  XX: Byte;
+
+type
+  TWordArray = array[4] of Word;
+  PWordArray = ^TWordArray;
+  PByte = ^Byte;
+
+begin
+  { Main program }
+  OrgAll($1800);
+  
+  XX := 0;
+  for i := 0 to 7 do
+  begin
+    SomeArray[i] := XX;
+    Inc(XX);
+  end;
+  
+  XX := 0;
+  for i := 0 to 3 do
+  begin
+    Lo(SomeArrayWord[i]) := XX;
+    Inc(XX);
+    Hi(SomeArrayWord[i]) := XX;
+    Inc(XX)
+  end;
+  
+  FLASH_Write(0, SomeArrayWord);
+  FLASH_Write(4, SomeArrayWord);
+  FLASH_Write(8, SomeArrayWord);
+  FLASH_Write(12, SomeArrayWord);
+   {
+  FLASH_Write(0, PWordArray( PByte(@SomeArray))^);
+  FLASH_Write(4, PWordArray( PByte(@SomeArray))^);
+  FLASH_Write(8, PWordArray( PByte(@SomeArray))^);
+  FLASH_Write(12, PWordArray( PByte(@SomeArray))^);
+     }
+  
+  while true do
+  begin
+  end;
+end.

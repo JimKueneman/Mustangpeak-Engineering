@@ -1,0 +1,26 @@
+unit bootloader_common_defines;
+
+const
+  FAMILY_PIC16F          = $00;
+  FAMILY_PIC16F_ENHANCED = $01;
+  FAMILY_PIC18F          = $02;
+  FAMILY_PIC24           = $03;
+  FAMILY_dsPIC30         = $04;
+  FAMILY_dsPIC33         = $05;
+  FAMILY_PIC32           = $06;
+  
+ // {$IFDEF P32}__FLASH_ERASE_BLOCK = 4096;{$ENDIF}                               // 1024 instructions * 4 bytes per instruction
+  {$IFDEF P33}__FLASH_ERASE_BLOCK = 3072;{$ENDIF}                               // 512 instructions * 3 bytes per instruction
+  {$IFDEF P30}__FLASH_ERASE_BLOCK = 96;{$ENDIF}                                 // 32 instructions * 3 bytes per instruction
+  {$IFDEF P24}__FLASH_ERASE_BLOCK = 1536;{$ENDIF}                               // 512 instructions * 3 bytes per instruction
+  {$IFDEF P16}__FLASH_ERASE_BLOCK = 32;{$ENDIF}                                 // 16 instructions * 2 bytes per instruction
+  
+//  {$IFDEF P32}__FLASH_WRITE_BLOCK = 512;{$ENDIF}                                // 128 Instructions * 4 bytes per instruction
+  {$IFDEF P33}__FLASH_WRITE_BLOCK = 384;{$ENDIF}                                // 384/3 bytes per instruction = 128 Instructions (256 addresses) .....THE ##$$%@$ Help is WRONG in the mP Help File....
+  {$IFDEF P30}__FLASH_WRITE_BLOCK = 12;{$ENDIF}                                 // 12/3 bytes per instruction = 4 Instructions (8 addresses)
+  {$IFDEF P24}__FLASH_WRITE_BLOCK = 384;{$ENDIF}                                // 192/3 bytes per instruction = 64 Instructions (128 addresses)  .....THE ##$$%@$ Help is WRONG in the mP Help File....
+  {$IFDEF P16}__FLASH_WRITE_BLOCK = 16;{$ENDIF}                                 // 8 instructions * 2 bytes per instruction for 4k devices.  2k devices can use 8
+
+implementation
+
+end.

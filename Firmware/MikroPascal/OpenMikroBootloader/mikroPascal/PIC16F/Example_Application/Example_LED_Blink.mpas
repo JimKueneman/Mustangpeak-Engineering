@@ -1,0 +1,108 @@
+program Example_LED_Blink;
+
+{ Declarations section }
+
+// Because of the way PIC16's are architected creating a bootloader is not a automatic
+// as other Microchip parts.  PIC16's are divided into memory pages that are 2048 bytes
+// in size.  This is because the instruction set uses 13 bits to operate and the
+// opcodes only allow 11 bits to be loaded in jump type instructions.  The other 2 bits
+// must be set in a special register by a Bit Set instruction.  What that means is
+// the generated code for a jump (goto) can have from 1 to 3 instructions to make it happen
+// If the jump is from a procedure in the same page the 2 higher bits are already set to that
+// page all that is necessary is the bottom 11 bits to be set directly in the jump instuction.
+// If jumping from page 0 (upper 2 bits = 00) to page 3 (upper 2 bits = 11) then 2 BSF instuctions
+// before the jump instruction are needed.
+// What this means for a bootloader is fixing up the jumps at the reset vector to jump to the
+// bootloader code instead of the application code becomes problematic.  If the application has
+// placed the main function in the first page then only 1 instruction is reserved at the reset
+// vector but the bootloader is in the last page so it is not possible to fix up that address
+// to jump to the bootloader.
+// In order to fix this a special requirement on the application main procedure must be imposed
+// for PIC16's.   The main procedure must be placed (and be small enough to fit) in the same page
+// as the bootloader.  This is easy to do since the bootloader is always in the last page of the
+// device.  This will be different based on the device selected.
+//
+//  If the device is 2k then the main should be set to "org $0005"
+//  If the device is 4k then the main should be set to "org $0800"
+//  If the device is 6k then the main should be set to "org $1000"
+//  If the device is 8k then the main should be set to "org $1800"
+//
+// The mikroeElectronica compilers appear to place all other procedures as low in memory
+// as they can which is what is necessary since if they started the next procedure higher
+// in memory than the relocated main then the bootloader could be overwritten.  This has
+// only been tested on the PIC16F887 so please report back if this implementation is now
+// working for other devices or compilers.
+//
+// //** Routines locations **
+//ADDRESS    SIZE    PROCEDURE
+//----------------------------------------------
+//0x0003      [19]    _ProcA         Located low in memory
+//0x0016      [42]    _ProcB         Located low in memory
+//0x0040      [43]    _ProcC         Located low in memory
+//0x1800      [17]    _main
+//
+// Relocating the main gives us the needed number of instructions to allow the following
+// code to be fixed up to jump to the Bootloader before jumping to the application
+//
+//;Address Opcode 	ASM
+//0x0000	0x158A      	BSF        PCLATH, 3        << Set upper 2 bits to jump to page 3
+//0x0001	0x160A      	BSF        PCLATH, 4
+//0x0002	0x2800      	GOTO       6144             // jump to page 3
+
+var counter : byte;
+
+procedure ProcA;
+begin
+  ANSELH   := 0;                                 // Configure AN pins as digital
+  ANSEL    := 0;
+  C1ON_bit := 0;                                 // Disable comparators
+  C2ON_bit := 0;
+
+  TRISA := 0x00;                                 // set direction to be output
+  TRISB := 0x00;                                 // set direction to be output
+  TRISC := 0x00;                                 // set direction to be output
+  TRISD := 0x00;                                 // set direction to be output
+
+  PORTA := 0x00;                                 // turn OFF the PORTC leds
+  PORTB := 0x00;                                 // turn OFF the PORTC leds
+  PORTC := 0x00;                                 // turn OFF the PORTC leds
+  PORTD := 0x00;                                 // turn OFF the PORTD leds
+end;
+
+procedure ProcB;
+begin
+  for counter := 0 to 7 do
+  begin
+    PORTA := PORTA or 1 shl counter;
+    PORTB := PORTB or 1 shl counter;
+    PORTC := PORTC or 1 shl counter;
+    PORTD := PORTD or 1 shl counter;
+
+    Delay_ms(100);
+  end;
+end;
+
+procedure ProcC;
+begin
+  counter := 0;
+  while (counter < 8) do
+    begin
+      PORTA := PORTA and not(1 shl counter);
+      PORTB := PORTB and not(1 shl counter);
+      PORTC := PORTC and not(1 shl counter);
+      PORTD := PORTD and not(1 shl counter);
+
+      Delay_ms(100);
+      Inc(counter);
+    end;
+end;
+
+
+begin  org $1800;
+  ProcA;
+  while TRUE do
+    begin
+      ProcB;
+      ProcC;
+    end;
+end.

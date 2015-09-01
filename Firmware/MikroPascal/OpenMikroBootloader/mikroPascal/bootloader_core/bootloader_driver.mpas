@@ -1,0 +1,169 @@
+unit bootloader_driver_lazarus;
+
+{$IFDEF FPC}
+{$mode objfpc}{$H+}
+
+interface
+{$ENDIF}
+
+{$I options_user.inc}
+
+uses
+  bootloader_user,
+  bootloader_common;
+
+procedure Bootloader_Driver_Initialization;
+procedure Bootloader_Driver_Finalization;
+function Bootloader_Driver_ReadByte(var ReceivedByte: Byte): Boolean;
+procedure Bootloader_Driver_SendByte(AByte: Byte);
+procedure Bootloader_Driver_SendBytes(ABytePtr: PByte; Count: DWord);
+
+implementation
+
+
+procedure Bootloader_Driver_Initialization;
+begin
+  {$IFDEF CONNECTION_UART}
+    {$IFDEF UART_1}UART1_Init(USER_UART_BAUD_RATE);{$ENDIF}
+    {$IFDEF UART_2}UART2_Init(USER_UART_BAUD_RATE);{$ENDIF}
+    {$IFDEF UART_3}UART3_Init(USER_UART_BAUD_RATE);{$ENDIF}
+    {$IFDEF UART_4}UART4_Init(USER_UART_BAUD_RATE);{$ENDIF}
+    {$IFDEF UART_5}UART5_Init(USER_UART_BAUD_RATE);{$ENDIF}
+    {$IFDEF UART_6}UART6_Init(USER_UART_BAUD_RATE);{$ENDIF}
+  {$ENDIF}
+  {$IFDEF CONNECTION_ETHERNET}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_SD}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_CDC}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_HID}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_CAN}
+
+  {$ENDIF}
+end;
+
+procedure Bootloader_Driver_Finalization;
+begin
+  {$IFDEF CONNECTION_ETHERNET}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_SD}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_CDC}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_HID}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_CAN}
+
+  {$ENDIF}
+end;
+
+function Bootloader_Driver_ReadByte(var ReceivedByte: Byte): Boolean;
+begin
+  Result := False;
+  ReceivedByte := 0;
+  {$IFDEF CONNECTION_UART}
+    if {$IFDEF UART_1}UART1_Data_Ready{$ENDIF}
+       {$IFDEF UART_2}UART2_Data_Ready{$ENDIF}
+       {$IFDEF UART_3}UART3_Data_Ready{$ENDIF}
+       {$IFDEF UART_4}UART4_Data_Ready{$ENDIF}
+       {$IFDEF UART_5}UART5_Data_Ready{$ENDIF}
+       {$IFDEF UART_6}UART6_Data_Ready{$ENDIF} <> 0 then
+       begin
+        {$IFDEF UART_1}ReceivedByte := UART1_Read;{$ENDIF}
+        {$IFDEF UART_2}ReceivedByte := UART2_Read;{$ENDIF}
+        {$IFDEF UART_3}ReceivedByte := UART3_Read;{$ENDIF}
+        {$IFDEF UART_4}ReceivedByte := UART4_Read;{$ENDIF}
+        {$IFDEF UART_5}ReceivedByte := UART5_Read;{$ENDIF}
+        {$IFDEF UART_6}ReceivedByte := UART6_Read;{$ENDIF}
+
+         Result := True
+       end;
+  {$ENDIF}
+  {$IFDEF CONNECTION_ETHERNET}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_SD}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_CDC}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_HID}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_CAN}
+
+  {$ENDIF}
+end;
+
+procedure Bootloader_Driver_SendByte(AByte: Byte);
+begin
+  {$IFDEF CONNECTION_UART}
+    {$IFDEF UART_1}UART1_Write(AByte);{$ENDIF}
+    {$IFDEF UART_2}UART2_Write(AByte);{$ENDIF}
+    {$IFDEF UART_3}UART3_Write(AByte);{$ENDIF}
+    {$IFDEF UART_4}UART4_Write(AByte);{$ENDIF}
+    {$IFDEF UART_5}UART5_Write(AByte);{$ENDIF}
+    {$IFDEF UART_6}UART6_Write(AByte);{$ENDIF}
+  {$ENDIF}
+  {$IFDEF CONNECTION_ETHERNET}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_SD}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_CDC}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_HID}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_CAN}
+
+  {$ENDIF}
+end;
+
+procedure Bootloader_Driver_SendBytes(ABytePtr: PByte; Count: DWord);
+var
+  i: Integer;
+begin
+  {$IFDEF CONNECTION_UART}
+    for i := 0 to Count - 1 do
+    begin
+      {$IFDEF UART_1}UART1_Write(ABytePtr^);{$ENDIF}
+      {$IFDEF UART_2}UART2_Write(ABytePtr^);{$ENDIF}
+      {$IFDEF UART_3}UART3_Write(ABytePtr^);{$ENDIF}
+      {$IFDEF UART_4}UART4_Write(ABytePtr^);{$ENDIF}
+      {$IFDEF UART_5}UART5_Write(ABytePtr^);{$ENDIF}
+      {$IFDEF UART_6}UART6_Write(ABytePtr^);{$ENDIF}
+      Inc(ABytePtr);
+    end;
+  {$ENDIF}
+  {$IFDEF CONNECTION_ETHERNET}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_SD}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_CDC}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_HID}
+
+  {$ENDIF}
+  {$IFDEF CONNECTION_CAN}
+
+  {$ENDIF}
+end;
+
+end.

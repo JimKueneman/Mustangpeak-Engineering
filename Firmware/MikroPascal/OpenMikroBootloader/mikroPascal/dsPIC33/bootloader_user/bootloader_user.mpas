@@ -1,0 +1,91 @@
+unit bootloader_user;
+
+// Version 0.1
+//
+// The contents of this file are subject to the Mozilla Public License
+// Version 1.1 (the "License"); you may not use this file except in compliance
+// with the License. You may obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Alternatively, you may redistribute this library, use and/or modify it under the terms of the
+// GNU Lesser General Public License as published by the Free Software Foundation;
+// either version 2.1 of the License, or (at your option) any later version.
+// You may obtain a copy of the LGPL at http://www.gnu.org/copyleft/.
+//
+// Software distributed under the License is distributed on an "AS IS" basis,
+// WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for the
+// specific language governing rights and limitations under the License.
+//
+// The initial developer of this code is Jim Kueneman <jimkueneman@yahoo.com> and Vcc
+//
+
+{$IFDEF FPC}
+{$mode objfpc}{$H+}
+
+interface
+{$ENDIF}
+
+{$I options_user.inc}
+
+uses
+  bootloader_common_defines;
+
+{$IFDEF CONNECTION_UART}
+  const
+  // Enter the baud rate you would like
+    USER_UART_BAUD_RATE = 230400;
+{$ENDIF}
+    
+
+{$IFDEF CONNECTION_ETHERNET}
+  const
+  // If using Ethernet enter the IP Address the Mcu is allocated
+    USER_ETHERNET_IP_ADDRESS = '192.168.0.077';
+  // If using Ethernet enter the port the local Mcu should use (may be automatic)
+    USER_ETHERNET_PORT = 14334;
+  // If using Ethernet enter the remote port the mcu should connect to
+    USER_ETHERNET_REMOTE_PORT = 14333;
+{$ENDIF}
+
+
+// *****************************************************************************
+//  Common options
+// *****************************************************************************
+
+// Enter the size of the Bootloader compiled code, it is ok to make this larger than the code is if you don't mind wasting flash for your application
+  USER_BOOTLOADER_SIZE              = 4755;
+
+// Enter Bootloader specifics
+  USER_BOOTLOADER_ERASE_BLOCK       = __FLASH_ERASE_BLOCK;      // Use the build in mE constants, the FLASH library must be selected to define this constant
+  USER_BOOTLOADER_FLASH_SIZE        = __FLASH_SIZE;             // Use the build in mE constants
+  USER_BOOTLOADER_WRITE_BLOCK       = __FLASH_WRITE_BLOCK;      // Enter the size of the allocated buffer that will receive the bytes to be written in a write block, it MUST be a multiple of __FLASH_WRITE_BLOCK
+  USER_BOOTLOADER_MCU_FAMILY        = FAMILY_dsPIC33;           // Enter the MCU family this bootloader is for
+  USER_BOOTLOADER_REV_LO            = 1;                        // Enter a revision number lo byte
+  USER_BOOTLOADER_REV_HI            = 0;                        // Enter a revision number hi byte
+  USER_BOOTLOADER_APP_NAME          = 'Sample Application';     // Enter a name to be displayed in the PC bootloader (32 characters max)
+
+procedure User_Init;
+procedure User_Finalize;
+
+implementation
+
+procedure User_Init;
+begin   
+  // Setting output frequency to 140MHz
+  PLLFBD := 68;             // PLL multiplier M=70
+  CLKDIV := 0x0000;         // PLL prescaler N1=2, PLL postscaler N2=2
+  while OSCCON.0 = 1 do;    // Wait for Lock
+  
+  
+  // Setup the UART mapping to the programmable pins
+  PPS_Mapping(100, _INPUT, _U2RX);
+  PPS_Mapping(101, _OUTPUT, _U2TX);
+  
+  GIE_bit := 0;
+end;
+
+procedure User_Finalize;
+begin
+end;
+
+
+end.

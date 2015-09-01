@@ -1,0 +1,249 @@
+object Form1: TForm1
+  Left = 332
+  Height = 376
+  Top = 285
+  Width = 545
+  Caption = 'Mcu Emulator'
+  ClientHeight = 376
+  ClientWidth = 545
+  OnClose = FormClose
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  LCLVersion = '1.2.0.3'
+  object StatusBar1: TStatusBar
+    Left = 0
+    Height = 15
+    Top = 361
+    Width = 545
+    Panels = <    
+      item
+        Width = 400
+      end>
+    SimplePanel = False
+  end
+  object PageControlMain: TPageControl
+    Left = 0
+    Height = 361
+    Top = 0
+    Width = 545
+    ActivePage = TabSheetMain
+    Align = alClient
+    TabIndex = 0
+    TabOrder = 1
+    object TabSheetMain: TTabSheet
+      Caption = 'Main'
+      ClientHeight = 322
+      ClientWidth = 539
+      object Memo: TMemo
+        Left = 117
+        Height = 214
+        Top = 100
+        Width = 402
+        Anchors = [akTop, akLeft, akRight, akBottom]
+        ScrollBars = ssAutoBoth
+        TabOrder = 0
+      end
+      object ButtonReset: TButton
+        Left = 13
+        Height = 22
+        Top = 4
+        Width = 242
+        Caption = 'Reset'
+        OnClick = ButtonResetClick
+        TabOrder = 1
+      end
+      object ToggleBoxEthernetConnect: TToggleBox
+        Left = 277
+        Height = 22
+        Top = 4
+        Width = 242
+        Caption = 'Connect to Ethernet'
+        OnChange = ToggleBoxEthernetConnectChange
+        TabOrder = 2
+      end
+      object CheckBoxOverrideMCU: TCheckBox
+        Left = 22
+        Height = 18
+        Top = 68
+        Width = 176
+        Caption = 'Override MCU paramters'
+        TabOrder = 3
+      end
+      object ButtonMemoClear: TButton
+        Left = 13
+        Height = 214
+        Top = 100
+        Width = 96
+        Anchors = [akTop, akLeft, akBottom]
+        Caption = 'Clear'
+        OnClick = ButtonMemoClearClick
+        TabOrder = 4
+      end
+      object ButtonRunApplication: TButton
+        Left = 13
+        Height = 22
+        Top = 32
+        Width = 242
+        Caption = 'Force Bootload Timout'
+        OnClick = ButtonRunApplicationClick
+        TabOrder = 5
+      end
+    end
+    object TabSheetMcu: TTabSheet
+      Caption = 'MCU'
+      ClientHeight = 322
+      ClientWidth = 539
+      object RadioGroupMCU: TRadioGroup
+        Left = 8
+        Height = 193
+        Top = 4
+        Width = 141
+        AutoFill = True
+        Caption = 'MCU'
+        ChildSizing.LeftRightSpacing = 6
+        ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+        ChildSizing.EnlargeVertical = crsHomogenousChildResize
+        ChildSizing.ShrinkHorizontal = crsScaleChilds
+        ChildSizing.ShrinkVertical = crsScaleChilds
+        ChildSizing.Layout = cclLeftToRightThenTopToBottom
+        ChildSizing.ControlsPerLine = 1
+        ClientHeight = 171
+        ClientWidth = 133
+        ItemIndex = 0
+        Items.Strings = (
+          'PIC16F'
+          'PIC18F'
+          'PIC24'
+          'dsPIC30'
+          'dsPIC33'
+          'PIC32'
+        )
+        TabOrder = 0
+      end
+      object RadioGroupEraseSize: TRadioGroup
+        Left = 157
+        Height = 193
+        Top = 4
+        Width = 88
+        AutoFill = True
+        Caption = 'EraseBlock Size'
+        ChildSizing.LeftRightSpacing = 6
+        ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+        ChildSizing.EnlargeVertical = crsHomogenousChildResize
+        ChildSizing.ShrinkHorizontal = crsScaleChilds
+        ChildSizing.ShrinkVertical = crsScaleChilds
+        ChildSizing.Layout = cclLeftToRightThenTopToBottom
+        ChildSizing.ControlsPerLine = 1
+        ClientHeight = 171
+        ClientWidth = 80
+        ItemIndex = 0
+        Items.Strings = (
+          '64'
+          '128'
+          '256'
+          '512'
+          '1024'
+          '2048'
+          '4096'
+        )
+        TabOrder = 1
+      end
+      object RadioGroupWriteSize: TRadioGroup
+        Left = 253
+        Height = 193
+        Top = 4
+        Width = 88
+        AutoFill = True
+        Caption = 'WriteBlock Size'
+        ChildSizing.LeftRightSpacing = 6
+        ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+        ChildSizing.EnlargeVertical = crsHomogenousChildResize
+        ChildSizing.ShrinkHorizontal = crsScaleChilds
+        ChildSizing.ShrinkVertical = crsScaleChilds
+        ChildSizing.Layout = cclLeftToRightThenTopToBottom
+        ChildSizing.ControlsPerLine = 1
+        ClientHeight = 171
+        ClientWidth = 80
+        ItemIndex = 0
+        Items.Strings = (
+          '64'
+          '128'
+          '256'
+          '512'
+          '1024'
+          '2048'
+          '4096'
+        )
+        TabOrder = 2
+      end
+      object RadioGroupFlashSize: TRadioGroup
+        Left = 349
+        Height = 192
+        Top = 5
+        Width = 88
+        AutoFill = True
+        Caption = 'Flash Size'
+        ChildSizing.LeftRightSpacing = 6
+        ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+        ChildSizing.EnlargeVertical = crsHomogenousChildResize
+        ChildSizing.ShrinkHorizontal = crsScaleChilds
+        ChildSizing.ShrinkVertical = crsScaleChilds
+        ChildSizing.Layout = cclLeftToRightThenTopToBottom
+        ChildSizing.ControlsPerLine = 1
+        ClientHeight = 170
+        ClientWidth = 80
+        ItemIndex = 0
+        Items.Strings = (
+          '4k'
+          '8k'
+          '16k'
+          '36k'
+          '64k'
+          '128k'
+          '256k'
+          '512k'
+          '1024k'
+        )
+        TabOrder = 3
+      end
+      object Label1: TLabel
+        Left = 8
+        Height = 16
+        Top = 206
+        Width = 144
+        Caption = 'Bootloader Address 0x'
+        ParentColor = False
+      end
+      object Label2: TLabel
+        Left = 8
+        Height = 16
+        Top = 236
+        Width = 118
+        Caption = 'Bootloader Size 0x'
+        ParentColor = False
+      end
+      object EditBootloaderAddress: TEdit
+        Left = 173
+        Height = 22
+        Top = 204
+        Width = 120
+        TabOrder = 4
+        Text = 'A0000000'
+      end
+      object EditBootloaderSize: TEdit
+        Left = 173
+        Height = 22
+        Top = 230
+        Width = 120
+        TabOrder = 5
+        Text = '00000FE5'
+      end
+    end
+  end
+  object TimerStrings: TTimer
+    Interval = 100
+    OnTimer = TimerStringsTimer
+    left = 392
+    top = 80
+  end
+end

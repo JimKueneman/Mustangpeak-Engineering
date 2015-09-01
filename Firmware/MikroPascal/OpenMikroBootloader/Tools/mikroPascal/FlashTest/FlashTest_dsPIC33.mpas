@@ -1,0 +1,22 @@
+program FlashTest_dsPIC33;
+
+{ Declarations section }
+
+var
+  DWordArray: array[100] of DWord;
+
+begin
+  { Main program }
+  // Setting output frequency to 140MHz
+ // PLLFBD := 68;             // PLL multiplier M=70
+ // CLKDIV := 0x0000;         // PLL prescaler N1=2, PLL postscaler N2=2
+ // while OSCCON.0 = 1 do;    // Wait for Lock
+  
+  //FLASH_Erase($40000);
+  FLASH_WriteDoubleWord($40000, DWordArray);
+
+
+  // Setup the UART mapping to the programmable pins
+ // PPS_Mapping(100, _INPUT, _U2RX);
+ // PPS_Mapping(101, _OUTPUT, _U2TX);
+end.
