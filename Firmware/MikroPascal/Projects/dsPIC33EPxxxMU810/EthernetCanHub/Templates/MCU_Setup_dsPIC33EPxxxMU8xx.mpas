@@ -13,6 +13,8 @@ const
   CAN_PROP_SEG   = 4;               //   PROP_SEG + PHASESEG_1 >= PHASESEG_2
   
   MAX_ECAN_BUFFER = 32;
+  MAX_ECAN_RECEIVE_BUFFER = 29;
+  MAX_ECAN_TRANSMIT_BUFFER = 3;
   MAX_SPI_BUFFER = 30;              // Grid Connect = 29 + 1 because the return packet is one byte behind and I need the extra byte in transmit to receive the return byte (back to the master Pi)
 
   CAN_DMA_DATA_OFFSET = $D000;                // This is the start of the X-Data area.  Some of the dsPIC33s require DMA RAM to be
@@ -46,6 +48,7 @@ var
   procedure MCU_Enable_PinChangeNotification;
 
   function NextFifoOpenLcbBuffer(var OpenLcbBuffer: TOpenLCBCanBuffer): Boolean;
+  function FifoCount: Integer;
   function TryTransmitOpenLcbBuffer(BufferIndex: Integer; OpenLcbBuffer: POpenLCBCanBuffer): Boolean;
   procedure TransmitOpenLcbBuffer(BufferIndex: Integer; OpenLcbBuffer: POpenLCBCanBuffer);
   function ForceSpi1Transmit: Boolean;
@@ -53,6 +56,9 @@ var
   procedure ZeroSpiBuffers;
   
   procedure PrintDMABuffers;
+  
+var
+  MaxFifo: Integer;
   
 implementation
 
@@ -105,6 +111,8 @@ begin
   ANSELD := 0x00;
   ANSELE := 0x00;
   ANSELG := 0x00;
+  
+  MaxFifo := 0;
 end;
 
 function ForceSpi1Transmit: Boolean;
@@ -393,6 +401,26 @@ begin
     Extended := True;
     dsPIC33_DMA_Style_Buffer(OpenLcbBuffer^, Extended, CAN_DIRECTION_WRITE, @Can_RawBufferArray[0].Word0);
     CAN_RequestTransmit(BufferIndex);
+  end
+end;
+
+function FifoCount: Integer;
+var
+  Tail, Head: Word;
+begin
+  Result := 0;
+  Tail := C1FIFO and $001F;
+  Head := (C1FIFO shr 8) and $001F;
+  
+  // Get them referenced to 0
+  Tail := Tail - MAX_ECAN_TRANSMIT_BUFFER;
+  Head := Head - MAX_ECAN_TRANSMIT_BUFFER;
+  if Head <> Tail then
+  begin
+    if Head > Tail then
+      Result := Head - Tail
+    else
+      Result := (MAX_ECAN_RECEIVE_BUFFER - Tail) + Head + 1
   end
 end;
 

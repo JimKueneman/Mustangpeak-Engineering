@@ -1,0 +1,86 @@
+//
+// Implements a circular buffer that holds CAN messages as they come in on the CAN
+// physical layer.
+
+unit CanBufferIn;
+
+uses
+  HelperCAN;
+
+// Called one on startup to initialize internal variables
+procedure CanBufferIn_Initialize;
+// Returns the next empty buffer to place the incoming CAN message, if there is no free buffers it return nil
+function CanBufferIn_NextEmpty: POpenLCBCanBuffer;
+// Returns the next buffer to that came in on the CAN, if there is nothing to send it returns false and CanBuffer is undefined
+// The result is a COPY of what was in the buffer, the buffer is released before this function returns with the copy
+function CanBufferIn_NextFull(var CanBuffer: TOpenLCBCanBuffer): Boolean;
+
+implementation
+
+const
+  CAN_IN_BUFFER_MAX = 128;
+
+type
+  TCanInBuffer = record
+    Buffer: array[CAN_IN_BUFFER_MAX] of TOpenLCBCanBuffer;
+    iHead,
+    iTail: integer;
+    Overrun: Boolean;
+  end;
+
+var
+  CanIn: TCanInBuffer;
+
+procedure CanBufferIn_Initialize;
+var
+  i, j: Integer;
+begin
+  for i := 0 to CAN_IN_BUFFER_MAX - 1 do
+  begin
+    CanIn.Buffer[i].MTI := 0;
+    CanIn.Buffer[i].PayLoadCount := 0;
+    for j := 0 to 7 do
+      CanIn.Buffer[i].Payload[j] := 0;
+  end;
+  CanIn.iHead := 0;
+  CanIn.iTail := 0;
+  CanIn.Overrun := False;
+end;
+
+function CanBufferIn_NextEmpty: POpenLCBCanBuffer;
+begin
+  Result := @CanIn.Buffer[CanIn.iHead];
+  Inc(CanIn.iHead);
+  if CanIn.iHead >= CAN_IN_BUFFER_MAX then
+    CanIn.iHead := 0;
+  if CanIn.iHead = CanIn.iTail then
+  begin
+    Dec(CanIn.iHead);
+    if CanIn.iHead < 0 then
+      CanIn.iHead := CAN_IN_BUFFER_MAX - 1;
+    CanIn.Overrun := True;
+    Result := nil;
+  end;
+end;
+
+
+function CanBufferIn_NextFull(var CanBuffer: TOpenLCBCanBuffer): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  CanBuffer.MTI := 0;  // Known value
+  if CanIn.iHead <> CanIn.iTail then
+  begin
+    CanBuffer.MTI := CanIn.Buffer[CanIn.iTail].MTI;
+    CanBuffer.PayloadCount := CanIn.Buffer[CanIn.iTail].PayloadCount;
+    for i := 0 to 7 do
+      CanBuffer.Payload[i] := CanIn.Buffer[CanIn.iTail].Payload[i];
+    Inc(CanIn.iTail);
+    if CanIn.iTail >= CAN_IN_BUFFER_MAX then
+      CanIn.iTail := 0;
+    Result := True;
+  end
+end;
+
+end.

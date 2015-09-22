@@ -45,9 +45,19 @@ begin
 end;
 
 procedure interrupt_DMA2_Can_Receive(); iv IVT_ADDR_DMA2INTERRUPT;
+var
+  OpenLCBCanBufferPtr: POpenLCBCanBuffer;
+  Extended: Boolean;
 begin
   // Very little to do in a CAN Receive interrupt while using the FIFO
   DMA2IF_bit := 0;
+  OpenLCBCanBufferPtr := CanBufferIn_NextEmpty;
+  if OpenLCBCanBufferPtr <> nil then
+  begin
+    Extended := True;
+    // This is called after every CAN receive so the receive buffer should always be the first Buffer (0)
+    dsPIC33_DMA_Style_Buffer(OpenLCBCanBufferPtr^, Extended, CAN_DIRECTION_READ, @Can_RawBufferArray[0].Word0);
+  end;
 end;
 
 procedure interrupt_Can(); iv IVT_ADDR_C1INTERRUPT;
@@ -121,7 +131,8 @@ begin
   // A transmit on one of the Ping/Pong buffers has completed. I am assuming that
   // that pointer is now on the buffer with the current transmit.
   // This could preempt the CAN interrupt... Is that ok?
-  if NextFifoOpenLcbBuffer(OpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
+  //if NextFifoOpenLcbBuffer(OpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
+  if CanBufferIn_NextFull(OpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
   begin
     LATB4_bit := 1;
     
@@ -212,6 +223,7 @@ begin
   HaveSeenAHighCS := False;
   MCU_Setup_Initialize;
   CanBufferOut_Initialize;
+  CanBufferIn_Initialize;
   MCU_Enable_100msTimer;
   MCU_Enable_UART;
   MCU_Enable_SPI;
@@ -255,7 +267,7 @@ begin
       CanBufferOut_NextFull(OpenLcbBuffer);                                     // We only pull the SPI buffer if we have a CAN Tx Buffer available
       DMA0IE_bit := 1;                                                          // Reinable the interrupt
       if OpenLcbBuffer.MTI <> 0 then
-        TransmitOpenLcbBuffer(0, @OpenLcbBuffer);                                 // Send it to Buffer 0 to transmit
+        TransmitOpenLcbBuffer(0, @OpenLcbBuffer);                               // Send it to Buffer 0 to transmit
     end;
 
 

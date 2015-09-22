@@ -1,10 +1,18 @@
+//
+// Implements a circular buffer that holds CAN messages waiting to go out on the CAN
+// physical layer.
+
 unit CanBufferOut;
 
 uses
   HelperCAN;
 
+// Called one on startup to initialize internal variables
 procedure CanBufferOut_Initialize;
+// Returns the next empty buffer to place another message to send on the CAN, if there is no free buffers it return nil
 function CanBufferOut_NextEmpty: POpenLCBCanBuffer;
+// Returns the next buffer to send on the CAN, if there is nothing to send it returns false and CanBuffer is undefined
+// The result is a COPY of what was in the buffer, the buffer is released before this function returns with the copy
 function CanBufferOut_NextFull(var CanBuffer: TOpenLCBCanBuffer): Boolean;
 
 implementation
