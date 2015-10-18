@@ -238,18 +238,17 @@ begin
   DMA0STBL := (Hi(Address) shl 8) or Lo(Address);
 
   // Enable the DMA 0 and DMA 1 interrupts
-  DMA1IP_0_bit := 1;
+  DMA1IP_0_bit := 1;      // SPI Receive priority of 3
   DMA1IP_1_bit := 1;
   DMA1IF_bit := 0;
   DMA1IE_bit := 1;
   
-  DMA0IP_0_bit := 1;
+  DMA0IP_0_bit := 1;     // SPI Transmit priority of 3
   DMA0IP_1_bit := 1;
   DMA0IF_bit := 0;
   DMA0IE_bit := 1;
   
-// The SPI Enables on the CS Pin interrupt.  Must do this or thinks get out of sync on
-// startup
+// The SPI Enables on the CS Pin interrupt.  Must do this or things get out of sync on startup
 //  CHEN_DMA0CON_bit := 1;      // DMA Channel Enabled
 //  SPIEN_SPI2STAT_bit := 1;    // Enable the SPI
 //  CHEN_DMA1CON_bit := 1;      //Channel Enabled
@@ -346,7 +345,6 @@ begin
   DMA3STAL := (Hi(Address) shl 8) or Lo(Address);
   
   DMA3PAD := Word( @C1TXD);
-  CHEN_DMA3CON_bit := 1; //Channel Enabled
 
   // _____________________ Receive _______________________________
 
@@ -373,7 +371,18 @@ begin
  // DMA2STAH := Higher(Address);
   DMA2STAL := (Hi(Address) shl 8) or Lo(Address);
   
-  CHEN_DMA2CON_bit := 1; // DMA Channel 2 Enabled
+  DMA3IP_0_bit := 0;      // CAN Receive priority of 2
+  DMA3IP_1_bit := 1;
+  DMA3IF_bit := 0;
+  DMA3IE_bit := 1;
+
+  DMA2IP_0_bit := 0;     // CAN Transmit priority of 2
+  DMA2IP_1_bit := 1;
+  DMA2IF_bit := 0;
+  DMA2IE_bit := 1;
+  
+  CHEN_DMA2CON_bit := 1; // DMA Channel 2 Enabled (CAN Tx)
+  CHEN_DMA3CON_bit := 1; // DMA Channel 3 Enabled (CAN Rx)
 end;
 
 function TryTransmitOpenLcbBuffer(BufferIndex: Integer; OpenLcbBuffer: POpenLCBCanBuffer): Boolean;

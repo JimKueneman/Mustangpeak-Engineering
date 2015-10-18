@@ -34,11 +34,10 @@ ActiveImageIndex=-1
 Count=7
 File0=EthernetCanHub.mpas
 File1=Templates\MCU_Setup_dsPIC33EPxxxMU8xx.mpas
-File2=W:\Mustangpeak Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxMU810\EthernetCanHub\Templates\MCU_Setup_dsPIC33EPxxxMU8xx.mpas
 File3=HelperGridConnect.mpas
 File4=CanBufferOut.mpas
-File5=W:\Mustangpeak Engineering\Firmware\MikroPascal\Library\Common\helperfunctions.mpas
-File6=CanBufferIn.mpas
+File5=CanBufferIn.mpas
+File6=..\..\..\Library\Common\helperfunctions.mpas
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]
@@ -47,19 +46,12 @@ Count=0
 Count=1
 File0=Templates\Options.inc
 [SEARCH_PATH]
-Count=12
-Path0=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
-Path1=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
-Path2=Z:\Firmware\MikroPascal\Projects\dsPIC33EPxxxMU810\EthernetCanHub\
-Path3=Z:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\
-Path4=W:\Mustangpeak Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxMU810\EthernetCanHub\
-Path5=W:\Mustangpeak Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxMU810\EthernetCanHub\Templates\
-Path6=W:\Mustangpeak Engineering\Firmware\MikroPascal\Library\HardwareDrivers\dsPIC33_CAN\
-Path7=W:\Mustangpeak Engineering\Firmware\MikroPascal\Library\Common\
-Path8=Z:\Firmware\MikroPascal\Projects\dsPIC33EPxxxMU810\EthernetCanHub\Templates\
-Path9=Z:\Firmware\MikroPascal\OPStack\
-Path10=Z:\Firmware\MikroPascal\Library\Common\
-Path11=W:\TCH Technology Software\Mustangpeak\mikroPascal\Library\HardwareDrivers\dsPIC33_CAN\
+Count=5
+Path0=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
+Path1=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
+Path2=Y:\Firmware\MikroPascal\Projects\dsPIC33EPxxxMU810\EthernetCanHub\
+Path3=Y:\Firmware\MikroPascal\Library\Common\
+Path4=Y:\Firmware\MikroPascal\Projects\dsPIC33EPxxxMU810\EthernetCanHub\Templates\
 [HEADER_PATH]
 Count=0
 [HEADERS]

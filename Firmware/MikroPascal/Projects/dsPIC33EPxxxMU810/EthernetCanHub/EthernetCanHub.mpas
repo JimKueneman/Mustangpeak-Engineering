@@ -49,7 +49,6 @@ var
   OpenLCBCanBufferPtr: POpenLCBCanBuffer;
   Extended: Boolean;
 begin
-  // Very little to do in a CAN Receive interrupt while using the FIFO
   DMA2IF_bit := 0;
   OpenLCBCanBufferPtr := CanBufferIn_NextEmpty;
   if OpenLCBCanBufferPtr <> nil then
@@ -86,8 +85,7 @@ var
 begin       
   DMA0IF_bit := 0;
   
-  LATB1_bit := 1;
-  
+  (*
   if BarelyInSync then
   begin
     if PingPongASelected(0) then        // A is selected so B is ready
@@ -109,8 +107,7 @@ begin
         GridConnectStr_ToCanBuffer(@GridConnectStr, NextCanOutBuffer);
     end;
   end;
-    
-  LATB1_bit := 0;
+  *)
 end;
 
 //******************************************************************************
@@ -131,11 +128,9 @@ begin
   // A transmit on one of the Ping/Pong buffers has completed. I am assuming that
   // that pointer is now on the buffer with the current transmit.
   // This could preempt the CAN interrupt... Is that ok?
-  //if NextFifoOpenLcbBuffer(OpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
+  (*
   if CanBufferIn_NextFull(OpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
   begin
-    LATB4_bit := 1;
-    
     if BarelyInSync then
     begin
       GridConnect_BufferToGridConnect(OpenLcbBuffer, @GridConnectStr);           // convert it to grid connect string
@@ -149,9 +144,6 @@ begin
         for i := 0 to MAX_GRID_CONNECT_LEN-1 do
           Spi_TxARawBufferArray[i] := GridConnectStr[i];                          // Copy the GridConnectString into the SPI Tx DMA
       end;
-
-      LATB4_bit := 0;
-
     end else
     begin   // Send nulls if we are not in sync yet
       if PingPongASelected(1) then        // A is selected so B is ready
@@ -175,7 +167,8 @@ begin
       for i := 0 to MAX_SPI_BUFFER - 1 do
         Spi_TxARawBufferArray[i] := 0;
     end
-  end
+  end;
+  *)
 end;
 
 //******************************************************************************
@@ -261,7 +254,7 @@ begin
     // Handle moving the SPI data to the CAN Interface
     // For now we will just work with Buffer 0 and poll it.  Later we will work
     // on implementing the Ping/Pong buffer so we can keep it moving.
-    if not CAN_IsTransmitRequested(0) then
+  (*  if not CAN_IsTransmitRequested(0) then
     begin      
       while DMA0IE_bit = 1 do DMA0IE_bit := 0;                                  // Disable a SPI receive done interrupt while we are maniuplating the buffer
       CanBufferOut_NextFull(OpenLcbBuffer);                                     // We only pull the SPI buffer if we have a CAN Tx Buffer available
@@ -269,17 +262,17 @@ begin
       if OpenLcbBuffer.MTI <> 0 then
         TransmitOpenLcbBuffer(0, @OpenLcbBuffer);                               // Send it to Buffer 0 to transmit
     end;
-
-
-    // This creates a copy of the buffer then moves the pointer releasing it from being "used"
-    // NOTE THIS MUST BE REMOVED FOR REAL AS IT REMOVES THE MESSAGE FROM THE BUFFER IF IT COULD EVER GET
-    // CALLED SINCE THE INTERRUPT SHOULD FIRE FIRST
- {   if NextFifoOpenLcbBuffer(OpenLcbBuffer) then
+    *)
+    
+    if not CAN_IsTransmitRequested(0) then
     begin
-      LongWordToHex(OpenLcbBuffer.MTI, s1);
-      s2 := 'Rx MTI: ' + s1 + ':';
-      UART1_Write_Text(s2+LF);
-    end;  }
+      while DMA2IE_bit = 1 do 
+        DMA2IE_bit := 0;    // Disable incoming CAN interrupts till we are done with the buffer
+      CanBufferIn_NextFull(OpenLcbBuffer);         
+      DMA2IE_bit := 1;  // Reinable incoming CAN interrupts
+      if OpenLcbBuffer.MTI <> 0 then
+        TransmitOpenLcbBuffer(0, @OpenLcbBuffer);
+    end;
 
     if UART1_Data_Ready then
     begin
