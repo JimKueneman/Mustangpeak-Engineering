@@ -31,13 +31,12 @@ Count=0
 Count=0
 ActiveImageIndex=-1
 [OPENED_FILES]
-Count=7
+Count=5
 File0=EthernetCanHub.mpas
 File1=Templates\MCU_Setup_dsPIC33EPxxxMU8xx.mpas
-File3=HelperGridConnect.mpas
-File4=CanBufferOut.mpas
-File5=CanBufferIn.mpas
-File6=..\..\..\Library\Common\helperfunctions.mpas
+File2=CanBufferOut.mpas
+File3=CanBufferIn.mpas
+File4=HelperCAN.mpas
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]

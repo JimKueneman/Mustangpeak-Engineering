@@ -12,8 +12,8 @@ const
   CAN_PHASESEG_2 = 4;               //   PHASESEG_2 > SWJ
   CAN_PROP_SEG   = 4;               //   PROP_SEG + PHASESEG_1 >= PHASESEG_2
   
-  MAX_ECAN_BUFFER = 32;
-  MAX_ECAN_RECEIVE_BUFFER = 29;
+  MAX_ECAN_BUFFER = 4;
+  MAX_ECAN_RECEIVE_BUFFER = 1;
   MAX_ECAN_TRANSMIT_BUFFER = 3;
   MAX_SPI_BUFFER = 30;              // Grid Connect = 29 + 1 because the return packet is one byte behind and I need the extra byte in transmit to receive the return byte (back to the master Pi)
 
@@ -303,9 +303,9 @@ begin
   
   CANCKS_C1CTRL1_bit := 1;
 
-  // 32 Buffers total (Receive = Total - Transmit Buffers assigned)
-  DMABS_2_bit := 1;
-  DMABS_1_bit := 1;
+  // 4 Buffers total (Receive = Total - Transmit Buffers assigned)
+  DMABS_2_bit := 0;
+  DMABS_1_bit := 0;
   DMABS_0_bit := 0;
 
   // Receive Buffers start at Buffer 3, 0-2 are Transmitters

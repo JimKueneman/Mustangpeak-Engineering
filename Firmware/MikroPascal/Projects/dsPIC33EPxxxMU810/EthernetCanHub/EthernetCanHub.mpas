@@ -54,9 +54,10 @@ begin
   if OpenLCBCanBufferPtr <> nil then
   begin
     Extended := True;
-    // This is called after every CAN receive so the receive buffer should always be the first Buffer (0)
-    dsPIC33_DMA_Style_Buffer(OpenLCBCanBufferPtr^, Extended, CAN_DIRECTION_READ, @Can_RawBufferArray[0].Word0);
-  end;
+    // This is called after every CAN receive so the receive buffer should always be the first Buffer(3) (0..2 are Tx)
+    dsPIC33_DMA_Style_Buffer(OpenLCBCanBufferPtr^, Extended, CAN_DIRECTION_READ, @Can_RawBufferArray[3].Word0);
+    CAN_IsReceiveFull(3, True);
+  end
 end;
 
 procedure interrupt_Can(); iv IVT_ADDR_C1INTERRUPT;
@@ -85,15 +86,15 @@ var
 begin       
   DMA0IF_bit := 0;
   
-  (*
   if BarelyInSync then
   begin
-    if PingPongASelected(0) then        // A is selected so B is ready
+    LATB1_bit := 1;
+  
+    if PingPongASelected(0) then                         // A is selected so B is ready
     begin
       for i := 0 to MAX_GRID_CONNECT_LEN-1 do
         GridConnectStr[i] := Spi_RxBRawBufferArray[i];
-    end
-    else // B is selected so A is ready
+    end else                                             // B is selected so A is ready
     begin
       for i := 0 to MAX_GRID_CONNECT_LEN-1 do
         GridConnectStr[i] := Spi_RxARawBufferArray[i];
@@ -102,12 +103,14 @@ begin
     // TODO: Once confidence is built send the OlcbBuffer format directly.  This conversion takes too long.
     if (GridConnectStr[0] = ':') then
     begin
-      NextCanOutBuffer := CanBufferOut_NextEmpty; // This will signal an overrun if needed
-      if NextCanOutBuffer <> nil then
-        GridConnectStr_ToCanBuffer(@GridConnectStr, NextCanOutBuffer);
+    //  NextCanOutBuffer := CanBufferOut_NextEmpty; // This will signal an overrun if needed
+    //  if NextCanOutBuffer <> nil then
+    //    GridConnectStr_ToCanBuffer(@GridConnectStr, NextCanOutBuffer);
     end;
+    
+    LATB1_bit := 0;
+    
   end;
-  *)
 end;
 
 //******************************************************************************
@@ -124,6 +127,10 @@ var
   i: Integer;
 begin
   DMA1IF_bit := 0;
+  
+  LATB4_bit := 1;
+  delay_us(1);
+  LATB4_bit := 0;
   
   // A transmit on one of the Ping/Pong buffers has completed. I am assuming that
   // that pointer is now on the buffer with the current transmit.
@@ -268,10 +275,9 @@ begin
     begin
       while DMA2IE_bit = 1 do 
         DMA2IE_bit := 0;    // Disable incoming CAN interrupts till we are done with the buffer
-      CanBufferIn_NextFull(OpenLcbBuffer);         
+    //  if CanBufferIn_NextFull(OpenLcbBuffer) then
+    //    TransmitOpenLcbBuffer(0, @OpenLcbBuffer);
       DMA2IE_bit := 1;  // Reinable incoming CAN interrupts
-      if OpenLcbBuffer.MTI <> 0 then
-        TransmitOpenLcbBuffer(0, @OpenLcbBuffer);
     end;
 
     if UART1_Data_Ready then
@@ -385,13 +391,22 @@ begin
                        WordToHex(Can_RawBufferArray[i].Word7, s1);
                        UART_Write_Text(s1 + LF);
                      end;
-                     UART1_Write_Text(s1 + LF);
                    end;
           '4' : begin
                 PrintDMABuffers; 
               end;
           '5' : begin
                   ZeroSpiBuffers
+                end;
+          '6' : begin
+                  IntToStr(CanIn.Count, s1);
+                  UART1_Write_Text('CanIn.Count = ' + s1 + LF);
+                  IntToStr(CanIn.MaxCount, s1);
+                  UART1_Write_Text('CanIn.MaxCount = ' + s1 + LF);
+                  IntToStr(CanOut.Count, s1);
+                  UART1_Write_Text('CanOut.Count = ' + s1 + LF);
+                  IntToStr(CanOut.MaxCount, s1);
+                  UART1_Write_Text('CanOut.MaxCount = ' + s1 + LF);
                 end;
           
       end;
