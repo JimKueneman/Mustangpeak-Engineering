@@ -275,8 +275,8 @@ begin
     begin
       while DMA2IE_bit = 1 do 
         DMA2IE_bit := 0;    // Disable incoming CAN interrupts till we are done with the buffer
-    //  if CanBufferIn_NextFull(OpenLcbBuffer) then
-    //    TransmitOpenLcbBuffer(0, @OpenLcbBuffer);
+      if CanBufferIn_NextFull(OpenLcbBuffer) then
+        TransmitOpenLcbBuffer(0, @OpenLcbBuffer);
       DMA2IE_bit := 1;  // Reinable incoming CAN interrupts
     end;
 
