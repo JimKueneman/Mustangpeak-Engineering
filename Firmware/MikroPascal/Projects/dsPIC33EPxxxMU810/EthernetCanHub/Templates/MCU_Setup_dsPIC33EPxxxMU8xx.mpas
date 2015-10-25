@@ -22,8 +22,6 @@ const
   SPI_TX_DMA_B_DATA_OFFSET = SPI_TX_DMA_A_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
   SPI_RX_DMA_A_DATA_OFFSET = SPI_TX_DMA_B_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
   SPI_RX_DMA_B_DATA_OFFSET = SPI_RX_DMA_A_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
-  CAN_TX_DMA_A_DATA_OFFSET = SPI_RX_DMA_B_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
-  CAN_TX_DMA_B_DATA_OFFSET = CAN_TX_DMA_A_DATA_OFFSET + SizeOf(TCANRawBuffer);
   LF = #13+#10;
 
 type
@@ -37,9 +35,7 @@ var
   Spi_TxBRawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_TX_DMA_B_DATA_OFFSET;
   Spi_RxARawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_RX_DMA_A_DATA_OFFSET;
   Spi_RxBRawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_RX_DMA_B_DATA_OFFSET;
-  Can_TxARawBufferArray: TCANRawBuffer; far; dma; absolute CAN_TX_DMA_A_DATA_OFFSET;
-  Can_TxBRawBufferArray: TCANRawBuffer; far; dma; absolute CAN_TX_DMA_B_DATA_OFFSET;
-  
+
   procedure MCU_Setup_Initialize;
   procedure MCU_Enable_CAN;
   procedure MCU_Enable_100msTimer;
@@ -227,7 +223,7 @@ begin
   // DMAnREQ
   DMA0REQ := IRQ_SPI2_DONE;
 
-  DMA0CNT := MAX_SPI_BUFFER-1;   // DMAxCNT + 1 = number of bytes on DMA transfer = 16
+  DMA0CNT := MAX_SPI_BUFFER-1;   // DMAxCNT + 1 = number of bytes on DMA transfer =
   DMA0PAD := Word( @SPI2BUF);
   Address := LongInt(@Spi_RxARawBufferArray[0]);
  // DMA0STAH := Higher(Address);
@@ -408,7 +404,7 @@ begin
   if OpenLcbBuffer <> nil then
   begin
     Extended := True;
-    dsPIC33_DMA_Style_Buffer(OpenLcbBuffer^, Extended, CAN_DIRECTION_WRITE, @Can_RawBufferArray[0].Word0);
+    dsPIC33_DMA_Style_Buffer(OpenLcbBuffer^, Extended, CAN_DIRECTION_WRITE, @Can_RawBufferArray[BufferIndex].Word0);
     CAN_RequestTransmit(BufferIndex);
   end
 end;
