@@ -1,0 +1,80 @@
+1x6 Header||6
+1x6 Header Socket||6
+1x8 Header||8
+1x10 Header||10
+1x10 Header Socket||10
+1x16 Header||16
+1x20 Header||20
+2x1 Header||2
+2x2 Header||4
+2x3 Header||6
+2x4 Header||8
+2x5 Header||10
+2x8 Header||16
+2x14 Header||28
+6N137||8
+23K256||8
+ACS711||8
+ADM2483||16
+Amplifier||3
+DIN5 Female||7
+DPST Switch||2
+DPST Switch - 4 Pin||4
+dsPIC30F1010-202X||28
+dsPIC33EP512GP806||64
+dsPIC33EPxxxGP502||28
+dsPIC33EPxxxMC502||28
+ENC424J600-44||44
+FAN7385||14
+FTDI UART||6
+HIP4082||16
+Inverter||2
+ISO-0-4||16
+ISO-1-1-Bi||8
+ISO1050||8
+Jumper Shunt||2
+L6206||24
+LD1086||3
+Linear Regulator 4 Pin||4
+Linear Regulator 5 Pin||5
+LM78xx Regulator||3
+LM78xx-SO8 Regulator||8
+LM79xx Regulator||3
+LT1054||8
+MAX232||16
+MCP23S17||28
+MCP1541||3
+MCP3208||16
+microSD Card||8
+mikroE mikroBUS||16
+OC_Opto||6
+OC_Opto_No_Bias||4
+PESD1CAN||3
+PicKit 3 Header||6
+Power Barrel Connector||4
+PowerBlock||2
+PTC Fuse||2
+Raspberry Pi 2 B Header 2x20||40
+RJ12 Connector||6
+RJ45 Connector||8
+RJ45 Connector - Dual||16
+RS485 Transceiver||8
+Series 25L Encoder||3
+Si9986||8
+SN65HVD230||8
+Spiral Count 8||8
+Spiral Count 14 Pin||14
+Spiral Count 16 Pin||16
+Spiral Count 20 Pin||20
+Spiral Count 24||24
+Spiral Count 28 Pin||28
+SPST Dual Contact||6
+SPST Single Contact||6
+Terminal Block 2 Wire||2
+Terminal Block 3 Wire||3
+Terminal Block 4 Wire||4
+Terminal Block 5 Wire||5
+TestPoint||1
+TL317-SO8 Regulator||8
+TortoiseBoardEdge||8
+USB-B||4

@@ -264,6 +264,7 @@ begin
   State := STATE_FIND_NUMBER;
   StrOffset := 0;
   SegmentOffset := 0;
+  SegmentCharOffset := 0;
   while State < STATE_DONE do
   begin
     case State of

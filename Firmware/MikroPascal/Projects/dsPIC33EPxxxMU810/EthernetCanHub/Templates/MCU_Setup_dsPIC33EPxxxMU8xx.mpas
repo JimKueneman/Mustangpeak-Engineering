@@ -26,6 +26,7 @@ const
 
 type
   TCan_RawBufferArray = array[0..MAX_ECAN_BUFFER-1] of TCANRawBuffer;
+  PCan_RawBufferArray = ^TCan_RawBufferArray;
   TSpi_RawBufferArray = array[MAX_SPI_BUFFER] of Byte;
 
 
@@ -382,8 +383,6 @@ begin
 end;
 
 function TryTransmitOpenLcbBuffer(BufferIndex: Integer; OpenLcbBuffer: POpenLCBCanBuffer): Boolean;
-var
-  Extended: Boolean;
 begin
   Result := False;
   if OpenLcbBuffer <> nil then

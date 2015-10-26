@@ -25,6 +25,7 @@ type
     iTail: Integer;
     MaxCount: Integer;
     Count: Integer;
+    TotalCount: DWord;
     Overrun: Boolean;
   end;
   
@@ -48,6 +49,7 @@ begin
   CanOut.iTail := 0;
   CanOut.MaxCount := 0;
   CanOut.Count := 0;
+  CanOut.TotalCount := 0;
   CanOut.Overrun := False;
 end;
 
@@ -67,7 +69,8 @@ begin
       CanOut.iHead := CAN_OUT_BUFFER_MAX - 1;
     CanOut.Overrun := True;
     Result := nil;
-  end;
+  end else
+    Inc(CanOut.TotalCount);
 end;
 
 

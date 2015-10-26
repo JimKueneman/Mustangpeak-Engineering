@@ -1,14 +1,14 @@
 Forward Design Changes Report
 -----------------------------
 
-Report File:        W:\LccLib\Hardware\Raspberry Pi CAN\RaspCAN (PCB - Forward Design Changes Report).txt
-Report Written:     Monday, August 10, 2015
-Project Path:       W:\LccLib\Hardware\Raspberry Pi CAN\RaspCAN.prj
-Design Path:        W:\LccLib\Hardware\Raspberry Pi CAN\RaspCAN.pcb
+Report File:        Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN (PCB - Forward Design Changes Report).txt
+Report Written:     Sunday, October 25, 2015
+Project Path:       Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.prj
+Design Path:        Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.pcb
 Design Title:       
 Created:            8/7/2015 8:30:42 PM
-Last Saved:         8/10/2015 6:32:42 AM
-Editing Time:       702 min
+Last Saved:         10/25/2015 9:40:40 PM
+Editing Time:       1052 min
 Units:              mil (precision 0)
 
 Ignoring instance F3 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
@@ -16,23 +16,8 @@ Ignoring instance F1 ("Fiducial_S50") as it is defined for PCB only (no Schemati
 Ignoring instance F4 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
 Ignoring instance F2 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
 
-Disconnected pin "U3-11" from net "N0046".
-Disconnected pin "U3-12" from net "N0045".
-Disconnected pin "U3-25" from net "N0043".
-Disconnected pin "U3-26" from net "N0044".
-
-Deleted net "N0043".
-Deleted net "N0044".
-Deleted net "N0045".
-Deleted net "N0046".
-
-Added net "N0182".
-Added net "N0183".
-
-Connected pin "U3-25" to net "N0183".
-Connected pin "U3-26" to net "N0182".
-Connected pin "J2-2" to net "N0183".
-Connected pin "J2-6" to net "N0182".
+Added component reference "U6" of component "OnSemi NCP1117 12V", package "SM".
+Added component reference "U7" of component "OnSemi NCP1117 12V", package "SM".
 
 
 End Of Report.

@@ -1,19 +1,19 @@
 Design Consistency Status Report
 --------------------------------
 
-Report File:        W:\LccLib\Hardware\Raspberry Pi CAN\RaspCAN (PCB - Design Consistency Status Report).txt
-Report Written:     Monday, August 10, 2015
-Project Path:       W:\LccLib\Hardware\Raspberry Pi CAN\RaspCAN.prj
-Design Path:        W:\LccLib\Hardware\Raspberry Pi CAN\RaspCAN.pcb
+Report File:        Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN (PCB - Design Consistency Status Report).txt
+Report Written:     Sunday, October 25, 2015
+Project Path:       Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.prj
+Design Path:        Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.pcb
 Design Title:       
 Created:            8/7/2015 8:30:42 PM
-Last Saved:         8/10/2015 6:32:42 AM
-Editing Time:       702 min
+Last Saved:         10/25/2015 9:40:40 PM
+Editing Time:       1052 min
 Units:              mil (precision 0)
 
 
-Checking integrity of Schematic "W:\LccLib\Hardware\Raspberry Pi CAN\RaspCAN.sch" with PCB "W:\LccLib\Hardware\Raspberry Pi CAN\RaspCAN.pcb"
-============================================================================================================================================
+Checking integrity of Schematic and Pcb designs in project "RaspCAN"
+====================================================================
 
 
 End Of Report.

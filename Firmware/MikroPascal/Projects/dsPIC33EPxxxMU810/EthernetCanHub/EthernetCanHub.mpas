@@ -16,12 +16,19 @@ program EthernetCanHub;
 
 //
 // *****************************************************************************
+
+{$DEFINE ENABLE_UART_INTERFACE}
+  
+type
+  TSpiOutBuffer = record
+    GridConnectStr: TGridConnectString;
+    Valid: Boolean;
+  end;
   
 var
   BarelyInSync, HaveSeenAHighCS: Boolean;    //  THIS WILL NOT WORK IF THE RASPBERRY PI IS REBOOTED!!!!
-  
-  TrackSpiRx: Boolean;
-  
+  SpiOutBuffer: TSpiOutBuffer;
+  InvalidSpiReceives: DWord;
   
 // *****************************************************************************
 //  INTERRUPTS
@@ -38,87 +45,48 @@ begin
   T2IF_bit := 0;                                                                // Clear the Flag
 end;
 
-procedure interrupt_DMA3_Can_Transmit(); iv IVT_ADDR_DMA3INTERRUPT;
-var
-  LocalCanOutBuffer: TOpenLCBCanBuffer;
+//******************************************************************************
+//
+//******************************************************************************
+procedure interrupt_Can(); iv IVT_ADDR_C1INTERRUPT;
 begin
-  // Called when Transmit is complete.....
-  // Can make this self pumping but need to be aware that the main loop will
-  // need to push a message into the transmit buffer to kick this off initially
-  DMA3IF_bit := 0;
-
-  while DMA0IE_bit = 1 do DMA0IE_bit := 0;
-  // Access the CanBuffer_Out pool here
-
-  if CanBufferOut_NextFull(LocalCanOutBuffer) then
-    TransmitOpenLcbBuffer(0, @LocalCanOutBuffer);
-
-  
-  // Done maniulating the CanBufferOut, allow the Spi Receive interrupt to run
-  DMA0IE_bit := 1;
+  C1IF_bit := 0;    // Very little to do with the CAN interrupt with the DMA
 end;
 
+//******************************************************************************
+//
+//******************************************************************************
+procedure interrupt_DMA3_Can_Transmit(); iv IVT_ADDR_DMA3INTERRUPT;
+begin
+  DMA3IF_bit := 0;       // Called when Transmit is complete.....
+end;
+
+//******************************************************************************
+//
+//******************************************************************************
 procedure interrupt_DMA2_Can_Receive(); iv IVT_ADDR_DMA2INTERRUPT;
 var
   OpenLCBCanBufferPtr: POpenLCBCanBuffer;
   Extended: Boolean;
 begin
   DMA2IF_bit := 0;
-  
-  LATB1_bit := 1;
-
-  // Disable the SPI Transmit interrupt (which pulls out of the CanBufferIn pool) while manipulating the CanBufferIn pool
-  // The Spi interrupt is higher priority so it could prempt this interrupt at any instruction including during a partial
-  // state of the _NextEmpty call.  This ensures _NextEmpty is complete before allowing the Spi to access the pool
-  while DMA1IE_bit = 1 do 
-    DMA1IE_bit := 0;
-  
   OpenLCBCanBufferPtr := CanBufferIn_NextEmpty;
   if OpenLCBCanBufferPtr <> nil then
   begin    
     Extended := True;
-    // This is called after every CAN receive so the receive buffer should always be the first Buffer(3) (0..2 are Tx)
-    // Copy the data into the buffer.  Need to make sure what is pulling this data OUT
-    // does not have the ability to prempt this interrupt and try to pull the next
-    // buffer before it is loaded with data
     dsPIC33_DMA_Style_Buffer(OpenLCBCanBufferPtr^, Extended, CAN_DIRECTION_READ, @Can_RawBufferArray[3].Word0);
-    // Rest the hardware "full" flag so we are ready for the next message
-    CAN_IsReceiveFull(3, True);
+    CAN_IsReceiveFull(3, True);  // Rest the hardware "full" flag so we are ready for the next message
   end;
-  
-  LATB1_bit := 0;
-  
-  // Now safe to release the buffer for the other interrupt (that can preempt this one)
-  // can be called to pull this data out of the buffer
-  DMA1IE_bit := 1;
-end;
-
-procedure interrupt_Can(); iv IVT_ADDR_C1INTERRUPT;
-begin
-  // Very little to do with the CAN interrupt with the DMA
-  C1IF_bit := 0;
 end;
 
 //******************************************************************************
-// Fired immeditatly after the DMA receive cycle is complete.  This is 29 bytes
-// in our case.  Once the receive is complete the PingPong is on the opposite
-// buffer and we grab the message from the prevous buffer, convert it into a
-// LccBuffer, and store it in our software FIFO waiting to be sent out.  We also
-// need to make sure we can fit a full block (size TBD) in the buffer and if not
-// clear the CTS line so the sender will stop sending.  This FIFO must always have
-// a full block free if the CTS line is set, that way if the sender blasts a full
-// block (size TBD) there always be enough room to store it and we will have time
-// to get the CTS clear before the block has been fully sent.  This allows the
-// sender to be notified in time to not send any more data until CTS is high again
+// Fired immeditatly after the DMA SPI receive cycle is complete.
 //******************************************************************************
 procedure interrupt_DMA0_SPI_Receive(); iv IVT_ADDR_DMA0INTERRUPT;
 var
   NextCanOutBuffer: POpenLCBCanBuffer;
   GridConnectStr: TGridConnectString;
-  LocalCanOutBuffer: TOpenLCBCanBuffer;
   i: Integer;
-  
-  s:string[2];
 begin
   DMA0IF_bit := 0;
   
@@ -133,93 +101,42 @@ begin
       for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // B is selected so A is ready
         GridConnectStr[i] := Spi_RxARawBufferArray[i];
     end;
-    
-    if TrackSpiRx then
-    begin
-      if GridConnectStr[0] <> $00 then
-        UART1_Write_Text(GridConnectStr + LF);
-    end;
-    
 
-    // TODO: Once confidence is built send the OlcbBuffer format directly.  This conversion takes too long.
     if (GridConnectStr[0] = ':') then
     begin
-      // This is higher priority than the CAN Transmit and the CAN Transmit disables this
-      // interrupt when it accesses the CanBufferOut Pool so the state of the Pool is known
-      // within this interrupt
-      // Grab the next empty buffer
-      NextCanOutBuffer := CanBufferOut_NextEmpty;                               // This will signal an overrun if needed
-
-      // Copy the data into the buffer.  Need to make sure what is pulling this data OUT
-      // does not have the ability to prempt this interrupt and try to pull the next
-      // buffer before it is loaded with data
+      NextCanOutBuffer := CanBufferOut_NextEmpty;
       if NextCanOutBuffer <> nil then
-      begin
         GridConnectStr_ToCanBuffer(@GridConnectStr, NextCanOutBuffer);
-
-        // if there is not a transmit in progress then kick it off, if there is one
-        // in progress then the CAN Rx interrupt will be called at the end of the existing
-        // transmission and the next outgoing CAN message will be picked up
-   //     if not CAN_IsTransmitRequested(0) then
-   //     begin
-   //       if CanBufferOut_NextFull(LocalCanOutBuffer) then
-   //         TransmitOpenLcbBuffer(0, @LocalCanOutBuffer);
-   //     end;
-      end;
     end else
     begin
-      if GridConnectStr[1] = ':' then
-      begin
-        UART1_Write_Text('oops');
-      end;
-    end
+      if GridConnectStr[0] <> '' then
+        Inc(InvalidSpiReceives);
+    end;
   end;
 end;
 
 //******************************************************************************
-// Fired immeditatly after the DMA transmit cycle is complete.  This is 29 bytes
-// in our case.  Once the transmit is complete the PingPong is on the opposite
-// buffer and we can load in our next message to move from the CAN in to the SPI 
-// out.  If there is no message then load it with zeros and the receiver will
-// ignore them.
+// Fired immeditatly after the DMA SPI transmit cycle is complete.
 //******************************************************************************
 procedure interrupt_DMA1_SPI_Transmit(); iv IVT_ADDR_DMA1INTERRUPT;
 var
-  OpenLcbBuffer: TOpenLCBCanBuffer;
-  GridConnectStr: TGridConnectString;
   i: Integer;
-  SendZeros: Boolean;
 begin
   DMA1IF_bit := 0;
-  
-  LATB4_bit := 1;
-  
-  SendZeros := True;   // Pesimistic
-  
-  // This is higher priority than the CAN so we are safe to just maniuplate the Pool here
-  // and grab the data and release the buffer without worries.  The CAN interrupt locked
-  // out our interrupt during the time it was manipulating the buffer so it should be in
-  // a known state here.
-  if CanBufferIn_NextFull(OpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
-  begin
-    if BarelyInSync then
-    begin
-      GridConnect_BufferToGridConnect(OpenLcbBuffer, @GridConnectStr);           // convert it to grid connect string
 
-      if PingPongASelected(1) then
-      begin                                                                     // A is selected so B is Free
-        for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                 // Copy the GridConnectString into the SPI Tx DMA
-          Spi_TxBRawBufferArray[i] := GridConnectStr[i]
-      end else
-      begin
-        for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                 // If B is Selected so A is Free
-          Spi_TxARawBufferArray[i] := GridConnectStr[i];                        // Copy the GridConnectString into the SPI Tx DMA
-      end;
-      SendZeros := False;
-    end
-  end;
-  
-  if SendZeros then     // Send nulls if there is nothing to send for this round
+  if BarelyInSync and SpiOutBuffer.Valid then
+  begin
+    if PingPongASelected(1) then
+    begin                                                                       // A is selected so B is Free
+      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // Copy the GridConnectString into the SPI Tx DMA
+        Spi_TxBRawBufferArray[i] := SpiOutBuffer.GridConnectStr[i]
+    end else
+    begin
+      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // If B is Selected so A is Free
+        Spi_TxARawBufferArray[i] := SpiOutBuffer.GridConnectStr[i];             // Copy the GridConnectString into the SPI Tx DMA
+    end;
+    SpiOutBuffer.Valid := False;
+  end else
   begin
     if PingPongASelected(1) then        // A is selected so B is ready
     begin
@@ -231,9 +148,6 @@ begin
         Spi_TxARawBufferArray[i] := 0;
     end
   end;
-  
-  LATB4_bit := 0;
-  
 end;
 
 //******************************************************************************
@@ -275,12 +189,10 @@ var
   LocalOpenLcbBuffer, SendOpenLcbBuffer: TOpenLCBCanBuffer;
   Extended: Boolean;
   Address: DWord;
-  GridConnectStr: TGridConnectString;
 begin
   { Main program }
-  
-  TrackSpiRx := False;
-  
+  SpiOutBuffer.Valid := False;
+  InvalidSpiReceives := 0;
   BarelyInSync := False;
   HaveSeenAHighCS := False;
   MCU_Setup_Initialize;
@@ -320,22 +232,10 @@ begin
   
   while True do
   begin
-    // Handle moving the SPI data to the CAN Interface
-    // For now we will just work with Buffer 0 and poll it.  Later we will work
-    // on implementing the Ping/Pong buffer so we can keep it moving.
-  {  if not CAN_IsTransmitRequested(0) then
-    begin      
-      while DMA0IE_bit = 1 do DMA0IE_bit := 0;                                  // Disable a SPI receive done interrupt while we are maniuplating the buffer
-      CanBufferOut_NextFull(OpenLcbBuffer);                                     // We only pull the SPI buffer if we have a CAN Tx Buffer available
-      DMA0IE_bit := 1;                                                          // Reinable the interrupt
-      if OpenLcbBuffer.MTI <> 0 then
-        TransmitOpenLcbBuffer(0, @OpenLcbBuffer);                               // Send it to Buffer 0 to transmit
-    end;
-          }
-
     if not CAN_IsTransmitRequested(0) then
     begin
-      while DMA0IE_bit = 1 do DMA0IE_bit := 0;    // Disable incoming SPI interrupts till we are done with the buffer
+      while DMA0IE_bit = 1 do    // Disable incoming SPI interrupts till we are done with the buffer to CAN out
+        DMA0IE_bit := 0;
       if CanBufferOut_NextFull(LocalOpenLcbBuffer) then
       begin
         DMA0IE_bit := 1;  // Reinable incoming SPI interrupts
@@ -343,7 +243,22 @@ begin
       end else
         DMA0IE_bit := 1;  // Reinable incoming SPI interrupts
     end;
+    
+    
+    while DMA2IE_bit = 1 do      // Disable the incoming CAN interrupts till we are done with the buffer for CAN in
+      DMA2IE_bit := 0;
+    if SpiOutBuffer.Valid = False then   // Is the out buffer empty?
+    begin
+      if CanBufferIn_NextFull(LocalOpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
+      begin
+        DMA1IE_bit := 1;                                                        // _NextFull copies the structure so the buffer is now okay to use in the interrupt
+        GridConnect_BufferToGridConnect(LocalOpenLcbBuffer, @SpiOutBuffer.GridConnectStr);  // convert it to grid connect string and place it in the Spi outgoing buffer
+        SpiOutBuffer.Valid := True;
+      end;
+    end;
+    DMA2IE_bit := 1;
 
+    {$IFDEF ENABLE_UART_INTERFACE}
     if UART1_Data_Ready then
     begin
       case UART1_Read of
@@ -467,17 +382,24 @@ begin
                   UART1_Write_Text('CanIn.Count = ' + s1 + LF);
                   IntToStr(CanIn.MaxCount, s1);
                   UART1_Write_Text('CanIn.MaxCount = ' + s1 + LF);
+                  LongWordToStr(CanIn.TotalCount, s1);
+                  UART1_Write_Text('CanIn.TotalCount = ' + s1 + LF);
+                  
                   IntToStr(CanOut.Count, s1);
                   UART1_Write_Text('CanOut.Count = ' + s1 + LF);
                   IntToStr(CanOut.MaxCount, s1);
                   UART1_Write_Text('CanOut.MaxCount = ' + s1 + LF);
+                  LongWordToStr(CanOut.TotalCount, s1);
+                  UART1_Write_Text('CanOut.TotalCount = ' + s1 + LF);
+                  
+                  LongWordToStr(InvalidSpiReceives, s1);
+                  UART1_Write_Text('InvalidSpiReceives = ' + s1 + LF);
                 end;
           '7' : begin
-                  TrackSpiRx := not TrackSpiRx;
+                  InvalidSpiReceives := 0;
                 end;
-                
-
       end;
-    end
+    end     
+    {$ENDIF}
   end;
 end.
