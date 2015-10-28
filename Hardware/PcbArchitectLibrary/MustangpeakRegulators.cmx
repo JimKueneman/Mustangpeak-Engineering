@@ -6,5 +6,6 @@ LD1086||#SMS4=3||@Manufacturer=||@Manufacturer Part Number=||@Distributor=Digike
 LM7805 TO92||#DIL=3||@Manufacturer=||@Manufacturer Part Number=||@Distributor=Digikey||@Distributor Part Number=
 LM7905 TO92||#DIL=3||@Manufacturer=||@Manufacturer Part Number=||@Distributor=Digikey||@Distributor Part Number=
 LT1054||#DIL=8||@Manufacturer=||@Manufacturer Part Number=||@Distributor=Digikey||@Distributor Part Number=
+OnSemi NCP1117 3.3V||#SM=4||@Manufacturer=OnSemi||@Manufacturer Part Number=NCP1117ST33T3G||@Distributor=Digikey||@Distributor Part Number=NCP1117ST33T3GOSCT-ND
 OnSemi NCP1117 12V||#SM=4||@Manufacturer=OnSemi||@Manufacturer Part Number=NCP1117ST12T3G||@Distributor=Digikey||@Distributor Part Number=NCP1117ST12T3GOSCT-ND
 TL317||#SM=8||@Manufacturer=Texas Instruments||@Manufacturer Part Number=TL317CD||@Distributor=Digikey||@Distributor Part Number=296-11823-5-ND

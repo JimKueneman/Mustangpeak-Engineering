@@ -21,7 +21,7 @@ procedure GridConnect_Initialize;
 
 function GridConnect_DecodeMachine(NextChar: Char; var GridConnectStrPtr: PGridConnectString): Boolean;
 procedure GridConnectStr_ToCanBuffer(GridConnectStr: PGridConnectString; GridConnectBuffer: POpenLCBCanBuffer);
-function GridConnect_BufferToGridConnect(var GridConnectBuffer: TOpenLCBCanBuffer; var GridConnectStr: TGridConnectString): Integer;
+function GridConnect_BufferToGridConnect(var GridConnectBuffer: TOpenLCBCanBuffer; GridConnectStr: PGridConnectString): Integer;
 
 
 implementation
@@ -195,36 +195,36 @@ end;
 //     Returns:
 //     Description:
 // *****************************************************************************
-function GridConnect_BufferToGridConnect(var GridConnectBuffer: TOpenLCBCanBuffer; var GridConnectStr: TGridConnectString): Integer;
+function GridConnect_BufferToGridConnect(var GridConnectBuffer: TOpenLCBCanBuffer; GridConnectStr: PGridConnectString): Integer;
 var
   ConvertString: array[0..8] of char;
   i: Integer;
 begin
-  GridConnectStr[0] := ':';
-  GridConnectStr[1] := 'X';
+  GridConnectStr^[0] := ':';
+  GridConnectStr^[1] := 'X';
   LongWordToHex(GridConnectBuffer.MTI, ConvertString);
-  GridConnectStr[2] := ConvertString[0];
-  GridConnectStr[3] := ConvertString[1];
-  GridConnectStr[4] := ConvertString[2];
-  GridConnectStr[5] := ConvertString[3];
-  GridConnectStr[6] := ConvertString[4];
-  GridConnectStr[7] := ConvertString[5];
-  GridConnectStr[8] := ConvertString[6];
-  GridConnectStr[9] := ConvertString[7];
-  GridConnectStr[10] := 'N';
+  GridConnectStr^[2] := ConvertString[0];
+  GridConnectStr^[3] := ConvertString[1];
+  GridConnectStr^[4] := ConvertString[2];
+  GridConnectStr^[5] := ConvertString[3];
+  GridConnectStr^[6] := ConvertString[4];
+  GridConnectStr^[7] := ConvertString[5];
+  GridConnectStr^[8] := ConvertString[6];
+  GridConnectStr^[9] := ConvertString[7];
+  GridConnectStr^[10] := 'N';
   Result := 11;
 
   for i := 0 to GridConnectBuffer.PayloadCount - 1 do
   begin
     WordToHex(GridConnectBuffer.Payload[i], ConvertString);
-    GridConnectStr[Result] := ConvertString[2];
-    GridConnectStr[Result + 1] := ConvertString[3];
+    GridConnectStr^[Result] := ConvertString[2];
+    GridConnectStr^[Result + 1] := ConvertString[3];
     Result := Result + 2;
   end;
 
-  GridConnectStr[Result] := ';';
+  GridConnectStr^[Result] := ';';
   Inc(Result);
-  GridConnectStr[Result] := #0;
+  GridConnectStr^[Result] := #0;
 end;
 
 

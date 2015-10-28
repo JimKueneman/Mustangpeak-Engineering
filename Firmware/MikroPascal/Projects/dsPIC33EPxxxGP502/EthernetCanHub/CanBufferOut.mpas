@@ -1,0 +1,97 @@
+//
+// Implements a circular buffer that holds CAN messages waiting to go out on the CAN
+// physical layer.
+
+unit CanBufferOut;
+
+uses
+  HelperCAN;
+
+// Called one on startup to initialize internal variables
+procedure CanBufferOut_Initialize;
+// Returns the next empty buffer to place another message to send on the CAN, if there is no free buffers it return nil
+function CanBufferOut_NextEmpty: POpenLCBCanBuffer;
+// Returns the next buffer to send on the CAN, if there is nothing to send it returns false and CanBuffer is undefined
+// The result is a COPY of what was in the buffer, the buffer is released before this function returns with the copy
+function CanBufferOut_NextFull(var CanBuffer: TOpenLCBCanBuffer): Boolean;
+
+const
+  CAN_OUT_BUFFER_MAX = 128;
+  
+type
+  TCanOutBuffer = record
+    Buffer: array[CAN_OUT_BUFFER_MAX] of TOpenLCBCanBuffer;
+    iHead,
+    iTail: Integer;
+    MaxCount: Integer;
+    Count: Integer;
+    TotalCount: DWord;
+    Overrun: Boolean;
+  end;
+  
+var
+  CanOut: TCanOutBuffer;
+  
+implementation
+
+procedure CanBufferOut_Initialize;
+var
+  i, j: Integer;
+begin
+  for i := 0 to CAN_OUT_BUFFER_MAX - 1 do
+  begin
+    CanOut.Buffer[i].MTI := 0;
+    CanOut.Buffer[i].PayLoadCount := 0;
+    for j := 0 to 7 do
+      CanOut.Buffer[i].Payload[j] := 0;
+  end;
+  CanOut.iHead := 0;
+  CanOut.iTail := 0;
+  CanOut.MaxCount := 0;
+  CanOut.Count := 0;
+  CanOut.TotalCount := 0;
+  CanOut.Overrun := False;
+end;
+
+function CanBufferOut_NextEmpty: POpenLCBCanBuffer;
+begin
+  Result := @CanOut.Buffer[CanOut.iHead];
+  Inc(CanOut.iHead);
+  if CanOut.iHead >= CAN_OUT_BUFFER_MAX then
+    CanOut.iHead := 0;
+  Inc(CanOut.Count);
+  if CanOut.Count > CanOut.MaxCount then
+    CanOut.MaxCount := CanOut.Count;
+  if CanOut.iHead = CanOut.iTail then
+  begin
+    Dec(CanOut.iHead);
+    if CanOut.iHead < 0 then
+      CanOut.iHead := CAN_OUT_BUFFER_MAX - 1;
+    CanOut.Overrun := True;
+    Result := nil;
+  end else
+    Inc(CanOut.TotalCount);
+end;
+
+
+function CanBufferOut_NextFull(var CanBuffer: TOpenLCBCanBuffer): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  CanBuffer.MTI := 0;  // Known value
+  if CanOut.iHead <> CanOut.iTail then
+  begin
+    CanBuffer.MTI := CanOut.Buffer[CanOut.iTail].MTI;
+    CanBuffer.PayloadCount := CanOut.Buffer[CanOut.iTail].PayloadCount;
+    for i := 0 to 7 do
+      CanBuffer.Payload[i] := CanOut.Buffer[CanOut.iTail].Payload[i];
+    Inc(CanOut.iTail);
+    if CanOut.iTail >= CAN_OUT_BUFFER_MAX then
+      CanOut.iTail := 0;
+    Dec(CanOut.Count);
+    Result := True;
+  end
+end;
+
+end.

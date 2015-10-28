@@ -53,8 +53,8 @@ procedure CAN_RequestTransmit(BufferNumber: Word);
 function CAN_IsReceiveFull(BufferNumber: Word; Clear: Boolean): Boolean;
 function CAN_IsTransmitRequested(BufferNumber: Word): Boolean;
 
-function CAN_PingPongASelected(DMAChannel: Word): Boolean;
-function CAN_PingPongBSelected(DMAChannel: Word): Boolean;
+function PingPongASelected(DMAChannel: Word): Boolean;
+function PingPongBSelected(DMAChannel: Word): Boolean;
 
 procedure dsPIC33_DMA_Style_Buffer(var Buffer: TOpenLCBCanBuffer; var Extended: Boolean; Direction: Byte; CANPtr: ^TFarWord);
 
@@ -636,12 +636,12 @@ end;
 // *****************************************************************************
 function CAN_IsTransmitRequested(BufferNumber: Word): Boolean;
 const
-   TX_REQUEST_BIT = 3;
+  TX_REQUEST_BIT = 3;
 begin
   Result := ReadTXBit(BufferNumber, TX_REQUEST_BIT)
 end;
 
-function CAN_PingPongASelected(DMAChannel: Word): Boolean;
+function PingPongASelected(DMAChannel: Word): Boolean;
 var
   Mask: Word;
 begin
@@ -650,7 +650,7 @@ begin
   Result := DMAPPS and Mask = 0;
 end;
 
-function CAN_PingPongBSelected(DMAChannel: Word): Boolean;
+function PingPongBSelected(DMAChannel: Word): Boolean;
 var
   Mask: Word;
 begin

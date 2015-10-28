@@ -1,6 +1,6 @@
 [DEVICE]
 Name=P33EP64GP502
-Clock=64000000
+Clock=140000000
 [MEMORY_MODEL]
 Value=-1
 [BUILD_TYPE]
@@ -14,28 +14,29 @@ Value=2000
 [EEPROM_DEFINITION]
 Value=
 [ACTIVE_TAB]
-Value=..\..\dsPIC33EPxxxMU810\EthernetCanHub\Templates\MCU_Setup_dsPIC33EPxxxMU8xx.mpas
+Value=EthernetCanHub.mpas
 [FILES]
-Count=6
+Count=8
 File0=EthernetCanHub.mpas
-File1=Templates\MCU_Setup_dsPIC33EPxxxGP502.mpas
-File2=HelperCAN.mpas
-File3=HelperDMA.mpas
-File4=HelperGridConnect.mpas
-File5=..\..\..\Library\Common\helperfunctions.mpas
+File1=HelperCAN.mpas
+File2=HelperDMA.mpas
+File3=HelperGridConnect.mpas
+File4=..\..\..\Library\Common\helperfunctions.mpas
+File5=CanBufferOut.mpas
+File6=CanBufferIn.mpas
+File7=Templates\MCU_Setup_dsPIC33EPxxxGP502.mpas
 [BINARIES]
 Count=0
 [IMAGES]
 Count=0
 ActiveImageIndex=-1
 [OPENED_FILES]
-Count=6
+Count=5
 File0=EthernetCanHub.mpas
-File1=HelperCAN.mpas
-File2=W:\Mustangpeak Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\MCU_Setup_dsPIC33EPxxxGP502.mpas
+File1=CanBufferIn.mpas
+File2=HelperCAN.mpas
 File3=HelperGridConnect.mpas
-File4=..\..\..\OPStack\opstack_defines.mpas
-File5=..\..\dsPIC33EPxxxMU810\EthernetCanHub\Templates\MCU_Setup_dsPIC33EPxxxMU8xx.mpas
+File4=CanBufferOut.mpas
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]
@@ -44,17 +45,12 @@ Count=0
 Count=1
 File0=Templates\Options.inc
 [SEARCH_PATH]
-Count=10
+Count=13
 Path0=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
 Path1=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
 Path2=Z:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\
-Path3=W:\Mustangpeak Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\
-Path4=W:\Mustangpeak Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\
-Path5=W:\Mustangpeak Engineering\Firmware\MikroPascal\Library\HardwareDrivers\dsPIC33_CAN\
-Path6=W:\Mustangpeak Engineering\Firmware\MikroPascal\Library\Common\
-Path7=Z:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\
-Path8=Z:\Firmware\MikroPascal\OPStack\
-Path9=Z:\Firmware\MikroPascal\Library\Common\
+Path11=Z:\Firmware\MikroPascal\Library\Common\
+Path12=Z:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\
 [HEADER_PATH]
 Count=0
 [HEADERS]

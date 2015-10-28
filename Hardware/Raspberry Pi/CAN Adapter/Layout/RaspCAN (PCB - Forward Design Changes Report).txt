@@ -1,14 +1,14 @@
 Forward Design Changes Report
 -----------------------------
 
-Report File:        Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN (PCB - Forward Design Changes Report).txt
-Report Written:     Sunday, October 25, 2015
-Project Path:       Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.prj
-Design Path:        Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.pcb
+Report File:        Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN (PCB - Forward Design Changes Report).txt
+Report Written:     Monday, October 26, 2015
+Project Path:       Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.prj
+Design Path:        Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.pcb
 Design Title:       
 Created:            8/7/2015 8:30:42 PM
-Last Saved:         10/25/2015 9:40:40 PM
-Editing Time:       1052 min
+Last Saved:         10/26/2015 11:53:24 PM
+Editing Time:       1223 min
 Units:              mil (precision 0)
 
 Ignoring instance F3 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
@@ -16,8 +16,9 @@ Ignoring instance F1 ("Fiducial_S50") as it is defined for PCB only (no Schemati
 Ignoring instance F4 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
 Ignoring instance F2 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
 
-Added component reference "U6" of component "OnSemi NCP1117 12V", package "SM".
-Added component reference "U7" of component "OnSemi NCP1117 12V", package "SM".
+Connected pin "U3-28" to net "3.3V".
+Connected pin "R3-2" to net "3.3V".
+Connected pin "C4-2" to net "3.3V".
 
 
 End Of Report.
