@@ -2,18 +2,32 @@ Design Consistency Status Report
 --------------------------------
 
 Report File:        Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN (PCB - Design Consistency Status Report).txt
-Report Written:     Monday, October 26, 2015
+Report Written:     Thursday, October 29, 2015
 Project Path:       Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.prj
 Design Path:        Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.pcb
 Design Title:       
 Created:            8/7/2015 8:30:42 PM
-Last Saved:         10/26/2015 11:53:24 PM
-Editing Time:       1223 min
+Last Saved:         10/29/2015 10:05:42 PM
+Editing Time:       3789 min
 Units:              mil (precision 0)
 
 
 Checking integrity of Schematic and Pcb designs in project "RaspCAN"
 ====================================================================
+
+Ignoring instance F4 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
+Ignoring instance F1 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
+Ignoring instance F6 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
+Ignoring instance F3 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
+Ignoring instance F2 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
+Ignoring instance F5 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
+
+Rename from "Component "J4" [Raspberry Pi 2 B Header 2x20]" to "Component "J3" [Raspberry Pi 2 B Header 2x20]"
+Rename from "Component "R3" [56 ohm 5%]" to "Component "R4" [56 ohm 5%]"
+Rename from "Component "R4" [10k ohm 5%]" to "Component "R3" [10k ohm 5%]"
+Rename from "Component "C3" [10uF 25V X7R]" to "Component "C8" [10uF 25V X7R]"
+Rename from "Component "J9" [2x1 Header]" to "Component "J4" [2x1 Header]"
+Rename from "Component "C8" [12pF 50V NPO]" to "Component "C3" [12pF 50V NPO]"
 
 
 End Of Report.

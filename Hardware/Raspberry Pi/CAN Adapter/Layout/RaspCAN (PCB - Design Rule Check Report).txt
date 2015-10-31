@@ -1,22 +1,108 @@
 Design Rule Check Report
 ------------------------
 
-Report File:        W:\LccLib\Hardware\Raspberry Pi CAN\RaspCAN (PCB - Design Rule Check Report).txt
-Report Written:     Monday, August 10, 2015
-Project Path:       W:\LccLib\Hardware\Raspberry Pi CAN\RaspCAN.prj
-Design Path:        W:\LccLib\Hardware\Raspberry Pi CAN\RaspCAN.pcb
+Report File:        Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN (PCB - Design Rule Check Report).txt
+Report Written:     Thursday, October 29, 2015
+Project Path:       Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.prj
+Design Path:        Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.pcb
 Design Title:       
 Created:            8/7/2015 8:30:42 PM
-Last Saved:         8/10/2015 6:46:34 AM
-Editing Time:       719 min
+Last Saved:         10/29/2015 9:59:00 PM
+Editing Time:       3782 min
 Units:              mil (precision 0)
 
 
 Results
 =======
 
+Gap in Net "GND" between (2885,3088) and (3015,3100) 
+    GND.
+Gap in Net "GND" between (2830,3082) and (2638,3187) 
+    GND.
+Gap in Net "GND" between (2638,3187) and (2470,3135) 
+    GND.
+Gap in Net "GND" between (3015,3100) and (3125,2880) 
+    GND.
+Gap in Net "GND" between (2830,3082) and (2805,2778) 
+    GND.
+Gap in Net "GND" between (2805,2699) and (2650,2714) 
+    GND.
+Gap in Net "GND" between (2571,2716) and (2370,2635) 
+    GND.
+Gap in Net "GND" between (2370,2635) and (2370,2835) 
+    GND.
+Gap in Net "GND" between (2370,2635) and (2470,2435) 
+    GND.
+Gap in Net "GND" between (2470,2435) and (2659,2235) 
+    GND.
+Gap in Net "GND" between (2656,2160) and (2612,2036) 
+    GND.
+Gap in Net "GND" between (2659,2235) and (2753,2395) 
+    GND.
+Gap in Net "GND" between (2612,2036) and (2852,1995) 
+    GND.
+Gap in Net "GND" between (2927,2000) and (2976,1815) 
+    GND.
+Gap in Net "GND" between (2612,2036) and (2370,2135) 
+    GND.
+Gap in Net "GND" between (2370,2135) and (2370,1835) 
+    GND.
+Gap in Net "GND" between (2370,1835) and (2470,1635) 
+    GND.
+Gap in Net "GND" between (2470,1635) and (2370,1435) 
+    GND.
+Gap in Net "GND" between (2852,2395) and (3208,2295) 
+    GND.
+Gap in Net "GND" between (3290,2217) and (3523,2247) 
+    GND.
+Gap in Net "GND" between (3523,2247) and (3750,2349) 
+    GND.
+Gap in Net "GND" between (3750,2349) and (3935,2210) 
+    GND.
+Gap in Net "GND" between (3935,2210) and (4020,2054) 
+    GND.
+Gap in Net "GND" between (4020,2054) and (4221,1931) 
+    GND.
+Gap in Net "GND" between (4221,1931) and (4260,1810) 
+    GND.
+Gap in Net "GND" between (4221,1931) and (4310,2179) 
+    GND.
+Gap in Net "GND" between (4020,2054) and (3931,1806) 
+    GND.
+Gap in Net "GND" between (3931,1806) and (3900,1670) 
+    GND.
+Gap in Net "GND" between (3900,1670) and (3750,1749) 
+    GND.
+Gap in Net "GND" between (3900,1670) and (4065,1500) 
+    GND.
+Gap in Net "GND" between (4065,1500) and (4201,1528) 
+    GND.
+Gap in Net "GND" between (4070,1410) and (4201,1272) 
+    GND.
+Gap in Net "GND" between (4070,1410) and (3860,1303) 
+    GND.
+Gap in Net "GND" between (3750,2349) and (3524,2567) 
+    GND.
+Gap in Net "GND" between (3524,2567) and (3750,2749) 
+    GND.
+Gap in Net "GND" between (3750,2749) and (4141,2766) 
+    GND.
+Gap in Net "GND" between (4141,2766) and (4211,2726) 
+    GND.
+Gap in Net "GND" between (4141,2766) and (4211,2886) 
+    GND.
+Gap in Net "GND" between (3750,2749) and (3750,3149) 
+    GND.
+Gap in Net "GND" between (3750,3149) and (3520,3325) 
+    GND.
+Gap in Net "GND" between (3048,1812) and (3064,1320) 
+    GND.
+Gap in Net "GND" between (3060,1290) and (3064,1080) 
+    GND.
+Gap in Net "GND" between (3064,1080) and (3210,1025) 
+    GND.
 
-No errors found
+Number of errors found : 43
 
 
 Settings

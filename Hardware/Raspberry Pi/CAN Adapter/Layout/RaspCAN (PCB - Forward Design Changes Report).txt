@@ -2,23 +2,34 @@ Forward Design Changes Report
 -----------------------------
 
 Report File:        Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN (PCB - Forward Design Changes Report).txt
-Report Written:     Monday, October 26, 2015
+Report Written:     Thursday, October 29, 2015
 Project Path:       Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.prj
 Design Path:        Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.pcb
 Design Title:       
 Created:            8/7/2015 8:30:42 PM
-Last Saved:         10/26/2015 11:53:24 PM
-Editing Time:       1223 min
+Last Saved:         10/29/2015 10:05:42 PM
+Editing Time:       3789 min
 Units:              mil (precision 0)
 
-Ignoring instance F3 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
-Ignoring instance F1 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
 Ignoring instance F4 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
+Ignoring instance F1 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
+Ignoring instance F6 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
+Ignoring instance F3 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
 Ignoring instance F2 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
+Ignoring instance F5 ("Fiducial_S50") as it is defined for PCB only (no Schematic information).
 
-Connected pin "U3-28" to net "3.3V".
-Connected pin "R3-2" to net "3.3V".
-Connected pin "C4-2" to net "3.3V".
+Renamed component reference "J3" to "J3".
+
+Renamed component reference "R4" to "R4".
+
+Renamed component reference "R3" to "R3".
+
+Renamed component reference "C8" to "C8".
+
+Renamed component reference "J4" to "J4".
+
+Renamed component reference "C3" to "C3".
+
 
 
 End Of Report.

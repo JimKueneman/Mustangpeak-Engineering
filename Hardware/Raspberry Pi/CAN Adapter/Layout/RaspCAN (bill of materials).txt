@@ -1,28 +1,30 @@
 Component                     Package   Value               Manuf               Manuf Part No       Distrib             Distrib Part No     Ref Name         Qty
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
-2x1 Header                    DIL                                                                                                           J4                 1
-2x2 Header                    DIL                                                                                                           J6                 1
+1x16 Header                   DIL                           3M                                      Digikey             929400E-01-36-ND    J9                 1
+2x1 Header                    DIL                           Sullins Connector Solutions(90deg) PRPC040DBAN-M71RCDigikey             (90deg) S2111EC-40-NDJ4                 1
+2x2 Header                    DIL                           Sullins Connector Solutions(90deg) PRPC040DBAN-M71RCDigikey             (90deg) S2111EC-40-NDJ6                 1
 8Mhz Kyocera Crystal          SML                           AVX/Kyocera Corp    CX5032GB08000H0HPQZ1Digikey             1253-1373-1-ND      XTAL2              1
 10 ohm 5%                     SM1206                        Panasonic           ERJ-8GEYJ100V       Digikey             P10ECT-ND           R7 R5              2
 10k ohm 5%                    SM1206                        Panasonic           ERJ-8GEYJ103V       Digikey             P10KECT-ND          R1 R3              2
-10uF 25V X7R                  SM1206                        Taiyo Yuden         TMK316B7106KL-TD    Digikey             587-2399-1-ND       C1 C10 C3          9
-                                                                                                                                            C6 C2 C5            
-                                                                                                                                            C4 C12 C11          
-18pF 50V NPO                  SM1206                        Yayeo               CC1206JRNPO9BN180   Digikey             311-1152-1-ND       C8 C9              2
+10uF 25V X7R                  SM1206                        Taiyo Yuden         TMK316B7106KL-TD    Digikey             587-2399-1-ND       C1 C10 C6          9
+                                                                                                                                            C2 C5 C4            
+                                                                                                                                            C12 C11             
+                                                                                                                                            C13                 
+12pF 50V NPO                  SM1206                        Yayeo               CC1206JRNPO9BN120   Digikey             311-1213-1-ND       C3 C8              2
 56 ohm 5%                     SM1206                        Panasonic           ERJ-8GEYJ560V       Digikey             P56ECT-ND           R2 R4              2
 100nF 50V X7R                 SM1206                        TDK                 C3216X7R1H104K      Digikey             445-4007-1-ND       C7                 1
-C&K PTS645 6mm Tact Switch    DIL                                                                                                           J8                 1
+C&K PTS645 6mm Tact Switch    DIL                           C&K                 PTS645SK43SMTR92 LFSDigikey             CKN9084CT-ND        J8                 1
 dsPIC33EP32GP502              SM                            Microchip           DSPIC33EP32GP502-I/SODigikey             DSPIC33EP32GP502-I/SO-NDU3                 1
 FTDI UART Header 1x6          DIL                           3M                  929400-01-36-RK     Digikey             929400E-01-36-ND    J2                 1
 L7805 D2-Pak                  SMS4                          ST Microelectronics L7805ABD2T-TR       Digikey             497-1170-1-ND       U4                 1
-L7812 D2-Pak                  SMS4                          ST Microelectronics L7812ABD2T-TR       Digikey             497-6037-1-ND       U5                 1
 MCP2551                       SM                            Microchip           MCP2551-I/SN        Digikey             MCP2551-I/SN-ND     U2                 1
-OnSemi NCP1117 12V            SM                            OnSemi              NCP1117ST12T3G      Digikey             NCP1117ST12T3GOSCT-NDU6 U7              2
+OnSemi NCP1117 3.3V           SM                            OnSemi              NCP1117ST33T3G      Digikey             NCP1117ST33T3GOSCT-NDU5                 1
+OnSemi NCP1117 12V            SM                            OnSemi              NCP1117ST12T3G      Digikey             NCP1117ST12T3GOSCT-NDU7                 1
 PESD1CAN                      SM                            NXP Semiconductor   PESD1CAN,215        Digikey             568-4032-1-ND       U1                 1
 PicKit 3 Header 1x6           DIL                           3M                  929400-01-36-RK     Digikey             929400E-01-36-ND    J5                 1
 Power Jack 2.1mm x 5.5mm      SM                            CUI Inc             PJ-002AH-SMT        Digikey             CP-002AHPJCT-ND     J1                 1
 PTC 1000mA Trip-500mA Hold    SM1206                        Littelfuse Inc      1206L050/15YR       Digikey             F3733CT-ND          R6 R8              2
-Raspberry Pi 2 B Header 2x20  DIL                           3M                  929852-01-20-RB     Mouser              517-929852-01-20-RB J3                 1
+Raspberry Pi 2 B Header 2x20  DIL                           Harwin              M20-6102045         Digikey             952-2219-ND         J3                 1
 RJ45 Amphenol Plastic OpenLCB DIL                           Amphenol            RJHSE-5080          Digikey             RJHSE-5080-ND       J7                 1
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
                                                                                                                                                               36
