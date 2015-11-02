@@ -6,7 +6,7 @@ uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Layouts,
   FMX.Objects, System.UIConsts, FMX.Controls.Presentation, FMX.StdCtrls, FMX.Platform,
-  System.Generics.Collections, System.ImageList, FMX.ImgList;
+  System.Generics.Collections, System.ImageList, FMX.ImgList, FMX.Gestures;
 
 type
   TTrackSegment = class(TRectangle)
@@ -46,6 +46,7 @@ type
     Button2: TButton;
     Button3: TButton;
     Button4: TButton;
+    GestureManager: TGestureManager;
     procedure FormCreate(Sender: TObject);
     procedure ScrollBoxPanelDragDrop(Sender: TObject; const Data: TDragObject; const Point: TPointF);
     procedure ScrollBoxPanelDragEnter(Sender: TObject; const Data: TDragObject; const Point: TPointF);
@@ -207,6 +208,10 @@ begin
   RectangleDragSelect.Parent := nil;
   TPlatformServices.Current.SupportsPlatformService(IFMXScreenService, ScreenService);
   TPlatformServices.Current.SupportsPlatformService(IFMXWindowService, WindowService);
+
+ // ScrollBoxPanel.AniCalculations.Animation := False;
+  ScrollBoxPanel.AniCalculations.BoundsAnimation := False;
+ // ScrollBoxPanel.AniCalculations.TouchTracking := [];
 end;
 
 procedure TFormLayoutBuilder.FormDestroy(Sender: TObject);

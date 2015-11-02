@@ -13,13 +13,14 @@ object FormLayoutBuilder: TFormLayoutBuilder
   DesignerMasterStyle = 0
   object LayoutBkgnd: TLayout
     Align = Client
+    EnableDragHighlight = False
     Size.Width = 650.000000000000000000
     Size.Height = 393.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 0
     object ScrollBoxPanel: TScrollBox
+      Touch.GestureManager = GestureManager
       Anchors = [akLeft, akTop, akRight, akBottom]
-      Locked = True
       Position.X = 8.000000000000000000
       Position.Y = 48.000000000000000000
       Size.Width = 633.000000000000000000
@@ -54,32 +55,50 @@ object FormLayoutBuilder: TFormLayoutBuilder
         Size.PlatformDefault = False
         Stroke.Color = claBlue
         Stroke.Thickness = 2.000000000000000000
+        XRadius = 5.000000000000000000
+        YRadius = 5.000000000000000000
       end
     end
     object Button2: TButton
-      Position.X = 224.000000000000000000
+      EnableDragHighlight = False
+      Position.X = 64.000000000000000000
       Position.Y = 16.000000000000000000
+      Size.Width = 50.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
       TabOrder = 4
       Text = 'Button1'
       OnClick = Button2Click
     end
     object Button3: TButton
-      Position.X = 312.000000000000000000
+      EnableDragHighlight = False
+      Position.X = 120.000000000000000000
       Position.Y = 16.000000000000000000
+      Size.Width = 50.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
       TabOrder = 3
       Text = 'Button1'
       OnClick = Button3Click
     end
     object Button4: TButton
-      Position.X = 512.000000000000000000
+      EnableDragHighlight = False
+      Position.X = 200.000000000000000000
       Position.Y = 16.000000000000000000
+      Size.Width = 50.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
       TabOrder = 5
       Text = 'Button4'
       OnClick = Button4Click
     end
     object Button1: TButton
-      Position.X = 128.000000000000000000
+      EnableDragHighlight = False
+      Position.X = 8.000000000000000000
       Position.Y = 16.000000000000000000
+      Size.Width = 50.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
       TabOrder = 6
       Text = 'Button1'
       OnClick = Button1Click
@@ -207,5 +226,10 @@ object FormLayoutBuilder: TFormLayoutBuilder
       end>
     Left = 360
     Top = 88
+  end
+  object GestureManager: TGestureManager
+    Sensitivity = 80.000000000000000000
+    Left = 312
+    Top = 192
   end
 end
