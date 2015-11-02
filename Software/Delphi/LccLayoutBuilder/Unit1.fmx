@@ -1,0 +1,211 @@
+object FormLayoutBuilder: TFormLayoutBuilder
+  Left = 0
+  Top = 0
+  Caption = 'Lcc Layout Builder 0.1'
+  ClientHeight = 415
+  ClientWidth = 650
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  OnCloseQuery = FormCloseQuery
+  OnDestroy = FormDestroy
+  DesignerMasterStyle = 0
+  object LayoutBkgnd: TLayout
+    Align = Client
+    Size.Width = 650.000000000000000000
+    Size.Height = 393.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object ScrollBoxPanel: TScrollBox
+      Anchors = [akLeft, akTop, akRight, akBottom]
+      Locked = True
+      Position.X = 8.000000000000000000
+      Position.Y = 48.000000000000000000
+      Size.Width = 633.000000000000000000
+      Size.Height = 297.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      OnDragEnter = ScrollBoxPanelDragEnter
+      OnDragOver = ScrollBoxPanelDragOver
+      OnDragDrop = ScrollBoxPanelDragDrop
+      OnMouseDown = ScrollBoxPanelMouseDown
+      OnMouseMove = ScrollBoxPanelMouseMove
+      OnMouseUp = ScrollBoxPanelMouseUp
+      Viewport.Width = 633.000000000000000000
+      Viewport.Height = 297.000000000000000000
+      object RectangleDragSelect: TRectangle
+        Fill.Kind = Gradient
+        Fill.Gradient.Points = <
+          item
+            Color = claMediumblue
+            Offset = 0.000000000000000000
+          end
+          item
+            Color = claWhite
+            Offset = 1.000000000000000000
+          end>
+        HitTest = False
+        Opacity = 0.200000002980232200
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 73.000000000000000000
+        Size.Height = 73.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Color = claBlue
+        Stroke.Thickness = 2.000000000000000000
+      end
+    end
+    object Button2: TButton
+      Position.X = 224.000000000000000000
+      Position.Y = 16.000000000000000000
+      TabOrder = 4
+      Text = 'Button1'
+      OnClick = Button2Click
+    end
+    object Button3: TButton
+      Position.X = 312.000000000000000000
+      Position.Y = 16.000000000000000000
+      TabOrder = 3
+      Text = 'Button1'
+      OnClick = Button3Click
+    end
+    object Button4: TButton
+      Position.X = 512.000000000000000000
+      Position.Y = 16.000000000000000000
+      TabOrder = 5
+      Text = 'Button4'
+      OnClick = Button4Click
+    end
+    object Button1: TButton
+      Position.X = 128.000000000000000000
+      Position.Y = 16.000000000000000000
+      TabOrder = 6
+      Text = 'Button1'
+      OnClick = Button1Click
+    end
+  end
+  object StatusBar: TStatusBar
+    Position.Y = 393.000000000000000000
+    ShowSizeGrip = True
+    Size.Width = 650.000000000000000000
+    Size.Height = 22.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    object TextStatusMousePos: TText
+      Align = Left
+      Size.Width = 209.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Mouse Pos:'
+      TextSettings.WordWrap = False
+      TextSettings.HorzAlign = Leading
+    end
+    object LabelStatusSelection: TLabel
+      Align = Left
+      Position.X = 209.000000000000000000
+      Size.Width = 192.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Selected:'
+    end
+  end
+  object ImageList: TImageList
+    Source = <
+      item
+        MultiResBitmap.Height = 32
+        MultiResBitmap.Width = 39
+        MultiResBitmap.LoadSize = 2
+        MultiResBitmap = <
+          item
+            Width = 39
+            Height = 32
+            PNG = {
+              89504E470D0A1A0A0000000D494844520000002700000020080600000091A661
+              8D000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              00C1494441545847ED97D10A80200C45ADFFFFE7CA68304259DBEEC6A27C128C
+              793A5ED35A2BDC96836DBBF87ABF4A3B99D62A34230E6EAE1CE76BCCFD99D364
+              07698B763D9FDF55BF7CE634A667CF726B2E5B7C02B4391818EA233CCA1A6235
+              A02704D41AC25C9835041C2D1FDC9A172ED49A172ED49A072EDC9A072EDC9A15
+              2EC59A152EC59A052ECD9A052ECD9A162ED59A162ED51AC175239215691C720B
+              B917D1DEE742CED0D99B69FF5B53E134E652C1C8E693CC85644A2AAA3127D5FA
+              D6F80EB4931430251B900D0000000049454E44AE426082}
+            FileName = 
+              'C:\Program Files\JMRI\resources\icons\track\line\LeftTO\os-lefth' +
+              'and-west-closed-black.gif'
+          end>
+        Name = 'os-lefthand-west-closed-black'
+      end
+      item
+        MultiResBitmap.Height = 32
+        MultiResBitmap.Width = 39
+        MultiResBitmap.LoadSize = 2
+        MultiResBitmap = <
+          item
+            Width = 39
+            Height = 32
+            PNG = {
+              89504E470D0A1A0A0000000D494844520000002700000020080600000091A661
+              8D000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              00BE494441545847ED97DD0A80200C46ADF77FE7CA485824E8B66F3F425E054E
+              3D9E3698A5241EDBC5763C7CF53BCBB899F62C343D0E6A2E1DE732E6FE9CE3E4
+              0EC256AB767A2E62DFFCD5CA313D8AA516D5F6D0D5AA06A2B747C3D1BD7BB938
+              32FF9AB78083D9B38083D9B38283D8B38283D8B38453DBB38453DBB38653D9B3
+              8653D9F38013DBF38013DBF38213D9F38213D9F38463DB632F60B515DFE0D97E
+              2FE4DDCA92C10A565A6BCBA7FBBC08B80A3905180537FA09213937825A67FE04
+              6E0E132F36C15F080000000049454E44AE426082}
+            FileName = 
+              'C:\Program Files\JMRI\resources\icons\track\line\RightTO\os-righ' +
+              'thand-east-closed-black.gif'
+          end>
+        Name = 'os-righthand-east-closed-black'
+      end
+      item
+        MultiResBitmap.Height = 8
+        MultiResBitmap.Width = 39
+        MultiResBitmap.LoadSize = 2
+        MultiResBitmap = <
+          item
+            Width = 39
+            Height = 8
+            PNG = {
+              89504E470D0A1A0A0000000D49484452000000270000000808060000007A59E6
+              D6000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              003049444154384F636018C48011E8B6FF50F781D8830580DDC434585C83CD1D
+              C82137E8DC3964426E34CD0DBAB443AE83002E9605074930CFBB000000004945
+              4E44AE426082}
+            FileName = 
+              'C:\Program Files\JMRI\resources\icons\track\line\TrackSeg\block-' +
+              'black.gif'
+          end>
+        Name = 'block-black'
+      end>
+    Destination = <
+      item
+        Layers = <
+          item
+            Name = 'os-lefthand-west-closed-black'
+            SourceRect.Right = 39.000000000000000000
+            SourceRect.Bottom = 32.000000000000000000
+          end>
+      end
+      item
+        Layers = <
+          item
+            Name = 'os-righthand-east-closed-black'
+            SourceRect.Right = 39.000000000000000000
+            SourceRect.Bottom = 32.000000000000000000
+          end>
+      end
+      item
+        Layers = <
+          item
+            Name = 'block-black'
+            SourceRect.Right = 39.000000000000000000
+            SourceRect.Bottom = 8.000000000000000000
+          end>
+      end>
+    Left = 360
+    Top = 88
+  end
+end
