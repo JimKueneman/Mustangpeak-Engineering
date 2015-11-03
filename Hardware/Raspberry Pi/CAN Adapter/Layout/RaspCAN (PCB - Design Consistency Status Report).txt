@@ -2,13 +2,13 @@ Design Consistency Status Report
 --------------------------------
 
 Report File:        Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN (PCB - Design Consistency Status Report).txt
-Report Written:     Monday, November 02, 2015
+Report Written:     Tuesday, November 03, 2015
 Project Path:       Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.prj
 Design Path:        Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.pcb
 Design Title:       
 Created:            8/7/2015 8:30:42 PM
-Last Saved:         11/2/2015 10:30:08 PM
-Editing Time:       3967 min
+Last Saved:         11/3/2015 12:37:17 AM
+Editing Time:       4022 min
 Units:              mil (precision 0)
 
 

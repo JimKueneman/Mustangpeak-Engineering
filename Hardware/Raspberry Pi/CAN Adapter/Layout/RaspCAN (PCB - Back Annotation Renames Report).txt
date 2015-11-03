@@ -1,41 +1,56 @@
 Back Annotation Renames Report
 ------------------------------
 
-Report File:        Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN (PCB - Back Annotation Renames Report).txt
-Report Written:     Thursday, October 29, 2015
-Project Path:       Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.prj
-Design Path:        Z:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.pcb
+Report File:        Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN (PCB - Back Annotation Renames Report).txt
+Report Written:     Tuesday, November 03, 2015
+Project Path:       Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.prj
+Design Path:        Y:\Hardware\Raspberry Pi\CAN Adapter\Layout\RaspCAN.pcb
 Design Title:       
 Created:            8/7/2015 8:30:42 PM
-Last Saved:         10/29/2015 9:59:16 PM
-Editing Time:       3785 min
+Last Saved:         11/3/2015 12:35:06 AM
+Editing Time:       4021 min
 Units:              mil (precision 0)
 
 Outstanding PCB renames awaiting back annotation to the Schematics design.
 
-Rename Component from "F5" to "F2".
-Rename Component from "F2" to "F3".
-Rename Component from "F3" to "F4".
-Rename Component from "F6" to "F5".
-Rename Component from "F4" to "F6".
-Rename Component from "R4" to "R3".
-Rename Component from "R3" to "R4".
-Rename Component from "R6" to "R5".
-Rename Component from "R5" to "R6".
-Rename Component from "C4" to "C3".
-Rename Component from "C7" to "C4".
-Rename Component from "C8" to "C7".
-Rename Component from "C3" to "C8".
-Rename Component from "C11" to "C9".
-Rename Component from "C13" to "C10".
-Rename Component from "C10" to "C11".
-Rename Component from "J2" to "J1".
-Rename Component from "J6" to "J2".
-Rename Component from "J1" to "J3".
-Rename Component from "J3" to "J4".
-Rename Component from "J9" to "J6".
-Rename Component from "J4" to "J9".
-Rename Component from "U7" to "U6".
-Rename Component from "XTAL2" to "XTAL1".
+Change Value on Component 'C12' - 'RefDes'.
+Change Value on Component 'C12' - 'RefDes'.
+Change Value on Component 'R6' - 'RefDes'.
+Change Value on Component 'R7' - 'RefDes'.
+Change Value on Component 'J7' - 'RefDes'.
+Change Value on Component 'J7' - 'Distributor Part Number'.
+Change Value on Component 'J7' - 'Distributor Part Number'.
+Change Value on Component 'U6' - 'RefDes'.
+Change Value on Component 'C9' - 'RefDes'.
+Change Value on Component 'R8' - 'RefDes'.
+Change Value on Component 'J3' - 'RefDes'.
+Change Value on Component 'J4' - 'RefDes'.
+Change Value on Component 'C11' - 'RefDes'.
+Change Value on Component 'J8' - 'RefDes'.
+Change Value on Component 'U4' - 'RefDes'.
+Change Value on Component 'C10' - 'RefDes'.
+Change Value on Component 'R5' - 'RefDes'.
+Change Value on Component 'C6' - 'RefDes'.
+Change Value on Component 'U5' - 'REfDes'.
+Change Value on Component 'J1' - 'RefDes'.
+Change Value on Component 'C8' - 'RefDes'.
+Change Value on Component 'U3' - 'RefDes'.
+Change Value on Component 'R3' - 'RefDes'.
+Change Value on Component 'XTAL1' - 'RefDes'.
+Change Value on Component 'C7' - 'RefDes'.
+Change Value on Component 'C3' - 'RefDes'.
+Change Value on Component 'J6' - 'RefDes'.
+Change Value on Component 'C5' - 'RefDes'.
+Change Value on Component 'C2' - 'RefDes'.
+Change Value on Component 'C1' - 'RefDes'.
+Change Value on Component 'U2' - 'RefDes'.
+Change Value on Component 'R1' - 'RefDes'.
+Change Value on Component 'J2' - 'RefDes'.
+Change Value on Component 'U1' - 'RefDes'.
+Change Value on Component 'C4' - 'RefDes'.
+Change Value on Component 'R4' - 'RefDes'.
+Change Value on Component 'R2' - 'RefDes'.
+Change Value on Component 'J5' - 'RefDes'.
+Change Value on Component 'J3' - 'RefDes'.
 
 End Of Report.
