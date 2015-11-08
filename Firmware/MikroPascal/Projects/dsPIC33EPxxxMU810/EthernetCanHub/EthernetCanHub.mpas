@@ -137,8 +137,8 @@ begin
 
   if BarelyInSync and SpiOutBuffer.Valid then
   begin
-    if PPST0_bit = 0 {PingPongASelected(DMACHANNEL_1)} then
-    begin    
+    if PPST1_bit = 0 then     THIS WAS LOOKING AT 0..... likely broke everything...
+    begin
       LATB3_bit := 1;                                                                  // A is selected when the first byte is moved to the DMA RAM so it is also the buffer that we must access to receive that data after the last byte is received
       for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // Copy the GridConnectString into the SPI Tx DMA
         Spi_TxBRawBufferArray[i] := SpiOutBuffer.GridConnectStr[i];
@@ -153,7 +153,7 @@ begin
     SpiOutBuffer.Valid := False;
   end else
   begin
-    if PPST0_bit = 0 {PingPongASelected(DMACHANNEL_1)} then
+    if PPST1_bit = 0 then
     begin                                                                       // A is selected when the first byte is moved to the DMA RAM so it is also the buffer that we must access to receive that data after the last byte is received
       for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // Copy the GridConnectString into the SPI Tx DMA
         Spi_TxBRawBufferArray[i] := 0;
