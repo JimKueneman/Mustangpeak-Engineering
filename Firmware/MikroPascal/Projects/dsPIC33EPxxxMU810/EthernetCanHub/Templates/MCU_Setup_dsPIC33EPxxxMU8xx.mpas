@@ -194,7 +194,7 @@ begin
   // DMAnREQ
   DMA1REQ := IRQ_SPI2_DONE;
 
-  DMA1CNT := MAX_SPI_BUFFER-1;   // DMAxCNT + 1 = number of bytes on DMA transfer = 16
+  DMA1CNT := MAX_SPI_BUFFER-1;   // DMAxCNT + 1 = number of bytes on DMA transfer
   Address := LongInt(@Spi_TxARawBufferArray[0]);
  // DMA1STAH := Higher(Address);
   DMA1STAL := (Hi(Address) shl 8) or Lo(Address);

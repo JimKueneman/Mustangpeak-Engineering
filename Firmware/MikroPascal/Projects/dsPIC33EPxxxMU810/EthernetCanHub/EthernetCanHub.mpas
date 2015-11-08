@@ -17,7 +17,7 @@ program EthernetCanHub;
 //
 // *****************************************************************************
 
-{$DEFINE ENABLE_UART_INTERFACE}
+{.$DEFINE ENABLE_UART_INTERFACE}
 
 const
   DMACHANNEL_1 = 1;
@@ -30,7 +30,7 @@ type
   end;
   
 var
-  BarelyInSync, HaveSeenAHighCS: Boolean;    //  THIS WILL NOT WORK IF THE RASPBERRY PI IS REBOOTED!!!!
+  InSync, HaveSeenLoCS: Boolean;
   SpiOutBuffer: TSpiOutBuffer;
   InvalidSpiReceives: DWord;
   
@@ -94,7 +94,7 @@ var
 begin
   DMA0IF_bit := 0;
 
-  if BarelyInSync then
+  if InSync then
   begin
     if PingPongASelected(DMACHANNEL_0) then
     begin
@@ -132,28 +132,21 @@ var
 begin
   DMA1IF_bit := 0;
   
-    LATB1_bit := PPST0_bit;
-    LATB2_bit := PPST1_bit;
-
-  if BarelyInSync and SpiOutBuffer.Valid then
+  if InSync and SpiOutBuffer.Valid then
   begin
-    if PPST1_bit = 0 then     THIS WAS LOOKING AT 0..... likely broke everything...
-    begin
-      LATB3_bit := 1;                                                                  // A is selected when the first byte is moved to the DMA RAM so it is also the buffer that we must access to receive that data after the last byte is received
-      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // Copy the GridConnectString into the SPI Tx DMA
+    if PingPongASelected(DMACHANNEL_0) then                                     // This flag can transition DURING the call to the DMA interrupt depending on timing of the SPI clock on DMACHANNEL_1 (TX)
+    begin                                                                       // The DMA0/DMA1 interrupts are not predictable on which will fire first (equal priority) depending on who fires first will shift the interrupt to the place where the flag toggles during it
+      for i := 0 to MAX_GRID_CONNECT_LEN-1 do
         Spi_TxBRawBufferArray[i] := SpiOutBuffer.GridConnectStr[i];
-      LATB3_bit := 0;
     end else
     begin
-      LATB4_bit := 1;
       for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // B is selected when the first byte is moved to the DMA RAM so it is also the buffer that we must access to receive that data after the last byte is received
         Spi_TxARawBufferArray[i] := SpiOutBuffer.GridConnectStr[i];             // Copy the GridConnectString into the SPI Tx DMA
-      LATB4_bit := 0;
     end;
     SpiOutBuffer.Valid := False;
   end else
   begin
-    if PPST1_bit = 0 then
+    if PingPongASelected(DMACHANNEL_0) then
     begin                                                                       // A is selected when the first byte is moved to the DMA RAM so it is also the buffer that we must access to receive that data after the last byte is received
       for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // Copy the GridConnectString into the SPI Tx DMA
         Spi_TxBRawBufferArray[i] := 0;
@@ -178,26 +171,21 @@ var
 begin
   CNIF_bit := 0;
   PortGCopy := PORTG;    // Clear all changes
-  
- { if PortGCopy.B9 = 1 then
-    EnableSpi(False)
-  else
-    EnableSpi(True);   }
-
-  if not BarelyInSync then
+  // CAN NOT reset the DMA modules on a CS (SS) change as the Tx machine is placing
+  // data in the FUTURE buffers, if we reset then that could get out of sync
+  // can we reset just the DMA counters and not reset the module - NOPE
+  if not InSync then
   begin
-    if PortGCopy.B9 = 1 then
-      HaveSeenAHighCS := True
+    if PortGCopy.B9 = 0 then
+      HaveSeenLoCS := True
     else begin
-      if HaveSeenAHighCS then
+      if HaveSeenLoCS then
       begin
-        if PortGCopy.B9 =  0 then
+        if PortGCopy.B9 =  1 then     // Enable it during the rest side if CS (SS)
         begin
-          BarelyInSync := True;
-          EnableSpi(True);
-          
+          InSync := True;
+          EnableSpi(True);  
           UART_Write_Text('Sync' + LF);
-          
         end;
       end
     end
@@ -214,8 +202,8 @@ begin
   { Main program }
   SpiOutBuffer.Valid := False;
   InvalidSpiReceives := 0;
-  BarelyInSync := False;
-  HaveSeenAHighCS := False;
+  InSync := False;
+  HaveSeenLoCS := False;
   MCU_Setup_Initialize;
   CanBufferOut_Initialize;
   CanBufferIn_Initialize;
@@ -223,7 +211,7 @@ begin
   MCU_Enable_UART;
   MCU_Enable_SPI;
 
-  EnableSpi(True);  // Use the Chip Select via the Pin B6 Change Notification interrupt
+  EnableSpi(False);  // Use the Chip Select via the Pin B6 Change Notification interrupt
   MCU_Enable_PinChangeNotification;
   
   TON_T1CON_bit := 1;       // Turn on 500ms timer
@@ -279,10 +267,6 @@ begin
     end;
     DMA1IE_bit := 1;
     DMA2IE_bit := 1;
-
-    LATB1_bit := PPST0_bit;
-    LATB2_bit := PPST1_bit;
-
 
     {$IFDEF ENABLE_UART_INTERFACE}
     if UART1_Data_Ready then
