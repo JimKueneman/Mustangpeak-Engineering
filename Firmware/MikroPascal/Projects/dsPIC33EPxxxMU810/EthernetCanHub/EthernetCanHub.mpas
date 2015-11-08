@@ -18,6 +18,10 @@ program EthernetCanHub;
 // *****************************************************************************
 
 {$DEFINE ENABLE_UART_INTERFACE}
+
+const
+  DMACHANNEL_1 = 1;
+  DMACHANNEL_0 = 0;
   
 type
   TSpiOutBuffer = record
@@ -89,16 +93,16 @@ var
   i: Integer;
 begin
   DMA0IF_bit := 0;
-  
+
   if BarelyInSync then
   begin
-    if PingPongASelected(0) then
+    if PingPongASelected(DMACHANNEL_0) then
     begin
-      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // A is selected so B is ready
+      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // A is selected as this message is coming in, the instant this interrupt is entered the module switches to the B to prepare for the next message
         GridConnectStr[i] := Spi_RxBRawBufferArray[i];
     end else
     begin
-      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // B is selected so A is ready
+      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // B is selected as this message is coming in, the instant this interrupt is entered the module switches to the A to prepare for the next message
         GridConnectStr[i] := Spi_RxARawBufferArray[i];
     end;
 
@@ -110,7 +114,10 @@ begin
     end else
     begin
       if GridConnectStr[0] <> '' then
+      begin
         Inc(InvalidSpiReceives);
+        UART1_Write_Text(GridConnectStr + LF);
+      end;
     end;
   end;
 end;
@@ -121,32 +128,40 @@ end;
 procedure interrupt_DMA1_SPI_Transmit(); iv IVT_ADDR_DMA1INTERRUPT;
 var
   i: Integer;
+  A_Selected: Boolean;
 begin
   DMA1IF_bit := 0;
+  
+    LATB1_bit := PPST0_bit;
+    LATB2_bit := PPST1_bit;
 
   if BarelyInSync and SpiOutBuffer.Valid then
   begin
-    if PingPongASelected(1) then
-    begin                                                                       // A is selected so B is Free
+    if PPST0_bit = 0 {PingPongASelected(DMACHANNEL_1)} then
+    begin    
+      LATB3_bit := 1;                                                                  // A is selected when the first byte is moved to the DMA RAM so it is also the buffer that we must access to receive that data after the last byte is received
       for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // Copy the GridConnectString into the SPI Tx DMA
-        Spi_TxBRawBufferArray[i] := SpiOutBuffer.GridConnectStr[i]
+        Spi_TxBRawBufferArray[i] := SpiOutBuffer.GridConnectStr[i];
+      LATB3_bit := 0;
     end else
     begin
-      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // If B is Selected so A is Free
+      LATB4_bit := 1;
+      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // B is selected when the first byte is moved to the DMA RAM so it is also the buffer that we must access to receive that data after the last byte is received
         Spi_TxARawBufferArray[i] := SpiOutBuffer.GridConnectStr[i];             // Copy the GridConnectString into the SPI Tx DMA
+      LATB4_bit := 0;
     end;
     SpiOutBuffer.Valid := False;
   end else
   begin
-    if PingPongASelected(1) then        // A is selected so B is ready
-    begin
-      for i := 0 to MAX_SPI_BUFFER - 1 do
+    if PPST0_bit = 0 {PingPongASelected(DMACHANNEL_1)} then
+    begin                                                                       // A is selected when the first byte is moved to the DMA RAM so it is also the buffer that we must access to receive that data after the last byte is received
+      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // Copy the GridConnectString into the SPI Tx DMA
         Spi_TxBRawBufferArray[i] := 0;
     end else
     begin
-      for i := 0 to MAX_SPI_BUFFER - 1 do
-        Spi_TxARawBufferArray[i] := 0;
-    end
+      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // B is selected when the first byte is moved to the DMA RAM so it is also the buffer that we must access to receive that data after the last byte is received
+        Spi_TxARawBufferArray[i] := 0;                                          // Copy the GridConnectString into the SPI Tx DMA
+    end;
   end;
 end;
 
@@ -163,6 +178,12 @@ var
 begin
   CNIF_bit := 0;
   PortGCopy := PORTG;    // Clear all changes
+  
+ { if PortGCopy.B9 = 1 then
+    EnableSpi(False)
+  else
+    EnableSpi(True);   }
+
   if not BarelyInSync then
   begin
     if PortGCopy.B9 = 1 then
@@ -211,6 +232,8 @@ begin
   MCU_Enable_CAN;
 
   TRISB1_bit := 0;
+  TRISB2_bit := 0;
+  TRISB3_bit := 0;
   TRISB4_bit := 0;
 
   UART1_Write_Text('Booting'+LF);
@@ -234,8 +257,7 @@ begin
   begin
     if not CAN_IsTransmitRequested(0) then
     begin
-      while DMA0IE_bit = 1 do    // Disable incoming SPI interrupts till we are done with the buffer to CAN out
-        DMA0IE_bit := 0;
+      while DMA0IE_bit = 1 do DMA0IE_bit := 0;   // Disable incoming SPI interrupts till we are done with the buffer to CAN out
       if CanBufferOut_NextFull(LocalOpenLcbBuffer) then
       begin
         DMA0IE_bit := 1;  // Reinable incoming SPI interrupts
@@ -245,18 +267,22 @@ begin
     end;
     
     
-    while DMA2IE_bit = 1 do      // Disable the incoming CAN interrupts till we are done with the buffer for CAN in
-      DMA2IE_bit := 0;
+    while DMA2IE_bit = 1 do DMA2IE_bit := 0;     // Disable the incoming CAN interrupts till we are done with the buffer for CAN in
+    while DMA1IE_bit = 1 do DMA1IE_bit := 0;     // Disable the outgoing SPI interrupts till we are done with the buffer for Spi Out in
     if SpiOutBuffer.Valid = False then   // Is the out buffer empty?
     begin
       if CanBufferIn_NextFull(LocalOpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
       begin
-        DMA1IE_bit := 1;                                                        // _NextFull copies the structure so the buffer is now okay to use in the interrupt
         GridConnect_BufferToGridConnect(LocalOpenLcbBuffer, @SpiOutBuffer.GridConnectStr);  // convert it to grid connect string and place it in the Spi outgoing buffer
         SpiOutBuffer.Valid := True;
       end;
     end;
+    DMA1IE_bit := 1;
     DMA2IE_bit := 1;
+
+    LATB1_bit := PPST0_bit;
+    LATB2_bit := PPST1_bit;
+
 
     {$IFDEF ENABLE_UART_INTERFACE}
     if UART1_Data_Ready then
