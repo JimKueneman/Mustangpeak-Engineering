@@ -1,5 +1,5 @@
 [DEVICE]
-Name=P33EP64GP502
+Name=P33EP256GP502
 Clock=140000000
 [MEMORY_MODEL]
 Value=-1
@@ -31,12 +31,13 @@ Count=0
 Count=0
 ActiveImageIndex=-1
 [OPENED_FILES]
-Count=5
+Count=6
 File0=EthernetCanHub.mpas
 File1=CanBufferIn.mpas
 File2=HelperCAN.mpas
 File3=HelperGridConnect.mpas
 File4=CanBufferOut.mpas
+File5=Templates\MCU_Setup_dsPIC33EPxxxGP502.mpas
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]
@@ -45,12 +46,12 @@ Count=0
 Count=1
 File0=Templates\Options.inc
 [SEARCH_PATH]
-Count=13
-Path0=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
-Path1=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
-Path2=Z:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\
-Path11=Z:\Firmware\MikroPascal\Library\Common\
-Path12=Z:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\
+Count=5
+Path0=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
+Path1=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
+Path2=Y:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\
+Path3=Y:\Firmware\MikroPascal\Library\Common\
+Path4=Y:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\
 [HEADER_PATH]
 Count=0
 [HEADERS]

@@ -15,27 +15,29 @@ const
   MAX_ECAN_BUFFER = 4;
   MAX_ECAN_RECEIVE_BUFFER = 1;
   MAX_ECAN_TRANSMIT_BUFFER = 3;
-  MAX_SPI_BUFFER = 30;              // Grid Connect = 29 + 1 because the return packet is one byte behind and I need the extra byte in transmit to receive the return byte (back to the master Pi)
+  MAX_SPI_GRIDCONNECT_CHAR_COUNT = 30;         // Grid Connect = 29 + 1 because the return packet is one byte behind and I need the extra byte in transmit to receive the return byte (back to the master Pi)
+  MAX_RAWBUFFER_MESSAGES = 8;
+  MAX_RAWBUFFER_BYTES = MAX_SPI_GRIDCONNECT_CHAR_COUNT * MAX_RAWBUFFER_MESSAGES;
 
   CAN_DMA_DATA_OFFSET = $1000;                // This is the start of the X-Data area.  Some of the dsPIC33s require DMA RAM to be
-  SPI_TX_DMA_A_DATA_OFFSET = CAN_DMA_DATA_OFFSET + (SizeOf(TCANRawBuffer) * MAX_ECAN_BUFFER);
-  SPI_TX_DMA_B_DATA_OFFSET = SPI_TX_DMA_A_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
-  SPI_RX_DMA_A_DATA_OFFSET = SPI_TX_DMA_B_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
-  SPI_RX_DMA_B_DATA_OFFSET = SPI_RX_DMA_A_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
+  SPI_RX_DMA_A_DATA_OFFSET = CAN_DMA_DATA_OFFSET + (SizeOf(TCANRawBuffer) * MAX_ECAN_BUFFER);
+  SPI_RX_DMA_B_DATA_OFFSET = SPI_RX_DMA_A_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_GRIDCONNECT_CHAR_COUNT);
+  SPI_TX_DMA_A_DATA_OFFSET = SPI_RX_DMA_B_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_GRIDCONNECT_CHAR_COUNT);
+
   LF = #13+#10;
 
 type
-  TCan_RawBufferArray = array[0..MAX_ECAN_BUFFER-1] of TCANRawBuffer;
+  TCan_RawBufferArray = array[MAX_ECAN_BUFFER] of TCANRawBuffer;
   PCan_RawBufferArray = ^TCan_RawBufferArray;
-  TSpi_RawBufferArray = array[MAX_SPI_BUFFER] of Byte;
+  TSpi_RawBufferArray = array[MAX_SPI_GRIDCONNECT_CHAR_COUNT] of Byte;
+  TSpi_RawTxBufferArray = array[MAX_RAWBUFFER_BYTES] of Byte;
 
 
 var
-  Can_RawBufferArray: TCan_RawBufferArray; far; dma; absolute CAN_DMA_DATA_OFFSET;   // Transmit buffer for all filters.  The software pulls the data to the right list
-  Spi_TxARawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_TX_DMA_A_DATA_OFFSET;
-  Spi_TxBRawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_TX_DMA_B_DATA_OFFSET;
-  Spi_RxARawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_RX_DMA_A_DATA_OFFSET;
-  Spi_RxBRawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_RX_DMA_B_DATA_OFFSET;
+  Can_RawBufferArray: TCan_RawBufferArray; {far; dma;} absolute CAN_DMA_DATA_OFFSET;   // Transmit buffer for all filters.  The software pulls the data to the right list
+  Spi_TxARawBufferArray: TSpi_RawTxBufferArray; {far; dma;} absolute SPI_TX_DMA_A_DATA_OFFSET;
+  Spi_RxARawBufferArray: TSpi_RawBufferArray; {far; dma;} absolute SPI_RX_DMA_A_DATA_OFFSET;
+  Spi_RxBRawBufferArray: TSpi_RawBufferArray; {far; dma;} absolute SPI_RX_DMA_B_DATA_OFFSET;
 
   procedure MCU_Setup_Initialize;
   procedure MCU_Enable_CAN;
@@ -63,10 +65,9 @@ procedure ZeroSpiBuffers;
 var
   i: Integer;
 begin
-  for i := 0 to MAX_SPI_BUFFER - 1 do
+  for i := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
   begin
     Spi_TxARawBufferArray[i] := 0;
-    Spi_TxBRawBufferArray[i] := 0;
     Spi_RxARawBufferArray[i] := 0;
     Spi_RxBRawBufferArray[i] := 0;
   end;
@@ -87,14 +88,6 @@ begin
   TON_T2CON_bit := 1;       // Turn on 100ms Timer
 end;
 
-procedure MCU_EnableUARTA;
-begin
-  PPS_Mapping(100, _INPUT, _U1RX);          // Set RPI100 to the UART Receive
-  PPS_Mapping(101, _OUTPUT, _U1TX);         // Set RP101 to the UART Transmit  {$ENDIF}
-  UART1_Init(230400);                       // Initialize UART module a
-  Delay_ms(100);                            // Wait for UART module to stabilize
-end;
-
 procedure MCU_Setup_Initialize;
 begin
   // Setting output frequency to 140MHz
@@ -104,17 +97,13 @@ begin
 
   ANSELA := 0x00;           // Convert all I/O pins to digital
   ANSELB := 0x00;
- { ANSELC := 0x00;
-  ANSELD := 0x00;
-  ANSELE := 0x00;
-  ANSELG := 0x00;  }
 
   MaxFifo := 0;
 end;
 
 function ForceSpi1Transmit: Boolean;
 begin
-  if SPIEN_SPI2STAT_bit = 1 then
+  if SPIEN_SPI1STAT_bit = 1 then
   begin
     CHEN_DMA0CON_bit := 1;
     CHEN_DMA1CON_bit := 1;  // Single Shot will disable the channel
@@ -128,12 +117,12 @@ procedure EnableSpi(Enable: Boolean);
 begin
   if Enable then
   begin
-    SPIEN_SPI2STAT_bit := 1;    // Enable SPI
+    SPIEN_SPI1STAT_bit := 1;    // Enable SPI
     CHEN_DMA0CON_bit := 1; // DMA Channel Enabled
     CHEN_DMA1CON_bit := 1; // DMA Channel Enabled
   end else
   begin
-    SPIEN_SPI2STAT_bit := 0;    // Disable SPI
+    SPIEN_SPI1STAT_bit := 0;    // Disable SPI
     CHEN_DMA0CON_bit := 0; // DMA Channel Disabled
     CHEN_DMA1CON_bit := 0; // DMA Channel Disabled
   end;
@@ -142,37 +131,38 @@ end;
 procedure MCU_Enable_SPI;
 const
   IRQ_SPI2_DONE = 33;
+  IRQ_SPI1_DONE = 10;
 var
   Address: LongInt;
   i: Integer;
 begin
   CNPUB0_bit := 1;  // Pull up on CN
-  PPS_Mapping(121, _INPUT, _SS2IN);                                      // Set RPI32 (RB0) to the Slave Select (SS) Input Rece
+  PPS_Mapping(32, _INPUT, _SS2IN);                                      // Set RPI121 (RG9) to the Slave Select (CS) Input Rece
 
-  for i := 0 to MAX_SPI_BUFFER - 1 do
+  for i := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
   begin
-    Spi_TxARawBufferArray[i] := 0; //i;
-    Spi_TxBRawBufferArray[i] := 0;
     Spi_RxARawBufferArray[i] := 0;
     Spi_RxBRawBufferArray[i] := 0;
   end;
+  for i := 0 to MAX_RAWBUFFER_BYTES - 1 do
+    Spi_TxARawBufferArray[i] := $AA;
 
 
-  SPIEN_SPI2STAT_bit := 0;    // Disable SPI
-  DISSCK_SPI2CON1_bit := 0;   // SCK pin is enabled = 0
-  DISSDO_SPI2CON1_bit := 0;   // SDI pin is enabled = 0
-  MODE16_SPI2CON1_bit := 0;   // 8Bit transfer = 0
-  SMP_SPI2CON1_bit := 0;      // Must be clear in Slave mode
-  CKE_SPI2CON1_bit := 0;      // Data changes on transition from idle clock to active clock = 0
-  SSEN_SPI2CON1_bit := 1;     // Slave Select (CS) is not used by the module = 0
-  CKP_SPI2CON1_bit := 0;      // Clock Idle state is low = 0
-  MSTEN_SPI2CON1_bit := 0;    // Master mode enable = 1
+  SPIEN_SPI1STAT_bit := 0;    // Disable SPI
+  DISSCK_SPI1CON1_bit := 0;   // SCK pin is enabled = 0
+  DISSDO_SPI1CON1_bit := 0;   // SDI pin is enabled = 0
+  MODE16_SPI1CON1_bit := 0;   // 8Bit transfer = 0
+  SMP_SPI1CON1_bit := 0;      // Must be clear in Slave mode
+  CKE_SPI1CON1_bit := 0;      // Data changes on transition from idle clock to active clock = 0
+  SSEN_SPI1CON1_bit := 1;     // Slave Select (CS) is not used by the module = 0
+  CKP_SPI1CON1_bit := 0;      // Clock Idle state is low = 0
+  MSTEN_SPI1CON1_bit := 0;    // Master mode enable = 1
 
-  SPIBEN_SPI2CON2_bit := 0;   // Disable Enhanced mode since using DMA
+  SPIBEN_SPI1CON2_bit := 0;   // Disable Enhanced mode since using DMA
 
- // SPI2IP_0_bit := 1;    // SPI interrupt on every byte not very useful
- // SPI2IF_bit := 0;
- // SPI2IE_bit := 1;
+ // SPI1IP_0_bit := 1;    // SPI interrupt on every byte not very useful
+ // SPI1IF_bit := 0;
+ // SPI1IE_bit := 1;
 
     // _____________________ Transmit _______________________________
 
@@ -188,22 +178,19 @@ begin
   AMODE_0_DMA1CON_bit := 0;    // 00 = Register Indirect with Post-Increment mode
                                // 11 = One-Shot, Ping-Pong modes enabled (one block transfer from/to each DMA buffer)
                                // 10 = Continuous, Ping-Pong modes enabled
-  MODE_1_DMA1CON_bit := 1;     // 01 = One-Shot, Ping-Pong modes disabled
+  MODE_1_DMA1CON_bit := 0;     // 01 = One-Shot, Ping-Pong modes disabled
   MODE_0_DMA1CON_bit := 0;     // 00 = Continuous, Ping-Pong modes disabled
 
   // DMAnREQ
-  DMA1REQ := IRQ_SPI2_DONE;
+  DMA1REQ := IRQ_SPI1_DONE;
+  DMA1CNT := MAX_RAWBUFFER_BYTES-1;   // DMAxCNT + 1 = number of bytes on DMA transfer
+  DMA1PAD := Word( @SPI1BUF);
 
-  DMA1CNT := MAX_SPI_BUFFER-1;   // DMAxCNT + 1 = number of bytes on DMA transfer = 16
   Address := LongInt(@Spi_TxARawBufferArray[0]);
  // DMA1STAH := Higher(Address);
   DMA1STAL := (Hi(Address) shl 8) or Lo(Address);
 
-  Address := LongInt(@Spi_TxBRawBufferArray[0]);
- // DMA1STBH := Higher(Address);
-  DMA1STBL := (Hi(Address) shl 8) or Lo(Address);
 
-  DMA1PAD := Word( @SPI2BUF);
 
   // _____________________ Receive DMA0 = Highest Priority_______________________________
 
@@ -222,10 +209,10 @@ begin
   MODE_0_DMA0CON_bit := 0;     // 00 = Continuous, Ping-Pong modes disabled
 
   // DMAnREQ
-  DMA0REQ := IRQ_SPI2_DONE;
+  DMA0REQ := IRQ_SPI1_DONE;
+  DMA0CNT := MAX_SPI_GRIDCONNECT_CHAR_COUNT-1;   // DMAxCNT + 1 = number of bytes on DMA transfer =
+  DMA0PAD := Word( @SPI1BUF);
 
-  DMA0CNT := MAX_SPI_BUFFER-1;   // DMAxCNT + 1 = number of bytes on DMA transfer =
-  DMA0PAD := Word( @SPI2BUF);
   Address := LongInt(@Spi_RxARawBufferArray[0]);
  // DMA0STAH := Higher(Address);
   DMA0STAL := (Hi(Address) shl 8) or Lo(Address);
@@ -247,14 +234,14 @@ begin
 
 // The SPI Enables on the CS Pin interrupt.  Must do this or things get out of sync on startup
 //  CHEN_DMA0CON_bit := 1;      // DMA Channel Enabled
-//  SPIEN_SPI2STAT_bit := 1;    // Enable the SPI
+//  SPIEN_SPI1STAT_bit := 1;    // Enable the SPI
 //  CHEN_DMA1CON_bit := 1;      //Channel Enabled
 end;
 
 procedure MCU_Enable_UART;
 begin
-  PPS_Mapping(100, _INPUT, _U1RX);                                      // Set RPI100 to the UART Receive
-  PPS_Mapping(101, _OUTPUT, _U1TX);                                     // Set RP101 to the UART Transmit
+  PPS_Mapping(44, _INPUT, _U1RX);                                      // Set RPI44 to the UART Receive
+  PPS_Mapping(42, _OUTPUT, _U1TX);                                     // Set RP42 to the UART Transmit
 
   UART1_Init(230400);                       // Initialize UART module a
   Delay_ms(100);                            // Wait for UART module to stabilize
@@ -272,8 +259,8 @@ var
   Address: DWord;
   i: Integer;
 begin
-  PPS_Mapping(112, _INPUT, _C1RX);                                              // Set RPI112 to the CAN Receive
-  PPS_Mapping(113, _OUTPUT, _C1TX);                                             // Set RP113 to the CAN Transmit
+  PPS_Mapping(45, _INPUT, _C1RX);                                              // Set RPI45 to the CAN Receive
+  PPS_Mapping(43, _OUTPUT, _C1TX);                                             // Set RP45 to the CAN Transmit
 
   for i := 0 to MAX_ECAN_BUFFER - 1 do
   begin
@@ -298,8 +285,7 @@ begin
 
   CAN_EnterNormalMode;
 
-  CANCKS_bit := 1;
- // CANCKS_C1CTRL1_bit := 1;
+  CANCKS_bit := 0;
 
   // 4 Buffers total (Receive = Total - Transmit Buffers assigned)
   DMABS_2_bit := 0;
@@ -458,7 +444,10 @@ end;
 
 procedure MCU_Enable_PinChangeNotification;
 begin
-  CNIEB0_bit := 1;  // Pin Change Notification Interrupt on B0
+  CNIEB0_bit := 1;  // Pin Change Notification Interrupt on B6
+  CNIP_0_bit := 1;  // Interrupt priority = 1
+  CNIP_1_bit := 0;
+  CNIP_2_bit := 0;
   CNIF_bit := 0;    // Clear Pin Change Interrupt flag
   CNIE_bit := 1;    // Enable all Pin Change Interrupts
 end;

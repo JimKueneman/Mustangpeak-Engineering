@@ -15,25 +15,27 @@ const
   MAX_ECAN_BUFFER = 4;
   MAX_ECAN_RECEIVE_BUFFER = 1;
   MAX_ECAN_TRANSMIT_BUFFER = 3;
-  MAX_SPI_BUFFER = 30;              // Grid Connect = 29 + 1 because the return packet is one byte behind and I need the extra byte in transmit to receive the return byte (back to the master Pi)
+  MAX_SPI_GRIDCONNECT_CHAR_COUNT = 30;         // Grid Connect = 29 + 1 because the return packet is one byte behind and I need the extra byte in transmit to receive the return byte (back to the master Pi)
+  MAX_RAWBUFFER_MESSAGES = 16;
+  MAX_RAWBUFFER_BYTES = MAX_SPI_GRIDCONNECT_CHAR_COUNT * MAX_RAWBUFFER_MESSAGES;
 
   CAN_DMA_DATA_OFFSET = $D000;                // This is the start of the X-Data area.  Some of the dsPIC33s require DMA RAM to be
-  SPI_TX_DMA_A_DATA_OFFSET = CAN_DMA_DATA_OFFSET + (SizeOf(TCANRawBuffer) * MAX_ECAN_BUFFER);
-  SPI_TX_DMA_B_DATA_OFFSET = SPI_TX_DMA_A_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
-  SPI_RX_DMA_A_DATA_OFFSET = SPI_TX_DMA_B_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
-  SPI_RX_DMA_B_DATA_OFFSET = SPI_RX_DMA_A_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_BUFFER);
+  SPI_RX_DMA_A_DATA_OFFSET = CAN_DMA_DATA_OFFSET + (SizeOf(TCANRawBuffer) * MAX_ECAN_BUFFER);
+  SPI_RX_DMA_B_DATA_OFFSET = SPI_RX_DMA_A_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_GRIDCONNECT_CHAR_COUNT);
+  SPI_TX_DMA_A_DATA_OFFSET = SPI_RX_DMA_B_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_GRIDCONNECT_CHAR_COUNT);
+
   LF = #13+#10;
 
 type
-  TCan_RawBufferArray = array[0..MAX_ECAN_BUFFER-1] of TCANRawBuffer;
+  TCan_RawBufferArray = array[MAX_ECAN_BUFFER] of TCANRawBuffer;
   PCan_RawBufferArray = ^TCan_RawBufferArray;
-  TSpi_RawBufferArray = array[MAX_SPI_BUFFER] of Byte;
+  TSpi_RawBufferArray = array[MAX_SPI_GRIDCONNECT_CHAR_COUNT] of Byte;
+  TSpi_RawTxBufferArray = array[MAX_RAWBUFFER_BYTES] of Byte;
 
 
 var
   Can_RawBufferArray: TCan_RawBufferArray; far; dma; absolute CAN_DMA_DATA_OFFSET;   // Transmit buffer for all filters.  The software pulls the data to the right list
-  Spi_TxARawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_TX_DMA_A_DATA_OFFSET;
-  Spi_TxBRawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_TX_DMA_B_DATA_OFFSET;
+  Spi_TxARawBufferArray: TSpi_RawTxBufferArray; far; dma; absolute SPI_TX_DMA_A_DATA_OFFSET;
   Spi_RxARawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_RX_DMA_A_DATA_OFFSET;
   Spi_RxBRawBufferArray: TSpi_RawBufferArray; far; dma; absolute SPI_RX_DMA_B_DATA_OFFSET;
 
@@ -63,10 +65,9 @@ procedure ZeroSpiBuffers;
 var
   i: Integer;
 begin
-  for i := 0 to MAX_SPI_BUFFER - 1 do
+  for i := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
   begin
     Spi_TxARawBufferArray[i] := 0;
-    Spi_TxBRawBufferArray[i] := 0;
     Spi_RxARawBufferArray[i] := 0;
     Spi_RxBRawBufferArray[i] := 0;
   end;
@@ -142,6 +143,7 @@ end;
 procedure MCU_Enable_SPI;
 const
   IRQ_SPI2_DONE = 33;
+  IRQ_SPI1_DONE = 10;
 var
   Address: LongInt;
   i: Integer;
@@ -149,13 +151,13 @@ begin
   CNPUG9_bit := 1;  // Pull up on CN
   PPS_Mapping(121, _INPUT, _SS2IN);                                      // Set RPI121 (RG9) to the Slave Select (CS) Input Rece
   
-  for i := 0 to MAX_SPI_BUFFER - 1 do
+  for i := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
   begin
-    Spi_TxARawBufferArray[i] := 0; //i;
-    Spi_TxBRawBufferArray[i] := 0;
     Spi_RxARawBufferArray[i] := 0;
     Spi_RxBRawBufferArray[i] := 0;
   end;
+  for i := 0 to MAX_RAWBUFFER_BYTES - 1 do
+    Spi_TxARawBufferArray[i] := $AA;
 
 
   SPIEN_SPI2STAT_bit := 0;    // Disable SPI          
@@ -188,22 +190,19 @@ begin
   AMODE_0_DMA1CON_bit := 0;    // 00 = Register Indirect with Post-Increment mode
                                // 11 = One-Shot, Ping-Pong modes enabled (one block transfer from/to each DMA buffer)
                                // 10 = Continuous, Ping-Pong modes enabled
-  MODE_1_DMA1CON_bit := 1;     // 01 = One-Shot, Ping-Pong modes disabled
+  MODE_1_DMA1CON_bit := 0;     // 01 = One-Shot, Ping-Pong modes disabled
   MODE_0_DMA1CON_bit := 0;     // 00 = Continuous, Ping-Pong modes disabled
 
   // DMAnREQ
   DMA1REQ := IRQ_SPI2_DONE;
-
-  DMA1CNT := MAX_SPI_BUFFER-1;   // DMAxCNT + 1 = number of bytes on DMA transfer
+  DMA1CNT := MAX_RAWBUFFER_BYTES-1;   // DMAxCNT + 1 = number of bytes on DMA transfer
+  DMA1PAD := Word( @SPI2BUF);
+  
   Address := LongInt(@Spi_TxARawBufferArray[0]);
  // DMA1STAH := Higher(Address);
   DMA1STAL := (Hi(Address) shl 8) or Lo(Address);
   
-  Address := LongInt(@Spi_TxBRawBufferArray[0]);
- // DMA1STBH := Higher(Address);
-  DMA1STBL := (Hi(Address) shl 8) or Lo(Address);
-  
-  DMA1PAD := Word( @SPI2BUF);
+
 
   // _____________________ Receive DMA0 = Highest Priority_______________________________
 
@@ -223,9 +222,9 @@ begin
 
   // DMAnREQ
   DMA0REQ := IRQ_SPI2_DONE;
-
-  DMA0CNT := MAX_SPI_BUFFER-1;   // DMAxCNT + 1 = number of bytes on DMA transfer =
+  DMA0CNT := MAX_SPI_GRIDCONNECT_CHAR_COUNT-1;   // DMAxCNT + 1 = number of bytes on DMA transfer =
   DMA0PAD := Word( @SPI2BUF);
+  
   Address := LongInt(@Spi_RxARawBufferArray[0]);
  // DMA0STAH := Higher(Address);
   DMA0STAL := (Hi(Address) shl 8) or Lo(Address);
@@ -274,7 +273,7 @@ var
 begin
   PPS_Mapping(112, _INPUT, _C1RX);                                              // Set RPI112 to the CAN Receive
   PPS_Mapping(113, _OUTPUT, _C1TX);                                             // Set RP113 to the CAN Transmit
-  
+
   for i := 0 to MAX_ECAN_BUFFER - 1 do
   begin
     Can_RawBufferArray[i].Word0 := 0;
@@ -458,6 +457,9 @@ end;
 procedure MCU_Enable_PinChangeNotification;
 begin
   CNIEG9_bit := 1;  // Pin Change Notification Interrupt on B6
+  CNIP_0_bit := 1;  // Interrupt priority = 1
+  CNIP_1_bit := 0;
+  CNIP_2_bit := 0;
   CNIF_bit := 0;    // Clear Pin Change Interrupt flag
   CNIE_bit := 1;    // Enable all Pin Change Interrupts
 end;

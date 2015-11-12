@@ -18,18 +18,25 @@ program EthernetCanHub;
 // *****************************************************************************
 
 {$DEFINE ENABLE_UART_INTERFACE}
-  
+
+const
+  DMACHANNEL_1 = 1;
+  DMACHANNEL_0 = 0;
+
+
 type
   TSpiOutBuffer = record
+  //  RawBuffer: array[MAX_RAWBUFFER_BYTES] of Byte;
     GridConnectStr: TGridConnectString;
-    Valid: Boolean;
+    OpenLcbBuffer: TOpenLCBCanBuffer;
   end;
-  
+
 var
-  BarelyInSync, HaveSeenAHighCS: Boolean;    //  THIS WILL NOT WORK IF THE RASPBERRY PI IS REBOOTED!!!!
+ // InSync, HaveSeenLoCS: Boolean;
   SpiOutBuffer: TSpiOutBuffer;
   InvalidSpiReceives: DWord;
-  
+  InSync: Boolean;
+
 // *****************************************************************************
 //  INTERRUPTS
 // *****************************************************************************
@@ -43,6 +50,11 @@ procedure INTERRUPT_Timer_100ms(); iv IVT_ADDR_T2INTERRUPT;
 // Called once every 100m
 begin
   T2IF_bit := 0;                                                                // Clear the Flag
+end;
+
+procedure interrupt_Spi(); iv IVT_ADDR_SPI1INTERRUPT;
+begin
+  SPI1IF_bit := 0;
 end;
 
 //******************************************************************************
@@ -72,7 +84,7 @@ begin
   DMA2IF_bit := 0;
   OpenLCBCanBufferPtr := CanBufferIn_NextEmpty;
   if OpenLCBCanBufferPtr <> nil then
-  begin    
+  begin
     Extended := True;
     dsPIC33_DMA_Style_Buffer(OpenLCBCanBufferPtr^, Extended, CAN_DIRECTION_READ, @Can_RawBufferArray[3].Word0);
     CAN_IsReceiveFull(3, True);  // Rest the hardware "full" flag so we are ready for the next message
@@ -89,16 +101,15 @@ var
   i: Integer;
 begin
   DMA0IF_bit := 0;
-  
-  if BarelyInSync then
+  if InSync then
   begin
-    if PingPongASelected(0) then
+    if PingPongASelected(DMACHANNEL_0) then
     begin
-      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // A is selected so B is ready
+      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // A is selected as this message is coming in, the instant this interrupt is entered the module switches to the B to prepare for the next message
         GridConnectStr[i] := Spi_RxBRawBufferArray[i];
     end else
     begin
-      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // B is selected so A is ready
+      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // B is selected as this message is coming in, the instant this interrupt is entered the module switches to the A to prepare for the next message
         GridConnectStr[i] := Spi_RxARawBufferArray[i];
     end;
 
@@ -110,7 +121,10 @@ begin
     end else
     begin
       if GridConnectStr[0] <> '' then
+      begin
         Inc(InvalidSpiReceives);
+        UART1_Write_Text(GridConnectStr + LF);
+      end;
     end;
   end;
 end;
@@ -119,35 +133,12 @@ end;
 // Fired immeditatly after the DMA SPI transmit cycle is complete.
 //******************************************************************************
 procedure interrupt_DMA1_SPI_Transmit(); iv IVT_ADDR_DMA1INTERRUPT;
-var
-  i: Integer;
 begin
   DMA1IF_bit := 0;
-
-  if BarelyInSync and SpiOutBuffer.Valid then
-  begin
-    if PingPongASelected(1) then
-    begin                                                                       // A is selected so B is Free
-      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // Copy the GridConnectString into the SPI Tx DMA
-        Spi_TxBRawBufferArray[i] := SpiOutBuffer.GridConnectStr[i]
-    end else
-    begin
-      for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // If B is Selected so A is Free
-        Spi_TxARawBufferArray[i] := SpiOutBuffer.GridConnectStr[i];             // Copy the GridConnectString into the SPI Tx DMA
-    end;
-    SpiOutBuffer.Valid := False;
-  end else
-  begin
-    if PingPongASelected(1) then        // A is selected so B is ready
-    begin
-      for i := 0 to MAX_SPI_BUFFER - 1 do
-        Spi_TxBRawBufferArray[i] := 0;
-    end else
-    begin
-      for i := 0 to MAX_SPI_BUFFER - 1 do
-        Spi_TxARawBufferArray[i] := 0;
-    end
-  end;
+  
+  LATB5_bit := 1;
+  Delay_us(2);
+  LATB5_bit := 0;
 end;
 
 //******************************************************************************
@@ -159,28 +150,58 @@ end;
 //******************************************************************************
 procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
 var
-  PortBCopy: Word;
+  PortCopy: Word;
+  iRawBufferMsg, iRawBuffer, iChar: Integer;
 begin
   CNIF_bit := 0;
-  PortBCopy := PORTB;    // Clear all changes
-  if not BarelyInSync then
+  if InSync then
   begin
-    if PortBCopy.B0 = 1 then
-      HaveSeenAHighCS := True
-    else begin
-      if HaveSeenAHighCS then
+    PortCopy := PORTB;    // Clear all changes
+    if PortCopy.B0 = 1 then     // Just finished a CS low and data transfer, now dormant
+    begin
+      DMA1CNT := MAX_RAWBUFFER_BYTES-1;   // DMAxCNT + 1 = number of bytes on DMA transfer
+      iRawBufferMsg := 0;
+      iRawBuffer := 0;
+      while iRawBuffer < MAX_RAWBUFFER_BYTES do
       begin
-        if PortBCopy.B0 =  0 then
+        if iRawBufferMsg >= MAX_RAWBUFFER_MESSAGES then
         begin
-          BarelyInSync := True;
-          EnableSpi(True);
-          
-          UART_Write_Text('Sync' + LF);
-          
+          Spi_TxARawBufferArray[iRawBuffer] := 0;
+          Inc(iRawBuffer)
+        end else
+        begin
+          while DMA2IE_bit = 1 do DMA2IE_bit := 0;     // Disable the incoming CAN interrupts (higher priority) till we are done with the buffer for CAN in
+          if CanBufferIn_NextFull(SpiOutBuffer.OpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
+          begin
+            Inc(iRawBufferMsg);
+            GridConnect_BufferToGridConnect(SpiOutBuffer.OpenLcbBuffer, @SpiOutBuffer.GridConnectStr);
+            for iChar := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
+            begin
+              if SpiOutBuffer.GridConnectStr[iChar] <> #0 then
+              begin
+                Spi_TxARawBufferArray[iRawBuffer] := SpiOutBuffer.GridConnectStr[iChar];
+                Inc(iRawBuffer);
+              end else
+                Break;
+            end;
+          end else
+          begin
+            Spi_TxARawBufferArray[iRawBuffer] := 0;
+            Inc(iRawBuffer)
+          end;
+          DMA2IE_bit := 1;
         end;
-      end
+      end;
     end
-  end;
+  end else
+  begin
+    PortCopy := PORTB;    // Clear all changes
+    if PortCopy.B0 = 1 then     // Just finished a CS low and data transfer, now dormant
+    begin
+      EnableSpi(True);
+      InSync := True;
+    end;
+  end
 end;
 
 var
@@ -191,51 +212,39 @@ var
   Address: DWord;
 begin
   { Main program }
-  SpiOutBuffer.Valid := False;
+  
+  TRISB5_bit := 0;
+  TRISA0_bit := 0;
+
   InvalidSpiReceives := 0;
-  BarelyInSync := False;
-  HaveSeenAHighCS := False;
+  InSync := False;
   MCU_Setup_Initialize;
   CanBufferOut_Initialize;
   CanBufferIn_Initialize;
   MCU_Enable_100msTimer;
   MCU_Enable_UART;
-  MCU_Enable_SPI;
-
-  EnableSpi(True);  // Use the Chip Select via the Pin B6 Change Notification interrupt
-  MCU_Enable_PinChangeNotification;
   
+  MCU_Enable_SPI;
+  EnableSpi(False);
+  
+  MCU_Enable_PinChangeNotification;
+
   TON_T1CON_bit := 1;       // Turn on 500ms timer
   TON_T2CON_bit := 1;       // Turn on 100ms timer
-    
+
   MCU_Enable_CAN;
-
-  TRISB1_bit := 0;
-  TRISB4_bit := 0;
-
-  UART1_Write_Text('Booting'+LF);
   
+  UART1_Write_Text('Booting'+LF);
+
   Address := DWord(@Spi_TxARawBufferArray[0]);
   LongWordToHex(DWord(Address), s1);
   UART1_Write_Text('Address: ' + s1 + LF);
-  
-  SendOpenLcbBuffer.MTI := $19490072;
-  SendOpenLcbBuffer.PayloadCount := 0;
-  SendOpenLcbBuffer.Payload[0] := 0;
-  SendOpenLcbBuffer.Payload[1] := 0;
-  SendOpenLcbBuffer.Payload[2] := 0;
-  SendOpenLcbBuffer.Payload[3] := 0;
-  SendOpenLcbBuffer.Payload[4] := 0;
-  SendOpenLcbBuffer.Payload[5] := 0;
-  SendOpenLcbBuffer.Payload[6] := 0;
-  SendOpenLcbBuffer.Payload[7] := 0;
-  
+
   while True do
   begin
     if not CAN_IsTransmitRequested(0) then
     begin
-      while DMA0IE_bit = 1 do    // Disable incoming SPI interrupts till we are done with the buffer to CAN out
-        DMA0IE_bit := 0;
+      while DMA0IE_bit = 1 do DMA0IE_bit := 0;   // Disable incoming SPI interrupts till we are done with the buffer to CAN out
       if CanBufferOut_NextFull(LocalOpenLcbBuffer) then
       begin
         DMA0IE_bit := 1;  // Reinable incoming SPI interrupts
@@ -244,21 +253,7 @@ begin
         DMA0IE_bit := 1;  // Reinable incoming SPI interrupts
     end;
     
-    
-    while DMA2IE_bit = 1 do      // Disable the incoming CAN interrupts till we are done with the buffer for CAN in
-      DMA2IE_bit := 0;
-    if SpiOutBuffer.Valid = False then   // Is the out buffer empty?
-    begin
-      if CanBufferIn_NextFull(LocalOpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
-      begin
-        DMA1IE_bit := 1;                                                        // _NextFull copies the structure so the buffer is now okay to use in the interrupt
-        GridConnect_BufferToGridConnect(LocalOpenLcbBuffer, @SpiOutBuffer.GridConnectStr);  // convert it to grid connect string and place it in the Spi outgoing buffer
-        SpiOutBuffer.Valid := True;
-      end;
-    end;
-    DMA2IE_bit := 1;
-
-    {$IFDEF ENABLE_UART_INTERFACE}
+     {$IFDEF ENABLE_UART_INTERFACE}
     if UART1_Data_Ready then
     begin
       case UART1_Read of
@@ -294,22 +289,22 @@ begin
           'E' :    begin
                      WordToHex(DMAPWC, s1);
                      UART1_Write_Text('DMAPWC: 0x' + s1 + LF);
-                     
+
                      WordToHex(DMARQC, s1);
                      UART1_Write_Text('DMARQC: 0x' + s1 + LF);
-                     
-                     WordToHex(SPI2STAT, s1);
-                     UART1_Write_Text('SPI2STAT: 0x' + s1 + LF);
-                     
-                     WordToHex(SPI2CON1, s1);
-                     UART1_Write_Text('SPI2CON1: 0x' + s1 + LF);
-                     
-                     WordToHex(SPI2CON2, s1);
-                     UART1_Write_Text('SPI2CON2: 0x' + s1 + LF);
+
+                     WordToHex(SPI1STAT, s1);
+                     UART1_Write_Text('SPI1STAT: 0x' + s1 + LF);
+
+                     WordToHex(SPI1CON1, s1);
+                     UART1_Write_Text('SPI1CON1: 0x' + s1 + LF);
+
+                     WordToHex(SPI1CON2, s1);
+                     UART1_Write_Text('SPICON2: 0x' + s1 + LF);
 
                    end;
           'S' :    begin
-                     
+
                      if ForceSpi1Transmit then
                        UART1_Write_Text('Success Tx Force' + LF)
                      else
@@ -321,15 +316,9 @@ begin
                      WordToHex(DMA0STAL, s1);
                      UART1_Write_Text('DMA0STAL: 0x' + s1 + LF);
                      UART1_Write_Text('Spi TX A' + LF);
-                     for i := 0 to MAX_SPI_BUFFER - 1 do
+                     for i := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
                      begin
                        WordToStr(Spi_TxARawBufferArray[i], s1);
-                       UART1_Write_Text(s1 + LF);
-                     end;
-                     UART1_Write_Text('Spi TX B' + LF);
-                     for i := 0 to MAX_SPI_BUFFER - 1 do
-                     begin
-                       WordToStr(Spi_TxBRawBufferArray[i], s1);
                        UART1_Write_Text(s1 + LF);
                      end;
                      WordToHex(DMA1STAH, s1);
@@ -337,13 +326,13 @@ begin
                      WordToHex(DMA1STAL, s1);
                      UART1_Write_Text('DMA1STAL: 0x' + s1 + LF);
                      UART1_Write_Text('Spi RX A' + LF);
-                     for i := 0 to MAX_SPI_BUFFER - 1 do
+                     for i := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
                      begin
                        WordToStr(Spi_RxARawBufferArray[i], s1);
                        UART1_Write_Text(s1 + LF);
                      end;
                      UART1_Write_Text('Spi RX B' + LF);
-                     for i := 0 to MAX_SPI_BUFFER - 1 do
+                     for i := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
                      begin
                        WordToStr(Spi_RxBRawBufferArray[i], s1);
                        UART1_Write_Text(s1 + LF);
@@ -372,7 +361,7 @@ begin
                      end;
                    end;
           '4' : begin
-                PrintDMABuffers; 
+                PrintDMABuffers;
               end;
           '5' : begin
                   ZeroSpiBuffers
@@ -384,14 +373,14 @@ begin
                   UART1_Write_Text('CanIn.MaxCount = ' + s1 + LF);
                   LongWordToStr(CanIn.TotalCount, s1);
                   UART1_Write_Text('CanIn.TotalCount = ' + s1 + LF);
-                  
+
                   IntToStr(CanOut.Count, s1);
                   UART1_Write_Text('CanOut.Count = ' + s1 + LF);
                   IntToStr(CanOut.MaxCount, s1);
                   UART1_Write_Text('CanOut.MaxCount = ' + s1 + LF);
                   LongWordToStr(CanOut.TotalCount, s1);
                   UART1_Write_Text('CanOut.TotalCount = ' + s1 + LF);
-                  
+
                   LongWordToStr(InvalidSpiReceives, s1);
                   UART1_Write_Text('InvalidSpiReceives = ' + s1 + LF);
                 end;
@@ -399,7 +388,7 @@ begin
                   InvalidSpiReceives := 0;
                 end;
       end;
-    end     
+    end
     {$ENDIF}
   end;
 end.
