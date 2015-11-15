@@ -14,7 +14,7 @@ Value=2000
 [EEPROM_DEFINITION]
 Value=
 [ACTIVE_TAB]
-Value=CanBufferOut.mpas
+Value=EthernetCanHub.mpas
 [FILES]
 Count=8
 File0=EthernetCanHub.mpas
@@ -44,12 +44,12 @@ Count=0
 Count=1
 File0=Templates\Options.inc
 [SEARCH_PATH]
-Count=5
-Path0=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
-Path1=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
-Path2=Z:\Mustangpeak-Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\
-Path3=Z:\Mustangpeak-Engineering\Firmware\MikroPascal\Library\Common\
-Path4=Z:\Mustangpeak-Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\
+Count=10
+Path0=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
+Path1=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
+Path2=Z:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\
+Path8=Z:\Firmware\MikroPascal\Library\Common\
+Path9=Z:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\
 [HEADER_PATH]
 Count=0
 [HEADERS]
@@ -57,7 +57,7 @@ Count=0
 [PLDS]
 Count=0
 [Useses]
-Count=8
+Count=7
 File0=UART
 File1=String
 File2=SPI
@@ -65,7 +65,6 @@ File3=Peripheral_Pin_Select
 File4=Conversions
 File5=C_Stdlib
 File6=C_Type
-File7=FLASH
 [EXPANDED_NODES]
 Node0=Sources
 Node1=Other Files
