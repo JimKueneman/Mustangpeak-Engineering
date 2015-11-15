@@ -31,13 +31,11 @@ Count=0
 Count=0
 ActiveImageIndex=-1
 [OPENED_FILES]
-Count=6
+Count=4
 File0=EthernetCanHub.mpas
-File1=CanBufferIn.mpas
-File2=HelperCAN.mpas
-File3=HelperGridConnect.mpas
-File4=CanBufferOut.mpas
-File5=Templates\MCU_Setup_dsPIC33EPxxxGP502.mpas
+File1=Templates\MCU_Setup_dsPIC33EPxxxGP502.mpas
+File2=..\..\..\..\..\..\TCH Technologies Software\Mustangpeak\mikroPascal\Library\ENC624J600_Florin\TFTP_Bootloader_8K_V1_1\TFTP_Bootloader_8K.mpas
+File3=HelperCAN.mpas
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]
@@ -49,9 +47,9 @@ File0=Templates\Options.inc
 Count=5
 Path0=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
 Path1=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
-Path2=Y:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\
-Path3=Y:\Firmware\MikroPascal\Library\Common\
-Path4=Y:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\
+Path2=Z:\Mustangpeak-Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\
+Path3=Z:\Mustangpeak-Engineering\Firmware\MikroPascal\Library\Common\
+Path4=Z:\Mustangpeak-Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\
 [HEADER_PATH]
 Count=0
 [HEADERS]
@@ -59,7 +57,7 @@ Count=0
 [PLDS]
 Count=0
 [Useses]
-Count=7
+Count=8
 File0=UART
 File1=String
 File2=SPI
@@ -67,6 +65,7 @@ File3=Peripheral_Pin_Select
 File4=Conversions
 File5=C_Stdlib
 File6=C_Type
+File7=FLASH
 [EXPANDED_NODES]
 Node0=Sources
 Node1=Other Files

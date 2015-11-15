@@ -18,24 +18,404 @@ program EthernetCanHub;
 // *****************************************************************************
 
 {$DEFINE ENABLE_UART_INTERFACE}
+{$DEFINE MAP_BOOTLOADER}
+
+const
+  CMD_LINK               = $EF;
+  CMD_UNLINK             = $EE;
+  CMD_SYNC               = $ED;
+  CMD_REQEUST_FLASH_DATA = $80;
+  CMD_SET_ADDRESS        = $02;
+  CMD_RESET              = $81;
+  CMD_ERASE_BLOCKS       = $10;
+  CMD_WRITE_BLOCK        = $30;
+  CMD_WRITE              = $31;
+  CMD_PARAMETERLESS_MASK = $80;  // Messages with no paramters have the high bit set
+
+  CMD_SET_ADDRESS_WRITE  = $00;
+  CMD_SET_ADDRESS_ERASE  = $01;
 
 const
   DMACHANNEL_1 = 1;
   DMACHANNEL_0 = 0;
+  
+// Bootloader
+  {$IFDEF dsPIC33EP32GP502}
+  __FLASH_ERASE_BLOCK = DWord((512 * 3));                                                // 512 instructions * 3 bytes per instruction
+  {$ELSE}
+    __FLASH_ERASE_BLOCK = DWord((1024 * 3));                                             // 1024 instructions * 3 bytes per instruction
+  {$ENDIF}
 
+  __BOOT_CODE_SIZE    = DWord(2048);                                             // MUST MAKE SURE THIS IS TRUE
+  __BOOT_CODE_ADDRESS = ((((__FLASH_SIZE div 3)*2)-__BOOT_CODE_SIZE) div ((__FLASH_ERASE_BLOCK div 3)*2))*((__FLASH_ERASE_BLOCK div 3)*2);     // MUST MAKE SURE THIS IS TRUE
+  __WRITE_BUFFER_SIZE = DWord(128 * 3);                                                   // 64 Instructions * 3 bytes per instruction
+
+const
+  BOOTLOADER_STATE_OFF = 0;
+  BOOTLOADER_STATE_ON = 1;
+  
+const
+  FAMILY_PIC16F          = $00;
+  FAMILY_PIC16F_ENHANCED = $01;
+  FAMILY_PIC18F          = $02;
+  FAMILY_PIC24           = $03;
+  FAMILY_dsPIC30         = $04;
+  FAMILY_dsPIC33         = $05;
+  FAMILY_PIC32           = $06;
+
+const
+  BOOTINFO_REC_SIZE = 61;
+
+type
+  TRevision = array[0..1] of Byte;
+  
+type
+  TBootInfo = record
+    StructSize: Word;     // Size of this Structure     2+(6*4)+1+2+32=57
+    EraseBlockSize: DWord;
+    WriteBufferSize: DWord;
+    ProgramFlashSize: DWord;
+    BootloaderAddress: DWord;
+    BootloaderSize: DWord;
+    ConfigurationAddress: DWord;
+    McuFamily: Byte;
+    Revision: TRevision;
+    ApplicationName: string[32];
+  end;
+
+// Main application
 
 type
   TSpiOutBuffer = record
-  //  RawBuffer: array[MAX_RAWBUFFER_BYTES] of Byte;
     GridConnectStr: TGridConnectString;
     OpenLcbBuffer: TOpenLCBCanBuffer;
   end;
 
 var
- // InSync, HaveSeenLoCS: Boolean;
   SpiOutBuffer: TSpiOutBuffer;
   InvalidSpiReceives: DWord;
-  InSync: Boolean;
+  InSync, Bootloading: Boolean;
+
+  
+procedure InitBootloader;
+begin
+  SPIEN_SPI1STAT_bit := 0;
+  // Disable the CAN module and DMA
+  DMA2IE_bit := 0;
+  DMA3IE_bit := 0;
+  CHEN_DMA2CON_bit := 0;
+  CHEN_DMA3CON_bit := 0;
+  DMA2PAD := Word(0);
+  DMA3PAD := Word(0);
+  DMA2REQ := 0;
+  DMA3REQ := 0;
+  DMA0CNT := 0;
+  DMA1CNT := 0;
+
+  // Diable the SPI module and DMA
+  DMA0IE_bit := 0;
+  DMA1IE_bit := 0;
+  CHEN_DMA0CON_bit := 0;
+  CHEN_DMA1CON_bit := 0;
+  DMA0PAD := Word(0);
+  DMA1PAD := Word(0);
+  DMA0REQ := 0;
+  DMA1REQ := 0;
+  SPI1IE_bit := 0;
+  DMA2CNT := 0;
+  DMA3CNT := 0;
+
+  // No timers
+  TON_T1CON_bit := 0;
+  TON_T2CON_bit := 0;
+  TON_T3CON_bit := 0;
+  TON_T4CON_bit := 0;
+  TON_T5CON_bit := 0;
+
+  SPIBEN_SPI1CON2_bit := 0;
+end;
+
+procedure SendByte(AByte: Byte);
+begin
+  while SPITBF_SPI1STAT_bit = 1 do;  // Wait for the Tx Buffer to empty
+  SPI1BUF := AByte;
+end;
+  
+procedure RunBootloader;
+const
+  BOOT_STATE_REPLY_SYNC = 0;
+  BOOT_STATE_REPLY_INFO = 1;
+  BOOT_STATE_LISTEN = 2;
+  BOOT_STATE_REPLY_WITH_INFO = 3;
+  BOOT_STATE_SET_ADDRESS = 4;
+  BOOT_STATE_ERASE_BLOCKS = 5;
+  BOOT_STATE_WRITE_BLOCK = 6;
+  BOOT_STATE_WRITE = 7;
+  
+var
+  DataIn: Byte;
+  BootState: Integer;
+  WriteAddress, EraseAddress, EraseBlocks, WriteCount: DWord;
+  i: Integer;
+  s1: string[128];
+  RxBuffer: array[__WRITE_BUFFER_SIZE] of Byte;
+  ix, j, ii, bb: word;
+  aa: byte;
+begin
+  // When we enter here it is because we receive an "Enter Bootloader" command, we must reply we have entered it
+  
+  // no Pin Change Notification Interrupt on B0
+  CNIEB0_bit := 0;
+  SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
+  DataIn := SPI1BUF;        // Flush the buffer
+  SPIEN_SPI1STAT_bit := 1;  // Enable and reinitailize the Spi
+  
+  BootState := BOOT_STATE_LISTEN;
+  WriteAddress := $00000000;
+  EraseAddress := $00000000;
+  EraseBlocks := $00000000;
+  
+  // Stuck here forever
+  while True do
+  begin
+    case BootState of
+      BOOT_STATE_LISTEN :
+        begin
+          LATA4_bit := 1;
+          if SPIRBF_SPI1STAT_bit = 1 then
+          begin
+            LATB5_bit := 1;
+            case SPI1BUF of
+              CMD_SYNC               : BootState := BOOT_STATE_REPLY_SYNC;
+              CMD_REQEUST_FLASH_DATA : BootState := BOOT_STATE_REPLY_WITH_INFO;
+              CMD_SET_ADDRESS        : BootState := BOOT_STATE_SET_ADDRESS;
+              CMD_ERASE_BLOCKS       : BootState := BOOT_STATE_ERASE_BLOCKS;
+              CMD_WRITE_BLOCK        : BootState := BOOT_STATE_WRITE_BLOCK;
+              CMD_WRITE              : BootState := BOOT_STATE_WRITE;
+            end;
+            LATB5_bit := 0;
+          end;
+          LATA4_bit := 0;
+        end;
+      BOOT_STATE_WRITE_BLOCK :
+        begin
+          for i := 0 to __WRITE_BUFFER_SIZE - 1 do
+          begin
+            while SPIRBF_SPI1STAT_bit = 0 do;
+            RxBuffer[i] := SPI1BUF;
+          end;
+          LongWordToHex(WriteAddress, s1);
+          UART1_Write_Text('Write Block Address: ' + s1);
+          LongWordToStr(__WRITE_BUFFER_SIZE, s1);
+          UART1_Write_Text(', Count: ' + s1);
+          UART1_Write_Text(LF);
+          
+          (*
+         // FLASH_Erase(address);
+         // delayms(10);
+          ClrWdt;
+          ix := 0;
+          j := 0;
+          while j < 8 do
+          begin
+            asm
+              MOV #0x4001, W0
+              MOV W0, NVMCON // Initialize NVMCON
+            end;
+            TBLPAG := Higher(WriteAddress);
+            W8 := word(WriteAddress);
+            ii := 0;
+            while ii < 64 do
+              begin
+                aa := RxBuffer[ix+2];
+                Hi(bb) := RxBuffer[ix+1];
+                Lo(bb) := RxBuffer[ix];
+                ix := ix + 3;
+                asm
+                  PUSH W7
+                  PUSH W9
+                end;
+                W7 := aa;
+                W9 := bb;
+                asm
+                  TBLWTL W9, [W8]     // Write PM low word into program latch
+                  TBLWTH W7, [W8++]   // Write PM high byte into program latch
+                  POP W9
+                  POP W7
+                end;
+                inc(ii);
+              end;
+            asm
+              DISI #5               // Block all interrupts with priority <7 for next 5 instructions
+              MOV #0x55, W0
+              MOV W0, NVMKEY        // Write the 55 key
+              MOV #0xAA, W1
+              MOV W1, NVMKEY        // Write the AA key
+              BSET NVMCON, #15      // Start the erase sequence
+              NOP
+              NOP
+              BTSC NVMCON, #15      // and wait for it to be
+              BRA $-2               // completed
+            end;
+            WriteAddress := WriteAddress + 128;
+            inc(j);
+          end;
+          *)
+          SendByte(CMD_WRITE_BLOCK);
+          SendByte($00);
+          SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
+          BootState := BOOT_STATE_LISTEN;
+        end;
+      BOOT_STATE_WRITE :
+        begin
+          WriteCount := 0;
+          while SPIRBF_SPI1STAT_bit = 0 do;
+          Highest(WriteCount) := SPI1BUF;
+          while SPIRBF_SPI1STAT_bit = 0 do;
+          Higher(WriteCount) := SPI1BUF;
+          while SPIRBF_SPI1STAT_bit = 0 do;
+          Hi(WriteCount) := SPI1BUF;
+          while SPIRBF_SPI1STAT_bit = 0 do;
+          Lo(WriteCount) := SPI1BUF;
+          for i := 0 to WriteCount - 1 do
+          begin
+            while SPIRBF_SPI1STAT_bit = 0 do;
+            RxBuffer[i] := SPI1BUF;
+          end;
+          LongWordToHex(WriteAddress, s1);
+          UART1_Write_Text('Write Address: ' + s1);
+          LongWordToStr(WriteCount, s1);
+          UART1_Write_Text(', Count: ' + s1);
+          UART1_Write_Text(LF);
+          SendByte(CMD_WRITE);
+          SendByte($00);
+          SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
+          BootState := BOOT_STATE_LISTEN;
+        end;
+      BOOT_STATE_ERASE_BLOCKS :
+        begin
+          EraseBlocks := 0;
+          while SPIRBF_SPI1STAT_bit = 0 do;
+          Highest(EraseBlocks) := SPI1BUF;
+          while SPIRBF_SPI1STAT_bit = 0 do;
+          Higher(EraseBlocks) := SPI1BUF;
+          while SPIRBF_SPI1STAT_bit = 0 do;
+          Hi(EraseBlocks) := SPI1BUF;
+          while SPIRBF_SPI1STAT_bit = 0 do;
+          Lo(EraseBlocks) := SPI1BUF;
+          for i := 0 to EraseBlocks - 1 do
+          begin
+            LongWordToHex(EraseAddress, s1);
+            UART1_Write_Text('Erase Address: ' + s1 + LF);
+            EraseAddress := EraseAddress + __FLASH_ERASE_BLOCK;
+          end;
+          SendByte(CMD_ERASE_BLOCKS);
+          SendByte($00);
+          SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
+          BootState := BOOT_STATE_LISTEN;
+        end;
+      BOOT_STATE_SET_ADDRESS :
+        begin
+          if SPIRBF_SPI1STAT_bit = 1 then
+          begin
+            case SPI1BUF of
+              CMD_SET_ADDRESS_WRITE :
+                begin
+                  WriteAddress := 0;
+                  while SPIRBF_SPI1STAT_bit = 0 do;
+                  Highest(WriteAddress) := SPI1BUF;
+                  while SPIRBF_SPI1STAT_bit = 0 do;
+                  Higher(WriteAddress) := SPI1BUF;
+                  while SPIRBF_SPI1STAT_bit = 0 do;
+                  Hi(WriteAddress) := SPI1BUF;
+                  while SPIRBF_SPI1STAT_bit = 0 do;
+                  Lo(WriteAddress) := SPI1BUF;
+                  SendByte($00);
+                  SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
+                  BootState := BOOT_STATE_LISTEN;
+                end;
+              CMD_SET_ADDRESS_ERASE :
+                begin
+                  EraseAddress := 0;
+                  while SPIRBF_SPI1STAT_bit = 0 do;
+                  Highest(EraseAddress) := SPI1BUF;
+                  while SPIRBF_SPI1STAT_bit = 0 do;
+                  Higher(EraseAddress) := SPI1BUF;
+                  while SPIRBF_SPI1STAT_bit = 0 do;
+                  Hi(EraseAddress) := SPI1BUF;
+                  while SPIRBF_SPI1STAT_bit = 0 do;
+                  Lo(EraseAddress) := SPI1BUF;
+                  SendByte($00);
+                  SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
+                  BootState := BOOT_STATE_LISTEN;
+                end;
+            end;
+          end;
+        end;
+      BOOT_STATE_REPLY_SYNC :
+        begin
+          SendByte($EF);
+          SendByte($00);
+          SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
+          BootState := BOOT_STATE_LISTEN
+        end;
+      BOOT_STATE_REPLY_WITH_INFO :
+        begin
+          // Command
+          SendByte(CMD_REQEUST_FLASH_DATA);
+          // Record Size
+          SendByte(Hi(BOOTINFO_REC_SIZE));
+          SendByte(Lo(BOOTINFO_REC_SIZE));
+          // Erase Block Size
+          SendByte(Highest( __FLASH_ERASE_BLOCK));
+          SendByte(Higher( __FLASH_ERASE_BLOCK));
+          SendByte(Hi( __FLASH_ERASE_BLOCK));
+          SendByte(Lo( __FLASH_ERASE_BLOCK));
+          // Write Buffer Size
+          SendByte(Highest( __WRITE_BUFFER_SIZE));
+          SendByte(Higher( __WRITE_BUFFER_SIZE));
+          SendByte(Hi( __WRITE_BUFFER_SIZE));
+          SendByte(Lo( __WRITE_BUFFER_SIZE));
+          // Flash Size
+          SendByte(Highest( __FLASH_SIZE));
+          SendByte(Higher( __FLASH_SIZE));
+          SendByte(Hi( __FLASH_SIZE));
+          SendByte(Lo( __FLASH_SIZE));
+          // Bootloader Address
+          SendByte(Highest( __BOOT_CODE_ADDRESS));
+          SendByte(Higher( __BOOT_CODE_ADDRESS));
+          SendByte(Hi( __BOOT_CODE_ADDRESS));
+          SendByte(Lo( __BOOT_CODE_ADDRESS));
+          // Bootloader Size
+          SendByte(Highest( __BOOT_CODE_SIZE));
+          SendByte(Higher( __BOOT_CODE_SIZE));
+          SendByte(Hi( __BOOT_CODE_SIZE));
+          SendByte(Lo( __BOOT_CODE_SIZE));
+          // Configuration Address
+          SendByte(0);
+          SendByte(0);
+          SendByte(0);
+          SendByte(0);
+          // McuFamily
+          SendByte(FAMILY_dsPIC33);
+          // Revision
+          SendByte(0);
+          SendByte(1);
+          // Application
+          SendByte(Ord('R'));
+          SendByte(Ord('P'));
+          SendByte(Ord('i'));
+          SendByte(Ord('C'));
+          SendByte(Ord('A'));
+          SendByte(Ord('N'));
+          SendByte(Ord(#0));
+          SendByte($00);
+          SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
+          BootState := BOOT_STATE_LISTEN;
+        end;
+    end
+  end;
+end;
 
 // *****************************************************************************
 //  INTERRUPTS
@@ -87,10 +467,10 @@ begin
   begin
     Extended := True;
     dsPIC33_DMA_Style_Buffer(OpenLCBCanBufferPtr^, Extended, CAN_DIRECTION_READ, @Can_RawBufferArray[3].Word0);
-    CAN_IsReceiveFull(3, True);  // Rest the hardware "full" flag so we are ready for the next message
+    C1RXFUL1 := %1111111111110111;  // Clear channel 3 Rx, there is a bug in the silicon for this.  See the errata
   end;
 end;
-
+  
 //******************************************************************************
 // Fired immeditatly after the DMA SPI receive cycle is complete.
 //******************************************************************************
@@ -99,6 +479,7 @@ var
   NextCanOutBuffer: POpenLCBCanBuffer;
   GridConnectStr: TGridConnectString;
   i: Integer;
+  S1: string[128];
 begin
   DMA0IF_bit := 0;
   if InSync then
@@ -115,9 +496,18 @@ begin
 
     if (GridConnectStr[0] = ':') then
     begin
-      NextCanOutBuffer := CanBufferOut_NextEmpty;
-      if NextCanOutBuffer <> nil then
-        GridConnectStr_ToCanBuffer(@GridConnectStr, NextCanOutBuffer);
+      case GridConnectStr[1] of
+        'X' : begin
+                NextCanOutBuffer := CanBufferOut_NextEmpty;
+                if NextCanOutBuffer <> nil then
+                  GridConnectStr_ToCanBuffer(@GridConnectStr, NextCanOutBuffer);
+              end;
+        'B' : begin
+                UART1_Write_Text('Entering Bootloader' + LF);
+                InitBootloader;
+                Bootloading := True;  // Wait till the end of the SS
+              end;
+      end;
     end else
     begin
       if GridConnectStr[0] <> '' then
@@ -135,10 +525,6 @@ end;
 procedure interrupt_DMA1_SPI_Transmit(); iv IVT_ADDR_DMA1INTERRUPT;
 begin
   DMA1IF_bit := 0;
-  
-  LATB5_bit := 1;
-  Delay_us(2);
-  LATB5_bit := 0;
 end;
 
 //******************************************************************************
@@ -151,7 +537,7 @@ end;
 procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
 var
   PortCopy: Word;
-  iRawBufferMsg, iRawBuffer, iChar: Integer;
+  iRawBufferMsg, iRawBuffer, iRawChar, LenGridConnect, i: Integer;
 begin
   CNIF_bit := 0;
   if InSync then
@@ -159,40 +545,40 @@ begin
     PortCopy := PORTB;    // Clear all changes
     if PortCopy.B0 = 1 then     // Just finished a CS low and data transfer, now dormant
     begin
+      if Bootloading then
+        RunBootloader;   // When we jump here we never return
+      
       DMA1CNT := MAX_RAWBUFFER_BYTES-1;   // DMAxCNT + 1 = number of bytes on DMA transfer
       iRawBufferMsg := 0;
       iRawBuffer := 0;
-      while iRawBuffer < MAX_RAWBUFFER_BYTES do
+      // Run all the messages in a single Spi Packet
+      for iRawBufferMsg := 0 to MAX_RAWBUFFER_MESSAGES - 1 do
       begin
-        if iRawBufferMsg >= MAX_RAWBUFFER_MESSAGES then
+        while DMA2IE_bit = 1 do DMA2IE_bit := 0;     // Disable the incoming CAN interrupts (higher priority) till we are done with the buffer for CAN in
+        if CanBufferIn_NextFull(SpiOutBuffer.OpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
         begin
-          Spi_TxARawBufferArray[iRawBuffer] := 0;
-          Inc(iRawBuffer)
+          LenGridConnect := GridConnect_BufferToGridConnect(SpiOutBuffer.OpenLcbBuffer, @SpiOutBuffer.GridConnectStr);
+          // Run all 30 characters
+          for iRawChar := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
+          begin
+            if iRawChar < LenGridConnect then
+               Spi_TxARawBufferArray[iRawBuffer] := SpiOutBuffer.GridConnectStr[iRawChar]
+            else
+              Spi_TxARawBufferArray[iRawBuffer] := 0;
+            Inc(iRawBuffer)
+          end;
         end else
         begin
-          while DMA2IE_bit = 1 do DMA2IE_bit := 0;     // Disable the incoming CAN interrupts (higher priority) till we are done with the buffer for CAN in
-          if CanBufferIn_NextFull(SpiOutBuffer.OpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
-          begin
-            Inc(iRawBufferMsg);
-            GridConnect_BufferToGridConnect(SpiOutBuffer.OpenLcbBuffer, @SpiOutBuffer.GridConnectStr);
-            for iChar := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
-            begin
-              if SpiOutBuffer.GridConnectStr[iChar] <> #0 then
-              begin
-                Spi_TxARawBufferArray[iRawBuffer] := SpiOutBuffer.GridConnectStr[iChar];
-                Inc(iRawBuffer);
-              end else
-                Break;
-            end;
-          end else
+          // Run all 30 characters
+          for iRawChar := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
           begin
             Spi_TxARawBufferArray[iRawBuffer] := 0;
             Inc(iRawBuffer)
           end;
-          DMA2IE_bit := 1;
         end;
+        DMA2IE_bit := 1;
       end;
-    end
+    end;
   end else
   begin
     PortCopy := PORTB;    // Clear all changes
@@ -212,21 +598,26 @@ var
   Address: DWord;
 begin
   { Main program }
+  {$IFDEF MAP_BOOTLOADER}
+  SetOrg(RunBootloader, __BOOT_CODE_ADDRESS);
+  {$ENDIF}
   
+  LATA4_bit := 0;
+  LATB5_bit := 0;
   TRISB5_bit := 0;
-  TRISA0_bit := 0;
+  TRISA4_bit := 0;
 
   InvalidSpiReceives := 0;
   InSync := False;
+  Bootloading := False;
+
   MCU_Setup_Initialize;
   CanBufferOut_Initialize;
   CanBufferIn_Initialize;
   MCU_Enable_100msTimer;
   MCU_Enable_UART;
-  
   MCU_Enable_SPI;
   EnableSpi(False);
-  
   MCU_Enable_PinChangeNotification;
 
   TON_T1CON_bit := 1;       // Turn on 500ms timer

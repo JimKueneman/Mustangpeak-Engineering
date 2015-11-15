@@ -1,12 +1,12 @@
 [DEVICE]
-Name=P33EP512MU810
+Name=P33EP256GP502
 Clock=140000000
 [MEMORY_MODEL]
 Value=0
 [BUILD_TYPE]
 Value=0
 [ACTIVE_TAB]
-Value=..\bootloader_core\bootloader_mcu_flash.mpas
+Value=..\bootloader_core\bootloader_common_defines.mpas
 [USE_EEPROM]
 Value=0
 [USE_HEAP]
@@ -48,17 +48,12 @@ Count=0
 Count=1
 File0=bootloader_user\options_user.inc
 [SEARCH_PATH]
-Count=10
-Path0=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\defs\
-Path1=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\uses\
-Path2=Y:\mikroPascal\dsPIC33\
-Path3=C:\Users\Public\Documents\mikroElektronika\mikroPascal PRO for dsPIC\defs\
-Path4=C:\Users\Public\Documents\mikroElektronika\mikroPascal PRO for dsPIC\uses\
-Path5=C:\Users\Jim\Documents\svn\OpenMikroBootloader\mikroPascal\dsPIC33\
-Path6=C:\Users\Jim\Documents\svn\OpenMikroBootloader\mikroPascal\bootloader_core\
-Path7=C:\Users\Jim\Documents\svn\OpenMikroBootloader\mikroPascal\dsPIC33\bootloader_user\
-Path8=Y:\mikroPascal\bootloader_core\
-Path9=Y:\mikroPascal\dsPIC33\bootloader_user\
+Count=13
+Path0=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
+Path1=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
+Path2=Z:\Mustangpeak-Engineering\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\dsPIC33\
+Path11=Z:\Mustangpeak-Engineering\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\bootloader_core\
+Path12=Z:\Mustangpeak-Engineering\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\dsPIC33\bootloader_user\
 [HEADER_PATH]
 Count=0
 [HEADERS]
@@ -72,8 +67,7 @@ File1=Conversions
 File2=String
 File3=Peripheral_Pin_Select
 File4=FLASH
-[EXPANDED NODES]
-Node1=Sources
-Node2=Output Files
-Node3=Other Files
-Count=3
+[EXPANDED_NODES]
+Node0=Sources
+Node1=Output Files
+Count=2

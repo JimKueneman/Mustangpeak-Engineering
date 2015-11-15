@@ -19,7 +19,7 @@ const
   MAX_RAWBUFFER_MESSAGES = 8;
   MAX_RAWBUFFER_BYTES = MAX_SPI_GRIDCONNECT_CHAR_COUNT * MAX_RAWBUFFER_MESSAGES;
 
-  CAN_DMA_DATA_OFFSET = $1000;                // This is the start of the X-Data area.  Some of the dsPIC33s require DMA RAM to be
+  CAN_DMA_DATA_OFFSET = __XRAM_RAM_START;               // This is the start of the X-Data area.  Some of the dsPIC33s require DMA RAM to be
   SPI_RX_DMA_A_DATA_OFFSET = CAN_DMA_DATA_OFFSET + (SizeOf(TCANRawBuffer) * MAX_ECAN_BUFFER);
   SPI_RX_DMA_B_DATA_OFFSET = SPI_RX_DMA_A_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_GRIDCONNECT_CHAR_COUNT);
   SPI_TX_DMA_A_DATA_OFFSET = SPI_RX_DMA_B_DATA_OFFSET + (SizeOf(Byte) * MAX_SPI_GRIDCONNECT_CHAR_COUNT);
@@ -137,6 +137,8 @@ var
   i: Integer;
 begin
   CNPUB0_bit := 1;  // Pull up on CN
+  CNPDB9_bit := 1;  // Pull down on MOSI
+  
   PPS_Mapping(32, _INPUT, _SS2IN);                                      // Set RPI121 (RG9) to the Slave Select (CS) Input Rece
 
   for i := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
@@ -444,7 +446,7 @@ end;
 
 procedure MCU_Enable_PinChangeNotification;
 begin
-  CNIEB0_bit := 1;  // Pin Change Notification Interrupt on B6
+  CNIEB0_bit := 1;  // Pin Change Notification Interrupt on B0
   CNIP_0_bit := 1;  // Interrupt priority = 1
   CNIP_1_bit := 0;
   CNIP_2_bit := 0;
