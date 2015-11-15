@@ -14,7 +14,7 @@ Value=2000
 [EEPROM_DEFINITION]
 Value=
 [ACTIVE_TAB]
-Value=EthernetCanHub.mpas
+Value=CanBufferOut.mpas
 [FILES]
 Count=8
 File0=EthernetCanHub.mpas
@@ -34,8 +34,8 @@ ActiveImageIndex=-1
 Count=4
 File0=EthernetCanHub.mpas
 File1=Templates\MCU_Setup_dsPIC33EPxxxGP502.mpas
-File2=..\..\..\..\..\..\TCH Technologies Software\Mustangpeak\mikroPascal\Library\ENC624J600_Florin\TFTP_Bootloader_8K_V1_1\TFTP_Bootloader_8K.mpas
-File3=HelperCAN.mpas
+File2=CanBufferOut.mpas
+File3=CanBufferIn.mpas
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]

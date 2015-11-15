@@ -16,7 +16,7 @@ function CanBufferOut_NextEmpty: POpenLCBCanBuffer;
 function CanBufferOut_NextFull(var CanBuffer: TOpenLCBCanBuffer): Boolean;
 
 const
-  CAN_OUT_BUFFER_MAX = 128;
+  CAN_OUT_BUFFER_MAX = 1024;
   
 type
   TCanOutBuffer = record
