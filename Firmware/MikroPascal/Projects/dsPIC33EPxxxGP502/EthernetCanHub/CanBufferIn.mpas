@@ -5,7 +5,8 @@
 unit CanBufferIn;
 
 uses
-  HelperCAN;
+  HelperCAN, 
+  MCU_Setup_dsPIC33EPxxxGP502;
 
 // Called one on startup to initialize internal variables
 procedure CanBufferIn_Initialize;
@@ -14,11 +15,6 @@ function CanBufferIn_NextEmpty: POpenLCBCanBuffer;
 // Returns the next buffer to that came in on the CAN, if there is nothing to send it returns false and CanBuffer is undefined
 // The result is a COPY of what was in the buffer, the buffer is released before this function returns with the copy
 function CanBufferIn_NextFull(var CanBuffer: TOpenLCBCanBuffer): Boolean;
-
-
-
-const
-  CAN_IN_BUFFER_MAX = 16;
 
 type
   TCanInBuffer = record

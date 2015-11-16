@@ -20,7 +20,7 @@ program EthernetCanHub;
 {$DEFINE ENABLE_UART_INTERFACE}
 
 {.$DEFINE IGNORE_BOOTLOADER_MAPPING}
-{.$DEFINE SIMULATE_FLASH_WRITE}
+{$DEFINE SIMULATE_FLASH_WRITE}
 
 const
   CMD_LINK               = $EF;
@@ -50,20 +50,28 @@ const
     __ERASE_INSTRUCTION_PAGE_SIZE = 1024;                                       // 1024 instructions
   {$ENDIF}
   
+  {$IFDEF P33EP32GP502}__CONFIGURATION_BYTES = $0057EC;{$ENDIF}
+  {$IFDEF P33EP64GP502}__CONFIGURATION_BYTES = $00AFEC;{$ENDIF}
+  {$IFDEF P33EP128GP502}__CONFIGURATION_BYTES = $0157EC;{$ENDIF}
+  {$IFDEF P33EP256GP502}__CONFIGURATION_BYTES = $02AFEC;{$ENDIF}
+  {$IFDEF P33EP512GP502}__CONFIGURATION_BYTES = $0557EC;{$ENDIF}
+  
+  
   __ADDRESS_DELTA_PER_INSTRUCTION = 2;                                          // dsPIC33 increments the Address by 2 for each instruction
   
-  __ERASE_BUFFER_SIZE = DWord((__ERASE_INSTRUCTION_PAGE_SIZE * 3));             //  * 3 bytes per instruction
-  __ERASE_BUFFER_ADDRESS_SIZE = __ERASE_INSTRUCTION_PAGE_SIZE * __ADDRESS_DELTA_PER_INSTRUCTION;
+  __ERASE_BUFFER_BYTES_SIZE = DWord((__ERASE_INSTRUCTION_PAGE_SIZE * 3));       //  * 3 bytes per instruction
+  __ERASE_BUFFER_ADDRESS_SIZE = __ERASE_INSTRUCTION_PAGE_SIZE * __ADDRESS_DELTA_PER_INSTRUCTION;     
+  __WRITE_BUFFER_BYTES_SIZE = DWord(128 * 3);                                   // 64 Instructions * 3 bytes per instruction
   
   __FLASH_INSTRUCTION_SIZE = __FLASH_SIZE div 3;                                // 3 bytes per instruction
   __FLASH_MAX_ADDRESS = __FLASH_INSTRUCTION_SIZE * __ADDRESS_DELTA_PER_INSTRUCTION;
   
-  __BOOT_CODE_SIZE    = DWord(2048);                                             // MUST MAKE SURE THIS IS TRUE
-  __BOOT_CODE_INSTRUCTION_SIZE = __BOOT_CODE_SIZE div 3;
+  __BOOT_CODE_BYTES_SIZE    = DWord(2048);                                      // MUST MAKE SURE THIS IS TRUE
+  __BOOT_CODE_INSTRUCTION_SIZE = __BOOT_CODE_BYTES_SIZE div 3;
   __BOOT_CODE_ADDRESS_SIZE =  __BOOT_CODE_INSTRUCTION_SIZE * __ADDRESS_DELTA_PER_INSTRUCTION;
   
   __BOOT_CODE_ADDRESS = ((__FLASH_MAX_ADDRESS - __BOOT_CODE_ADDRESS_SIZE) div __ERASE_BUFFER_ADDRESS_SIZE)*__ERASE_BUFFER_ADDRESS_SIZE;     // MUST MAKE SURE THIS IS TRUE
-  __WRITE_BUFFER_SIZE = DWord(128 * 3);                                                   // 64 Instructions * 3 bytes per instruction
+
 
   MAX_FLASH_WRITE_LATCH_COUNT = 2;  // dsPIC33EPxxxGP502's have latches for 2 instructions (3*2 = 6 bytes)
   
@@ -121,7 +129,7 @@ type
 var
   SpiOutBuffer: TSpiOutBuffer;
   InvalidSpiReceives: DWord;
-  InSync, Bootloading: Boolean;
+  InSync, Bootloading, FlowControlOn: Boolean;
 
   
 procedure InitBootloader;
@@ -209,7 +217,7 @@ begin
   end;
 end;
 
-procedure Flash_Write_24(Address: DWord; var Buffer: array[__WRITE_BUFFER_SIZE] of Byte; ByteCount: Integer); {$IFNDEF IGNORE_BOOTLOADER_MAPPING}org __BOOT_CODE_ADDRESS + $400;{$ENDIF}
+procedure Flash_Write_24(Address: DWord; var Buffer: array[__WRITE_BUFFER_BYTES_SIZE] of Byte; ByteCount: Integer); {$IFNDEF IGNORE_BOOTLOADER_MAPPING}org __BOOT_CODE_ADDRESS + $400;{$ENDIF}
 var 
   InstructionHiWord, InstructionLoWord: Word;
   iBuffer, iLatch, NormalizedByteCount: Integer;
@@ -283,7 +291,7 @@ var
   WriteAddress, EraseAddress, EraseBlocks, WriteCount: DWord;
   i: Integer;
   s1: string[128];
-  RxBuffer: array[__WRITE_BUFFER_SIZE] of Byte;
+  RxBuffer: array[__WRITE_BUFFER_BYTES_SIZE] of Byte;
 begin
   // When we enter here it is because we receive an "Enter Bootloader" command, we must reply we have entered it
   
@@ -304,7 +312,6 @@ begin
     case BootState of
       BOOT_STATE_LISTEN :
         begin
-          LATA4_bit := 1;
           if SPIRBF_SPI1STAT_bit = 1 then
           begin
             LATB5_bit := 1;
@@ -318,11 +325,10 @@ begin
             end;
             LATB5_bit := 0;
           end;
-          LATA4_bit := 0;
         end;
       BOOT_STATE_WRITE_BLOCK :
         begin
-          WriteCount := __WRITE_BUFFER_SIZE;
+          WriteCount := __WRITE_BUFFER_BYTES_SIZE;
           for i := 0 to WriteCount - 1 do
           begin
             while SPIRBF_SPI1STAT_bit = 0 do;
@@ -331,7 +337,7 @@ begin
           {$IFDEF SIMULATE_FLASH_WRITE}
           LongWordToHex(WriteAddress, s1);
           UART1_Write_Text('Write Block Address: ' + s1);
-          LongWordToStr(__WRITE_BUFFER_SIZE, s1);
+          LongWordToStr(__WRITE_BUFFER_BYTES_SIZE, s1);
           UART1_Write_Text(', Count: ' + s1);
           UART1_Write_Text(LF);
           {$ELSE}
@@ -451,15 +457,15 @@ begin
           SendByte(Hi(BOOTINFO_REC_SIZE));
           SendByte(Lo(BOOTINFO_REC_SIZE));
           // Erase Block Size
-          SendByte(Highest( __ERASE_BUFFER_SIZE));
-          SendByte(Higher( __ERASE_BUFFER_SIZE));
-          SendByte(Hi( __ERASE_BUFFER_SIZE));
-          SendByte(Lo( __ERASE_BUFFER_SIZE));
+          SendByte(Highest( __ERASE_BUFFER_BYTES_SIZE));
+          SendByte(Higher( __ERASE_BUFFER_BYTES_SIZE));
+          SendByte(Hi( __ERASE_BUFFER_BYTES_SIZE));
+          SendByte(Lo( __ERASE_BUFFER_BYTES_SIZE));
           // Write Buffer Size
-          SendByte(Highest( __WRITE_BUFFER_SIZE));
-          SendByte(Higher( __WRITE_BUFFER_SIZE));
-          SendByte(Hi( __WRITE_BUFFER_SIZE));
-          SendByte(Lo( __WRITE_BUFFER_SIZE));
+          SendByte(Highest( __WRITE_BUFFER_BYTES_SIZE));
+          SendByte(Higher( __WRITE_BUFFER_BYTES_SIZE));
+          SendByte(Hi( __WRITE_BUFFER_BYTES_SIZE));
+          SendByte(Lo( __WRITE_BUFFER_BYTES_SIZE));
           // Flash Size
           SendByte(Highest( __FLASH_SIZE));
           SendByte(Higher( __FLASH_SIZE));
@@ -471,15 +477,15 @@ begin
           SendByte(Hi( __BOOT_CODE_ADDRESS));
           SendByte(Lo( __BOOT_CODE_ADDRESS));
           // Bootloader Size
-          SendByte(Highest( __BOOT_CODE_SIZE));
-          SendByte(Higher( __BOOT_CODE_SIZE));
-          SendByte(Hi( __BOOT_CODE_SIZE));
-          SendByte(Lo( __BOOT_CODE_SIZE));
+          SendByte(Highest( __BOOT_CODE_BYTES_SIZE));
+          SendByte(Higher( __BOOT_CODE_BYTES_SIZE));
+          SendByte(Hi( __BOOT_CODE_BYTES_SIZE));
+          SendByte(Lo( __BOOT_CODE_BYTES_SIZE));
           // Configuration Address
-          SendByte(0);
-          SendByte(0);
-          SendByte(0);
-          SendByte(0);
+          SendByte(Highest( __CONFIGURATION_BYTES));
+          SendByte(Higher( __CONFIGURATION_BYTES));
+          SendByte(Hi( __CONFIGURATION_BYTES));
+          SendByte(Lo( __CONFIGURATION_BYTES));
           // McuFamily
           SendByte(FAMILY_dsPIC33);
           // Revision
@@ -621,6 +627,9 @@ procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
 var
   PortCopy: Word;
   iRawBufferMsg, iRawBuffer, iRawChar, LenGridConnect: Integer;
+const
+  XON: array[12] of Char = (':', 'R', '1', '0', '0', '0', '0', '0', '0', '0', 'N', ';');
+  XOFF: array[12] of Char = (':', 'R', '0', '0', '0', '0', '0', '0', '0', '0', 'N', ';');
 begin
   CNIF_bit := 0;
   if InSync then
@@ -637,6 +646,47 @@ begin
       // Run all the messages in a single Spi Packet
       for iRawBufferMsg := 0 to MAX_RAWBUFFER_MESSAGES - 1 do
       begin
+      
+        while DMA3IE_bit = 1 do DMA3IE_bit := 0;     // Disable the outgoing CAN interrupts (higher priority) till we are done with the buffer for CAN out
+        if CanOut.Count > CAN_OUT_BUFFER_MAX - (MAX_RAWBUFFER_MESSAGES+3) then
+        begin
+          if not FlowControlOn then
+          begin
+        LATA4_bit := 1;
+        Delay_us(2);
+        LATA4_bit := 0;
+            for iRawChar := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
+            begin
+              if iRawChar < Length(XON) then
+                Spi_TxARawBufferArray[iRawBuffer] := XON[iRawChar]
+              else
+                Spi_TxARawBufferArray[iRawBuffer] := 0;
+              Inc(iRawBuffer)
+            end;
+            FlowControlOn := True;
+          end;
+        end;
+        if CanOut.Count < CAN_OUT_BUFFER_MAX -  - (MAX_RAWBUFFER_MESSAGES+3) then
+        begin
+          if FlowControlOn then
+          begin
+        LATA4_bit := 1;
+        Delay_us(2);
+        LATA4_bit := 0;
+        
+            for iRawChar := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
+            begin
+              if iRawChar < Length(XON) then
+                Spi_TxARawBufferArray[iRawBuffer] := XOFF[iRawChar]
+              else
+                Spi_TxARawBufferArray[iRawBuffer] := 0;
+              Inc(iRawBuffer)
+            end;
+            FlowControlOn := False;
+          end;
+        end;
+        DMA3IE_bit := 1;
+      
         while DMA2IE_bit = 1 do DMA2IE_bit := 0;     // Disable the incoming CAN interrupts (higher priority) till we are done with the buffer for CAN in
         if CanBufferIn_NextFull(SpiOutBuffer.OpenLcbBuffer) then  // Do we have something useful to send from the incoming CAN messages?
         begin
@@ -689,6 +739,7 @@ begin
   InvalidSpiReceives := 0;
   InSync := False;
   Bootloading := False;
+  FlowControlOn := False;
 
   MCU_Setup_Initialize;
   CanBufferOut_Initialize;

@@ -1,4 +1,4 @@
-unit MCU_Setup_dsPIC33EP64GP502;
+unit MCU_Setup_dsPIC33EPxxxGP502;
 
 uses
   HelperCan;
@@ -18,6 +18,9 @@ const
   MAX_SPI_GRIDCONNECT_CHAR_COUNT = 30;         // Grid Connect = 29 + 1 because the return packet is one byte behind and I need the extra byte in transmit to receive the return byte (back to the master Pi)
   MAX_RAWBUFFER_MESSAGES = 8;
   MAX_RAWBUFFER_BYTES = MAX_SPI_GRIDCONNECT_CHAR_COUNT * MAX_RAWBUFFER_MESSAGES;
+  
+  CAN_IN_BUFFER_MAX = MAX_RAWBUFFER_MESSAGES * 3;                               // This must be at LEAST 3x the size of the MAX_RAWBUFFER_MESSAGES
+  CAN_OUT_BUFFER_MAX = MAX_RAWBUFFER_MESSAGES * 200;                              // This must be at LEAST 3x the size of the MAX_RAWBUFFER_MESSAGES
 
   CAN_DMA_DATA_OFFSET = __XRAM_RAM_START;               // This is the start of the X-Data area.  Some of the dsPIC33s require DMA RAM to be
   SPI_RX_DMA_A_DATA_OFFSET = CAN_DMA_DATA_OFFSET + (SizeOf(TCANRawBuffer) * MAX_ECAN_BUFFER);
