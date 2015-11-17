@@ -58,18 +58,19 @@ const
   
   
   __ADDRESS_DELTA_PER_INSTRUCTION = 2;                                          // dsPIC33 increments the Address by 2 for each instruction
+  __BYTES_PER_INSTRUCTION = 3;
   
   __ERASE_BUFFER_BYTES_SIZE = DWord((__ERASE_INSTRUCTION_PAGE_SIZE * 3));       //  * 3 bytes per instruction
   __ERASE_BUFFER_ADDRESS_SIZE = __ERASE_INSTRUCTION_PAGE_SIZE * __ADDRESS_DELTA_PER_INSTRUCTION;     
-  __WRITE_BUFFER_BYTES_SIZE = DWord(128 * 3);                                   // 64 Instructions * 3 bytes per instruction
+  __WRITE_BUFFER_BYTES_SIZE = DWord(128 * __BYTES_PER_INSTRUCTION);                                   // 64 Instructions * 3 bytes per instruction
   
-  __FLASH_INSTRUCTION_SIZE = __FLASH_SIZE div 3;                                // 3 bytes per instruction
+  __FLASH_INSTRUCTION_SIZE = __FLASH_SIZE div __BYTES_PER_INSTRUCTION;                                // 3 bytes per instruction
   __FLASH_MAX_ADDRESS = __FLASH_INSTRUCTION_SIZE * __ADDRESS_DELTA_PER_INSTRUCTION;
   
-  __BOOT_CODE_BYTES_SIZE    = DWord(2048);                                      // MUST MAKE SURE THIS IS TRUE
-  __BOOT_CODE_INSTRUCTION_SIZE = __BOOT_CODE_BYTES_SIZE div 3;
-  __BOOT_CODE_ADDRESS_SIZE =  __BOOT_CODE_INSTRUCTION_SIZE * __ADDRESS_DELTA_PER_INSTRUCTION;
-  
+  __BOOT_CODE_ADDRESS_SIZE =  2048;     // MUST MAKE SURE THIS IS TRU
+  __BOOT_CODE_BYTES_SIZE    = DWord(__BOOT_CODE_ADDRESS_SIZE * __BYTES_PER_INSTRUCTION / __ADDRESS_DELTA_PER_INSTRUCTION);
+  __BOOT_CODE_INSTRUCTION_SIZE = __BOOT_CODE_BYTES_SIZE div __BYTES_PER_INSTRUCTION;
+
   __BOOT_CODE_ADDRESS = ((__FLASH_MAX_ADDRESS - __BOOT_CODE_ADDRESS_SIZE) div __ERASE_BUFFER_ADDRESS_SIZE)*__ERASE_BUFFER_ADDRESS_SIZE;     // MUST MAKE SURE THIS IS TRUE
 
 

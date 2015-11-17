@@ -14,7 +14,7 @@ Value=2000
 [EEPROM_DEFINITION]
 Value=
 [ACTIVE_TAB]
-Value=Templates\MCU_Setup_dsPIC33EPxxxGP502.mpas
+Value=EthernetCanHub.mpas
 [FILES]
 Count=8
 File0=EthernetCanHub.mpas
@@ -31,11 +31,12 @@ Count=0
 Count=0
 ActiveImageIndex=-1
 [OPENED_FILES]
-Count=4
+Count=5
 File0=EthernetCanHub.mpas
 File1=CanBufferOut.mpas
 File2=Templates\MCU_Setup_dsPIC33EPxxxGP502.mpas
 File3=CanBufferIn.mpas
+File4=EthernetCanHub.lst
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]

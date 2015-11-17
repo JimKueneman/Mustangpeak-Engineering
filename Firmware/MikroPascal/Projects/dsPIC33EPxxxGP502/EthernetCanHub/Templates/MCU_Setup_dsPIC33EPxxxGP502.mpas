@@ -19,7 +19,7 @@ const
   MAX_RAWBUFFER_MESSAGES = 8;
   MAX_RAWBUFFER_BYTES = MAX_SPI_GRIDCONNECT_CHAR_COUNT * MAX_RAWBUFFER_MESSAGES;
   
-  CAN_IN_BUFFER_MAX = MAX_RAWBUFFER_MESSAGES * 3;                               // This must be at LEAST 3x the size of the MAX_RAWBUFFER_MESSAGES
+  CAN_IN_BUFFER_MAX = MAX_RAWBUFFER_MESSAGES * 10;                               // This must be at LEAST 3x the size of the MAX_RAWBUFFER_MESSAGES
   CAN_OUT_BUFFER_MAX = MAX_RAWBUFFER_MESSAGES * 200;                              // This must be at LEAST 3x the size of the MAX_RAWBUFFER_MESSAGES
 
   CAN_DMA_DATA_OFFSET = __XRAM_RAM_START;               // This is the start of the X-Data area.  Some of the dsPIC33s require DMA RAM to be
