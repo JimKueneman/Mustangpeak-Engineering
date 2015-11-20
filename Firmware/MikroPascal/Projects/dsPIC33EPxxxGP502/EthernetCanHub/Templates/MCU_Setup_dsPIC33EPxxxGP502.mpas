@@ -19,8 +19,10 @@ const
   MAX_RAWBUFFER_MESSAGES = 8;
   MAX_RAWBUFFER_BYTES = MAX_SPI_GRIDCONNECT_CHAR_COUNT * MAX_RAWBUFFER_MESSAGES;
   
-  CAN_IN_BUFFER_MAX = MAX_RAWBUFFER_MESSAGES * 10;                               // This must be at LEAST 3x the size of the MAX_RAWBUFFER_MESSAGES
-  CAN_OUT_BUFFER_MAX = MAX_RAWBUFFER_MESSAGES * 200;                              // This must be at LEAST 3x the size of the MAX_RAWBUFFER_MESSAGES
+  CAN_IN_BUFFER_MAX = MAX_RAWBUFFER_MESSAGES * 40;                              // This must be at LEAST 4x the size of the MAX_RAWBUFFER_MESSAGES    ; 40 give us 10ms worth of worse case CAN incoming frame buffering
+  CAN_OUT_BUFFER_MAX = MAX_RAWBUFFER_MESSAGES * 4;                              // This must be at LEAST 4x the size of the MAX_RAWBUFFER_MESSAGES
+  CAN_OUT_BUFFER_XOFF_LIMIT = 2 * MAX_RAWBUFFER_MESSAGES;
+  CAN_OUT_BUFFER_XON_LIMIT = MAX_RAWBUFFER_MESSAGES;
 
   CAN_DMA_DATA_OFFSET = __XRAM_RAM_START;               // This is the start of the X-Data area.  Some of the dsPIC33s require DMA RAM to be
   SPI_RX_DMA_A_DATA_OFFSET = CAN_DMA_DATA_OFFSET + (SizeOf(TCANRawBuffer) * MAX_ECAN_BUFFER);

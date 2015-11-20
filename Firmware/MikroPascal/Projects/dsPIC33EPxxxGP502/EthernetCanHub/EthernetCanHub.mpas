@@ -130,7 +130,7 @@ type
 var
   SpiOutBuffer: TSpiOutBuffer;
   InvalidSpiReceives: DWord;
-  InSync, Bootloading, FlowControlOn: Boolean;
+  InSync, Bootloading, Xon: Boolean;
 
   
 procedure InitBootloader;
@@ -574,6 +574,9 @@ begin
   DMA0IF_bit := 0;
   if InSync then
   begin
+  
+  LATB5_bit:= 1;
+  
     if PingPongASelected(DMACHANNEL_0) then
     begin
       for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // A is selected as this message is coming in, the instant this interrupt is entered the module switches to the B to prepare for the next message
@@ -606,6 +609,9 @@ begin
         UART1_Write_Text(GridConnectStr + LF);
       end;
     end;
+    
+    LATB5_bit := 0;
+    
   end;
 end;
 
@@ -629,8 +635,8 @@ var
   PortCopy: Word;
   iRawBufferMsg, iRawBuffer, iRawChar, LenGridConnect: Integer;
 const
-  XON: array[12] of Char = (':', 'R', '1', '0', '0', '0', '0', '0', '0', '0', 'N', ';');
-  XOFF: array[12] of Char = (':', 'R', '0', '0', '0', '0', '0', '0', '0', '0', 'N', ';');
+  _XON: array[12] of Char = (':', 'R', '0', '0', '0', '0', '0', '0', '0', '0', 'N', ';');
+  _XOFF: array[12] of Char = (':', 'R', '1', '0', '0', '0', '0', '0', '0', '0', 'N', ';');
 begin
   CNIF_bit := 0;
   if InSync then
@@ -649,41 +655,43 @@ begin
       begin
       
         while DMA3IE_bit = 1 do DMA3IE_bit := 0;     // Disable the outgoing CAN interrupts (higher priority) till we are done with the buffer for CAN out
-        if CanOut.Count > CAN_OUT_BUFFER_MAX - (MAX_RAWBUFFER_MESSAGES+3) then
+        
+        // Inject a Xon/Xoff message into the Packet if the Can out buffer is getting close to capacity.
+        if CanOut.Count > CAN_OUT_BUFFER_MAX - CAN_OUT_BUFFER_XOFF_LIMIT then
         begin
-          if not FlowControlOn then
+          if Xon then
           begin
         LATA4_bit := 1;
         Delay_us(2);
         LATA4_bit := 0;
             for iRawChar := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
             begin
-              if iRawChar < Length(XON) then
-                Spi_TxARawBufferArray[iRawBuffer] := XON[iRawChar]
+              if iRawChar < Length(_XON) then
+                Spi_TxARawBufferArray[iRawBuffer] := _XON[iRawChar]
               else
                 Spi_TxARawBufferArray[iRawBuffer] := 0;
               Inc(iRawBuffer)
             end;
-            FlowControlOn := True;
+            XOn := False;
           end;
         end;
-        if CanOut.Count < CAN_OUT_BUFFER_MAX -  - (MAX_RAWBUFFER_MESSAGES+3) then
+        if CanOut.Count < CAN_OUT_BUFFER_MAX - CAN_OUT_BUFFER_XON_LIMIT then
         begin
-          if FlowControlOn then
+          if not XOn then
           begin
         LATA4_bit := 1;
-        Delay_us(2);
+        Delay_us(4);
         LATA4_bit := 0;
         
             for iRawChar := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
             begin
-              if iRawChar < Length(XON) then
-                Spi_TxARawBufferArray[iRawBuffer] := XOFF[iRawChar]
+              if iRawChar < Length(_XOFF) then
+                Spi_TxARawBufferArray[iRawBuffer] := _XOFF[iRawChar]
               else
                 Spi_TxARawBufferArray[iRawBuffer] := 0;
               Inc(iRawBuffer)
             end;
-            FlowControlOn := False;
+            XOn := True;
           end;
         end;
         DMA3IE_bit := 1;
@@ -739,8 +747,8 @@ begin
 
   InvalidSpiReceives := 0;
   InSync := False;
+  Xon := True;
   Bootloading := False;
-  FlowControlOn := False;
 
   MCU_Setup_Initialize;
   CanBufferOut_Initialize;
@@ -895,6 +903,8 @@ begin
                   UART1_Write_Text('CanIn.MaxCount = ' + s1 + LF);
                   LongWordToStr(CanIn.TotalCount, s1);
                   UART1_Write_Text('CanIn.TotalCount = ' + s1 + LF);
+                  LongWordToStr(CAN_IN_BUFFER_MAX, s1);
+                  UART1_Write_Text('CanIn Buffer = ' + s1 + LF);
 
                   IntToStr(CanOut.Count, s1);
                   UART1_Write_Text('CanOut.Count = ' + s1 + LF);
@@ -902,6 +912,8 @@ begin
                   UART1_Write_Text('CanOut.MaxCount = ' + s1 + LF);
                   LongWordToStr(CanOut.TotalCount, s1);
                   UART1_Write_Text('CanOut.TotalCount = ' + s1 + LF);
+                  LongWordToStr(CAN_OUT_BUFFER_MAX, s1);
+                  UART1_Write_Text('CanOut Buffer = ' + s1 + LF);
 
                   LongWordToStr(InvalidSpiReceives, s1);
                   UART1_Write_Text('InvalidSpiReceives = ' + s1 + LF);

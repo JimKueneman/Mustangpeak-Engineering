@@ -53,22 +53,24 @@ end;
 
 function CanBufferOut_NextEmpty: POpenLCBCanBuffer;
 begin
-  Result := @CanOut.Buffer[CanOut.iHead];
-  Inc(CanOut.iHead);
-  if CanOut.iHead >= CAN_OUT_BUFFER_MAX then
-    CanOut.iHead := 0;
-  Inc(CanOut.Count);
-  if CanOut.Count > CanOut.MaxCount then
-    CanOut.MaxCount := CanOut.Count;
-  if CanOut.iHead = CanOut.iTail then
+  Result := nil;
+  if CanOut.Count < CAN_OUT_BUFFER_MAX - 1 then
   begin
-    Dec(CanOut.iHead);
-    if CanOut.iHead < 0 then
-      CanOut.iHead := CAN_OUT_BUFFER_MAX - 1;
-    CanOut.Overrun := True;
-    Result := nil;
-  end else
+    // Pickup the next head
+    Result := @CanOut.Buffer[CanOut.iHead];
+    // Move to the next Head
+    Inc(CanOut.iHead);
+    // Check for Rollover
+    if CanOut.iHead >= CAN_OUT_BUFFER_MAX then
+      CanOut.iHead := 0;
+    // Update Count used
+    Inc(CanOut.Count);
+    // Update the largest Count used
+    if CanOut.Count > CanOut.MaxCount then
+      CanOut.MaxCount := CanOut.Count;
+    // Increase the running total
     Inc(CanOut.TotalCount);
+  end
 end;
 
 

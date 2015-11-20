@@ -14,7 +14,7 @@ Value=2000
 [EEPROM_DEFINITION]
 Value=
 [ACTIVE_TAB]
-Value=EthernetCanHub.mpas
+Value=Templates\MCU_Setup_dsPIC33EPxxxGP502.mpas
 [FILES]
 Count=8
 File0=EthernetCanHub.mpas
