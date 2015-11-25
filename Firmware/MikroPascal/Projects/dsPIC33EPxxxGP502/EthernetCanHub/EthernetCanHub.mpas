@@ -19,8 +19,9 @@ program EthernetCanHub;
 
 {$DEFINE ENABLE_UART_INTERFACE}
 
-{.$DEFINE IGNORE_BOOTLOADER_MAPPING}
-{$DEFINE SIMULATE_FLASH_WRITE}
+{.$DEFINE IGNORE_BOOTLOADER_MAPPING}   // If ignored then the bootloader code is not placed in the top 2k memory
+{.$DEFINE SIMULATE_FLASH_WRITE}         // If simulate the code to write is not called, just some UART output is called
+{.$DEFINE SIMULATE_FLASH_ERASE}         // If simulate the code to erase is not called, just some UART output is called
 
 const
   CMD_LINK               = $EF;
@@ -60,14 +61,14 @@ const
   __ADDRESS_DELTA_PER_INSTRUCTION = 2;                                          // dsPIC33 increments the Address by 2 for each instruction
   __BYTES_PER_INSTRUCTION = 3;
   
-  __ERASE_BUFFER_BYTES_SIZE = DWord((__ERASE_INSTRUCTION_PAGE_SIZE * 3));       //  * 3 bytes per instruction
+  __ERASE_BUFFER_BYTES_SIZE = DWord((__ERASE_INSTRUCTION_PAGE_SIZE * __BYTES_PER_INSTRUCTION));       //  * 3 bytes per instruction
   __ERASE_BUFFER_ADDRESS_SIZE = __ERASE_INSTRUCTION_PAGE_SIZE * __ADDRESS_DELTA_PER_INSTRUCTION;     
   __WRITE_BUFFER_BYTES_SIZE = DWord(128 * __BYTES_PER_INSTRUCTION);                                   // 64 Instructions * 3 bytes per instruction
   
   __FLASH_INSTRUCTION_SIZE = __FLASH_SIZE div __BYTES_PER_INSTRUCTION;                                // 3 bytes per instruction
   __FLASH_MAX_ADDRESS = __FLASH_INSTRUCTION_SIZE * __ADDRESS_DELTA_PER_INSTRUCTION;
   
-  __BOOT_CODE_ADDRESS_SIZE =  2048;     // MUST MAKE SURE THIS IS TRU
+  __BOOT_CODE_ADDRESS_SIZE =  2048;     // MUST MAKE SURE THIS IS TRUE
   __BOOT_CODE_BYTES_SIZE    = DWord(__BOOT_CODE_ADDRESS_SIZE * __BYTES_PER_INSTRUCTION / __ADDRESS_DELTA_PER_INSTRUCTION);
   __BOOT_CODE_INSTRUCTION_SIZE = __BOOT_CODE_BYTES_SIZE div __BYTES_PER_INSTRUCTION;
 
@@ -89,6 +90,7 @@ const
   BOOT_STATE_ERASE_BLOCKS = 5;
   BOOT_STATE_WRITE_BLOCK = 6;
   BOOT_STATE_WRITE = 7;
+  BOOT_STATE_RESET = 8;
   
 const
   FAMILY_PIC16F          = $00;
@@ -171,14 +173,29 @@ begin
   SPIBEN_SPI1CON2_bit := 0;
 end;
 
-procedure SendByte(AByte: Byte);
+function SendByte(AByte: Byte): Byte;{$IFNDEF IGNORE_BOOTLOADER_MAPPING}org __BOOT_CODE_ADDRESS + $700;{$ENDIF}
 begin
-  while SPITBF_SPI1STAT_bit = 1 do;  // Wait for the Tx Buffer to empty
+  
+  LATB5_bit := 1;
+  
+ // if SPIRBF_SPI1STAT_bit = 1 then
+ //   Result := SPI1BUF;
+  while SPITBF_SPI1STAT_bit = 1 do
+    nop;
   SPI1BUF := AByte;
+  while (SPIRBF_SPI1STAT_bit = 0) and (SPITBF_SPI1STAT_bit = 1) do
+    nop;
+  Result := SPI1BUF;                           // Dummy Read
+  
+  LATB5_bit := 0;
+  
 end;
 
-function Flash_Read_24(Address: DWord): DWord;{$IFNDEF IGNORE_BOOTLOADER_MAPPING}org __BOOT_CODE_ADDRESS + $500;{$ENDIF}
+function Flash_Read_24(var Address: DWord): DWord;{$IFNDEF IGNORE_BOOTLOADER_MAPPING}org __BOOT_CODE_ADDRESS + $700;{$ENDIF}
 begin
+
+// THIS IS NOT CORRECT FOR THIS DEVICE
+
   TBLPAG := Higher(Address);
   W0 := Word(Address);
   asm
@@ -189,15 +206,21 @@ begin
   Higher(Result) := Lo(W3);
 end;
 
-procedure Flash_Erase_Block(Address: DWord; Blocks: Integer);{$IFNDEF IGNORE_BOOTLOADER_MAPPING}org __BOOT_CODE_ADDRESS + $500;{$ENDIF}
+procedure Flash_Erase_Block(Address: DWord; Blocks: Integer);{$IFNDEF IGNORE_BOOTLOADER_MAPPING}org __BOOT_CODE_ADDRESS + $600;{$ENDIF}
 var
-  iBlock: Integer;
+  iBlock, LocalBlocks, Wait: Integer;
+  LocalAddress: DWord;
 begin
-  for iBlock := 0 to Blocks - 1 do
+  LocalBlocks := Blocks * 2;       // Have to double the Count since EA is half
+  LocalAddress := Address div 2;   // Convert to Effective Address
+  for iBlock := 0 to LocalBlocks - 1 do
   begin
+  
+  LATB5_bit := 1;
+  
     // Setup the Flash Address to erase
-    NVMADRU := Higher(Address);
-    NVMADR := Word(Address);
+    NVMADRU := Higher(LocalAddress);                             // Calcuate Effective Address
+    NVMADR := Word(LocalAddress);
     // Setup the Flash to Write and Erase a Page
     NVMCON := $4003;
     // Disable interrupts for a few cycles
@@ -214,49 +237,62 @@ begin
       NOP
       NOP
     end;
-    Address := Address + __ERASE_BUFFER_ADDRESS_SIZE;
+
+    for Wait := 0 to 5000 do;
+    
+    LATB5_bit := 0;
+    
+    LocalAddress := LocalAddress + __ERASE_INSTRUCTION_PAGE_SIZE;
   end;
 end;
 
-procedure Flash_Write_24(Address: DWord; var Buffer: array[__WRITE_BUFFER_BYTES_SIZE] of Byte; ByteCount: Integer); {$IFNDEF IGNORE_BOOTLOADER_MAPPING}org __BOOT_CODE_ADDRESS + $400;{$ENDIF}
+type
+  TBufferBytes = array[__WRITE_BUFFER_BYTES_SIZE] of Byte;
+  PBufferBytes = ^TBufferBytes;
+
+procedure Flash_Write_24(Address: DWord; Buffer: PBufferBytes;  ByteCount: DWord); {$IFNDEF IGNORE_BOOTLOADER_MAPPING}org __BOOT_CODE_ADDRESS + $500;{$ENDIF}
 var 
   InstructionHiWord, InstructionLoWord: Word;
-  iBuffer, iLatch, NormalizedByteCount: Integer;
+  iBuffer, iLatch, AlignedByteCount: Integer;
 begin
+
   iBuffer := 0;
+
   // Make the Byte Count a mulitple of the number of latches
-  NormalizedByteCount := ByteCount + (ByteCount mod MAX_FLASH_WRITE_LATCH_COUNT);
+  AlignedByteCount := ByteCount + (ByteCount mod MAX_FLASH_WRITE_LATCH_COUNT);
   
-  // Setup the Flash Address to erase
-  NVMADRU := Higher(Address);
-  NVMADR := Word(Address);
   // Point to the latches
-  TBLPAG := Higher($FA0000);
-  W8 := Word($FA0000);
+  TBLPAG := $00FA;
   
-  while iBuffer < NormalizedByteCount do
+  while iBuffer < AlignedByteCount do       // Should loop until iBuffer = 384
   begin
-    // Setup for Word Programming
-    asm
-      MOV #0x4001, W0
-      MOV W0, NVMCON // Initialize NVMCON
-    end;
+    // Setup the Flash EffectiveAddress to Write
+    NVMADRU := Higher(Address);
+    NVMADR := Word(Address);
+  
+    // Reset to the first latch to write this block of MAX_FLASH_WRITE_LATCH_COUNT latches
+    W8 := Word($0000);
+    
     // Load up the max latches this dsPIC33 supports
     for iLatch := 0 to MAX_FLASH_WRITE_LATCH_COUNT - 1 do
     begin
-      // Load a 24 Bit Instruction  
-      InstructionLoWord := 0;
-      InstructionHiWord := 0;
+      InstructionHiWord := $0000;
+      InstructionLoWord := $0000;
+        
       if iBuffer < ByteCount then
       begin
-        InstructionHiWord     := Buffer[iBuffer+2];
-        Hi(InstructionLoWord) := Buffer[iBuffer+1];
-        Lo(InstructionLoWord) := Buffer[iBuffer];
+        InstructionHiWord     := Buffer^[iBuffer+2];
+        Hi(InstructionLoWord) := Buffer^[iBuffer+1];
+        Lo(InstructionLoWord) := Buffer^[iBuffer];
       end;
       // Increment the Buffer to the next 24 Bit Instruction
       iBuffer := iBuffer + 3;
-      // Move the 24 Bit Instruction into the Latches
+      
+          // Setup for Word Programming
       asm
+        MOV #0x4001, W0
+        MOV W0, NVMCON // Initialize NVMCON
+        // Move the 24 Bit Instruction into the Latches
         PUSH W7
         PUSH W9
       end;
@@ -269,19 +305,20 @@ begin
         POP W7
       end;
     end;
+    
     asm
       DISI #5               // Block all interrupts with priority <7 for next 5 instructions
       MOV #0x55, W0
       MOV W0, NVMKEY        // Write the 55 key
-      MOV #0xAA, W1
-      MOV W1, NVMKEY        // Write the AA key
-      BSET NVMCON, #15      // Start the erase sequence
+      MOV #0xAA, W0
+      MOV W0, NVMKEY        // Write the AA key
+      BSET NVMCON, #15      // Start the write sequence
       NOP
       NOP
       BTSC NVMCON, #15      // and wait for it to be
       BRA $-2               // completed
     end;
-    Address := Address + (MAX_FLASH_WRITE_LATCH_COUNT * 2);   // dsPIC33 increment addresses by 2
+    Address := Address + (MAX_FLASH_WRITE_LATCH_COUNT * 2);
   end;
 end;
   
@@ -291,12 +328,12 @@ var
   BootState: Integer;
   WriteAddress, EraseAddress, EraseBlocks, WriteCount: DWord;
   i: Integer;
-  s1: string[128];
   RxBuffer: array[__WRITE_BUFFER_BYTES_SIZE] of Byte;
 begin
   // When we enter here it is because we receive an "Enter Bootloader" command, we must reply we have entered it
-  
+
   // no Pin Change Notification Interrupt on B0
+  CNIE_bit := 0;
   CNIEB0_bit := 0;
   SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
   DataIn := SPI1BUF;        // Flush the buffer
@@ -310,12 +347,14 @@ begin
   // Stuck here forever
   while True do
   begin
+  
+    LATA4_bit := SPIROV_SPI1STAT_bit;
+    
     case BootState of
       BOOT_STATE_LISTEN :
         begin
           if SPIRBF_SPI1STAT_bit = 1 then
           begin
-            LATB5_bit := 1;
             case SPI1BUF of
               CMD_SYNC               : BootState := BOOT_STATE_REPLY_SYNC;
               CMD_REQEUST_FLASH_DATA : BootState := BOOT_STATE_REPLY_WITH_INFO;
@@ -323,8 +362,8 @@ begin
               CMD_ERASE_BLOCKS       : BootState := BOOT_STATE_ERASE_BLOCKS;
               CMD_WRITE_BLOCK        : BootState := BOOT_STATE_WRITE_BLOCK;
               CMD_WRITE              : BootState := BOOT_STATE_WRITE;
+              CMD_RESET              : BootState := BOOT_STATE_RESET;
             end;
-            LATB5_bit := 0;
           end;
         end;
       BOOT_STATE_WRITE_BLOCK :
@@ -336,17 +375,19 @@ begin
             RxBuffer[i] := SPI1BUF;
           end;
           {$IFDEF SIMULATE_FLASH_WRITE}
-          LongWordToHex(WriteAddress, s1);
-          UART1_Write_Text('Write Block Address: ' + s1);
-          LongWordToStr(__WRITE_BUFFER_BYTES_SIZE, s1);
-          UART1_Write_Text(', Count: ' + s1);
-          UART1_Write_Text(LF);
+            {$IFDEF SIMULATE_FLASH_ERASE}      // Can't use any functions if we do erase/write
+            LongWordToHex(WriteAddress, s1);
+            UART1_Write_Text('Write Block Address: ' + s1);
+            LongWordToStr(__WRITE_BUFFER_BYTES_SIZE, s1);
+            UART1_Write_Text(', Count: ' + s1);
+            UART1_Write_Text(LF);
+            {$ENDIF}
           {$ELSE}
-          Flash_Write_24(WriteAddress, RxBuffer, WriteCount);
-          {$ENDIF}
+          Flash_Write_24(WriteAddress, @RxBuffer, WriteCount);
+          {$ENDIF} 
+          SPIROV_SPI1STAT_bit := 0;
           SendByte(CMD_WRITE_BLOCK);
-          SendByte($00);
-          SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
+          SendByte($00); 
           BootState := BOOT_STATE_LISTEN;
         end;
       BOOT_STATE_WRITE :
@@ -366,17 +407,19 @@ begin
             RxBuffer[i] := SPI1BUF;
           end;
           {$IFDEF SIMULATE_FLASH_WRITE}
-          LongWordToHex(WriteAddress, s1);
-          UART1_Write_Text('Write Address: ' + s1);
-          LongWordToStr(WriteCount, s1);
-          UART1_Write_Text(', Count: ' + s1);
-          UART1_Write_Text(LF);
+            {$IFDEF SIMULATE_FLASH_ERASE}      // Can't use any functions if we do erase/write
+            LongWordToHex(WriteAddress, s1);
+            UART1_Write_Text('Write Address: ' + s1);
+            LongWordToStr(WriteCount, s1);
+            UART1_Write_Text(', Count: ' + s1);
+            UART1_Write_Text(LF);
+            {$ENDIF}
           {$ELSE}
-          Flash_Write_24(WriteAddress, RxBuffer, WriteCount);
+          Flash_Write_24(WriteAddress, @RxBuffer, WriteCount);
           {$ENDIF}
-          SendByte(CMD_WRITE);
-          SendByte($00);
-          SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
+          SPIROV_SPI1STAT_bit := 0;
+          SendByte(CMD_WRITE);        
+          SendByte($00);  
           BootState := BOOT_STATE_LISTEN;
         end;
       BOOT_STATE_ERASE_BLOCKS :
@@ -390,19 +433,21 @@ begin
           Hi(EraseBlocks) := SPI1BUF;
           while SPIRBF_SPI1STAT_bit = 0 do;
           Lo(EraseBlocks) := SPI1BUF;
-          {$IFDEF SIMULATE_FLASH_WRITE}
-          for i := 0 to EraseBlocks - 1 do
-          begin
-            LongWordToHex(EraseAddress, s1);
-            UART1_Write_Text('Erase Address: ' + s1 + LF);
-            EraseAddress := EraseAddress + __ERASE_BUFFER_ADDRESS_SIZE;
-          end;
+          {$IFDEF SIMULATE_FLASH_ERASE}
+            {$IFDEF SIMULATE_FLASH_WRITE}    // Can't use any functions if we do erase/write
+            for i := 0 to EraseBlocks - 1 do
+            begin
+              LongWordToHex(EraseAddress, s1);
+              UART1_Write_Text('Erase Address: ' + s1 + LF);
+              EraseAddress := EraseAddress + __ERASE_BUFFER_ADDRESS_SIZE;
+            end;
+            {$ENDIF}
           {$ELSE}
           Flash_Erase_Block(EraseAddress, EraseBlocks);
           {$ENDIF}
+          SPIROV_SPI1STAT_bit := 0;
           SendByte(CMD_ERASE_BLOCKS);
-          SendByte($00);
-          SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
+          SendByte($00);  
           BootState := BOOT_STATE_LISTEN;
         end;
       BOOT_STATE_SET_ADDRESS :
@@ -421,8 +466,6 @@ begin
                   Hi(WriteAddress) := SPI1BUF;
                   while SPIRBF_SPI1STAT_bit = 0 do;
                   Lo(WriteAddress) := SPI1BUF;
-                  SendByte($00);
-                  SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
                   BootState := BOOT_STATE_LISTEN;
                 end;
               CMD_SET_ADDRESS_ERASE :
@@ -436,8 +479,6 @@ begin
                   Hi(EraseAddress) := SPI1BUF;
                   while SPIRBF_SPI1STAT_bit = 0 do;
                   Lo(EraseAddress) := SPI1BUF;
-                  SendByte($00);
-                  SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
                   BootState := BOOT_STATE_LISTEN;
                 end;
             end;
@@ -446,7 +487,7 @@ begin
       BOOT_STATE_REPLY_SYNC :
         begin
           SendByte($EF);
-          SendByte($00);
+          SendByte($00);  
           SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
           BootState := BOOT_STATE_LISTEN
         end;
@@ -501,10 +542,39 @@ begin
           SendByte(Ord('N'));
           SendByte(Ord(#0));
           SendByte($00);
-          SPIROV_SPI1STAT_bit := 0;  // Reset the receive overflow that could have been set when we transmitted a packet
+          SendByte($00);
+          SendByte($00);        // 10
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);       // 20
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);
+          SendByte($00);      // 30
+          SendByte(Ord('.'));
+          SendByte($00);     // 32
           BootState := BOOT_STATE_LISTEN;
         end;
-    end
+      BOOT_STATE_RESET :
+        begin
+          asm
+            Reset;
+          end;
+        end;
+    end;
   end;
 end;
 
@@ -574,9 +644,6 @@ begin
   DMA0IF_bit := 0;
   if InSync then
   begin
-  
-  LATB5_bit:= 1;
-  
     if PingPongASelected(DMACHANNEL_0) then
     begin
       for i := 0 to MAX_GRID_CONNECT_LEN-1 do                                   // A is selected as this message is coming in, the instant this interrupt is entered the module switches to the B to prepare for the next message
@@ -609,9 +676,6 @@ begin
         UART1_Write_Text(GridConnectStr + LF);
       end;
     end;
-    
-    LATB5_bit := 0;
-    
   end;
 end;
 
@@ -661,9 +725,6 @@ begin
         begin
           if Xon then
           begin
-        LATA4_bit := 1;
-        Delay_us(2);
-        LATA4_bit := 0;
             for iRawChar := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
             begin
               if iRawChar < Length(_XON) then
@@ -679,10 +740,6 @@ begin
         begin
           if not XOn then
           begin
-        LATA4_bit := 1;
-        Delay_us(4);
-        LATA4_bit := 0;
-        
             for iRawChar := 0 to MAX_SPI_GRIDCONNECT_CHAR_COUNT - 1 do
             begin
               if iRawChar < Length(_XOFF) then
@@ -733,11 +790,11 @@ begin
 end;
 
 var
-  i: Integer;
   s1, s2: string[128];
   LocalOpenLcbBuffer, SendOpenLcbBuffer: TOpenLCBCanBuffer;
   Extended: Boolean;
   Address: DWord;
+  i: Integer;
 begin
   { Main program }
   LATA4_bit := 0;
