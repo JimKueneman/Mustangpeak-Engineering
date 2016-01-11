@@ -1,3 +1,4 @@
+1x3 Header||3
 1x6 Header||6
 1x6 Header Socket||6
 1x8 Header||8
@@ -77,5 +78,6 @@ Terminal Block 4 Wire||4
 Terminal Block 5 Wire||5
 TestPoint||1
 TL317-SO8 Regulator||8
+TortiousPWB||2
 TortoiseBoardEdge||8
 USB-B||4

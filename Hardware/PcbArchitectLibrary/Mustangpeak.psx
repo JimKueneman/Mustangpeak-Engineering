@@ -1,3 +1,4 @@
+1x3 Header||3
 1x6 Header||6
 1x6 Header 2mm||6
 1x8 Header||8
@@ -33,6 +34,7 @@ mikroBUS||16
 Molex 8-8-RJ45-SMT||10
 Molex microSD||10
 Molex RJ12 - 95501-6669||8
+Molex RJ12 -DIL||6
 Power Barrel 2.1mmX5.5mm||6
 Raspberry Pi 2 B Shield||44
 Raspberry Pi 2 B Stacker||60
@@ -48,6 +50,7 @@ Termnial Block 2 Wire||2
 Termnial Block 2 Wire - 100mil||2
 Termnial Block 4 Wire||4
 TestPoint 63mil||1
+Tortious||2
 TortoiseBoardEdge||8
 USB-B||6
 VOM452||6
