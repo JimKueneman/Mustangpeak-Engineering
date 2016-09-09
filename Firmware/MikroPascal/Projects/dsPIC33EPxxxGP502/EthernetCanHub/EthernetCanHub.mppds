@@ -36,7 +36,7 @@ File0=EthernetCanHub.mpas
 File1=CanBufferOut.mpas
 File2=Templates\MCU_Setup_dsPIC33EPxxxGP502.mpas
 File3=CanBufferIn.mpas
-File4=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\P33EP256GP502.mpas
+File4=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\P33EP256GP502.mpas
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]
@@ -46,11 +46,11 @@ Count=1
 File0=Templates\Options.inc
 [SEARCH_PATH]
 Count=5
-Path0=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
-Path1=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
-Path2=Z:\Mustangpeak-Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\
-Path3=Z:\Mustangpeak-Engineering\Firmware\MikroPascal\Library\Common\
-Path4=Z:\Mustangpeak-Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\
+Path0=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
+Path1=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
+Path2=W:\Mustangpeak-Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\
+Path3=W:\Mustangpeak-Engineering\Firmware\MikroPascal\Library\Common\
+Path4=W:\Mustangpeak-Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\
 [HEADER_PATH]
 Count=0
 [HEADERS]

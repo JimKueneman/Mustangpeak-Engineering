@@ -19,7 +19,7 @@ const
   MAX_RAWBUFFER_MESSAGES = 8;
   MAX_RAWBUFFER_BYTES = MAX_SPI_GRIDCONNECT_CHAR_COUNT * MAX_RAWBUFFER_MESSAGES;
   
-  CAN_IN_BUFFER_MAX = MAX_RAWBUFFER_MESSAGES * 40;                              // This must be at LEAST 4x the size of the MAX_RAWBUFFER_MESSAGES    ; 40 give us 10ms worth of worse case CAN incoming frame buffering
+  CAN_IN_BUFFER_MAX = MAX_RAWBUFFER_MESSAGES * 200;                              // This must be at LEAST 4x the size of the MAX_RAWBUFFER_MESSAGES    ; 40 give us 10ms worth of worse case CAN incoming frame buffering
   CAN_OUT_BUFFER_MAX = MAX_RAWBUFFER_MESSAGES * 6;                              // This must be at LEAST 4x the size of the MAX_RAWBUFFER_MESSAGES
   CAN_OUT_BUFFER_XOFF_LIMIT = 2*MAX_RAWBUFFER_MESSAGES;
   CAN_OUT_BUFFER_XON_LIMIT = 3*MAX_RAWBUFFER_MESSAGES;
