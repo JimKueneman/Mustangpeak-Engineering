@@ -1,0 +1,274 @@
+object Form1: TForm1
+  Left = 229
+  Height = 473
+  Top = 211
+  Width = 720
+  Caption = 'Form1'
+  ClientHeight = 473
+  ClientWidth = 720
+  OnCreate = FormCreate
+  OnShow = FormShow
+  LCLVersion = '1.6.2.0'
+  object Panel1: TPanel
+    Left = 0
+    Height = 473
+    Top = 0
+    Width = 536
+    Align = alLeft
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    TabOrder = 0
+  end
+  object Panel2: TPanel
+    Left = 536
+    Height = 473
+    Top = 0
+    Width = 184
+    Align = alClient
+    ClientHeight = 473
+    ClientWidth = 184
+    TabOrder = 1
+    object GroupBox1: TGroupBox
+      Left = 1
+      Height = 175
+      Top = 1
+      Width = 182
+      Align = alTop
+      Caption = 'Grid'
+      ClientHeight = 157
+      ClientWidth = 178
+      TabOrder = 0
+      object Label1: TLabel
+        Left = 24
+        Height = 13
+        Top = 8
+        Width = 28
+        Caption = 'Grid X'
+        ParentColor = False
+      end
+      object SpinEditGridX: TSpinEdit
+        Left = 80
+        Height = 21
+        Top = 8
+        Width = 56
+        MinValue = 1
+        OnChange = SpinEditGridXChange
+        TabOrder = 0
+        Value = 10
+      end
+      object SpinEditGridY: TSpinEdit
+        Left = 80
+        Height = 21
+        Top = 40
+        Width = 56
+        MinValue = 1
+        OnChange = SpinEditGridYChange
+        TabOrder = 1
+        Value = 10
+      end
+      object Label2: TLabel
+        Left = 24
+        Height = 13
+        Top = 40
+        Width = 28
+        Caption = 'Grid Y'
+        ParentColor = False
+      end
+      object Label3: TLabel
+        Left = 29
+        Height = 13
+        Top = 81
+        Width = 25
+        Caption = 'Color'
+        ParentColor = False
+      end
+      object PanelGridColor: TPanel
+        Left = 80
+        Height = 25
+        Top = 72
+        Width = 40
+        TabOrder = 2
+        OnClick = PanelGridColorClick
+      end
+      object Label4: TLabel
+        Left = 16
+        Height = 13
+        Top = 104
+        Width = 24
+        Caption = 'Style'
+        ParentColor = False
+      end
+      object ComboBoxGridStyle: TComboBox
+        Left = 32
+        Height = 21
+        Top = 120
+        Width = 128
+        ItemHeight = 13
+        ItemIndex = 0
+        Items.Strings = (
+          'Solid'
+          'Dash'
+          'Dot'
+          'Dash-Dot'
+          'Dash-Dot-Dot'
+          'Clear'
+          ''
+          ''
+        )
+        OnChange = ComboBoxGridStyleChange
+        Style = csDropDownList
+        TabOrder = 3
+        Text = 'Solid'
+      end
+    end
+    object GroupBox2: TGroupBox
+      Left = 1
+      Height = 160
+      Top = 176
+      Width = 182
+      Align = alTop
+      Caption = 'Layout'
+      ClientHeight = 142
+      ClientWidth = 178
+      TabOrder = 1
+      object SpinEditLayoutWidth: TSpinEdit
+        Left = 64
+        Height = 21
+        Top = 8
+        Width = 98
+        MaxValue = 10000
+        MinValue = 1
+        OnChange = SpinEditLayoutWidthChange
+        TabOrder = 0
+        Value = 1
+      end
+      object SpinEditLayoutHeight: TSpinEdit
+        Left = 64
+        Height = 21
+        Top = 40
+        Width = 98
+        MaxValue = 10000
+        MinValue = 1
+        OnChange = SpinEditLayoutHeightChange
+        TabOrder = 1
+        Value = 1
+      end
+      object Label5: TLabel
+        Left = 1
+        Height = 13
+        Top = 10
+        Width = 28
+        Caption = 'Width'
+        ParentColor = False
+      end
+      object Label6: TLabel
+        Left = 1
+        Height = 13
+        Top = 39
+        Width = 31
+        Caption = 'Height'
+        ParentColor = False
+      end
+      object PanelLayoutColor: TPanel
+        Left = 67
+        Height = 25
+        Top = 72
+        Width = 40
+        TabOrder = 2
+        OnClick = PanelLayoutColorClick
+      end
+      object Label7: TLabel
+        Left = 16
+        Height = 13
+        Top = 81
+        Width = 25
+        Caption = 'Color'
+        ParentColor = False
+      end
+      object Label8: TLabel
+        Left = 12
+        Height = 13
+        Top = 110
+        Width = 25
+        Caption = 'Scale'
+        ParentColor = False
+      end
+      object FloatSpinEditScale: TFloatSpinEdit
+        Left = 61
+        Height = 21
+        Top = 111
+        Width = 99
+        Increment = 1
+        MaxValue = 100
+        MinValue = 0.001
+        OnChange = FloatSpinEditScaleChange
+        TabOrder = 3
+        Value = 1
+      end
+    end
+    object ButtonAddTextDoodle: TButton
+      Left = 19
+      Height = 22
+      Top = 336
+      Width = 136
+      Caption = 'Add Text Item'
+      OnClick = ButtonAddTextDoodleClick
+      TabOrder = 2
+    end
+    object CheckBoxDoodlesVisible: TCheckBox
+      Left = 24
+      Height = 17
+      Top = 408
+      Width = 88
+      Caption = 'Doodles Visible'
+      Checked = True
+      OnChange = CheckBoxDoodlesVisibleChange
+      State = cbChecked
+      TabOrder = 3
+    end
+    object CheckBox1: TCheckBox
+      Left = 24
+      Height = 17
+      Top = 432
+      Width = 102
+      Caption = 'Select All Doodles'
+      OnChange = CheckBox1Change
+      TabOrder = 4
+    end
+    object ButtonAddGraphicDoodle: TButton
+      Left = 19
+      Height = 22
+      Top = 368
+      Width = 136
+      Caption = 'Add Graphic Item'
+      OnClick = ButtonAddGraphicDoodleClick
+      TabOrder = 5
+    end
+  end
+  object ColorDialog: TColorDialog
+    Color = clBlack
+    CustomColors.Strings = (
+      'ColorA=000000'
+      'ColorB=000080'
+      'ColorC=008000'
+      'ColorD=008080'
+      'ColorE=800000'
+      'ColorF=800080'
+      'ColorG=808000'
+      'ColorH=808080'
+      'ColorI=C0C0C0'
+      'ColorJ=0000FF'
+      'ColorK=00FF00'
+      'ColorL=00FFFF'
+      'ColorM=FF0000'
+      'ColorN=FF00FF'
+      'ColorO=FFFF00'
+      'ColorP=FFFFFF'
+      'ColorQ=C0DCC0'
+      'ColorR=F0CAA6'
+      'ColorS=F0FBFF'
+      'ColorT=A4A0A0'
+    )
+    left = 448
+    top = 32
+  end
+end
