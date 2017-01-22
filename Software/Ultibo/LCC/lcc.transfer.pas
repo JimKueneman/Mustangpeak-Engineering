@@ -26,72 +26,58 @@ type
   // This is a base class that is used to descend from in order to create a new type
   // of transfer type
 
+  TTransferDirection = (td_In, td_Out);
+
   { TLccTransferThread }
 
   TLccTransferThread = class(TThread)
   private
-    FBuffer: TThreadedCirularArrayInterface;
+    FBuffer: TThreadedCirularArrayObject;
     FDone: Boolean;
     FEvent: TSimpleEvent;
     {$IFDEF ULTIBO}
     {$ELSE}
     FSocket: TTCPBlockSocket;
+    FTransferDirection: TTransferDirection;
     {$ENDIF}
-    FTransfer: TLccTransferThread;
   protected
+    function DispatchedToInternalNode(AMessage: TLccMessage): Boolean;
+    procedure Execute; override;
+    function TransferMessageToWire(AMessage: TLccMessage): Boolean; virtual;
+    function TransferWireToMessage(AByte: Byte; var AMessage: TLccMessage): Boolean; virtual;
     {$IFDEF ULTIBO}
     {$ELSE}
     property Socket: TTCPBlockSocket read FSocket write FSocket;
     {$ENDIF}
     property Event: TSimpleEvent read FEvent write FEvent;
-    property Transfer: TLccTransferThread read FTransfer write FTransfer;
+    property TransferDirection: TTransferDirection read FTransferDirection write FTransferDirection;
   public
     {$IFDEF ULTIBO}
       constructor Create(CreateSuspended: Boolean); reintroduce;
     {$ELSE}
-      constructor Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket); reintroduce;
+      constructor Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection); reintroduce; virtual;
     {$ENDIF}
     destructor Destroy; override;
-    property Buffer: TThreadedCirularArrayInterface read FBuffer write FBuffer;
+    property Buffer: TThreadedCirularArrayObject read FBuffer write FBuffer;
     property Done: Boolean read FDone write FDone;
   end;
 
   TLccTransferThreadClass = class of TLccTransferThread;
-
-  // This is the thread that runs and pumps messages into and grabs them out of
-  // created nodes through the decendents of the TLccTransferThread
-
-  { TLccTransferSendMessageDispatcher }
-
-  TLccTransferSendMessageDispatcher = class(TLccTransferThread)
-  public
-    procedure Execute; override;
-  end;
-
-  { TLccTransferReceiveMessageDispatcher }
-
-  TLccTransferReceiveMessageDispatcher = class(TLccTransferThread)
-  public
-    procedure Execute; override;
-  end;
-
-
-  // The main  manager that handles the threads to for message transfer
 
   { TLccTransferManager }
 
   TLccTransferManager = class
   private
     FConnected: Boolean;
-    FDispatcherSend: TLccTransferSendMessageDispatcher;
-    FDispatcherReceive: TLccTransferReceiveMessageDispatcher;
+    FTransferSend: TLccTransferThread;
+    FTransferReceive: TLccTransferThread;
     {$IFDEF ULTIBO}
     {$ELSE}
     FSocket: TTCPBlockSocket;
     {$ENDIF}
   protected
-    property DispatcherSend: TLccTransferSendMessageDispatcher read FDispatcherSend write FDispatcherSend;
-    property DispatcherReceive: TLccTransferReceiveMessageDispatcher read FDispatcherReceive write FDispatcherReceive;
+    property TransferSend: TLccTransferThread read FTransferSend write FTransferSend;
+    property TransferReceive: TLccTransferThread read FTransferReceive write FTransferReceive;
     {$IFDEF ULTIBO}
     {$ELSE}
     property Socket: TTCPBlockSocket read FSocket write FSocket;
@@ -100,7 +86,7 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure Close;
-    procedure Start(ServerIP: string; Port: Word; Verbose: Boolean; TransferSend: TLccTransferThreadClass; TransferReceive: TLccTransferThreadClass);
+    procedure Start(ServerIP: string; Port: Word; Verbose: Boolean; TransferSendClass: TLccTransferThreadClass; TransferReceiveClass: TLccTransferThreadClass);
     property Connected: Boolean read FConnected;
   end;
 
@@ -109,69 +95,22 @@ var
 
 implementation
 
-{ TLccTransferReceiveMessageDispatcher }
-
-procedure TLccTransferReceiveMessageDispatcher.Execute;
-var
-  Node: TLccNode;
-  Messages: TDynamicArrayInterface;
-begin
-  Transfer.Start;
-
-  while not Terminated do
-  begin
-    case GlobalReceiveEvent.WaitFor(INFINITE) of
-    wrSignaled  : // Event was signaled (triggered)
-        begin
-           // Need to run the global list
-          if not Terminated then
-          begin
-            // Lock our buffer so we grab a the messages
-            Transfer.Buffer.LockArray;
-            try
-              Messages := nil;
-              Transfer.Buffer.RemoveChunk(Messages);
-            finally
-              Transfer.Buffer.UnLockArray;
-            end;
-
-            GlobalNodeList.LockArray;
-            try
-              Node := GlobalNodeList.FirstObject as TLccNode;
-              while Assigned(Node) do
-              begin
-                Node.MsgQueueReceived.AddChunk(Messages);
-                Node := GlobalNodeList.NextObject as TLccNode;
-              end;
-            finally
-              GlobalNodeList.UnLockArray;
-            end;
-            Messages := nil;   // Release our interface counts
-
-            GlobalReceiveEvent.ResetEvent;
-          end;
-        end;
-      wrTimeout   : begin end; // Time-out period expired
-      wrAbandoned : begin end; // Wait operation was abandoned.
-      wrError     : begin end; // An error occurred during the wait operation.
-    end;
-  end;
-end;
-
 { TLccTransferThread }
 
 {$IFDEF ULTIBO}
 constructor TLccTransferThread.Create(CreateSuspended: Boolean);
 {$ELSE}
-constructor TLccTransferThread.Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket);
+constructor TLccTransferThread.Create(CreateSuspended: Boolean;
+  ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection);
 {$ENDIF}
 begin
   inherited Create(CreateSuspended, DefaultStackSize);
+  FTransferDirection := ATransferDirection;
   {$IFDEF ULTIBO}
   {$ELSE}
   FSocket := ASocket;
   {$ENDIF}
-  Buffer := TThreadedCirularArrayInterface.Create;
+  Buffer := TThreadedCirularArrayObject.Create;
   Event := TSimpleEvent.Create;
 end;
 
@@ -182,66 +121,108 @@ begin
   inherited Destroy;
 end;
 
-{ TLccTransferSendMessageDispatcher }
-
-procedure TLccTransferSendMessageDispatcher.Execute;
-var
-  Node: TLccNode;
-  Messages: TDynamicArrayInterface;
+function TLccTransferThread.DispatchedToInternalNode(AMessage: TLccMessage): Boolean;
 begin
-  Transfer.Start;
+  Result := False;
+  // Do not reuse the Message object, it will be destroyed on return
+end;
 
+procedure TLccTransferThread.Execute;
+var
+  Messages: TDynamicArrayObject;
+  i: Integer;
+  SendToWire: Boolean;
+  Node: TLccNode;
+  LccMessage: TLccMessage;
+  NextByte: Byte;
+begin
   while not Terminated do
   begin
-    case GlobalSendEvent.WaitFor(INFINITE) of
-    wrSignaled  : // Event was signaled (triggered)
+    case TransferDirection of
+      td_Out :
         begin
-           // Need to run the global list looking for
-          if not Terminated then
-          begin
-            GlobalNodeList.LockArray;
-            try
-              Node := GlobalNodeList.FirstObject as TLccNode;
-              while Assigned(Node) do
+          case GlobalSendEvent.WaitFor(INFINITE) of
+            wrSignaled  : // Event was signaled (triggered)
               begin
-                Node.MsgQueueSending.LockArray;
-                try
-                  if Node.MsgQueueSending.Count > 0 then
-                  begin
-                    Messages := nil;
-                    Node.MsgQueueSending.RemoveChunk(Messages);
+                GlobalSendEvent.ResetEvent;     // reset BEFORE we remove that way new adds right after we unlock will be caught with the next SetEvent
+                 // Need to run the global list looking for
+                if not Terminated then
+                begin
+                  GlobalNodeList.LockArray;
+                  try
+                    Node := GlobalNodeList.FirstObject as TLccNode;
+                    while Assigned(Node) do
+                    begin
+                      Messages := nil;
 
-                    // Need an inner enumeration to see if the message is going back to an internal node... eventually
-                    // begin
-                    // end....
+                      // Pull any messages being sent out of the current Node
+                      Node.MsgQueueSending.LockArray;
+                      try
+                        Node.MsgQueueSending.RemoveChunk(Messages);
+                      finally
+                        Node.MsgQueueSending.UnLockArray;
+                      end;
 
-                    // Put them in the outgoing hardware transfer buffer
-                    Transfer.Buffer.LockArray;
-                    try
-                      Transfer.Buffer.AddChunk(Messages);
-                    finally
-                      Transfer.Buffer.UnLockArray;
+                      for i := 0 to Length(Messages) - 1 do
+                      begin
+                        // If internal node then send the message back to our internal node
+                        // if it was for an internal node only send broadcast messages to the wire..
+                        SendToWire := True;
+                        if DispatchedToInternalNode(Messages[i] as TLccMessage) then
+                          SendToWire := not (Messages[i] as TLccMessage).IsAddressedMessage;
+                        if SendToWire then
+                          TransferMessageToWire(Messages[i] as TLccMessage);
+                      end;
+                      Node := GlobalNodeList.NextObject as TLccNode;
                     end;
-                    // Tell the thread it has some work to do
-                    Transfer.Event.SetEvent;
+                  finally
+                    GlobalNodeList.UnLockArray;
                   end;
-                finally
-                  Node.MsgQueueSending.UnLockArray;
+                  FreeDynamicArrayObjects(Messages);
                 end;
-                Node := GlobalNodeList.NextObject as TLccNode;
               end;
-            finally
-              GlobalNodeList.UnLockArray;
-            end;
-            GlobalSendEvent.ResetEvent;
+            wrTimeout   : begin beep; end; // Time-out period expired
+            wrAbandoned : begin beep end; // Wait operation was abandoned.
+            wrError     : begin beep end; // An error occurred during the wait operation.
           end;
         end;
-      wrTimeout   : begin end; // Time-out period expired
-      wrAbandoned : begin end; // Wait operation was abandoned.
-      wrError     : begin end; // An error occurred during the wait operation.
+      td_In :
+        begin
+          NextByte := Socket.RecvByte(INFINITE);
+          if not Terminated then
+          begin
+            if TransferWireToMessage(NextByte, LccMessage) then
+            begin
+              GlobalNodeList.LockArray;
+              try
+                Node := GlobalNodeList.FirstObject as TLccNode;
+                while Assigned(Node) do
+                begin
+                  Node.MsgQueueReceived.Add(LccMessage.Clone);
+                  Node := GlobalNodeList.NextObject as TLccNode;
+                end;
+                FreeAndNil(LccMessage);
+              finally
+                GlobalNodeList.UnLockArray;
+              end;
+            end;
+          end;
+        end;
     end;
   end;
   Done := True;
+end;
+
+function TLccTransferThread.TransferMessageToWire(AMessage: TLccMessage
+  ): Boolean;
+begin
+
+end;
+
+function TLccTransferThread.TransferWireToMessage(AByte: Byte;
+  var AMessage: TLccMessage): Boolean;
+begin
+   Result := False;
 end;
 
 { TLccTransferManager }
@@ -258,25 +239,19 @@ begin
     // Kill Threads
 
     // This will keep anything else from accessing the Send/Receive Threads
-    DispatcherSend.Terminate;
-    while not DispatcherSend.Done do
+    TransferSend.Terminate;
+    while not TransferSend.Done do
       Sleep(100);
-    DispatcherSend.Transfer.Terminate;
-    DispatcherSend.Transfer.Event.SetEvent;
-    while not DispatcherSend.Transfer.Done do
-      Sleep(100);
-    FreeAndNil(DispatcherSend.FTransfer);
-    FreeAndNil(FDispatcherSend);
+    FreeAndNil(FTransferSend);
 
-    DispatcherReceive.Transfer.Terminate;
+    TransferReceive.Terminate;
     {$IFDEF ULTIBO}
     {$ELSE}
     Socket.CloseSocket;                               // This should release the Wait on the Receive with an error
     {$ENDIF}
-    while not DispatcherReceive.Transfer.Done do
+    while not TransferReceive.Done do
       Sleep(100);
-    FreeAndNil(DispatcherReceive.FTransfer);
-    FreeAndNil(FDispatcherReceive);
+    FreeAndNil(FTransferReceive);
   end;
 end;
 
@@ -291,8 +266,8 @@ begin
 end;
 
 procedure TLccTransferManager.Start(ServerIP: string; Port: Word;
-  Verbose: Boolean; TransferSend: TLccTransferThreadClass;
-  TransferReceive: TLccTransferThreadClass);
+  Verbose: Boolean; TransferSendClass: TLccTransferThreadClass;
+  TransferReceiveClass: TLccTransferThreadClass);
 {$IFDEF ULTIBO}
 begin
 
@@ -327,12 +302,10 @@ begin
   if Socket.LastError = 0 then
   begin
     if Verbose then WriteLn('Starting Threads');
-    DispatcherSend := TLccTransferSendMessageDispatcher.Create(True, Socket);
-    DispatcherSend.Transfer := TransferSend.Create(True, Socket);
-    DispatcherReceive := TLccTransferReceiveMessageDispatcher.Create(True, Socket);
-    DispatcherReceive.Transfer := TransferReceive.Create(True, Socket);
-    DispatcherSend.Start;
-    DispatcherReceive.Start;
+    TransferSend := TransferSendClass.Create(True, Socket, td_Out);
+    TransferReceive := TransferReceiveClass.Create(True, Socket, td_In);
+    TransferSend.Start;
+    TransferReceive.Start;
     FConnected := True;
   end else
     if Verbose then WriteLn('Failed to Connect: ' + Socket.GetErrorDesc(Socket.LastError));

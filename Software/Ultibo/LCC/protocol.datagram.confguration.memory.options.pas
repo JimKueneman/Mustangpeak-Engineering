@@ -9,12 +9,12 @@ interface
 {$I lcc_compilers.inc}
 
 uses
-  Classes, SysUtils, baseobjects, basetypes, basemessage, baseutilities;
+  Classes, SysUtils, lcc.objects, lcc.types, lcc.message, lcc.utilities;
 
 type
-  { TConfigurationMemOptions }
+  { TProtocolConfigurationMemOptions }
 
-  TConfigurationMemOptions = class(TNodeProtocolBase)
+  TProtocolConfigurationMemOptions = class(TNodeProtocolBase)
   private
     FHighSpace: Byte;
     FLowSpace: Byte;
@@ -52,7 +52,7 @@ type
 
 implementation
 
-function TConfigurationMemOptions.ProcessMessage(LccMessage: TLccMessage): Boolean;
+function TProtocolConfigurationMemOptions.ProcessMessage(LccMessage: TLccMessage): Boolean;
 var
   OpsMask: Word;
 begin
@@ -85,7 +85,7 @@ begin
   end;
 end;
 
-procedure TConfigurationMemOptions.LoadReply(LccMessage: TLccMessage);
+procedure TProtocolConfigurationMemOptions.LoadReply(LccMessage: TLccMessage);
 var
   OpsMask: Word;
 begin

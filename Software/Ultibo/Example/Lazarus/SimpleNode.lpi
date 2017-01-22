@@ -31,7 +31,7 @@
         <FormatVersion Value="1"/>
       </local>
     </RunParams>
-    <Units Count="7">
+    <Units Count="10">
       <Unit0>
         <Filename Value="SimpleNode.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -60,6 +60,18 @@
         <Filename Value="..\..\LCC\lcc.transfer.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit6>
+      <Unit7>
+        <Filename Value="..\..\LCC\lcc.datagramqueue.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="..\..\LCC\protocol.datagram.configuration.definition.information.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="..\..\LCC\lcc.transfer.nodeidmap.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit9>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

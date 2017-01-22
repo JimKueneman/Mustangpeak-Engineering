@@ -6,7 +6,7 @@ unit lcc.message;
 
 interface
 
-{$I ..\Lcc\lcc_compilers.inc}
+{$I lcc_compilers.inc}
 
 uses
   Classes, SysUtils,
@@ -19,88 +19,6 @@ uses
 
 type
   TLccMessage = class;
-
-  ILccMessage = interface['{1E7C1339-0DF4-50B2-A958-6212DE307FA1}']
-    procedure AppendDataArray(LccMessage: TLccMessage);
-    function AppendDataArrayAsString(LccMessage: TLccMessage; LastNull: Byte): Boolean;
-    function Clone: TLccMessage;
-    procedure InsertNodeID(StartIndex: Integer; var ANodeID: TNodeID);
-    procedure InsertEventID(StartIndex: Integer; var AnEventID: TEventID);
-    procedure InsertDWordAsDataBytes(DoubleWord: DWord; StartByteIndex: Integer);
-    procedure InsertWordAsDataBytes(AWord: DWord; StartByteIndex: Integer);
-    function ExtractDataBytesAsEventID(StartIndex: Integer): PEventID;
-    function ExtractDataBytesAsInt(StartByteIndex, EndByteIndex: Integer): QWord;
-    function ExtractDataBytesAsNodeID(StartIndex: Integer; var ANodeID: TNodeID): PNodeID;
-    function ExtractDataBytesAsString(StartIndex, Count: Integer): String;
-
-    function LoadByGridConnectStr(GridConnectStr: String): Boolean;
-    function LoadByLccTcp(var ByteArray: TDynamicByteArray): Boolean;
-    function ConvertToGridConnectStr(Delimiter: String): String;
-    function ConvertToLccTcp(var ByteArray: TDynamicByteArray): Boolean;
-    procedure Copy(TargetMessage: TLccMessage);
-    function ConvertToLccTcpString(var ByteArray: TDynamicByteArray): String;
-    procedure ZeroFields;
-
-    // Basic
-    procedure LoadInitializationComplete(ASourceID: TNodeID);
-    procedure LoadVerifyNodeIDAddressed(ASourceID, ADestID: TNodeID);
-    procedure LoadVerifyNodeID(ASourceID: TNodeID);
-    procedure LoadVerifiedNodeID(ASourceID: TNodeID);
-    // Protocol Support (PIP)
-    procedure LoadProtocolIdentifyInquiry(ASourceID, ADestID: TNodeID);
-    procedure LoadProtocolIdentifyReply(ASourceID, ADestID: TNodeID; Flags: QWord);
-    // Event Exchange
-    procedure LoadConsumerIdentify(ASourceID: TNodeID; var Event: TEventID);
-    procedure LoadConsumerIdentified(ASourceID: TNodeID; var Event: TEventID; EventState: TEventState);
-    procedure LoadProducerIdentify(ASourceID: TNodeID; var Event: TEventID);
-    procedure LoadProducerIdentified(ASourceID: TNodeID; var Event: TEventID; EventState: TEventState);
-    procedure LoadIdentifyEventsAddressed(ASourceID: TNodeID; ADestID: TNodeID);
-    procedure LoadIdentifyEvents(ASourceID: TNodeID);
-    procedure LoadPCER(ASourceID: TNodeID; AnEvent: PEventID);
-    // Traction Control
-    procedure LoadTractionSetSpeed(ASourceID, ADestID: TNodeID; ASpeed: THalfFloat);
-    procedure LoadTractionSetFunction(ASourceID, ADestID: TNodeID; AnAddress: DWord; AValue: Word);
-    procedure LoadTractionEStop(ASourceID, ADestID: TNodeID);
-    procedure LoadTractionQuerySpeed(ASourceID, ADestID: TNodeID);
-    procedure LoadTractionQueryFunction(ASourceID, ADestID: TNodeID);
-    procedure LoadTractionControllerAssign(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionControllerRelease(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionControllerQuery(ASourceID, ADestID: TNodeID);
-    procedure LoadTractionControllerChangeNotify(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionControllerChangeNotifyReply(ASourceID, ADestID: TNodeID; Allow: Boolean);
-    procedure LoadTractionConsistAttach(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionConsistDetach(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionConsistQuery(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionManage(ASourceID, ADestID: TNodeID; Reserve: Boolean);
-    // Remote Button
-
-    // Traction Identification (STNIP)
-    procedure LoadSimpleTrainNodeIdentInfoRequest(ASourceID, ADestID: TNodeID);
-    // Node Ident (SNIP)
-    procedure LoadSimpleNodeIdentInfoReply(ASourceID, ADestID: TNodeID; SimplePackedArray: TSimpleNodeInfoPacked);
-    procedure LoadSimpleNodeIdentInfoRequest(ASourceID, ADestID: TNodeID);
-    // FDI
-    procedure LoadFDIRequest(ASourceID, ADestID: TNodeID);
-    procedure LoadFunctionConfigurationRead(ASourceID, ADestID: TNodeID; FunctionAddress: DWord; Count: Integer);
-    procedure LoadFunctionConfigurationWrite(ASourceID, ADestID: TNodeID; FunctionAddress: DWord; Count: Integer; Functions: TFunctionStatesArray);
-    // CDI
-    procedure LoadCDIRequest(ASourceID, ADestID: TNodeID);
-    // Datagram
-    procedure LoadDatagram(ASourceID, ADestID: TNodeID);
-    procedure LoadDatagramAck(ASourceID, ADestID: TNodeID; Ok: Boolean; ReplyPending: Boolean; TimeOutValueN: Byte);
-    procedure LoadDatagramRejected(ASourceID, ADestID: TNodeID; Reason: Word);
-    // ConfigurationMemory
-    procedure LoadConfigMemAddressSpaceInfo(ASourceID, ADestID: TNodeID; AddressSpace: Byte);
-    procedure LoadConfigMemOptions(ASourceID, ADestID: TNodeID);
-    procedure LoadConfigMemRead(ASourceID, ADestID: TNodeID; AddressSpace: Byte; ConfigMemAddress: DWord; ConfigMemSize: Byte);
-    procedure LoadConfigMemWriteInteger(ASourceID, ADestID: TNodeID; AddressSpace: Byte; ConfigMemAddress: DWord; IntegerSize: Byte; DataInteger: Integer);
-    procedure LoadConfigMemWriteString(ASourceID, ADestID: TNodeID; AddressSpace: Byte; ConfigMemAddress: DWord; AString: String);
-    procedure LoadConfigMemWriteArray(ASourceID, ADestID: TNodeID; AddressSpace: Byte; ConfigMemAddress: DWord; ArraySize: Integer; AnArray: array of Byte);
-    // MTIs
-    procedure LoadOptionalInteractionRejected(ASourceID, ADestID: TNodeID; Reason: Word; AnMTI: Word);
-
-    procedure SwapDestAndSourceIDs;
-  end;
 
 
   { TLccCANMessage }
@@ -124,7 +42,7 @@ type
 
 { TLccMessage }
 
-  TLccMessage = class(TInterfacedObject, ILccMessage)
+  TLccMessage = class(TObject)
   private
     FAbandonTimeout: Integer;
     FCAN: TLccCANMessage;
@@ -138,6 +56,7 @@ type
     function GetHasDestination: Boolean;
     function GetHasDestNodeID: Boolean;
     function GetHasSourceNodeID: Boolean;
+    function GetIsCAN: Boolean;
     function GetIsDatagram: Boolean;
     function GetIsStream: Boolean;
     function GetDataArrayIndexer(iIndex: DWord): Byte;
@@ -152,6 +71,7 @@ type
     property HasDestination: Boolean read GetHasDestination;
     property HasDestNodeID: Boolean read GetHasDestNodeID;
     property HasSourceNodeID: Boolean read GetHasSourceNodeID;
+    property IsCAN: Boolean read GetIsCAN;
     property IsDatagram: Boolean read GetIsDatagram;
     property IsStream: Boolean read GetIsStream;
     property MTI: Word read FMTI write FMTI;
@@ -168,6 +88,7 @@ type
     procedure InsertEventID(StartIndex: Integer; var AnEventID: TEventID);
     procedure InsertDWordAsDataBytes(DoubleWord: DWord; StartByteIndex: Integer);
     procedure InsertWordAsDataBytes(AWord: DWord; StartByteIndex: Integer);
+    function IsAddressedMessage: Boolean;
     function ExtractDataBytesAsEventID(StartIndex: Integer): PEventID;
     function ExtractDataBytesAsInt(StartByteIndex, EndByteIndex: Integer): QWord;
     function ExtractDataBytesAsNodeID(StartIndex: Integer; var ANodeID: TNodeID): PNodeID;
@@ -244,7 +165,6 @@ type
 
 var
   GlobalSendEvent: TSimpleEvent;
-  GlobalReceiveEvent: TSimpleEvent;
 
 implementation
 
@@ -285,6 +205,13 @@ end;
 function TLccMessage.Clone: TLccMessage;
 begin
   Result := TLccMessage.Create;
+  Result.FAbandonTimeout := 0;
+  Result.FCAN.Active := CAN.Active;
+  Result.FCAN.FDestAlias := CAN.DestAlias;
+  Result.FCAN.FFramingBits := CAN.FramingBits;
+  Result.FCAN.FiTag := CAN.iTag;
+  Result.FCAN.FMTI := CAN.MTI;
+  Result.FCAN.FSourceAlias := CAN.SourceAlias;
   Result.FDataArray := FDataArray;
   Result.FDataCount := FDataCount;
   Result.FDestID := FDestID;
@@ -474,6 +401,11 @@ begin
   FDataArray[StartByteIndex+1] := _Lo(AWord);
 end;
 
+function TLccMessage.IsAddressedMessage: Boolean;
+begin
+  Result := MTI and MTI_ADDRESSED_MASK <> 0;
+end;
+
 function TLccMessage.LoadByGridConnectStr(GridConnectStr: String): Boolean;
 var
   x, n, SemiColon, i, j: Integer;
@@ -589,6 +521,11 @@ end;
 function TLccMessage.GetHasSourceNodeID: Boolean;
 begin
   Result := (FSourceID[0] <> 0) and (FSourceID[1] <> 0)
+end;
+
+function TLccMessage.GetIsCAN: Boolean;
+begin
+  Result := CAN.Active;
 end;
 
 function TLccMessage.GetIsDatagram: Boolean;
@@ -795,6 +732,10 @@ begin
   FDestID := NULL_NODE_ID;
   FSourceID := NULL_NODE_ID;
   FMTI := 0;
+  CAN.MTI := 0;
+  CAN.Active := False;
+  CAN.DestAlias := 0;
+  CAN.SourceAlias := 0;
 end;
 
 procedure TLccMessage.LoadInitializationComplete(ASourceID: TNodeID);
@@ -1542,11 +1483,9 @@ end;
 initialization
   CaptureTime := 1;
   GlobalSendEvent := TSimpleEvent.Create;
-  GlobalReceiveEvent := TSimpleEvent.Create;
 
 finalization
   FreeAndNil(GlobalSendEvent);
-  FreeAndNil(GlobalReceiveEvent);
 
 end.
 

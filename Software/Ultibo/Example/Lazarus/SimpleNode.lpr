@@ -9,7 +9,8 @@ uses
   cthreads,
   {$ENDIF}
   lcc.node, mustangpeak.classes, lcc.transfer.synapse.gridconnect,
-  lcc.utilities, lcc.can.types, lcc.transfer;
+  lcc.utilities, lcc.can.types, lcc.transfer,
+protocol.datagram.configuration.definition.information;
 
 var
   Node: TLccNode;
@@ -29,7 +30,7 @@ begin
     Node.Start;
     while True do
     begin
-
+      Node.ProcessMessages;
     end;
   end;
 end.
