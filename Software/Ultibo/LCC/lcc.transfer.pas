@@ -19,7 +19,7 @@ uses
     {$ENDIF}
   {$ENDIF}
   lcc.node, lcc.message, mustangpeak.threadedcirculararray,
-  transfer.gridconnect.message_assembler_disassembler;
+  lcc.transfer.gridconnect.message_assembler_disassembler;
 
 type
 

@@ -5,13 +5,14 @@ unit lcc.transfer.nodeidmap;
 interface
 
 uses
-  Classes, SysUtils, contnrs, lcc.types, mustangpeak.threadedcirculararray;
+  Classes, SysUtils, contnrs, lcc.types, mustangpeak.threadedcirculararray,
+  lcc.message;
 
 type
 
-  { TNodeIdMapping }
+  { TLccNodeIdMapping }
 
-  TNodeIdMapping = class
+  TLccNodeIdMapping = class
   private
     FAliasID: Word;
     FNodeID: TNodeID;
@@ -20,33 +21,40 @@ type
     property AliasID: Word read FAliasID write FAliasID;
   end;
 
-  TNodeIdMap = class
+  TLccNodeIdMap = class
   private
     FMappingList: TThreadedCirularArrayObject;
+    FSendLaterQueue: TThreadedCirularArrayObject;
   protected
     property MappingList: TThreadedCirularArrayObject read FMappingList write FMappingList;
+    property SendLaterQueue: TThreadedCirularArrayObject read FSendLaterQueue write FSendLaterQueue;
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    function FindByAlias(TestAlias: Word): TNodeIdMapping;
-    function FindByNodeID(TestNodeID: TNodeID): TNodeIdMapping;
-    procedure Add(Mapping: TNodeIdMapping);
+    function FindByAlias(TestAlias: Word): TLccNodeIdMapping;
+    function FindByNodeID(TestNodeID: TNodeID): TLccNodeIdMapping;
+    function ExtractAliasAndUpdateMessage(LccMessage: TLccMessage): Boolean;
+    procedure Add(Mapping: TLccNodeIdMapping);
     procedure Clear;
-    procedure Remove(Mapping: TNodeIDMapping);
+    procedure Remove(Mapping: TLccNodeIdMapping);
+
+    function MapAliasToMessage(LccMessage: TLccMessage): Boolean;
+    procedure AddToSendOnceMapped(LccMessage: TLccMessage);
   end;
 
 implementation
 
-{ TNodeIdMap }
+{ TLccNodeIdMap }
 
-constructor TNodeIdMap.Create;
+constructor TLccNodeIdMap.Create;
 begin
   inherited Create;
   FMappingList := TThreadedCirularArrayObject.Create;
+  SendLaterQueue := TThreadedCirularArrayObject.Create;
   MappingList.OwnsObjects := True;
 end;
 
-procedure TNodeIdMap.Add(Mapping: TNodeIdMapping);
+procedure TLccNodeIdMap.Add(Mapping: TLccNodeIdMapping);
 begin
   MappingList.LockArray;
   try
@@ -56,7 +64,12 @@ begin
   end;
 end;
 
-procedure TNodeIdMap.Clear;
+procedure TLccNodeIdMap.AddToSendOnceMapped(LccMessage: TLccMessage);
+begin
+
+end;
+
+procedure TLccNodeIdMap.Clear;
 begin
   MappingList.LockArray;
   try
@@ -66,20 +79,26 @@ begin
   end;
 end;
 
-destructor TNodeIdMap.Destroy;
+destructor TLccNodeIdMap.Destroy;
 begin
   FreeAndNil(FMappingList);
+  FreeAndNil(FSendLaterQueue);
   inherited Destroy;
 end;
 
-function TNodeIdMap.FindByAlias(TestAlias: Word): TNodeIdMapping;
+function TLccNodeIdMap.ExtractAliasAndUpdateMessage(LccMessage: TLccMessage): Boolean;
+begin
+  Result := False;
+end;
+
+function TLccNodeIdMap.FindByAlias(TestAlias: Word): TLccNodeIdMapping;
 var
-  Mapping: TNodeIdMapping;
+  Mapping: TLccNodeIdMapping;
 begin
   Result := nil;
   MappingList.LockArray;
   try
-    Mapping := MappingList.FirstObject as TNodeIdMapping;
+    Mapping := MappingList.FirstObject as TLccNodeIdMapping;
     while Assigned(Mapping) do
     begin
       if TestAlias = Mapping.AliasID then
@@ -87,21 +106,21 @@ begin
         Result := Mapping;
         Break
       end;
-      Mapping := MappingList.NextObject as TNodeIdMapping;
+      Mapping := MappingList.NextObject as TLccNodeIdMapping;
     end;
   finally
     MappingList.UnLockArray;
   end;
 end;
 
-function TNodeIdMap.FindByNodeID(TestNodeID: TNodeID): TNodeIdMapping;
+function TLccNodeIdMap.FindByNodeID(TestNodeID: TNodeID): TLccNodeIdMapping;
 var
-  Mapping: TNodeIdMapping;
+  Mapping: TLccNodeIdMapping;
 begin
   Result := nil;
   MappingList.LockArray;
   try
-    Mapping := MappingList.FirstObject as TNodeIdMapping;
+    Mapping := MappingList.FirstObject as TLccNodeIdMapping;
     while Assigned(Mapping) do
     begin
       if (TestNodeID[0] = Mapping.NodeID[0]) and (TestNodeID[1] = Mapping.NodeID[1]) then
@@ -109,14 +128,34 @@ begin
         Result := Mapping;
         Break
       end;
-      Mapping := MappingList.NextObject as TNodeIdMapping;
+      Mapping := MappingList.NextObject as TLccNodeIdMapping;
     end;
   finally
     MappingList.UnLockArray;
   end;
 end;
 
-procedure TNodeIdMap.Remove(Mapping: TNodeIDMapping);
+function TLccNodeIdMap.MapAliasToMessage(LccMessage: TLccMessage): Boolean;
+var
+  LccMapping: TLccNodeIdMapping;
+begin
+  Result := False;
+  LccMapping := FindByNodeID(LccMessage.DestID);
+  if Assigned(LccMapping) then
+  begin
+    LccMessage.CAN.DestAlias := LccMapping.AliasID;
+    LccMapping := FindByNodeID(LccMessage.SourceID);
+    if Assigned(LccMapping) then
+    begin
+      LccMessage.CAN.DestAlias := LccMapping.AliasID;
+      LccMessage.CAN.MTI := LccMessage.MTI;
+      LccMessage.CAN.Active := True;
+      Result := True;
+    end;
+  end;
+end;
+
+procedure TLccNodeIdMap.Remove(Mapping: TLccNodeIdMapping);
 begin
   MappingList.LockArray;
   try

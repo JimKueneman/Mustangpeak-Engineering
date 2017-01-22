@@ -14,7 +14,7 @@ uses
   syncobjs,
   {$ENDIF}
   lcc.types, mustangpeak.half_float, lcc.utilities, strutils,
-  lcc.can.types;
+  lcc.types.can;
 
 
 type

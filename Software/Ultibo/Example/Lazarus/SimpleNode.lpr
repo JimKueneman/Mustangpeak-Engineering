@@ -8,8 +8,8 @@ uses
   {$IFNDEF LCC_WINDOWS}
   cthreads,
   {$ENDIF}
-  lcc.node, mustangpeak.classes, lcc.transfer.synapse.gridconnect,
-  lcc.utilities, lcc.can.types, lcc.transfer,
+  lcc.node, mustangpeak.classes, lcc.transfer.gridconnect.wire.synapse,
+  lcc.utilities, lcc.types.can, lcc.transfer,
 protocol.datagram.configuration.definition.information;
 
 var

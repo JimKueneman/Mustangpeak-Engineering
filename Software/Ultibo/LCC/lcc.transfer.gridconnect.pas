@@ -1,5 +1,8 @@
 unit lcc.transfer.gridconnect;
 
+// Contains classes to derive from and helpers to help with dealing with GridConnect
+// on a transfer medium.
+
 {$IFDEF FPC}
 {$mode objfpc}{$H+}
 {$ENDIF}
@@ -9,7 +12,12 @@ interface
 {$I lcc_compilers.inc}
 
 uses
-  Classes, SysUtils, lcc.types;
+  Classes, SysUtils,
+  {$IFNDEF ULTIBO}
+    blcksock,
+    synsock,
+  {$ENDIF}
+  lcc.types, lcc.transfer.nodeidmap, lcc.transfer;
 
 const
   // :X19170640N0501010107015555;#0  Example.....
@@ -25,6 +33,17 @@ type
   PGridConnectString = ^TGridConnectString;
 
 type
+
+  { TLccGridConnnectTransferThread }
+
+  TLccGridConnnectTransferThread = class(TLccTransferThread)
+  private
+    FLccNodeIdMap: TLccNodeIdMap;
+  public
+    property LccNodeIdMap: TLccNodeIdMap read FLccNodeIdMap write FLccNodeIdMap;
+    constructor Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection); reintroduce; override;
+    destructor Destroy; override;
+  end;
 
   { TGridConnectHelper }
 
@@ -45,6 +64,8 @@ type
 
   procedure StringToGridConnectBuffer(GridConnectStr: String; var GridConnectBuffer: TGridConnectString);
   function GridConnectBufferToString(var GridConnectBuffer: TGridConnectString): String;
+
+
 implementation
 
 const
@@ -83,6 +104,21 @@ begin
     GridConnectBuffer[i] := Ord(GridConnectStrPtr^);
     Inc(GridConnectStrPtr);
   end;
+end;
+
+{ TLccGridConnnectTransferThread }
+
+constructor TLccGridConnnectTransferThread.Create(CreateSuspended: Boolean;
+  ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection);
+begin
+  inherited Create(CreateSuspended, ASocket, ATransferDirection);
+  LccNodeIdMap := TLccNodeIdMap.Create;
+end;
+
+destructor TLccGridConnnectTransferThread.Destroy;
+begin
+  FreeAndNil(FLccNodeIdMap);
+  inherited Destroy;
 end;
 
 { TGridConnectHelper }

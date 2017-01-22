@@ -1,4 +1,4 @@
-unit lcc.transfer.synapse.gridconnect;
+unit lcc.transfer.gridconnect.wire.synapse;
 
 {$IFDEF FPC}
 {$mode objfpc}{$H+}
@@ -11,20 +11,20 @@ interface
 uses
   Classes, SysUtils,
   lcc.utilities, lcc.node, blcksock, synsock, lcc.message,
-  mustangpeak.threadedcirculararray, transfer.gridconnect.message_assembler_disassembler,
-  lcc.transfer, lcc.transfer.gridconnect, lcc.transfer.nodeidmap;
+  mustangpeak.threadedcirculararray, lcc.transfer.gridconnect.message_assembler_disassembler,
+  lcc.transfer, lcc.transfer.gridconnect;
 
 type
   { TGridConnectSendTcpThread }
 
-  TGridConnectSendTcpThread = class(TLccTransferThread)
+  TGridConnectSendTcpThread = class(TLccGridConnnectTransferThread)
   protected
     function TransferMessageToWire(LccMessage: TLccMessage): Boolean; override;
   end;
 
   { TGridConnectReceiveTcpThread }
 
-  TGridConnectReceiveTcpThread = class(TLccTransferThread)
+  TGridConnectReceiveTcpThread = class(TLccGridConnnectTransferThread)
   private
     FGridConnectHelper: TGridConnectHelper;
     FLccGridConnectAssembler: TLccMessageAssembler;
@@ -47,11 +47,11 @@ function TGridConnectSendTcpThread.TransferMessageToWire(LccMessage: TLccMessage
 var
   Temp: string;
 begin
-
-  LccMessage.CAN.SourceAlias := $ABC;
-
-  Temp := LccMessage.ConvertToGridConnectStr(#13);
-  Socket.SendString(String( Temp) + LF);
+  if LccNodeIdMap.MapAliasToMessage(LccMessage) then
+  begin
+    Temp := LccMessage.ConvertToGridConnectStr(#13);
+    Socket.SendString(String( Temp) + LF);
+  end;
 end;
 
 { TGridConnectReceiveTcpThread }

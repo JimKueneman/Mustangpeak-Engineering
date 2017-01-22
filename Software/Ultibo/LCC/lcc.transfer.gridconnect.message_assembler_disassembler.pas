@@ -1,4 +1,4 @@
-unit transfer.gridconnect.message_assembler_disassembler;
+unit lcc.transfer.gridconnect.message_assembler_disassembler;
 
 {$IFDEF FPC}
 {$mode delphi}{$H+}
@@ -10,7 +10,7 @@ interface
 {$I lcc_compilers.inc}
 
 uses
-  Classes, SysUtils, lcc.message, lcc.can.types,
+  Classes, SysUtils, lcc.message, lcc.types.can,
   {$IFDEF FPC}
     Generics.Collections,
   {$ELSE}

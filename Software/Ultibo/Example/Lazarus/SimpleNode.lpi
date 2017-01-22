@@ -49,11 +49,11 @@
         <IsPartOfProject Value="True"/>
       </Unit3>
       <Unit4>
-        <Filename Value="..\..\LCC\lcc.transfer.synapse.gridconnect.pas"/>
+        <Filename Value="..\..\LCC\lcc.transfer.gridconnect.wire.synapse.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit4>
       <Unit5>
-        <Filename Value="..\..\LCC\lcc.can.types.pas"/>
+        <Filename Value="..\..\LCC\lcc.types.can.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit5>
       <Unit6>
