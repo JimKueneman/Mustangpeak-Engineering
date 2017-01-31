@@ -1,0 +1,46 @@
+0	1	mPDsPic.exe -MSF -DBG -pP30F4013 -Y -DL -SSA -RA -O11111114 -fo80 -N"Z:\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\dsPIC30\openMikroBootloader.mppds" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\" -SP"Z:\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\dsPIC30\" -SP"Y:\mikroPascal\dsPIC30\" -SP"X:\mikroPascal\dsPIC30\" -SP"X:\mikroPascal\bootloader_core\" -SP"X:\mikroPascal\dsPIC30\bootloader_user\" -SP"Y:\mikroPascal\bootloader_core\" -SP"Y:\mikroPascal\dsPIC30\bootloader_user\" -SP"Z:\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\bootloader_core\" -SP"Z:\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\dsPIC30\bootloader_user\" "__Lib_Math.mcl" "__Lib_MathDouble.mcl" "__Lib_System.mcl" "__Lib_Delays.mcl" "__Lib_String.mcl" "__Lib_Conversions.mcl" "__Lib_FLASH_p30.mcl" "__Lib_UART_12_p30.mcl" "openMikroBootloader.mpas" "bootloader_common.mpas" "bootloader_common_defines.mpas" "bootloader_core.mpas" "bootloader_driver.mpas" "bootloader_mcu.mpas" "bootloader_user.mpas"	 
+warning: 0	1501	Specified search path does not exist: 'Y:\mikroPascal\dsPIC30'	 
+warning: 0	1501	Specified search path does not exist: 'X:\mikroPascal\dsPIC30'	 
+warning: 0	1501	Specified search path does not exist: 'X:\mikroPascal\bootloader_core'	 
+warning: 0	1501	Specified search path does not exist: 'X:\mikroPascal\dsPIC30\bootloader_user'	 
+warning: 0	1501	Specified search path does not exist: 'Y:\mikroPascal\bootloader_core'	 
+warning: 0	1501	Specified search path does not exist: 'Y:\mikroPascal\dsPIC30\bootloader_user'	 
+diagnostics: 0	133	Compilation Started	C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\defs\P30F4013.mpas
+hint: 1	1015	Hint: Compiling unit "C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\defs\P30F4013.mpas"	P30F4013.mpas
+hint: 6547	1010	Hint: Unit "P30F4013.mpas" has been recompiled	P30F4013.mpas
+diagnostics: 0	134	Compiled Successfully	C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\defs\P30F4013.mpas
+diagnostics: 0	133	Compilation Started	C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\uses\__Lib_Delays.mpas
+hint: 1	1015	Hint: Compiling unit "C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\uses\__Lib_Delays.mpas"	__Lib_Delays.mpas
+hint: 724	1010	Hint: Unit "__Lib_Delays.mpas" has been recompiled	__Lib_Delays.mpas
+diagnostics: 0	134	Compiled Successfully	C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\uses\__Lib_Delays.mpas
+diagnostics: 0	133	Compilation Started	Z:\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\dsPIC30\openMikroBootloader.mpas
+hint: 1	1015	Hint: Compiling unit "Z:\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\dsPIC30\openMikroBootloader.mpas"	openMikroBootloader.mpas
+hint: 1	1015	Hint: Compiling unit "Z:\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\bootloader_core\bootloader_common_defines.mpas"	bootloader_common_defines.mpas
+hint: 26	1010	Hint: Unit "bootloader_common_defines.mpas" has been recompiled	bootloader_common_defines.mpas
+hint: 1	1015	Hint: Compiling unit "Z:\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\dsPIC30\bootloader_user\bootloader_user.mpas"	bootloader_user.mpas
+hint: 82	1010	Hint: Unit "bootloader_user.mpas" has been recompiled	bootloader_user.mpas
+hint: 1	1015	Hint: Compiling unit "Z:\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\bootloader_core\bootloader_common.mpas"	bootloader_common.mpas
+hint: 208	1010	Hint: Unit "bootloader_common.mpas" has been recompiled	bootloader_common.mpas
+hint: 1	1015	Hint: Compiling unit "Z:\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\bootloader_core\bootloader_driver.mpas"	bootloader_driver.mpas
+hint: 169	1010	Hint: Unit "bootloader_driver.mpas" has been recompiled	bootloader_driver.mpas
+hint: 1	1015	Hint: Compiling unit "Z:\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\bootloader_core\bootloader_mcu.mpas"	bootloader_mcu.mpas
+warning: 153	1518	Warning: Suspicious pointer conversion	bootloader_mcu.mpas
+warning: 153	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	bootloader_mcu.mpas
+warning: 198	1518	Warning: Suspicious pointer conversion	bootloader_mcu.mpas
+warning: 198	1509	Warning: Implicit typecast performed from "pointer" to "integral type"	bootloader_mcu.mpas
+hint: 134	1001	Hint: Variable "i" has been declared, but not used	bootloader_mcu.mpas
+hint: 135	1001	Hint: Variable "TempAddress" has been declared, but not used	bootloader_mcu.mpas
+hint: 168	1001	Hint: Variable "DoubleWordArray" has been declared, but not used	bootloader_mcu.mpas
+hint: 219	1010	Hint: Unit "bootloader_mcu.mpas" has been recompiled	bootloader_mcu.mpas
+hint: 1	1015	Hint: Compiling unit "Z:\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\bootloader_core\bootloader_core.mpas"	bootloader_core.mpas
+hint: 304	1010	Hint: Unit "bootloader_core.mpas" has been recompiled	bootloader_core.mpas
+hint: 8	1010	Hint: Unit "openMikroBootloader.mpas" has been recompiled	openMikroBootloader.mpas
+diagnostics: 0	134	Compiled Successfully	Z:\Firmware\MikroPascal\OpenMikroBootloader\mikroPascal\dsPIC30\openMikroBootloader.mpas
+diagnostics: 0	139	All files Compiled in 370 ms	 
+hint: 0	1144	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)
+hint: 0	1144	Static RAM (bytes): 107   Dynamic RAM (bytes): 1940	Static RAM (bytes): 107   Dynamic RAM (bytes): 1940
+hint: 0	1144	Used ROM (bytes): 1865 (6%)  Free ROM (bytes): 30903 (94%)	Used ROM (bytes): 1865 (6%)  Free ROM (bytes): 30903 (94%)
+diagnostics: 0	145	Project Linked Successfully	openMikroBootloader.mppds
+diagnostics: 0	140	Linked in 391 ms	 
+diagnostics: 0	141	Project 'openMikroBootloader.mppds' completed: 991 ms	 
+diagnostics: 0	103	Finished successfully: 03 Nov 2015, 20:24:01	openMikroBootloader.mppds
