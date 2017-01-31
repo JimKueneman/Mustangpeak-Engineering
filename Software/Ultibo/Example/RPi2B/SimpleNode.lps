@@ -4,13 +4,12 @@
     <PathDelim Value="\"/>
     <Version Value="9"/>
     <BuildModes Active="Default"/>
-    <Units Count="38">
+    <Units Count="43">
       <Unit0>
         <Filename Value="SimpleNode.lpr"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="12"/>
-        <CursorPos X="48" Y="22"/>
-        <UsageCount Value="81"/>
+        <CursorPos X="5" Y="11"/>
+        <UsageCount Value="83"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
@@ -18,35 +17,35 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="25" Y="33"/>
-        <UsageCount Value="81"/>
+        <UsageCount Value="83"/>
       </Unit1>
       <Unit2>
         <Filename Value="..\..\LCC\baseobjects.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="24" Y="9"/>
-        <UsageCount Value="79"/>
+        <UsageCount Value="81"/>
       </Unit2>
       <Unit3>
         <Filename Value="..\..\LCC\basemessage.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="30" Y="16"/>
-        <UsageCount Value="54"/>
+        <UsageCount Value="56"/>
       </Unit3>
       <Unit4>
         <Filename Value="..\..\LCC\basetypes.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="24" Y="9"/>
-        <UsageCount Value="53"/>
+        <UsageCount Value="55"/>
       </Unit4>
       <Unit5>
         <Filename Value="..\..\Mustangpeak_Lib\mustangpeak_half_float.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="32" Y="6"/>
-        <UsageCount Value="53"/>
+        <UsageCount Value="55"/>
       </Unit5>
       <Unit6>
         <Filename Value="..\..\LCC\baseutilities.pas"/>
@@ -54,35 +53,35 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="10"/>
         <CursorPos X="19" Y="23"/>
-        <UsageCount Value="53"/>
+        <UsageCount Value="55"/>
       </Unit6>
       <Unit7>
         <Filename Value="..\..\LCC\protocol.snip.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="2"/>
-        <UsageCount Value="53"/>
+        <UsageCount Value="55"/>
       </Unit7>
       <Unit8>
         <Filename Value="..\..\LCC\protocol.pip.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="24" Y="9"/>
-        <UsageCount Value="53"/>
+        <UsageCount Value="55"/>
       </Unit8>
       <Unit9>
         <Filename Value="..\..\LCC\protocol.traction.stni.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
-        <CursorPos X="92" Y="7"/>
-        <UsageCount Value="53"/>
+        <CursorPos X="57" Y="12"/>
+        <UsageCount Value="55"/>
       </Unit9>
       <Unit10>
         <Filename Value="..\..\LCC\protocol.traction.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="5"/>
-        <CursorPos X="71" Y="12"/>
-        <UsageCount Value="53"/>
+        <EditorIndex Value="8"/>
+        <CursorPos X="57" Y="12"/>
+        <UsageCount Value="55"/>
         <Loaded Value="True"/>
       </Unit10>
       <Unit11>
@@ -90,36 +89,38 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="23" Y="5"/>
-        <UsageCount Value="53"/>
+        <UsageCount Value="55"/>
       </Unit11>
       <Unit12>
         <Filename Value="..\..\LCC\protocol.traction.fdi.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="-1"/>
-        <CursorPos X="24" Y="9"/>
-        <UsageCount Value="52"/>
+        <EditorIndex Value="9"/>
+        <CursorPos X="57" Y="12"/>
+        <UsageCount Value="54"/>
+        <Loaded Value="True"/>
       </Unit12>
       <Unit13>
         <Filename Value="..\..\LCC\protocol.traction.fci.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="-1"/>
-        <CursorPos X="24" Y="9"/>
-        <UsageCount Value="52"/>
+        <EditorIndex Value="10"/>
+        <CursorPos X="57" Y="12"/>
+        <UsageCount Value="54"/>
+        <Loaded Value="True"/>
       </Unit13>
       <Unit14>
         <Filename Value="..\..\LCC\protocol.datagram.cdi.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="61"/>
-        <CursorPos X="22" Y="80"/>
-        <UsageCount Value="52"/>
+        <EditorIndex Value="11"/>
+        <CursorPos X="57" Y="8"/>
+        <UsageCount Value="54"/>
+        <Loaded Value="True"/>
       </Unit14>
       <Unit15>
         <Filename Value="..\..\LCC\protocol.acdi.mfg"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="5"/>
-        <UsageCount Value="52"/>
+        <UsageCount Value="54"/>
         <DefaultSyntaxHighlighter Value="None"/>
       </Unit15>
       <Unit16>
@@ -128,7 +129,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="3"/>
         <CursorPos X="8" Y="13"/>
-        <UsageCount Value="52"/>
+        <UsageCount Value="54"/>
       </Unit16>
       <Unit17>
         <Filename Value="..\..\LCC\protocol.acdi.user.pas"/>
@@ -136,35 +137,35 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="38"/>
         <CursorPos X="3" Y="31"/>
-        <UsageCount Value="52"/>
+        <UsageCount Value="54"/>
       </Unit17>
       <Unit18>
         <Filename Value="..\..\LCC\protocol.datagram.configuration.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="24" Y="9"/>
-        <UsageCount Value="51"/>
+        <UsageCount Value="53"/>
       </Unit18>
       <Unit19>
         <Filename Value="..\..\LCC\protocol.datagram.configuration.memory.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="39" Y="3"/>
-        <UsageCount Value="51"/>
+        <UsageCount Value="53"/>
       </Unit19>
       <Unit20>
         <Filename Value="..\..\LCC\protocol.datagram.configuration.memory.info.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="201"/>
-        <UsageCount Value="50"/>
+        <UsageCount Value="52"/>
       </Unit20>
       <Unit21>
         <Filename Value="..\..\LCC\protocol.datagram.confguration.memory.options.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="24" Y="9"/>
-        <UsageCount Value="50"/>
+        <UsageCount Value="52"/>
       </Unit21>
       <Unit22>
         <Filename Value="..\..\LCC\basenode.pas"/>
@@ -175,10 +176,10 @@
       </Unit22>
       <Unit23>
         <Filename Value="\\vmware-host\Shared Folders\LccLib\Library\LCC\lcc_nodemanager.pas"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="12"/>
         <TopLine Value="1093"/>
         <CursorPos X="14" Y="1262"/>
-        <UsageCount Value="39"/>
+        <UsageCount Value="40"/>
         <Loaded Value="True"/>
       </Unit23>
       <Unit24>
@@ -231,8 +232,9 @@
       <Unit31>
         <Filename Value="..\..\Generics\src\generics.defaults.pas"/>
         <EditorIndex Value="-1"/>
-        <CursorPos X="19" Y="85"/>
-        <UsageCount Value="7"/>
+        <TopLine Value="75"/>
+        <CursorPos X="54" Y="91"/>
+        <UsageCount Value="10"/>
       </Unit31>
       <Unit32>
         <Filename Value="..\..\Generics\src\generics.collections.pas"/>
@@ -250,111 +252,191 @@
       <Unit34>
         <Filename Value="..\..\LCC\lcc.transfer.pas"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="250"/>
-        <CursorPos X="20" Y="262"/>
-        <UsageCount Value="10"/>
+        <CursorPos X="2" Y="9"/>
+        <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit34>
       <Unit35>
         <Filename Value="..\..\LCC\lcc.node.pas"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="7"/>
         <TopLine Value="3"/>
         <CursorPos X="46" Y="13"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit35>
       <Unit36>
         <Filename Value="..\..\LCC\lcc.message.pas"/>
-        <EditorIndex Value="2"/>
-        <TopLine Value="851"/>
-        <CursorPos X="23" Y="861"/>
-        <UsageCount Value="10"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="430"/>
+        <CursorPos X="3" Y="446"/>
+        <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit36>
       <Unit37>
         <Filename Value="..\..\LCC\lcc.objects.pas"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="3"/>
-        <TopLine Value="30"/>
+        <EditorIndex Value="6"/>
+        <TopLine Value="25"/>
         <CursorPos X="30" Y="41"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit37>
+      <Unit38>
+        <Filename Value="..\..\Synapse\synafpc.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="58"/>
+        <CursorPos X="26" Y="76"/>
+        <UsageCount Value="10"/>
+      </Unit38>
+      <Unit39>
+        <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\inc\dynlibs.pas"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="8"/>
+        <CursorPos X="23" Y="24"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit39>
+      <Unit40>
+        <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\inc\dynlibh.inc"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="90" Y="23"/>
+        <UsageCount Value="10"/>
+      </Unit40>
+      <Unit41>
+        <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\packages\rtl-objpas\src\inc\strutils.pp"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="330"/>
+        <CursorPos X="27" Y="352"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit41>
+      <Unit42>
+        <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\ultibo\system.pp"/>
+        <UnitName Value="System"/>
+        <EditorIndex Value="3"/>
+        <CursorPos Y="16"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit42>
     </Units>
-    <JumpHistory Count="19" HistoryIndex="18">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="SimpleNode.lpr"/>
-        <Caret Line="23" Column="41" TopLine="7"/>
+        <Filename Value="..\..\LCC\lcc.node.pas"/>
+        <Caret Line="57" Column="46" TopLine="47"/>
       </Position1>
       <Position2>
-        <Filename Value="..\..\LCC\protocol.traction.pas"/>
-        <Caret Line="9" Column="24"/>
+        <Filename Value="..\..\LCC\lcc.node.pas"/>
+        <Caret Line="14" Column="45" TopLine="3"/>
       </Position2>
       <Position3>
-        <Filename Value="SimpleNode.lpr"/>
-        <Caret Line="29" Column="25" TopLine="23"/>
+        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
+        <Caret Line="164" Column="28" TopLine="154"/>
       </Position3>
       <Position4>
         <Filename Value="..\..\LCC\lcc.transfer.pas"/>
+        <Caret Line="248" Column="11" TopLine="227"/>
       </Position4>
       <Position5>
-        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
-        <Caret Line="15" Column="21" TopLine="6"/>
+        <Filename Value="..\..\LCC\lcc.message.pas"/>
       </Position5>
       <Position6>
-        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
-        <Caret Line="7" Column="20" TopLine="4"/>
+        <Filename Value="..\..\LCC\lcc.objects.pas"/>
       </Position6>
       <Position7>
-        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
-        <Caret Line="18" Column="7" TopLine="9"/>
+        <Filename Value="..\..\LCC\lcc.objects.pas"/>
+        <Caret Line="49" Column="46" TopLine="39"/>
       </Position7>
       <Position8>
-        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
-        <Caret Line="50" Column="50" TopLine="38"/>
+        <Filename Value="SimpleNode.lpr"/>
+        <Caret Line="17" Column="21" TopLine="14"/>
       </Position8>
       <Position9>
-        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
-        <Caret Line="51" Column="11" TopLine="37"/>
+        <Filename Value="SimpleNode.lpr"/>
+        <Caret Line="32" Column="27" TopLine="14"/>
       </Position9>
       <Position10>
-        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
-        <Caret Line="98" Column="13" TopLine="77"/>
+        <Filename Value="SimpleNode.lpr"/>
+        <Caret Line="30" Column="20" TopLine="6"/>
       </Position10>
       <Position11>
-        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
-        <Caret Line="124" Column="5" TopLine="117"/>
+        <Filename Value="..\..\LCC\protocol.traction.pas"/>
+        <Caret Line="12" Column="71"/>
       </Position11>
       <Position12>
-        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
-        <Caret Line="164" Column="28" TopLine="154"/>
+        <Filename Value="..\..\LCC\protocol.traction.fdi.pas"/>
+        <Caret Line="9" Column="24"/>
       </Position12>
       <Position13>
-        <Filename Value="..\..\LCC\lcc.node.pas"/>
-        <Caret Line="57" Column="46" TopLine="47"/>
+        <Filename Value="..\..\LCC\protocol.traction.fci.pas"/>
+        <Caret Line="9" Column="24"/>
       </Position13>
       <Position14>
-        <Filename Value="..\..\LCC\lcc.node.pas"/>
-        <Caret Line="14" Column="45" TopLine="3"/>
+        <Filename Value="..\..\LCC\protocol.datagram.cdi.pas"/>
+        <Caret Line="80" Column="22" TopLine="54"/>
       </Position14>
       <Position15>
         <Filename Value="..\..\LCC\lcc.transfer.pas"/>
-        <Caret Line="164" Column="28" TopLine="154"/>
+        <Caret Line="227" Column="12" TopLine="209"/>
       </Position15>
       <Position16>
-        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
-        <Caret Line="248" Column="11" TopLine="227"/>
+        <Filename Value="SimpleNode.lpr"/>
+        <Caret Line="30" Column="11" TopLine="6"/>
       </Position16>
       <Position17>
-        <Filename Value="..\..\LCC\lcc.message.pas"/>
+        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
+        <Caret TopLine="4"/>
       </Position17>
       <Position18>
-        <Filename Value="..\..\LCC\lcc.objects.pas"/>
+        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
+        <Caret Line="40" Column="44" TopLine="38"/>
       </Position18>
       <Position19>
-        <Filename Value="..\..\LCC\lcc.objects.pas"/>
-        <Caret Line="49" Column="46" TopLine="39"/>
+        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
+        <Caret Line="91" Column="29"/>
       </Position19>
+      <Position20>
+        <Filename Value="..\..\LCC\lcc.transfer.pas"/>
+        <Caret Line="9" Column="3"/>
+      </Position20>
+      <Position21>
+        <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\inc\dynlibs.pas"/>
+        <Caret Line="24" Column="33" TopLine="8"/>
+      </Position21>
+      <Position22>
+        <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\inc\dynlibs.pas"/>
+        <Caret Line="27" Column="31" TopLine="11"/>
+      </Position22>
+      <Position23>
+        <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\inc\dynlibs.pas"/>
+        <Caret Line="28" Column="37" TopLine="12"/>
+      </Position23>
+      <Position24>
+        <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\inc\dynlibs.pas"/>
+        <Caret Line="30" Column="56" TopLine="14"/>
+      </Position24>
+      <Position25>
+        <Filename Value="..\..\LCC\lcc.objects.pas"/>
+        <Caret Line="41" Column="17" TopLine="33"/>
+      </Position25>
+      <Position26>
+        <Filename Value="..\..\LCC\lcc.message.pas"/>
+        <Caret Line="861" Column="23"/>
+      </Position26>
+      <Position27>
+        <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\packages\rtl-objpas\src\inc\strutils.pp"/>
+      </Position27>
+      <Position28>
+        <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\packages\rtl-objpas\src\inc\strutils.pp"/>
+        <Caret Line="1401" Column="42" TopLine="1385"/>
+      </Position28>
+      <Position29>
+        <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\packages\rtl-objpas\src\inc\strutils.pp"/>
+        <Caret Line="417" Column="23" TopLine="401"/>
+      </Position29>
+      <Position30>
+        <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\inc\dynlibs.pas"/>
+        <Caret Line="24" Column="18"/>
+      </Position30>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>

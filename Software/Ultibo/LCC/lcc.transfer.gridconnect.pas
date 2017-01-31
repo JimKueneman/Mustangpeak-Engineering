@@ -1,5 +1,8 @@
 unit lcc.transfer.gridconnect;
 
+// Contains classes to derive from and helpers to help with dealing with GridConnect
+// on a transfer medium.
+
 {$IFDEF FPC}
 {$mode objfpc}{$H+}
 {$ENDIF}
@@ -9,7 +12,12 @@ interface
 {$I lcc_compilers.inc}
 
 uses
-  Classes, SysUtils, lcc.types;
+  Classes, SysUtils,
+  {$IFNDEF ULTIBO}
+    blcksock,
+    synsock,
+  {$ENDIF}
+  lcc.transfer.tcp.client;
 
 const
   // :X19170640N0501010107015555;#0  Example.....
@@ -45,6 +53,8 @@ type
 
   procedure StringToGridConnectBuffer(GridConnectStr: String; var GridConnectBuffer: TGridConnectString);
   function GridConnectBufferToString(var GridConnectBuffer: TGridConnectString): String;
+
+
 implementation
 
 const

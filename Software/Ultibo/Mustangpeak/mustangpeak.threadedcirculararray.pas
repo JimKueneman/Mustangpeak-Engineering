@@ -96,7 +96,7 @@ type
     procedure Clear;
     function FirstObject: TObject;
     function NextObject: TObject;
-    procedure Remove(AnItem: TObject);
+    procedure Remove(var AnItem: TObject);
     procedure RemoveChunk(var AChunk: TDynamicArrayObject);
   end;
 
@@ -126,7 +126,18 @@ type
     procedure RemoveChunk(var AChunk: TDynamicArrayInterface);
   end;
 
+   procedure FreeDynamicArrayObjects(var DynamicArray: TDynamicArrayObject);
+
 implementation
+
+procedure FreeDynamicArrayObjects(var DynamicArray: TDynamicArrayObject);
+var
+  i: Integer;
+begin
+  for i := 0 to Length(DynamicArray) - 1 do
+    FreeAndNil( DynamicArray[i]);
+  DynamicArray := nil;
+end;
 
 { TThreadedCirularArrayInterface }
 
@@ -138,20 +149,23 @@ end;
 
 procedure TThreadedCirularArrayInterface.Add(AnItem: IUnknown);
 begin
-  LockArray;
-  try
-     // Do we have room?
-     if Size - Count > 0 then
-     begin
-       FCircularArray[Tail] := AnItem;
-       Inc(FTail);
-       Inc(FCount);
-       if Tail >= Length(FCircularArray) then
-         Tail := 0;
-     end;
-  finally
-    UnLockArray;
-    DoAdd;
+  if Assigned(AnItem) then
+  begin
+    LockArray;
+    try
+       // Do we have room?
+       if Size - Count > 0 then
+       begin
+         FCircularArray[Tail] := AnItem;
+         Inc(FTail);
+         Inc(FCount);
+         if Tail >= Length(FCircularArray) then
+           Tail := 0;
+       end;
+    finally
+      UnLockArray;
+      DoAdd;
+    end;
   end;
 end;
 
@@ -159,23 +173,26 @@ procedure TThreadedCirularArrayInterface.AddChunk(AChunk: TDynamicArrayInterface
 var
   i: Integer;
 begin
-  LockArray;
-  try
-     // Do we have room?
-     if Size - Count > Length(AChunk) - 1 then
-     begin
-       for i := 0 to Length(AChunk) - 1 do
+  if Assigned(AChunk) then
+  begin
+    LockArray;
+    try
+       // Do we have room?
+       if Size - Count > Length(AChunk) - 1 then
        begin
-         FCircularArray[Tail] := AChunk[i];
-         Inc(FTail);
-         Inc(FCount);
-         if Tail >= Length(FCircularArray) then
-           Tail := 0;
-       end
-     end;
-    finally
-    UnLockArray;
-    DoAdd;
+         for i := 0 to Length(AChunk) - 1 do
+         begin
+           FCircularArray[Tail] := AChunk[i];
+           Inc(FTail);
+           Inc(FCount);
+           if Tail >= Length(FCircularArray) then
+             Tail := 0;
+         end
+       end;
+      finally
+      UnLockArray;
+      DoAdd;
+    end;
   end;
 end;
 
@@ -203,6 +220,7 @@ procedure TThreadedCirularArrayInterface.Remove(var AnItem: IUnknown);
 var
   i: Integer;
 begin
+  AnItem := nil;
   LockArray;
   try
      if Count > 0 then
@@ -270,20 +288,23 @@ end;
 
 procedure TThreadedCirularArrayObject.Add(AnItem: TObject);
 begin
-  LockArray;
-  try
-     // Do we have room?
-     if Size - Count > 0 then
-     begin
-       FCircularArray[Tail] := AnItem;
-       Inc(FTail);
-       Inc(FCount);
-       if Tail >= Length(FCircularArray) then
-         Tail := 0;
-     end;
-  finally
-    UnLockArray;
-    DoAdd;
+  if Assigned(AnItem) then
+  begin
+    LockArray;
+    try
+       // Do we have room?
+       if Size - Count > 0 then
+       begin
+         FCircularArray[Tail] := AnItem;
+         Inc(FTail);
+         Inc(FCount);
+         if Tail >= Length(FCircularArray) then
+           Tail := 0;
+       end;
+    finally
+      UnLockArray;
+      DoAdd;
+    end;
   end;
 end;
 
@@ -291,23 +312,26 @@ procedure TThreadedCirularArrayObject.AddChunk(AChunk: TDynamicArrayObject);
 var
   i: Integer;
 begin
-  LockArray;
-  try
-     // Do we have room?
-     if Size - Count > Length(AChunk) - 1 then
-     begin
-       for i := 0 to Length(AChunk) - 1 do
+  if Assigned(AChunk) then
+  begin
+    LockArray;
+    try
+       // Do we have room?
+       if Size - Count > Length(AChunk) - 1 then
        begin
-         FCircularArray[Tail] := AChunk[i];
-         Inc(FTail);
-         Inc(FCount);
-         if Tail >= Length(FCircularArray) then
-           Tail := 0;
+         for i := 0 to Length(AChunk) - 1 do
+         begin
+           FCircularArray[Tail] := AChunk[i];
+           Inc(FTail);
+           Inc(FCount);
+           if Tail >= Length(FCircularArray) then
+             Tail := 0;
+         end;
        end;
-     end;
-  finally
-    UnLockArray;
-    DoAdd;
+    finally
+      UnLockArray;
+      DoAdd;
+    end;
   end;
 end;
 
@@ -354,8 +378,9 @@ begin
     Result := CircularArray[EnumeratorIndex];
 end;
 
-procedure TThreadedCirularArrayObject.Remove(AnItem: TObject);
+procedure TThreadedCirularArrayObject.Remove(var AnItem: TObject);
 begin
+  AnItem := nil;
   LockArray;
   try
      if Count > 0 then
@@ -376,6 +401,7 @@ var
   i: Integer;
   LocalCount: Word;
 begin
+  AChunk := nil;
   LockArray;
   try
      if Count > 0 then

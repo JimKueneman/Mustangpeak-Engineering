@@ -16,6 +16,44 @@
 		<supported>traction.stni</supported>
 		<supported>traction.fci</supported>
 	</protocols>
+	<configuration.options>
+		<supported>write.under.mask</supported>
+		<supported>unaligned.reads</supported>
+		<supported>unaligned.writes</supported>
+		<supported>mfg.acdi.read</supported>
+		<supported>usr.acdi.read</supported>
+		<supported>usr.acdi.write</supported>
+		<writelengths>
+			<supported>one</supported>
+			<supported>two</supported>
+			<supported>four</supported>
+			<supported>sixtyfour</supported>
+			<supported>arbitrary</supported>
+			<unsupported>stream</unsupported>
+		</writelengths>
+		<memspace.hi>0xFF</memspace.hi>
+		<memspace.lo>0xF9</memspace.lo>
+	</configuration.options>
+	<configuration.memspace>
+		<!-- Configuration Definition Information (CDI) Space -->
+		<memspace present="true" readonly="true" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFF</memspace>
+	    <!-- All Memory Space -->
+		<memspace present="true" readonly="true" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFE</memspace>
+		<!-- Configuration Space -->
+		<memspace present="true" readonly="false" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFD</memspace>
+		<!-- ACDI Manufacturer Space -->
+		<memspace present="true" readonly="true" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFC</memspace>
+		<!-- ACDI User Space -->
+	    <memspace present="true" readonly="false" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFB</memspace>
+		<!-- Function Definition Definition (FDI)  -->
+		<memspace present="true" readonly="true" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFA</memspace>
+	    <!-- Train Configuration Space -->
+	    <memspace present="true" readonly="false" addresslo="0x00000000" addresshi="0x00FFFFFF">0xF9</memspace>
+	</configuration.memspace>
+	<datagram>
+		<!-- Enter the number of Datagram buffers to reserve -->
+		<buffersize>1</buffersize>
+	</datagram>
 	<events>
 		<produced>
 			<event>0000</event>
@@ -28,7 +66,6 @@
 			<event>0007</event>
 			<event>0008</event>
 			<event>0009</event>
-
 		</produced>
 		<consumed>
 			<event>0010</event>
@@ -41,11 +78,11 @@
 			<event>0017</event>
 			<event>0018</event>
 			<event>0019</event>
-
 		</consumed>
 	</events>
 	<cdi>
 		<path>/Users/jimkueneman/Documents/Mustangpeak Engineering/Software/Ultibo/Example/Lazarus/example_cdi.xml</path>
+		<path_win>Z:\Software\Ultibo\Example\Lazarus\example_cdi.xml</path_win>
 	</cdi>
 	<snip>
 		<loadfromcdi>true</loadfromcdi>

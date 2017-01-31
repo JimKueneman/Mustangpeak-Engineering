@@ -9,7 +9,7 @@ interface
 {$I lcc_compilers.inc}
 
 uses
-  Classes, SysUtils, baseobjects, basetypes, basemessage;
+  Classes, SysUtils, lcc.objects, lcc.types, lcc.message;
 
 type
   { TFunctionConfiguration }

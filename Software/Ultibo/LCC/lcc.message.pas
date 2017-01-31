@@ -6,7 +6,7 @@ unit lcc.message;
 
 interface
 
-{$I ..\Lcc\lcc_compilers.inc}
+{$I lcc_compilers.inc}
 
 uses
   Classes, SysUtils,
@@ -14,93 +14,11 @@ uses
   syncobjs,
   {$ENDIF}
   lcc.types, mustangpeak.half_float, lcc.utilities, strutils,
-  lcc.can.types;
+  lcc.types.can;
 
 
 type
   TLccMessage = class;
-
-  ILccMessage = interface['{1E7C1339-0DF4-50B2-A958-6212DE307FA1}']
-    procedure AppendDataArray(LccMessage: TLccMessage);
-    function AppendDataArrayAsString(LccMessage: TLccMessage; LastNull: Byte): Boolean;
-    function Clone: TLccMessage;
-    procedure InsertNodeID(StartIndex: Integer; var ANodeID: TNodeID);
-    procedure InsertEventID(StartIndex: Integer; var AnEventID: TEventID);
-    procedure InsertDWordAsDataBytes(DoubleWord: DWord; StartByteIndex: Integer);
-    procedure InsertWordAsDataBytes(AWord: DWord; StartByteIndex: Integer);
-    function ExtractDataBytesAsEventID(StartIndex: Integer): PEventID;
-    function ExtractDataBytesAsInt(StartByteIndex, EndByteIndex: Integer): QWord;
-    function ExtractDataBytesAsNodeID(StartIndex: Integer; var ANodeID: TNodeID): PNodeID;
-    function ExtractDataBytesAsString(StartIndex, Count: Integer): String;
-
-    function LoadByGridConnectStr(GridConnectStr: String): Boolean;
-    function LoadByLccTcp(var ByteArray: TDynamicByteArray): Boolean;
-    function ConvertToGridConnectStr(Delimiter: String): String;
-    function ConvertToLccTcp(var ByteArray: TDynamicByteArray): Boolean;
-    procedure Copy(TargetMessage: TLccMessage);
-    function ConvertToLccTcpString(var ByteArray: TDynamicByteArray): String;
-    procedure ZeroFields;
-
-    // Basic
-    procedure LoadInitializationComplete(ASourceID: TNodeID);
-    procedure LoadVerifyNodeIDAddressed(ASourceID, ADestID: TNodeID);
-    procedure LoadVerifyNodeID(ASourceID: TNodeID);
-    procedure LoadVerifiedNodeID(ASourceID: TNodeID);
-    // Protocol Support (PIP)
-    procedure LoadProtocolIdentifyInquiry(ASourceID, ADestID: TNodeID);
-    procedure LoadProtocolIdentifyReply(ASourceID, ADestID: TNodeID; Flags: QWord);
-    // Event Exchange
-    procedure LoadConsumerIdentify(ASourceID: TNodeID; var Event: TEventID);
-    procedure LoadConsumerIdentified(ASourceID: TNodeID; var Event: TEventID; EventState: TEventState);
-    procedure LoadProducerIdentify(ASourceID: TNodeID; var Event: TEventID);
-    procedure LoadProducerIdentified(ASourceID: TNodeID; var Event: TEventID; EventState: TEventState);
-    procedure LoadIdentifyEventsAddressed(ASourceID: TNodeID; ADestID: TNodeID);
-    procedure LoadIdentifyEvents(ASourceID: TNodeID);
-    procedure LoadPCER(ASourceID: TNodeID; AnEvent: PEventID);
-    // Traction Control
-    procedure LoadTractionSetSpeed(ASourceID, ADestID: TNodeID; ASpeed: THalfFloat);
-    procedure LoadTractionSetFunction(ASourceID, ADestID: TNodeID; AnAddress: DWord; AValue: Word);
-    procedure LoadTractionEStop(ASourceID, ADestID: TNodeID);
-    procedure LoadTractionQuerySpeed(ASourceID, ADestID: TNodeID);
-    procedure LoadTractionQueryFunction(ASourceID, ADestID: TNodeID);
-    procedure LoadTractionControllerAssign(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionControllerRelease(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionControllerQuery(ASourceID, ADestID: TNodeID);
-    procedure LoadTractionControllerChangeNotify(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionControllerChangeNotifyReply(ASourceID, ADestID: TNodeID; Allow: Boolean);
-    procedure LoadTractionConsistAttach(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionConsistDetach(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionConsistQuery(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionManage(ASourceID, ADestID: TNodeID; Reserve: Boolean);
-    // Remote Button
-
-    // Traction Identification (STNIP)
-    procedure LoadSimpleTrainNodeIdentInfoRequest(ASourceID, ADestID: TNodeID);
-    // Node Ident (SNIP)
-    procedure LoadSimpleNodeIdentInfoReply(ASourceID, ADestID: TNodeID; SimplePackedArray: TSimpleNodeInfoPacked);
-    procedure LoadSimpleNodeIdentInfoRequest(ASourceID, ADestID: TNodeID);
-    // FDI
-    procedure LoadFDIRequest(ASourceID, ADestID: TNodeID);
-    procedure LoadFunctionConfigurationRead(ASourceID, ADestID: TNodeID; FunctionAddress: DWord; Count: Integer);
-    procedure LoadFunctionConfigurationWrite(ASourceID, ADestID: TNodeID; FunctionAddress: DWord; Count: Integer; Functions: TFunctionStatesArray);
-    // CDI
-    procedure LoadCDIRequest(ASourceID, ADestID: TNodeID);
-    // Datagram
-    procedure LoadDatagram(ASourceID, ADestID: TNodeID);
-    procedure LoadDatagramAck(ASourceID, ADestID: TNodeID; Ok: Boolean; ReplyPending: Boolean; TimeOutValueN: Byte);
-    procedure LoadDatagramRejected(ASourceID, ADestID: TNodeID; Reason: Word);
-    // ConfigurationMemory
-    procedure LoadConfigMemAddressSpaceInfo(ASourceID, ADestID: TNodeID; AddressSpace: Byte);
-    procedure LoadConfigMemOptions(ASourceID, ADestID: TNodeID);
-    procedure LoadConfigMemRead(ASourceID, ADestID: TNodeID; AddressSpace: Byte; ConfigMemAddress: DWord; ConfigMemSize: Byte);
-    procedure LoadConfigMemWriteInteger(ASourceID, ADestID: TNodeID; AddressSpace: Byte; ConfigMemAddress: DWord; IntegerSize: Byte; DataInteger: Integer);
-    procedure LoadConfigMemWriteString(ASourceID, ADestID: TNodeID; AddressSpace: Byte; ConfigMemAddress: DWord; AString: String);
-    procedure LoadConfigMemWriteArray(ASourceID, ADestID: TNodeID; AddressSpace: Byte; ConfigMemAddress: DWord; ArraySize: Integer; AnArray: array of Byte);
-    // MTIs
-    procedure LoadOptionalInteractionRejected(ASourceID, ADestID: TNodeID; Reason: Word; AnMTI: Word);
-
-    procedure SwapDestAndSourceIDs;
-  end;
 
 
   { TLccCANMessage }
@@ -108,36 +26,33 @@ type
   TLccCANMessage = class
   private
     FActive: Boolean;
-    FDestAlias: Word;
     FFramingBits: Byte;
     FiTag: Integer;
     FMTI: DWord;
-    FSourceAlias: Word;
   public
     property Active: Boolean read FActive write FActive;
     property iTag: Integer read FiTag write FiTag;        // General purpose counter/integer depending on the message
     property MTI: DWord read FMTI write FMTI;
-    property DestAlias: Word read FDestAlias write FDestAlias;
     property FramingBits: Byte read FFramingBits write FFramingBits;            // Bottom 2 bits, upper nibble
-    property SourceAlias: Word read FSourceAlias write FSourceAlias;
   end;
 
 { TLccMessage }
 
-  TLccMessage = class(TInterfacedObject, ILccMessage)
+  TLccMessage = class(TObject)
   private
     FAbandonTimeout: Integer;
     FCAN: TLccCANMessage;
     FDataArray: TLccByteArray;
     FDataCount: Integer;
-    FDestID: TNodeID;
+    FDestination: TNodeIDRec;
     FMTI: Word;
     FRetryAttempts: Integer;
-    FSourceID: TNodeID;
+    FSource: TNodeIDRec;
 
     function GetHasDestination: Boolean;
     function GetHasDestNodeID: Boolean;
     function GetHasSourceNodeID: Boolean;
+    function GetIsCAN: Boolean;
     function GetIsDatagram: Boolean;
     function GetIsStream: Boolean;
     function GetDataArrayIndexer(iIndex: DWord): Byte;
@@ -145,18 +60,20 @@ type
   public
     property AbandonTimeout: Integer read FAbandonTimeout write FAbandonTimeout;
     property CAN: TLccCANMessage read FCAN write FCAN;
-    property DestID: TNodeID read FDestID write FDestID;
     property DataArray: TLccByteArray read FDataArray write FDataArray;
     property DataArrayIndexer[iIndex: DWord]: Byte read GetDataArrayIndexer write SetDataArrayIndexer;
     property DataCount: Integer read FDataCount write FDataCount;
     property HasDestination: Boolean read GetHasDestination;
     property HasDestNodeID: Boolean read GetHasDestNodeID;
     property HasSourceNodeID: Boolean read GetHasSourceNodeID;
+    property IsCAN: Boolean read GetIsCAN;
     property IsDatagram: Boolean read GetIsDatagram;
     property IsStream: Boolean read GetIsStream;
     property MTI: Word read FMTI write FMTI;
     property RetryAttempts: Integer read FRetryAttempts write FRetryAttempts;
-    property SourceID: TNodeID read FSourceID write FSourceID;
+
+    property Destination: TNodeIDRec read FDestination write FDestination;
+    property Source: TNodeIDRec read FSource write FSource;
 
     constructor Create;
     destructor Destroy; override;
@@ -164,10 +81,11 @@ type
     procedure AppendDataArray(LccMessage: TLccMessage);
     function AppendDataArrayAsString(LccMessage: TLccMessage; LastNull: Byte): Boolean;
     function Clone: TLccMessage;
-    procedure InsertNodeID(StartIndex: Integer; var ANodeID: TNodeID);
+    procedure InsertNodeID(StartIndex: Integer; var ANodeID: TNodeIDRec);
     procedure InsertEventID(StartIndex: Integer; var AnEventID: TEventID);
     procedure InsertDWordAsDataBytes(DoubleWord: DWord; StartByteIndex: Integer);
     procedure InsertWordAsDataBytes(AWord: DWord; StartByteIndex: Integer);
+    function IsAddressedMessage: Boolean;
     function ExtractDataBytesAsEventID(StartIndex: Integer): PEventID;
     function ExtractDataBytesAsInt(StartByteIndex, EndByteIndex: Integer): QWord;
     function ExtractDataBytesAsNodeID(StartIndex: Integer; var ANodeID: TNodeID): PNodeID;
@@ -181,70 +99,76 @@ type
     function ConvertToLccTcpString(var ByteArray: TDynamicByteArray): String;
     procedure ZeroFields;
 
+    // CAN
+    procedure LoadCID(ASource: TNodeIDRec; ACID: Byte);
+    procedure LoadRID(ASource: TNodeIDRec);
+    procedure LoadAMD(ASource: TNodeIDRec);
+    procedure LoadAMR(ASource: TNodeIDRec);
+    procedure LoadAME(ASource: TNodeIDRec);
+
     // Basic
-    procedure LoadInitializationComplete(ASourceID: TNodeID);
-    procedure LoadVerifyNodeIDAddressed(ASourceID, ADestID: TNodeID);
-    procedure LoadVerifyNodeID(ASourceID: TNodeID);
-    procedure LoadVerifiedNodeID(ASourceID: TNodeID);
+    procedure LoadInitializationComplete(ASourceID: TNodeIDRec);
+    procedure LoadVerifyNodeIDAddressed(ASourceID, ADestID: TNodeIDRec);
+    procedure LoadVerifyNodeID(ASourceID: TNodeIDRec);
+    procedure LoadVerifiedNodeID(ASourceID: TNodeIDRec);
     // Protocol Support (PIP)
-    procedure LoadProtocolIdentifyInquiry(ASourceID, ADestID: TNodeID);
-    procedure LoadProtocolIdentifyReply(ASourceID, ADestID: TNodeID; Flags: QWord);
+    procedure LoadProtocolIdentifyInquiry(ASourceID, ADestID: TNodeIDRec);
+    procedure LoadProtocolIdentifyReply(ASourceID, ADestID: TNodeIDRec; Flags: QWord);
     // Event Exchange
-    procedure LoadConsumerIdentify(ASourceID: TNodeID; var Event: TEventID);
-    procedure LoadConsumerIdentified(ASourceID: TNodeID; var Event: TEventID; EventState: TEventState);
-    procedure LoadProducerIdentify(ASourceID: TNodeID; var Event: TEventID);
-    procedure LoadProducerIdentified(ASourceID: TNodeID; var Event: TEventID; EventState: TEventState);
-    procedure LoadIdentifyEventsAddressed(ASourceID: TNodeID; ADestID: TNodeID);
-    procedure LoadIdentifyEvents(ASourceID: TNodeID);
-    procedure LoadPCER(ASourceID: TNodeID; AnEvent: PEventID);
+    procedure LoadConsumerIdentify(ASourceID: TNodeIDRec; var Event: TEventID);
+    procedure LoadConsumerIdentified(ASourceID: TNodeIDRec; var Event: TEventID; EventState: TEventState);
+    procedure LoadProducerIdentify(ASourceID: TNodeIDRec; var Event: TEventID);
+    procedure LoadProducerIdentified(ASourceID: TNodeIDRec; var Event: TEventID; EventState: TEventState);
+    procedure LoadIdentifyEventsAddressed(ASourceID, ADestID: TNodeIDRec);
+    procedure LoadIdentifyEvents(ASourceID: TNodeIDRec);
+    procedure LoadPCER(ASourceID: TNodeIDRec; AnEvent: PEventID);
     // Traction Control
-    procedure LoadTractionSetSpeed(ASourceID, ADestID: TNodeID; ASpeed: THalfFloat);
-    procedure LoadTractionSetFunction(ASourceID, ADestID: TNodeID; AnAddress: DWord; AValue: Word);
-    procedure LoadTractionEStop(ASourceID, ADestID: TNodeID);
-    procedure LoadTractionQuerySpeed(ASourceID, ADestID: TNodeID);
-    procedure LoadTractionQueryFunction(ASourceID, ADestID: TNodeID);
-    procedure LoadTractionControllerAssign(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionControllerRelease(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionControllerQuery(ASourceID, ADestID: TNodeID);
-    procedure LoadTractionControllerChangeNotify(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionControllerChangeNotifyReply(ASourceID, ADestID: TNodeID; Allow: Boolean);
-    procedure LoadTractionConsistAttach(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionConsistDetach(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionConsistQuery(ASourceID, ADestID: TNodeID; ANodeID: TNodeID);
-    procedure LoadTractionManage(ASourceID, ADestID: TNodeID; Reserve: Boolean);
+    procedure LoadTractionSetSpeed(ASourceID, ADestID: TNodeIDRec; ASpeed: THalfFloat);
+    procedure LoadTractionSetFunction(ASourceID, ADestID: TNodeIDRec; AnAddress: DWord; AValue: Word);
+    procedure LoadTractionEStop(ASourceID, ADestID: TNodeIDRec);
+    procedure LoadTractionQuerySpeed(ASourceID, ADestID: TNodeIDRec);
+    procedure LoadTractionQueryFunction(ASourceID, ADestID: TNodeIDRec);
+    procedure LoadTractionControllerAssign(ASourceID, ADestID: TNodeIDRec; ANodeID: TNodeIDRec);
+    procedure LoadTractionControllerRelease(ASourceID, ADestID: TNodeIDRec; ANodeID: TNodeIDRec);
+    procedure LoadTractionControllerQuery(ASourceID, ADestID: TNodeIDRec);
+    procedure LoadTractionControllerChangeNotify(ASourceID, ADestID: TNodeIDRec; ANodeID: TNodeIDRec);
+    procedure LoadTractionControllerChangeNotifyReply(ASourceID, ADestID: TNodeIDRec; Allow: Boolean);
+    procedure LoadTractionConsistAttach(ASourceID, ADestID: TNodeIDRec; ANodeID: TNodeIDRec);
+    procedure LoadTractionConsistDetach(ASourceID, ADestID: TNodeIDRec; ANodeID: TNodeIDRec);
+    procedure LoadTractionConsistQuery(ASourceID, ADestID: TNodeIDRec; ANodeID: TNodeIDRec);
+    procedure LoadTractionManage(ASourceID, ADestID: TNodeIDRec; Reserve: Boolean);
     // Remote Button
 
     // Traction Identification (STNIP)
-    procedure LoadSimpleTrainNodeIdentInfoRequest(ASourceID, ADestID: TNodeID);
+    procedure LoadSimpleTrainNodeIdentInfoRequest(ASourceID, ADestID: TNodeIDRec);
     // Node Ident (SNIP)
-    procedure LoadSimpleNodeIdentInfoReply(ASourceID, ADestID: TNodeID; SimplePackedArray: TSimpleNodeInfoPacked);
-    procedure LoadSimpleNodeIdentInfoRequest(ASourceID, ADestID: TNodeID);
+    procedure LoadSimpleNodeIdentInfoReply(ASourceID, ADestID: TNodeIDRec; SimplePackedArray: TSimpleNodeInfoPacked);
+    procedure LoadSimpleNodeIdentInfoRequest(ASourceID, ADestID: TNodeIDRec);
     // FDI
-    procedure LoadFDIRequest(ASourceID, ADestID: TNodeID);
-    procedure LoadFunctionConfigurationRead(ASourceID, ADestID: TNodeID; FunctionAddress: DWord; Count: Integer);
-    procedure LoadFunctionConfigurationWrite(ASourceID, ADestID: TNodeID; FunctionAddress: DWord; Count: Integer; Functions: TFunctionStatesArray);
+    procedure LoadFDIRequest(ASourceID, ADestID: TNodeIDRec);
+    procedure LoadFunctionConfigurationRead(ASourceID, ADestID: TNodeIDRec; FunctionAddress: DWord; Count: Integer);
+    procedure LoadFunctionConfigurationWrite(ASourceID, ADestID: TNodeIDRec; FunctionAddress: DWord; Count: Integer; Functions: TFunctionStatesArray);
     // CDI
-    procedure LoadCDIRequest(ASourceID, ADestID: TNodeID);
+    procedure LoadCDIRequest(ASourceID, ADestID: TNodeIDRec);
     // Datagram
-    procedure LoadDatagram(ASourceID, ADestID: TNodeID);
-    procedure LoadDatagramAck(ASourceID, ADestID: TNodeID; Ok: Boolean; ReplyPending: Boolean; TimeOutValueN: Byte);
-    procedure LoadDatagramRejected(ASourceID, ADestID: TNodeID; Reason: Word);
+    procedure LoadDatagram(ASourceID, ADestID: TNodeIDRec);
+    procedure LoadDatagramAck(ASourceID, ADestID: TNodeIDRec; Ok: Boolean; ReplyPending: Boolean; TimeOutValueN: Byte);
+    procedure LoadDatagramRejected(ASourceID, ADestID: TNodeIDRec; Reason: Word);
     // ConfigurationMemory
-    procedure LoadConfigMemAddressSpaceInfo(ASourceID, ADestID: TNodeID; AddressSpace: Byte);
-    procedure LoadConfigMemOptions(ASourceID, ADestID: TNodeID);
-    procedure LoadConfigMemRead(ASourceID, ADestID: TNodeID; AddressSpace: Byte; ConfigMemAddress: DWord; ConfigMemSize: Byte);
-    procedure LoadConfigMemWriteInteger(ASourceID, ADestID: TNodeID; AddressSpace: Byte; ConfigMemAddress: DWord; IntegerSize: Byte; DataInteger: Integer);
-    procedure LoadConfigMemWriteString(ASourceID, ADestID: TNodeID; AddressSpace: Byte; ConfigMemAddress: DWord; AString: String);
-    procedure LoadConfigMemWriteArray(ASourceID, ADestID: TNodeID; AddressSpace: Byte; ConfigMemAddress: DWord; ArraySize: Integer; AnArray: array of Byte);
+    procedure LoadConfigMemAddressSpaceInfo(ASourceID, ADestID: TNodeIDRec; AddressSpace: Byte);
+    procedure LoadConfigMemOptions(ASourceID, ADestID: TNodeIDRec);
+    procedure LoadConfigMemRead(ASourceID, ADestID: TNodeIDRec; AddressSpace: Byte; ConfigMemAddress: DWord; ConfigMemSize: Byte);
+    procedure LoadConfigMemWriteInteger(ASourceID, ADestID: TNodeIDRec; AddressSpace: Byte; ConfigMemAddress: DWord; IntegerSize: Byte; DataInteger: Integer);
+    procedure LoadConfigMemWriteString(ASourceID, ADestID: TNodeIDRec; AddressSpace: Byte; ConfigMemAddress: DWord; AString: String);
+    procedure LoadConfigMemWriteArray(ASourceID, ADestID: TNodeIDRec; AddressSpace: Byte; ConfigMemAddress: DWord; ArraySize: Integer; AnArray: array of Byte);
     // MTIs
-    procedure LoadOptionalInteractionRejected(ASourceID, ADestID: TNodeID; Reason: Word; AnMTI: Word);
+    procedure LoadOptionalInteractionRejected(ASourceID, ADestID: TNodeIDRec; Reason: Word; AnMTI: Word);
 
     procedure SwapDestAndSourceIDs;
   end;
 
 var
   GlobalSendEvent: TSimpleEvent;
-  GlobalReceiveEvent: TSimpleEvent;
 
 implementation
 
@@ -285,12 +209,7 @@ end;
 function TLccMessage.Clone: TLccMessage;
 begin
   Result := TLccMessage.Create;
-  Result.FDataArray := FDataArray;
-  Result.FDataCount := FDataCount;
-  Result.FDestID := FDestID;
-  Result.FSourceID := FSourceID;
-  Result.FMTI := FMTI;
-  Result.RetryAttempts := 0;
+  Copy(Result);
 end;
 
 function TLccMessage.ConvertToGridConnectStr(Delimiter: String): String;
@@ -309,8 +228,8 @@ begin
     // 2) A parsed CAN frame that effectively is a piece of a MTI_DATAGRAM but does not need to be reparsed
     if CAN.Active then
     begin
-      LocalMTI := CAN.MTI or CAN.SourceAlias  or $10000000;
-      LocalMTI := LocalMTI or (DWord( CAN.DestAlias) shl 12);
+      LocalMTI := CAN.MTI or Source.Alias  or $10000000;
+      LocalMTI := LocalMTI or (DWord( Destination.Alias) shl 12);
       Result := ':X' + IntToHex(LocalMTI, 8) + 'N';
       for i := 0 to DataCount - 1 do
         Result := Result + IntToHex(DataArray[i], 2);
@@ -319,7 +238,7 @@ begin
     begin
       if DataCount < 9 then
       begin
-        Result := Result + ':X' + IntToHex(DWord( $1A000000 or (CAN.DestAlias shl 12) or CAN.SourceAlias), 8) + 'N';
+        Result := Result + ':X' + IntToHex(DWord( $1A000000 or (Destination.Alias shl 12) or Source.Alias), 8) + 'N';
         for i := 0 to DataCount - 1 do
           Result := Result + IntToHex(DataArray[i], 2);
         Result := Result + ';'
@@ -329,12 +248,12 @@ begin
         while Offset < DataCount do
         begin
           if Offset = 0 then
-            Result := Result + ':X' + IntToHex(DWord( $1B000000 or (CAN.DestAlias shl 12) or CAN.SourceAlias), 8) + 'N'
+            Result := Result + ':X' + IntToHex(DWord( $1B000000 or (Destination.Alias shl 12) or Source.Alias), 8) + 'N'
           else
           if Offset + 8 >= DataCount then
-            Result := Result + ':X' + IntToHex(DWord( $1D000000 or (CAN.DestAlias shl 12) or CAN.SourceAlias), 8) + 'N'
+            Result := Result + ':X' + IntToHex(DWord( $1D000000 or (Destination.Alias shl 12) or Source.Alias), 8) + 'N'
           else
-            Result := Result + ':X' + IntToHex(DWord( $1C000000 or (CAN.DestAlias shl 12) or CAN.SourceAlias), 8) + 'N';
+            Result := Result + ':X' + IntToHex(DWord( $1C000000 or (Destination.Alias shl 12) or Source.Alias), 8) + 'N';
 
           for i := 0 to 7 do
           begin
@@ -343,7 +262,10 @@ begin
             if Offset >= DataCount then
               Break;
           end;
-          Result := Result + ';' + Delimiter;
+          if Offset < DataCount then
+            Result := Result + ';' + Delimiter
+          else
+            Result := Result + ';'
         end;
       end;
     end;
@@ -360,14 +282,14 @@ begin
   end else
   begin
     if CAN.Active then
-      LocalMTI := CAN.MTI or CAN.SourceAlias or $10000000
+      LocalMTI := CAN.MTI or Source.Alias or $10000000
     else
-      LocalMTI := DWord(( MTI shl 12) or CAN.SourceAlias or MTI_CAN_FRAME_TYPE_GENERAL or $10000000);
+      LocalMTI := DWord(( MTI shl 12) or Source.Alias or MTI_CAN_FRAME_TYPE_GENERAL or $10000000);
 
     if LocalMTI and MTI_CAN_FRAME_TYPE_MASK > MTI_CAN_FRAME_TYPE_GENERAL then
     begin
       // Datagram or Stream
-      LocalMTI := LocalMTI or (DWord( CAN.DestAlias) shl 12);
+      LocalMTI := LocalMTI or (DWord( Destination.Alias) shl 12);
       Result := ':X' + IntToHex(LocalMTI, 8) + 'N';
       for i := 0 to DataCount - 1 do
         Result := Result + IntToHex(DataArray[i], 2);
@@ -389,19 +311,19 @@ begin
 
             if MTI = MTI_SIMPLE_NODE_INFO_REPLY then
             begin
-              Result := Result + IntToHex(((CAN.DestAlias shr 8)) and $00FF, 2);
+              Result := Result + IntToHex(((Destination.Alias shr 8)) and $00FF, 2);
             end else
             begin
               if iFrameCount = 0 then
-                Result := Result + IntToHex(((CAN.DestAlias shr 8) or $10) and $00FF, 2)
+                Result := Result + IntToHex(((Destination.Alias shr 8) or $10) and $00FF, 2)
               else
               if iFrameCount = FrameCount - 1 then
-                Result := Result + IntToHex(((CAN.DestAlias shr 8) or $20) and $00FF, 2)
+                Result := Result + IntToHex(((Destination.Alias shr 8) or $20) and $00FF, 2)
               else
-                Result := Result + IntToHex(((CAN.DestAlias shr 8) or $30) and $00FF, 2);
+                Result := Result + IntToHex(((Destination.Alias shr 8) or $30) and $00FF, 2);
             end;
 
-            Result := Result + IntToHex(CAN.DestAlias and $00FF, 2);
+            Result := Result + IntToHex(Destination.Alias and $00FF, 2);
 
             i := Offset;
             while i < DataCount do
@@ -415,13 +337,16 @@ begin
               end;
             end;
 
-            Result := Result  + ';' + Delimiter       // MultiFrame Message
+            if iFrameCount <  FrameCount - 1 then
+              Result := Result  + ';' + Delimiter       // MultiFrame Message
+            else
+              Result := Result  + ';'
           end;
         end else
         begin
           Result := ':X' + IntToHex(LocalMTI, 8) + 'N';
-          Result := Result + IntToHex((CAN.DestAlias shr 8) or CAN.FramingBits and $00FF, 2);
-          Result := Result + IntToHex(CAN.DestAlias and $00FF, 2);
+          Result := Result + IntToHex((Destination.Alias shr 8) or CAN.FramingBits and $00FF, 2);
+          Result := Result + IntToHex(Destination.Alias and $00FF, 2);
           for i := 0 to DataCount - 1 do
             Result := Result + IntToHex(DataArray[i], 2);
           Result := Result  + ';'                    // Single Frame message
@@ -438,14 +363,14 @@ begin
   end;
 end;
 
-procedure TLccMessage.InsertNodeID(StartIndex: Integer; var ANodeID: TNodeID);
+procedure TLccMessage.InsertNodeID(StartIndex: Integer; var ANodeID: TNodeIDRec);
 begin
-  FDataArray[StartIndex]     := _Higher( ANodeID[1]); // But these all need the 48 Bit Full ID in the Byte Fields
-  FDataArray[StartIndex + 1] := _Hi(     ANodeID[1]);
-  FDataArray[StartIndex + 2] := _Lo(     ANodeID[1]);
-  FDataArray[StartIndex + 3] := _Higher( ANodeID[0]);
-  FDataArray[StartIndex + 4] := _Hi(     ANodeID[0]);
-  FDataArray[StartIndex + 5] := _Lo(     ANodeID[0]);
+  FDataArray[StartIndex]     := _Higher( ANodeID.ID[1]); // But these all need the 48 Bit Full ID in the Byte Fields
+  FDataArray[StartIndex + 1] := _Hi(     ANodeID.ID[1]);
+  FDataArray[StartIndex + 2] := _Lo(     ANodeID.ID[1]);
+  FDataArray[StartIndex + 3] := _Higher( ANodeID.ID[0]);
+  FDataArray[StartIndex + 4] := _Hi(     ANodeID.ID[0]);
+  FDataArray[StartIndex + 5] := _Lo(     ANodeID.ID[0]);
 end;
 
 procedure TLccMessage.InsertEventID(StartIndex: Integer; var AnEventID: TEventID);
@@ -474,12 +399,51 @@ begin
   FDataArray[StartByteIndex+1] := _Lo(AWord);
 end;
 
+function TLccMessage.IsAddressedMessage: Boolean;
+begin
+  Result := MTI and MTI_ADDRESSED_MASK <> 0;
+end;
+
+procedure TLccMessage.LoadAMD(ASource: TNodeIDRec);
+begin
+  ZeroFields;
+  FSource.Alias := ASource.Alias;
+  CAN.Active := True;
+  CAN.MTI := MTI_CAN_AMD or ASource.Alias;
+  FSource.ID := ASource.ID;
+  InsertNodeID(0, ASource);
+  DataCount := 6;
+end;
+
+procedure TLccMessage.LoadAME(ASource: TNodeIDRec);
+begin
+  ZeroFields;
+  FSource.Alias := ASource.Alias;
+  CAN.Active := True;
+  CAN.MTI := MTI_CAN_AME or ASource.Alias;
+  FSource.ID := ASource.ID;
+  InsertNodeID(0, ASource);
+  DataCount := 6;
+end;
+
+procedure TLccMessage.LoadAMR(ASource: TNodeIDRec);
+begin
+  ZeroFields;
+  FSource.Alias := ASource.Alias;
+  CAN.Active := True;
+  CAN.MTI := MTI_CAN_AMR or ASource.Alias;
+  FSource.ID := ASource.ID;
+  InsertNodeID(0, ASource);
+  DataCount := 6;
+end;
+
 function TLccMessage.LoadByGridConnectStr(GridConnectStr: String): Boolean;
 var
   x, n, SemiColon, i, j: Integer;
   ByteStr: String;
   DestHi, DestLo: Byte;
   ZeroIndex: Boolean;
+  CAN_FrameType: DWord;
 begin
   Result := False;
   if GridConnectStr <> '' then
@@ -513,25 +477,30 @@ begin
             Inc(j);
           end;
           CAN.MTI := StrToInt('$' + ByteStr);              // Convert the string MTI into a number  ;
-          CAN.SourceAlias := Word( CAN.MTI and $00000FFF);                      // Grab the Source Alias before it is stripped off
+          FSource.Alias := Word( CAN.MTI and $00000FFF);                      // Grab the Source Alias before it is stripped off
           CAN.MTI := CAN.MTI and not $10000000;                                 // Strip off the reserved bits
           CAN.MTI := CAN.MTI and $FFFFF000;                                     // Strip off the Source Alias
           // Was this an OpenLCB or CAN specific message? This covers special multiFrame LccMessage and CAN layer specific messages
           CAN.Active := (CAN.MTI and $07000000 <> $01000000);
 
           // Extract the General OpenLCB message if possible
-          if CAN.Active then                                                       // IsCAN means CAN Frames OR OpenLCB message that are only on CAN (Datagrams frames and Stream Send)
+          if CAN.Active then
           begin
-            if CAN.MTI and MTI_CAN_FRAME_TYPE_MASK < MTI_CAN_FRAME_TYPE_DATAGRAM_FRAME_ONLY then
+            if ((CAN.MTI and $0F000000) <= MTI_CAN_FRAME_TYPE_DATAGRAM_FRAME_END) and ((CAN.MTI and $0F000000) >= MTI_CAN_FRAME_TYPE_DATAGRAM_FRAME_ONLY) then
             begin
-              CAN.MTI := CAN.MTI and MTI_CAN_CID_MASK;
-              MTI := 0;
-            end
-            else begin
-              CAN.DestAlias := (CAN.MTI and $00FFF000) shr 12;
+              FDestination.Alias := (CAN.MTI and $00FFF000) shr 12;
               CAN.MTI := CAN.MTI and $0F000000; // $FF000FFF;
               MTI := MTI_DATAGRAM
-            end;
+            end else
+            if (CAN.MTI and $0F000000) = 0 then // Is core CAN msg
+            begin
+              CAN.MTI := CAN.MTI and $00FFF000;
+              MTI := 0;
+            end else
+            begin
+              CAN.MTI := CAN.MTI and $0F000000;
+              MTI := 0;
+            end
           end else
           begin
             if CAN.MTI and MTI_CAN_ADDRESS_PRESENT = MTI_CAN_ADDRESS_PRESENT then
@@ -541,11 +510,11 @@ begin
               ByteStr := GridConnectStr[n+2] + GridConnectStr[n+3];
               DestLo := StrToInt('$' + ByteStr);
               CAN.FramingBits := DestHi and $30;
-              CAN.DestAlias := Word(( DestHi shl 8) and $0FFF) or DestLo;
+              FDestination.Alias := Word(( DestHi shl 8) and $0FFF) or DestLo;
               Inc(n, 4);
             end else
             begin
-              CAN.DestAlias := 0;
+              FDestination.Alias := 0;
               CAN.FramingBits := 0;
             end;
             MTI := Word( (CAN.MTI shr 12) and $0000FFF);
@@ -578,17 +547,22 @@ end;
 
 function TLccMessage.GetHasDestination: Boolean;
 begin
-  Result := (DestID[0] <> 0) and (DestID[1] <> 0)
+  Result := ((Destination.ID[0] <> 0) and (Destination.ID[1] <> 0)) or (Destination.Alias <> 0);
 end;
 
 function TLccMessage.GetHasDestNodeID: Boolean;
 begin
-  Result := (FDestID[0] <> 0) and (FDestID[1] <> 0)
+  Result := (Destination.ID[0] <> 0) and (Destination.ID[1] <> 0);
 end;
 
 function TLccMessage.GetHasSourceNodeID: Boolean;
 begin
-  Result := (FSourceID[0] <> 0) and (FSourceID[1] <> 0)
+  Result := (Source.ID[0] <> 0) and (Source.ID[1] <> 0);
+end;
+
+function TLccMessage.GetIsCAN: Boolean;
+begin
+  Result := CAN.Active;
 end;
 
 function TLccMessage.GetIsDatagram: Boolean;
@@ -605,12 +579,14 @@ constructor TLccMessage.Create;
 begin
   inherited Create;
   CAN := TLccCANMessage.Create;
+  InterLockedIncrement(AllocatedMessages);
 end;
 
 destructor TLccMessage.Destroy;
 begin
   FreeAndNil(FCAN);
   inherited Destroy;
+  InterLockedDecrement(AllocatedMessages);
 end;
 
 function TLccMessage.ExtractDataBytesAsEventID(StartIndex: Integer): PEventID;
@@ -672,13 +648,13 @@ begin
     // Skip the Originating Node
     // Skip the Time
     MTI := (ByteArray[17] shl 8) or ByteArray[18];
-    FSourceID[1] := (ByteArray[19] shl 16) or (ByteArray[20] shl 8) or (ByteArray[21]);
-    FSourceID[0] := (ByteArray[22] shl 16) or (ByteArray[23] shl 8) or (ByteArray[24]);
+    FSource.ID[1] := (ByteArray[19] shl 16) or (ByteArray[20] shl 8) or (ByteArray[21]);
+    FSource.ID[0] := (ByteArray[22] shl 16) or (ByteArray[23] shl 8) or (ByteArray[24]);
 
     if MTI and MTI_ADDRESSED_MASK = MTI_ADDRESSED_MASK then
     begin
-      FDestID[1] := (ByteArray[25] shl 16) or (ByteArray[26] shl 8) or (ByteArray[27]);
-      FDestID[0] := (ByteArray[28] shl 16) or (ByteArray[29] shl 8) or (ByteArray[30]);
+      FDestination.ID[1] := (ByteArray[25] shl 16) or (ByteArray[26] shl 8) or (ByteArray[27]);
+      FDestination.ID[0] := (ByteArray[28] shl 16) or (ByteArray[29] shl 8) or (ByteArray[30]);
       Offset := 26;  //  31 - 5
     end else
       Offset := 20;  // 25 - 5
@@ -718,12 +694,12 @@ begin
   ByteArray[4] := _Lo(Size);
 
   // Originating Node
-  ByteArray[5] := _Higher(SourceID[1]);
-  ByteArray[6] := _Hi(SourceID[1]);
-  ByteArray[7] := _Lo(SourceID[1]);
-  ByteArray[8] := _Higher(SourceID[0]);
-  ByteArray[9] := _Hi(SourceID[0]);
-  ByteArray[10] := _Lo(SourceID[0]);
+  ByteArray[5] := _Higher(Source.ID[1]);
+  ByteArray[6] := _Hi(Source.ID[1]);
+  ByteArray[7] := _Lo(Source.ID[1]);
+  ByteArray[8] := _Higher(Source.ID[0]);
+  ByteArray[9] := _Hi(Source.ID[0]);
+  ByteArray[10] := _Lo(Source.ID[0]);
 
   // Let the socket fill in the monotonicly increasing Capture Time
   ByteArray[11] := _Highest2(CaptureTime);
@@ -739,21 +715,21 @@ begin
   ByteArray[18] := _Lo(MTI);
 
   // Source Node
-  ByteArray[19] := _Higher(SourceID[1]);
-  ByteArray[20] := _Hi(SourceID[1]);
-  ByteArray[21] := _Lo(SourceID[1]);
-  ByteArray[22] := _Higher(SourceID[0]);
-  ByteArray[23] := _Hi(SourceID[0]);
-  ByteArray[24] := _Lo(SourceID[0]);
+  ByteArray[19] := _Higher(Source.ID[1]);
+  ByteArray[20] := _Hi(Source.ID[1]);
+  ByteArray[21] := _Lo(Source.ID[1]);
+  ByteArray[22] := _Higher(Source.ID[0]);
+  ByteArray[23] := _Hi(Source.ID[0]);
+  ByteArray[24] := _Lo(Source.ID[0]);
 
   if HasDestination then
   begin
-    ByteArray[25] := _Higher(DestID[1]);
-    ByteArray[26] := _Hi(DestID[1]);
-    ByteArray[27] := _Lo(DestID[1]);
-    ByteArray[28] := _Higher(DestID[0]);
-    ByteArray[29] := _Hi(DestID[0]);
-    ByteArray[30] := _Lo(DestID[0]);
+    ByteArray[25] := _Higher(Destination.ID[1]);
+    ByteArray[26] := _Hi(Destination.ID[1]);
+    ByteArray[27] := _Lo(Destination.ID[1]);
+    ByteArray[28] := _Higher(Destination.ID[0]);
+    ByteArray[29] := _Hi(Destination.ID[0]);
+    ByteArray[30] := _Lo(Destination.ID[0]);
     Offset := 31;
   end else
     Offset := 25;
@@ -782,36 +758,47 @@ end;
 
 procedure TLccMessage.Copy(TargetMessage: TLccMessage);
 begin
-  TargetMessage.FMTI := FMTI;
+    TargetMessage.FAbandonTimeout := 0;
+
+  TargetMessage.Source := Source;
+  TargetMessage.Destination := Destination;
   TargetMessage.FDataArray := FDataArray;
   TargetMessage.FDataCount := FDataCount;
-  TargetMessage.FDestID := FDestID;
-  TargetMessage.FSourceID := FSourceID;
+  TargetMessage.FMTI := FMTI;
+  TargetMessage.RetryAttempts := 0;
+
+  TargetMessage.FCAN.Active := CAN.Active;
+  TargetMessage.FCAN.FFramingBits := CAN.FramingBits;
+  TargetMessage.FCAN.FiTag := CAN.iTag;
+  TargetMessage.FCAN.FMTI := CAN.MTI;
 end;
 
 procedure TLccMessage.ZeroFields;
 begin
   FDataCount := 0;
-  FDestID := NULL_NODE_ID;
-  FSourceID := NULL_NODE_ID;
+  FDestination.ID := NULL_NODE_ID;
+  FSource.ID := NULL_NODE_ID;
+  FDestination.Alias := 0;
+  FSource.Alias := 0;
   FMTI := 0;
+  CAN.MTI := 0;
+  CAN.Active := False;
 end;
 
-procedure TLccMessage.LoadInitializationComplete(ASourceID: TNodeID);
+procedure TLccMessage.LoadInitializationComplete(ASourceID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
+  FSource := ASourceID;
   InsertNodeID(0, ASourceID);
   DataCount := 6;
   MTI := MTI_INITIALIZATION_COMPLETE;
 end;
 
-procedure TLccMessage.LoadOptionalInteractionRejected(ASourceID,
-  ADestID: TNodeID; Reason: Word; AnMTI: Word);
+procedure TLccMessage.LoadOptionalInteractionRejected(ASourceID, ADestID: TNodeIDRec; Reason: Word; AnMTI: Word);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 4;
   MTI := MTI_OPTIONAL_INTERACTION_REJECTED;
   FDataArray[0] := _Hi(Reason);
@@ -820,20 +807,20 @@ begin
   FDataArray[3] := _Lo(AnMTI);
 end;
 
-procedure TLccMessage.LoadPCER(ASourceID: TNodeID; AnEvent: PEventID);
+procedure TLccMessage.LoadPCER(ASourceID: TNodeIDRec; AnEvent: PEventID);
 begin
   ZeroFields;
-  SourceID := ASourceID;
+  FSource := ASourceID;
   InsertEventID(0, AnEvent^);
   DataCount := 8;
   MTI := MTI_PC_EVENT_REPORT;
 end;
 
-procedure TLccMessage.LoadProducerIdentified(ASourceID: TNodeID;
+procedure TLccMessage.LoadProducerIdentified(ASourceID: TNodeIDRec;
   var Event: TEventID; EventState: TEventState);
 begin
   ZeroFields;
-  SourceID := ASourceID;
+  Source := ASourceID;
   InsertEventID(0, Event);
   DataCount := 8;
   case EventState of
@@ -843,11 +830,11 @@ begin
   end;
 end;
 
-procedure TLccMessage.LoadVerifyNodeIDAddressed(ASourceID, ADestID: TNodeID);
+procedure TLccMessage.LoadVerifyNodeIDAddressed(ASourceID, ADestID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   MTI := MTI_VERIFY_NODE_ID_NUMBER_DEST;
 end;
 
@@ -858,56 +845,56 @@ end;
 
 procedure TLccMessage.SwapDestAndSourceIDs;
 var
-  TempNodeID: TNodeID;
+  TempNodeID: TNodeIDRec;
 begin
-  TempNodeID := SourceID;
-  SourceID := DestID;
-  DestID := TempNodeID;
+  TempNodeID := Source;
+  Source := Destination;
+  Destination := TempNodeID;
 end;
 
-procedure TLccMessage.LoadVerifyNodeID(ASourceID: TNodeID);
+procedure TLccMessage.LoadVerifyNodeID(ASourceID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
+  Source := ASourceID;
   MTI := MTI_VERIFY_NODE_ID_NUMBER;
 end;
 
-procedure TLccMessage.LoadProtocolIdentifyInquiry(ASourceID, ADestID: TNodeID);
+procedure TLccMessage.LoadProtocolIdentifyInquiry(ASourceID, ADestID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   MTI := MTI_PROTOCOL_SUPPORT_INQUIRY;
 end;
 
-procedure TLccMessage.LoadProtocolIdentifyReply(ASourceID, ADestID: TNodeID;
-  Flags: QWord);
+procedure TLccMessage.LoadProtocolIdentifyReply(ASourceID, ADestID: TNodeIDRec; Flags: QWord);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   FDataArray[5] := _Lo(Flags);
   FDataArray[4] := _Hi(Flags);
   FDataArray[3] := _Higher(Flags);
   FDataArray[2] := _Highest(Flags);
   FDataArray[1] := _Highest1(Flags);
   FDataArray[0] := _Highest2(Flags);
-
-{  DataArray[0] := _Lo(Flags);
-  DataArray[1] := _Hi(Flags);
-  DataArray[2] := _Higher(Flags);
-  DataArray[3] := _Highest(Flags);
-  DataArray[4] := _Highest1(Flags);
-  DataArray[5] := _Highest2(Flags); }
   DataCount := 6;
   MTI := MTI_PROTOCOL_SUPPORT_REPLY;
 end;
 
-procedure TLccMessage.LoadConsumerIdentified(ASourceID: TNodeID;
+procedure TLccMessage.LoadRID(ASource: TNodeIDRec);
+begin
+  ZeroFields;
+  FSource.Alias := ASource.Alias;
+  CAN.Active := True;
+  CAN.MTI := MTI_CAN_RID or ASource.Alias;
+end;
+
+procedure TLccMessage.LoadConsumerIdentified(ASourceID: TNodeIDRec;
   var Event: TEventID; EventState: TEventState);
 begin
   ZeroFields;
-  SourceID := ASourceID;
+  Source := ASourceID;
   InsertEventID(0, Event);
   DataCount := 8;
   case EventState of
@@ -917,57 +904,54 @@ begin
   end;
 end;
 
-procedure TLccMessage.LoadConsumerIdentify(ASourceID: TNodeID;
+procedure TLccMessage.LoadConsumerIdentify(ASourceID: TNodeIDRec;
   var Event: TEventID);
 begin
   ZeroFields;
-  SourceID := ASourceID;
+  Source := ASourceID;
   InsertEventID(0, Event);
   DataCount := 8;
   MTI := MTI_CONSUMER_IDENTIFY;
 end;
 
-procedure TLccMessage.LoadDatagram(ASourceID, ADestID: TNodeID);
+procedure TLccMessage.LoadDatagram(ASourceID, ADestID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   MTI := MTI_DATAGRAM;
 end;
 
-procedure TLccMessage.LoadProducerIdentify(ASourceID: TNodeID;
-  var Event: TEventID);
+procedure TLccMessage.LoadProducerIdentify(ASourceID: TNodeIDRec; var Event: TEventID);
 begin
   ZeroFields;
-  SourceID := ASourceID;
+  Source := ASourceID;
   InsertEventID(0, Event);
   DataCount := 8;
   MTI := MTI_PRODUCER_IDENDIFY;
 end;
 
-procedure TLccMessage.LoadIdentifyEventsAddressed(ASourceID: TNodeID;
-  ADestID: TNodeID);
+procedure TLccMessage.LoadIdentifyEventsAddressed(ASourceID, ADestID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   MTI := MTI_EVENTS_IDENTIFY_DEST;
 end;
 
-procedure TLccMessage.LoadIdentifyEvents(ASourceID: TNodeID);
+procedure TLccMessage.LoadIdentifyEvents(ASourceID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := NULL_NODE_ID;
+  Source := ASourceID;
+  Destination := NULL_NODE_ID_REC;
   MTI := MTI_EVENTS_IDENTIFY;
 end;
 
-procedure TLccMessage.LoadTractionSetSpeed(ASourceID, ADestID: TNodeID;
-  ASpeed: THalfFloat);
+procedure TLccMessage.LoadTractionSetSpeed(ASourceID, ADestID: TNodeIDRec; ASpeed: THalfFloat);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 3;
   FDataArray[0] := TRACTION_SPEED_DIR;
   FDataArray[1] := Hi( ASpeed);
@@ -976,21 +960,20 @@ begin
 end;
 
 
-procedure TLccMessage.LoadVerifiedNodeID(ASourceID: TNodeID);
+procedure TLccMessage.LoadVerifiedNodeID(ASourceID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
+  Source := ASourceID;
   InsertNodeID(0, ASourceID);
   DataCount := 6;
   MTI := MTI_VERIFIED_NODE_ID_NUMBER;
 end;
 
-procedure TLccMessage.LoadTractionSetFunction(ASourceID, ADestID: TNodeID;
-  AnAddress: DWord; AValue: Word);
+procedure TLccMessage.LoadTractionSetFunction(ASourceID, ADestID: TNodeIDRec; AnAddress: DWord; AValue: Word);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 6;
   FDataArray[0] := TRACTION_FUNCTION;
   FDataArray[1] := _Higher( AnAddress);
@@ -1001,42 +984,41 @@ begin
   MTI := MTI_TRACTION_PROTOCOL;
 end;
 
-procedure TLccMessage.LoadTractionEStop(ASourceID, ADestID: TNodeID);
+procedure TLccMessage.LoadTractionEStop(ASourceID, ADestID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 1;
   FDataArray[0] := TRACTION_E_STOP;
   MTI := MTI_TRACTION_PROTOCOL;
 end;
 
-procedure TLccMessage.LoadTractionQuerySpeed(ASourceID, ADestID: TNodeID);
+procedure TLccMessage.LoadTractionQuerySpeed(ASourceID, ADestID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 1;
   FDataArray[0] := TRACTION_QUERY_SPEED;
   MTI := MTI_TRACTION_PROTOCOL;
 end;
 
-procedure TLccMessage.LoadTractionQueryFunction(ASourceID, ADestID: TNodeID);
+procedure TLccMessage.LoadTractionQueryFunction(ASourceID, ADestID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 1;
   FDataArray[0] := TRACTION_QUERY_FUNCTION;
   MTI := MTI_TRACTION_PROTOCOL;
 end;
 
-procedure TLccMessage.LoadTractionControllerAssign(ASourceID, ADestID: TNodeID;
-  ANodeID: TNodeID);
+procedure TLccMessage.LoadTractionControllerAssign(ASourceID, ADestID: TNodeIDRec; ANodeID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 9;
   FDataArray[0] := TRACTION_CONTROLLER_CONFIG;
   FDataArray[1] := TRACTION_CONTROLLER_CONFIG_ASSIGN;
@@ -1045,12 +1027,11 @@ begin
   MTI := MTI_TRACTION_PROTOCOL;
 end;
 
-procedure TLccMessage.LoadTractionControllerRelease(ASourceID,
-  ADestID: TNodeID; ANodeID: TNodeID);
+procedure TLccMessage.LoadTractionControllerRelease(ASourceID, ADestID: TNodeIDRec; ANodeID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 9;
   FDataArray[0] := TRACTION_CONTROLLER_CONFIG;
   FDataArray[1] := TRACTION_CONTROLLER_CONFIG_RELEASE;
@@ -1059,23 +1040,22 @@ begin
   MTI := MTI_TRACTION_PROTOCOL;
 end;
 
-procedure TLccMessage.LoadTractionControllerQuery(ASourceID, ADestID: TNodeID);
+procedure TLccMessage.LoadTractionControllerQuery(ASourceID, ADestID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 2;
   FDataArray[0] := TRACTION_CONTROLLER_CONFIG;
   FDataArray[1] := TRACTION_CONTROLLER_CONFIG_QUERY;
   MTI := MTI_TRACTION_PROTOCOL;
 end;
 
-procedure TLccMessage.LoadTractionControllerChangeNotify(ASourceID,
-  ADestID: TNodeID; ANodeID: TNodeID);
+procedure TLccMessage.LoadTractionControllerChangeNotify(ASourceID, ADestID: TNodeIDRec; ANodeID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 9;
   FDataArray[0] := TRACTION_CONTROLLER_CONFIG;
   FDataArray[1] := TRACTION_CONTROLLER_CONFIG_NOTIFY;
@@ -1085,11 +1065,11 @@ begin
 end;
 
 procedure TLccMessage.LoadTractionControllerChangeNotifyReply(ASourceID,
-  ADestID: TNodeID; Allow: Boolean);
+  ADestID: TNodeIDRec; Allow: Boolean);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   MTI := MTI_TRACTION_REPLY;
   DataCount := 3;
   FDataArray[0] := TRACTION_CONTROLLER_CONFIG;
@@ -1100,12 +1080,11 @@ begin
     FDataArray[2] := $FF
 end;
 
-procedure TLccMessage.LoadTractionConsistAttach(ASourceID, ADestID: TNodeID;
-  ANodeID: TNodeID);
+procedure TLccMessage.LoadTractionConsistAttach(ASourceID, ADestID: TNodeIDRec; ANodeID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 9;
   FDataArray[0] := TRACTION_CONSIST;
   FDataArray[1] := TRACTION_CONSIST_ATTACH;
@@ -1114,12 +1093,11 @@ begin
   MTI := MTI_TRACTION_PROTOCOL;
 end;
 
-procedure TLccMessage.LoadTractionConsistDetach(ASourceID, ADestID: TNodeID;
-  ANodeID: TNodeID);
+procedure TLccMessage.LoadTractionConsistDetach(ASourceID, ADestID: TNodeIDRec; ANodeID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 9;
   FDataArray[0] := TRACTION_CONSIST;
   FDataArray[1] := TRACTION_CONSIST_DETACH;
@@ -1128,12 +1106,11 @@ begin
   MTI := MTI_TRACTION_PROTOCOL;
 end;
 
-procedure TLccMessage.LoadTractionConsistQuery(ASourceID, ADestID: TNodeID;
-  ANodeID: TNodeID);
+procedure TLccMessage.LoadTractionConsistQuery(ASourceID, ADestID: TNodeIDRec; ANodeID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 9;
   FDataArray[0] := TRACTION_CONSIST;
   FDataArray[1] := TRACTION_CONSIST_QUERY;
@@ -1142,12 +1119,11 @@ begin
   MTI := MTI_TRACTION_PROTOCOL;
 end;
 
-procedure TLccMessage.LoadTractionManage(ASourceID, ADestID: TNodeID;
-  Reserve: Boolean);
+procedure TLccMessage.LoadTractionManage(ASourceID, ADestID: TNodeIDRec;Reserve: Boolean);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 2;
   FDataArray[0] := TRACTION_MANAGE;
   if Reserve then
@@ -1157,45 +1133,42 @@ begin
   MTI := MTI_TRACTION_PROTOCOL;
 end;
 
-procedure TLccMessage.LoadSimpleTrainNodeIdentInfoRequest(ASourceID,
-  ADestID: TNodeID);
+procedure TLccMessage.LoadSimpleTrainNodeIdentInfoRequest(ASourceID, ADestID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   MTI := MTI_SIMPLE_TRAIN_INFO_REQUEST;
 end;
 
-procedure TLccMessage.LoadSimpleNodeIdentInfoReply(ASourceID, ADestID: TNodeID;
-  SimplePackedArray: TSimpleNodeInfoPacked);
+procedure TLccMessage.LoadSimpleNodeIdentInfoReply(ASourceID, ADestID: TNodeIDRec; SimplePackedArray: TSimpleNodeInfoPacked);
 var
   i: Integer;
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   for i := 0 to Length(SimplePackedArray) - 1 do
     FDataArray[i] := SimplePackedArray[i];
   DataCount := Length(SimplePackedArray);
   MTI := MTI_SIMPLE_NODE_INFO_REPLY;
 end;
 
-procedure TLccMessage.LoadSimpleNodeIdentInfoRequest(ASourceID, ADestID: TNodeID
-  );
+procedure TLccMessage.LoadSimpleNodeIdentInfoRequest(ASourceID, ADestID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 0;
   MTI := MTI_SIMPLE_NODE_INFO_REQUEST;
 end;
 
-procedure TLccMessage.LoadFDIRequest(ASourceID, ADestID: TNodeID);
+procedure TLccMessage.LoadFDIRequest(ASourceID, ADestID: TNodeIDRec);
 begin
   // Really should be a Get Address Space Info message here to make sure the start address is 0.....
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 8;
   FDataArray[0] := DATAGRAM_PROTOCOL_CONFIGURATION;
   FDataArray[1] := MCP_READ;
@@ -1208,13 +1181,12 @@ begin
   MTI := MTI_DATAGRAM;
 end;
 
-procedure TLccMessage.LoadFunctionConfigurationRead(ASourceID,
-  ADestID: TNodeID; FunctionAddress: DWord; Count: Integer);
+procedure TLccMessage.LoadFunctionConfigurationRead(ASourceID, ADestID: TNodeIDRec; FunctionAddress: DWord; Count: Integer);
 begin
   // Really should be a Get Address Space Info message here to make sure the start address is 0.....
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 8;
   FDataArray[0] := DATAGRAM_PROTOCOL_CONFIGURATION;
   FDataArray[1] := MCP_READ;
@@ -1227,16 +1199,14 @@ begin
   MTI := MTI_DATAGRAM;
 end;
 
-procedure TLccMessage.LoadFunctionConfigurationWrite(ASourceID,
-  ADestID: TNodeID; FunctionAddress: DWord; Count: Integer;
-  Functions: TFunctionStatesArray);
+procedure TLccMessage.LoadFunctionConfigurationWrite(ASourceID, ADestID: TNodeIDRec; FunctionAddress: DWord; Count: Integer; Functions: TFunctionStatesArray);
 var
   i: Integer;
 begin
   // Really should be a Get Address Space Info message here to make sure the start address is 0.....
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   FDataArray[0] := DATAGRAM_PROTOCOL_CONFIGURATION;
   FDataArray[1] := MCP_WRITE;
   FDataArray[2] := _Highest(FunctionAddress);
@@ -1255,12 +1225,12 @@ begin
   MTI := MTI_DATAGRAM;
 end;
 
-procedure TLccMessage.LoadCDIRequest(ASourceID, ADestID: TNodeID);
+procedure TLccMessage.LoadCDIRequest(ASourceID, ADestID: TNodeIDRec);
 begin
   // Really should be a Get Address Space Info message here to make sure the start address is 0.....
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 8;
   FDataArray[0] := DATAGRAM_PROTOCOL_CONFIGURATION;
   FDataArray[1] := MCP_READ;
@@ -1273,12 +1243,25 @@ begin
   MTI := MTI_DATAGRAM;
 end;
 
-procedure TLccMessage.LoadDatagramAck(ASourceID, ADestID: TNodeID; Ok: Boolean;
-  ReplyPending: Boolean; TimeOutValueN: Byte);
+procedure TLccMessage.LoadCID(ASource: TNodeIDRec; ACID: Byte);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  FSource.Alias := ASource.Alias;
+  CAN.Active := True;
+  FSource.ID := ASource.ID;
+  case ACID of
+    0 : CAN.MTI := MTI_CAN_CID0 or DWord(ASource.Alias) or (ASource.ID[1] and $00FFF000);
+    1 : CAN.MTI := MTI_CAN_CID1 or DWord(ASource.Alias) or ((ASource.ID[1] shl 12) and $00FFF000);
+    2 : CAN.MTI := MTI_CAN_CID2 or DWord(ASource.Alias) or (ASource.ID[0] and $00FFF000);
+    3 : CAN.MTI := MTI_CAN_CID3 or DWord(ASource.Alias) or ((ASource.ID[0] shl 12) and $00FFF000);
+  end;
+end;
+
+procedure TLccMessage.LoadDatagramAck(ASourceID, ADestID: TNodeIDRec; Ok: Boolean; ReplyPending: Boolean; TimeOutValueN: Byte);
+begin
+  ZeroFields;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 1;
   if ReplyPending then
     DataArrayIndexer[0] := $80 or (TimeoutValueN and $0F)
@@ -1290,24 +1273,22 @@ begin
     MTI := MTI_DATAGRAM_REJECTED_REPLY;
 end;
 
-procedure TLccMessage.LoadDatagramRejected(ASourceID, ADestID: TNodeID;
-  Reason: Word);
+procedure TLccMessage.LoadDatagramRejected(ASourceID, ADestID: TNodeIDRec; Reason: Word);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   DataCount := 2;
   MTI := MTI_DATAGRAM_REJECTED_REPLY;
   FDataArray[0] := _Hi(Reason);
   FDataArray[1] := _Lo(Reason);
 end;
 
-procedure TLccMessage.LoadConfigMemAddressSpaceInfo(ASourceID,
-  ADestID: TNodeID; AddressSpace: Byte);
+procedure TLccMessage.LoadConfigMemAddressSpaceInfo(ASourceID, ADestID: TNodeIDRec; AddressSpace: Byte);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   FDataArray[0] := DATAGRAM_PROTOCOL_CONFIGURATION;
   FDataArray[1] := MCP_OP_GET_ADD_SPACE_INFO;
   FDataArray[2] := AddressSpace;
@@ -1315,27 +1296,26 @@ begin
   FMTI := MTI_DATAGRAM;
 end;
 
-procedure TLccMessage.LoadConfigMemOptions(ASourceID, ADestID: TNodeID);
+procedure TLccMessage.LoadConfigMemOptions(ASourceID, ADestID: TNodeIDRec);
 begin
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   FDataArray[0] := DATAGRAM_PROTOCOL_CONFIGURATION;
   FDataArray[1] := MCP_OP_GET_CONFIG;
   FDataCount := 2;
   FMTI := MTI_DATAGRAM;
 end;
 
-procedure TLccMessage.LoadConfigMemRead(ASourceID, ADestID: TNodeID;
-  AddressSpace: Byte; ConfigMemAddress: DWord; ConfigMemSize: Byte);
+procedure TLccMessage.LoadConfigMemRead(ASourceID, ADestID: TNodeIDRec; AddressSpace: Byte; ConfigMemAddress: DWord; ConfigMemSize: Byte);
 begin
   if ConfigMemSize > 64 then
     ConfigMemSize := 64;
 
   // Really should be a Get Address Space Info message here to make sure the start address is 0.....
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   FDataArray[0] := DATAGRAM_PROTOCOL_CONFIGURATION;
   if AddressSpace < MSI_CONFIG then
   begin
@@ -1364,9 +1344,7 @@ begin
   MTI := MTI_DATAGRAM;
 end;
 
-procedure TLccMessage.LoadConfigMemWriteArray(ASourceID, ADestID: TNodeID;
-  AddressSpace: Byte; ConfigMemAddress: DWord; ArraySize: Integer;
-  AnArray: array of Byte);
+procedure TLccMessage.LoadConfigMemWriteArray(ASourceID, ADestID: TNodeIDRec; AddressSpace: Byte; ConfigMemAddress: DWord; ArraySize: Integer; AnArray: array of Byte);
 var
   i, iDatagram, DatagramCount, DatagramLength, iArrayPos: Integer;
 begin
@@ -1384,8 +1362,8 @@ begin
       DatagramLength := 64;
 
     ZeroFields;
-    SourceID := ASourceID;
-    DestID := ADestID;
+    Source := ASourceID;
+    Destination := ADestID;
     FDataArray[0] := DATAGRAM_PROTOCOL_CONFIGURATION;
     if AddressSpace < MSI_CONFIG then
     begin
@@ -1423,14 +1401,12 @@ begin
   end;
 end;
 
-procedure TLccMessage.LoadConfigMemWriteInteger(ASourceID, ADestID: TNodeID;
-  AddressSpace: Byte; ConfigMemAddress: DWord; IntegerSize: Byte;
-  DataInteger: Integer);
+procedure TLccMessage.LoadConfigMemWriteInteger(ASourceID, ADestID: TNodeIDRec; AddressSpace: Byte; ConfigMemAddress: DWord; IntegerSize: Byte; DataInteger: Integer);
 begin
   // Really should be a Get Address Space Info message here to make sure the start address is 0.....
   ZeroFields;
-  SourceID := ASourceID;
-  DestID := ADestID;
+  Source := ASourceID;
+  Destination := ADestID;
   FDataArray[0] := DATAGRAM_PROTOCOL_CONFIGURATION;
   if AddressSpace < MSI_CONFIG then
   begin
@@ -1472,7 +1448,7 @@ begin
   MTI := MTI_DATAGRAM;
 end;
 
-procedure TLccMessage.LoadConfigMemWriteString(ASourceID, ADestID: TNodeID;
+procedure TLccMessage.LoadConfigMemWriteString(ASourceID, ADestID: TNodeIDRec;
   AddressSpace: Byte; ConfigMemAddress: DWord; AString: String);
 var
   i, iDatagram, DatagramCount, iStringPos, DatagramLength, StrLength: Integer;
@@ -1495,8 +1471,8 @@ begin
       DatagramLength := 64;
 
     ZeroFields;
-    SourceID := ASourceID;
-    DestID := ADestID;
+    Source := ASourceID;
+    Destination := ADestID;
     FDataArray[0] := DATAGRAM_PROTOCOL_CONFIGURATION;
     if AddressSpace < MSI_CONFIG then
     begin
@@ -1542,11 +1518,9 @@ end;
 initialization
   CaptureTime := 1;
   GlobalSendEvent := TSimpleEvent.Create;
-  GlobalReceiveEvent := TSimpleEvent.Create;
 
 finalization
   FreeAndNil(GlobalSendEvent);
-  FreeAndNil(GlobalReceiveEvent);
 
 end.
 

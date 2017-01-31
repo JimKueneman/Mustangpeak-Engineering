@@ -20,13 +20,11 @@ uses
   Ultibo,
   { Add additional units here }
   lcc.node, lcc.objects, lcc.message, lcc.types, mustangpeak.half_float,
-  baseutilities, protocol.snip, protocol.pip, protocol.traction.stni,
-  protocol.traction, protocol.events, protocol.traction.fdi,
-  protocol.traction.fci, protocol.datagram.cdi, protocol.acdi.mfg,
-  protocol.acdi.user, protocol.datagram.configuration,
-  protocol.datagram.configuration.memory,
-  protocol.datagram.configuration.memory.info,
-  protocol.datagram.confguration.memory.options;
+  lcc.utilities,
+  lcc.transfer,
+  lcc.transfer.tcp.server,
+  lcc.transfer.tcp.client,
+  lcc.transfer.gridconnect.wire.synapse;
 
 begin
   { Add your program code here }

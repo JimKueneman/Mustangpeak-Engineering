@@ -44,6 +44,7 @@ type
   function _Highest2(Data: QWord): Byte;
   function MTI2String(MTI: Word): String;
   function EqualNodeID(NodeID1: TNodeID; NodeID2: TNodeID; IncludeNullNode: Boolean): Boolean;
+  function EqualNodeIDRec(NodeID1, NodeID2: TNodeIDRec; IncludeNullNode: Boolean): Boolean;
   function EqualEventID(EventID1, EventID2: TEventID): Boolean;
   procedure NodeIDToEventID(NodeID: TNodeID; LowBytes: Word; var EventID: TEventID);
   function NullNodeID(ANodeID: TNodeID): Boolean;
@@ -261,6 +262,14 @@ begin
     Result := (NodeID1[0] = NodeID2[0]) and (NodeID1[1] = NodeID2[1])
   else
     Result := not NullNodeID(NodeID1) and not NullNodeID(NodeID2) and (NodeID1[0] = NodeID2[0]) and (NodeID1[1] = NodeID2[1])
+end;
+
+function EqualNodeIDRec(NodeID1, NodeID2: TNodeIDRec; IncludeNullNode: Boolean): Boolean;
+begin
+  if IncludeNullNode then
+    Result := ((NodeID1.ID[0] = NodeID2.ID[0]) and (NodeID1.ID[1] = NodeID2.ID[1])) or (NodeID1.Alias = NodeID2.Alias)
+  else
+    Result := (not NullNodeID(NodeID1.ID) and not NullNodeID(NodeID2.ID) and (NodeID1.ID[0] = NodeID2.ID[0]) and (NodeID1.ID[1] = NodeID2.ID[1])) or ((NodeID1.Alias <> 0) and (NodeID2.Alias <> 0) and (NodeID1.Alias = NodeID2.Alias))
 end;
 
 function EqualEventID(EventID1, EventID2: TEventID): Boolean;

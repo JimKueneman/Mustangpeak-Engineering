@@ -5,7 +5,7 @@ unit protocol.datagram.cdi;
 interface
 
 uses
-  Classes, SysUtils, baseobjects, basetypes, basemessage, mustangpeak.xmlutilities,
+  Classes, SysUtils, lcc.objects, lcc.types, lcc.message, mustangpeak.xmlutilities,
   protocol.snip;
 
 type

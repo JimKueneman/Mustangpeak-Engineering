@@ -10,12 +10,12 @@ interface
 
 
 uses
-  Classes, SysUtils, baseobjects, basetypes, basemessage;
+  Classes, SysUtils, lcc.objects, lcc.types, lcc.message;
 
 type
-   { TConfigurationMemory }
+   { TProtocolConfigurationMemory }
 
-  TConfigurationMemory = class(TNodeProtocolBase)
+  TProtocolConfigurationMemory = class(TNodeProtocolBase)
   private
     FAddress: DWord;
     FAddressSpace: Byte;
@@ -49,15 +49,14 @@ type
 
 implementation
 
-{ TConfigurationMemory }
+{ TProtocolConfigurationMemory }
 
-function TConfigurationMemory.GetDataRawIndexer(iIndex: Word): Byte;
+function TProtocolConfigurationMemory.GetDataRawIndexer(iIndex: Word): Byte;
 begin
   Result := FDataRaw[iIndex]
 end;
 
-procedure TConfigurationMemory.Initialize(AnAddress: DWord;
-  AnAddressSpace: Byte; DataSize: Integer; ADataType: TLccConfigDataType);
+procedure TProtocolConfigurationMemory.Initialize(AnAddress: DWord; AnAddressSpace: Byte; DataSize: Integer; ADataType: TLccConfigDataType);
 begin
   ErrorCode := 0;
   Address := AnAddress;
@@ -78,7 +77,7 @@ begin
   FDataTypeString := '';
 end;
 
-function TConfigurationMemory.ProcessMessage(LccMessage: TLccMessage): Boolean;
+function TProtocolConfigurationMemory.ProcessMessage(LccMessage: TLccMessage): Boolean;
 var
   iStart, i, RemainingCount: Integer;
 
@@ -134,7 +133,7 @@ begin
               RemainingCount := 64;
             if RemainingCount > 0 then
             begin
-              WorkerMessage.LoadConfigMemRead(LccMessage.DestID, LccMessage.SourceID, MSI_CONFIG, InProcessAddress, RemainingCount);
+              WorkerMessage.LoadConfigMemRead(LccMessage.Destination, LccMessage.Source, MSI_CONFIG, InProcessAddress, RemainingCount);
   //            OwnerManager.DoRequestMessageSend(WorkerMessage);
             end
           end;
@@ -177,7 +176,7 @@ begin
   end;
 end;
 
-procedure TConfigurationMemory.SetDataRawIndexer(iIndex: Word; const Value: Byte);
+procedure TProtocolConfigurationMemory.SetDataRawIndexer(iIndex: Word; const Value: Byte);
 begin
   FDataRaw[iIndex] := Value
 end;

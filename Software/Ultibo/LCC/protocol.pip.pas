@@ -35,7 +35,6 @@ type
   protected
     Flags: array of QWord;
     procedure DecodeFlags;
-    function EncodeFlags: QWord;
   public
     property Datagram: Boolean read FDatagram write FDatagram;
     property FDI: Boolean read FFDI write FFDI;
@@ -55,6 +54,7 @@ type
     property SimpleTrainNodeInfo: Boolean read FSimpleTrainNodeInfo write FSimpleTrainNodeInfo;
 
     function ProcessMessage(LccMessage: TLccMessage): Boolean; override;
+    function EncodeFlags: QWord;
   end;
 
 implementation

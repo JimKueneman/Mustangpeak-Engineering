@@ -45,6 +45,11 @@ type
   // Traction
   TFunctionStatesArray = array[0..28] of Word;
 
+  TNodeIDRec = record
+    ID: TNodeID;
+    Alias: Word;
+  end;
+
 const
   // MTI
   // Raw MTI
@@ -133,6 +138,7 @@ const
 
 const
   NULL_NODE_ID: TNodeID = (0, 0);
+  NULL_NODE_ID_REC: TNodeIDRec = (ID:(0, 0); Alias: 0);
 
 const
   NULL_EVENT_ID : TEventID = (0, 0, 0, 0, 0, 0, 0, 0);
@@ -320,8 +326,18 @@ ACDI_MFG_SIZE_VERSION                    = 1;
   MCWL_STREAM_WRITE_SUPPORTED        = $01;                                     // MemoryConfigurationWriteLength - Stream Write Supported
   MCWL_RESERVED                      = $0C;
 
+var
+  Max_Allowed_Datagrams: Integer;
+  AllocatedDatagrams: Integer;
+  AllocatedMessages: Integer;
+
 
 implementation
+
+initialization
+  AllocatedDatagrams := 0;
+  AllocatedDatagrams := 0;
+  Max_Allowed_Datagrams := 4096;   // crazy large by default
 
 end.
 

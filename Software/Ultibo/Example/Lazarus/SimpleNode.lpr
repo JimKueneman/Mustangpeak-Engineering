@@ -8,8 +8,15 @@ uses
   {$IFNDEF LCC_WINDOWS}
   cthreads,
   {$ENDIF}
-  lcc.node, mustangpeak.classes, lcc.transfer.synapse.gridconnect,
-  lcc.utilities, lcc.can.types, lcc.transfer;
+  lcc.node,
+  mustangpeak.classes,
+  lcc.utilities,
+  lcc.types.can,
+  protocol.datagram.configuration.definition.information,
+  lcc.transfer,
+  lcc.transfer.tcp.server,
+  lcc.transfer.tcp.client,
+  lcc.transfer.gridconnect.wire.synapse;
 
 var
   Node: TLccNode;
@@ -21,15 +28,19 @@ begin
   {$ELSE}
   Node := TLccNode.Create('/Users/jimkueneman/Documents/Mustangpeak Engineering/Software/Ultibo/Example/Lazarus/NodeDefinitionFile.xml');
   IP := ResolveUnixIp;
+  IP := '127.0.0.1';
   {$ENDIF}
   GlobalNodeList.Add(Node);
-  GlobalTransferManager.Start(IP, 12021, False, TGridConnectSendTcpThread, TGridConnectReceiveTcpThread);
-  if GlobalTransferManager.Connected then
+//  GlobalTransferManagerTcpClient.Start(IP, 12021, False, TGridConnectSendTcpThread, TGridConnectReceiveTcpThread);
+  GlobalTransferManagerTcpServer.Start(IP, 12021, False, TGridConnectSendTcpThread, TGridConnectReceiveTcpThread);
+ // if GlobalTransferManagerTcpClient.Connected then
+  if GlobalTransferManagerTcpServer.Connected then
   begin
+    Node.AliasIDEngine.Enabled := True; // Use CAN Aliases
     Node.Start;
     while True do
     begin
-
+      Node.ProcessMessages;
     end;
   end;
 end.

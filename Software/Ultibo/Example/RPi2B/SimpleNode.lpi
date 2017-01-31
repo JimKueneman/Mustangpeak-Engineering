@@ -131,7 +131,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\LCC;..\..\Generics\src;..\..\Mustangpeak"/>
+      <OtherUnitFiles Value="..\..\LCC;..\..\Generics\src;..\..\Synapse;..\..\Mustangpeak;C:\Ultibo\Core\fpc\3.1.1\source\rtl\inc\;C:\Ultibo\Core\fpc\3.1.1\source\rtl\;C:\Ultibo\Core\fpc\3.1.1\source\packages\rtl-objpas\src\inc\"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <CodeGeneration>
