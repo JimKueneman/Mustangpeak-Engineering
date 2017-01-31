@@ -9,7 +9,7 @@ interface
 {$I lcc_compilers.inc}
 
 uses
-  Classes, SysUtils, baseobjects, basetypes, basemessage, protocol.traction;
+  Classes, SysUtils, lcc.objects, lcc.types, lcc.message, protocol.traction;
 
 type
   TProtocolStni = class(TNodeProtocolBase)

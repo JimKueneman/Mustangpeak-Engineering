@@ -17,7 +17,7 @@ uses
     blcksock,
     synsock,
   {$ENDIF}
-  lcc.types, lcc.transfer.nodeidmap, lcc.transfer;
+  lcc.transfer.tcp.client;
 
 const
   // :X19170640N0501010107015555;#0  Example.....
@@ -33,17 +33,6 @@ type
   PGridConnectString = ^TGridConnectString;
 
 type
-
-  { TLccGridConnnectTransferThread }
-
-  TLccGridConnnectTransferThread = class(TLccTransferThread)
-  private
-    FLccNodeIdMap: TLccNodeIdMap;
-  public
-    property LccNodeIdMap: TLccNodeIdMap read FLccNodeIdMap write FLccNodeIdMap;
-    constructor Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection); reintroduce; override;
-    destructor Destroy; override;
-  end;
 
   { TGridConnectHelper }
 
@@ -104,21 +93,6 @@ begin
     GridConnectBuffer[i] := Ord(GridConnectStrPtr^);
     Inc(GridConnectStrPtr);
   end;
-end;
-
-{ TLccGridConnnectTransferThread }
-
-constructor TLccGridConnnectTransferThread.Create(CreateSuspended: Boolean;
-  ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection);
-begin
-  inherited Create(CreateSuspended, ASocket, ATransferDirection);
-  LccNodeIdMap := TLccNodeIdMap.Create;
-end;
-
-destructor TLccGridConnnectTransferThread.Destroy;
-begin
-  FreeAndNil(FLccNodeIdMap);
-  inherited Destroy;
 end;
 
 { TGridConnectHelper }

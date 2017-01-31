@@ -96,7 +96,7 @@ type
     procedure Clear;
     function FirstObject: TObject;
     function NextObject: TObject;
-    procedure Remove(AnItem: TObject);
+    procedure Remove(var AnItem: TObject);
     procedure RemoveChunk(var AChunk: TDynamicArrayObject);
   end;
 
@@ -220,6 +220,7 @@ procedure TThreadedCirularArrayInterface.Remove(var AnItem: IUnknown);
 var
   i: Integer;
 begin
+  AnItem := nil;
   LockArray;
   try
      if Count > 0 then
@@ -377,8 +378,9 @@ begin
     Result := CircularArray[EnumeratorIndex];
 end;
 
-procedure TThreadedCirularArrayObject.Remove(AnItem: TObject);
+procedure TThreadedCirularArrayObject.Remove(var AnItem: TObject);
 begin
+  AnItem := nil;
   LockArray;
   try
      if Count > 0 then
@@ -399,6 +401,7 @@ var
   i: Integer;
   LocalCount: Word;
 begin
+  AChunk := nil;
   LockArray;
   try
      if Count > 0 then

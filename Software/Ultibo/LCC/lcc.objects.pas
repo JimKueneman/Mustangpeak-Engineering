@@ -189,8 +189,8 @@ begin
       DoLoadComplete(LccMessage);
     end else
     begin
-      WorkerMessage.SourceID := LccMessage.DestID;
-      WorkerMessage.DestID := LccMessage.SourceID;
+      WorkerMessage.Source := LccMessage.Destination;
+      WorkerMessage.Destination := LccMessage.Source;
       WorkerMessage.DataCount := 0;
       WorkerMessage.DataArrayIndexer[0] := DATAGRAM_PROTOCOL_CONFIGURATION;
       WorkerMessage.DataArrayIndexer[1] := MCP_READ;

@@ -9,7 +9,7 @@ interface
 {$I lcc_compilers.inc}
 
 uses
-  Classes, SysUtils, baseobjects, basetypes, basemessage, mustangpeak.half_float;
+  Classes, SysUtils, lcc.objects, lcc.types, lcc.message, mustangpeak.half_float;
 
 { TProtocolTraction }
 
