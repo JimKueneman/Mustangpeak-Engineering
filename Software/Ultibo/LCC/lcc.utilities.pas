@@ -15,7 +15,6 @@ uses
       {$ELSE}
       baseUnix,
       {$ENDIF}
-      sockets,
     {$ELSE}
     strutils, Posix.NetinetIn, Posix.ArpaInet, Posix.SysSocket, Posix.Errno, Posix.Unistd,
     {$ENDIF}
@@ -24,6 +23,7 @@ uses
     {$IFDEF SYNAPSE}
     blcksock,
     {$ENDIF}
+    sockets,
   {$ELSE}
   Winsock2,
   {$ENDIF}

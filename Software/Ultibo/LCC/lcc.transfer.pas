@@ -14,9 +14,12 @@ uses
   Classes, SysUtils,
   {$IFDEF FPC}
   syncobjs,
-    {$IFNDEF ULTIBO}
+    {$IFDEF SYNAPSE}
       blcksock,
       synsock,
+    {$ENDIF}
+    {$IFDEF ULTIBO}
+    Winsock2,
     {$ENDIF}
   {$ENDIF}
   lcc.node,
@@ -25,7 +28,32 @@ uses
   lcc.transfer.gridconnect.message_assembler_disassembler;
 
 type
-    // This is a base class that is used to descend from in order to create a new type
+   {$IFDEF SYNAPSE}
+     TLccTCPSocket = TTCPBlockSocket;
+   {$ELSE}
+
+     { TLccWinsock2TCPSocket }
+
+     TLccWinsock2TCPSocket = class(TWinsock2Socket)
+     private
+       FSocket: TSocket;
+       procedure SetSocket(AValue: TSocket);
+     public
+       function RecvByte(Timeout: Integer): Byte;
+       function LastErrorDesc: string;
+       procedure SendString(Data: AnsiString);
+       procedure Bind(IP, Port: string);
+       procedure Listen;
+       function CanRead(Timeout: Integer): Boolean;
+       function Accept: TSocket;
+       procedure Connect(IP, Port: string);
+
+       property Socket: TSocket read FSocket write SetSocket;
+     end;
+
+     TLccTCPSocket = TLccWinsock2TCPSocket;
+   {$ENDIF}
+  // This is a base class that is used to descend from in order to create a new type
   // of transfer type
 
   TTransferDirection = (td_In, td_Out);
@@ -40,27 +68,17 @@ type
     FFreeSocketOnTerminate: Boolean;
     FFreeTransferThreadOnTerminate: TLccTransferThread;
     FTransferDirection: TTransferDirection;
-    {$IFDEF ULTIBO}
-    {$ELSE}
-    FSocketReference: TTCPBlockSocket;
-    {$ENDIF}
+    FSocketReference: TLccTCPSocket;
   protected
     function DispatchedToInternalNode(AMessage: TLccMessage): Boolean;
     procedure Execute; override;
     function TransferMessageToWire(AMessage: TLccMessage): Boolean; virtual;
     function TransferWireToMessage(AByte: Byte; var AMessage: TLccMessage; var SendAsError: Boolean): Boolean; virtual;
-    {$IFDEF ULTIBO}
-    {$ELSE}
-    property SocketReference: TTCPBlockSocket read FSocketReference write FSocketReference;
-    {$ENDIF}
+    property SocketReference: TLccTCPSocket read FSocketReference write FSocketReference;
     property Event: TSimpleEvent read FEvent write FEvent;
     property TransferDirection: TTransferDirection read FTransferDirection write FTransferDirection;
   public
-    {$IFDEF ULTIBO}
-      constructor Create(CreateSuspended: Boolean); reintroduce;
-    {$ELSE}
-      constructor Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection); reintroduce; virtual;
-    {$ENDIF}
+    constructor Create(CreateSuspended: Boolean; ASocket: TLccTCPSocket; ATransferDirection: TTransferDirection); reintroduce; virtual;
     destructor Destroy; override;
     property Buffer: TThreadedCirularArrayObject read FBuffer write FBuffer;
     property Done: Boolean read FDone write FDone;
@@ -75,21 +93,67 @@ implementation
 var
   TransferThreadCount: Integer;
 
+
+{ TLccWinsock2TCPSocket }
+{$IFNDEF SYNAPSE}
+procedure TLccWinsock2TCPSocket.SetSocket(AValue: TSocket);
+begin
+  if FSocket=AValue then Exit;
+  FSocket:=AValue;
+end;
+
+function TLccWinsock2TCPSocket.RecvByte(Timeout: Integer): Byte;
+begin
+  // Wrapper to look like Synapse
+  Result := 0;
+end;
+
+function TLccWinsock2TCPSocket.LastErrorDesc: string;
+begin
+  // Wrapper to look like Synapse
+  Result := ''
+end;
+
+procedure TLccWinsock2TCPSocket.SendString(Data: AnsiString);
+begin
+  // Wrapper to look like Synapse
+end;
+
+procedure TLccWinsock2TCPSocket.Bind(IP, Port: string);
+begin
+
+end;
+
+procedure TLccWinsock2TCPSocket.Listen;
+begin
+
+end;
+
+function TLccWinsock2TCPSocket.CanRead(Timeout: Integer): Boolean;
+begin
+
+end;
+
+function TLccWinsock2TCPSocket.Accept: TSocket;
+begin
+
+end;
+
+procedure TLccWinsock2TCPSocket.Connect(IP, Port: string);
+begin
+
+end;
+
+{$ENDIF}
+
 { TLccTransferThread }
 
-{$IFDEF ULTIBO}
-constructor TLccTransferThread.Create(CreateSuspended: Boolean);
-{$ELSE}
-constructor TLccTransferThread.Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection);
-{$ENDIF}
+constructor TLccTransferThread.Create(CreateSuspended: Boolean; ASocket: TLccTCPSocket; ATransferDirection: TTransferDirection);
 begin
   inherited Create(CreateSuspended, DefaultStackSize);
   InterLockedIncrement(TransferThreadCount);
   FTransferDirection := ATransferDirection;
-  {$IFDEF ULTIBO}
-  {$ELSE}
   FSocketReference := ASocket;
-  {$ENDIF}
   Buffer := TThreadedCirularArrayObject.Create;
   Event := TSimpleEvent.Create;
 end;

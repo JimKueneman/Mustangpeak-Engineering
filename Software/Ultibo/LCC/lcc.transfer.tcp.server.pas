@@ -13,9 +13,12 @@ uses
   Classes, SysUtils,
   {$IFDEF FPC}
   syncobjs,
-    {$IFNDEF ULTIBO}
+    {$IFDEF SYNAPSE}
       blcksock,
       synsock,
+    {$ENDIF}
+    {$IFDEF ULTIBO}
+    Winsock2,
     {$ENDIF}
   {$ENDIF}
   lcc.node,
@@ -38,16 +41,13 @@ type
     FListenerIP: string;
     FListenerPort: string;
     FRunning: Boolean;
-    {$IFDEF ULTIBO}
-    {$ELSE}
-    FSocket: TTCPBlockSocket;
+    FSocket: TLccTCPSocket;
     FTransferReceive: TLccTransferThread;
     FTransferReceiveClass: TLccTransferThreadClass;
     FTransferSend: TLccTransferThread;
     FTransferSendClass: TLccTransferThreadClass;
     FUseLoopbackAddress: Boolean;
     FVerbose: Boolean;
-    {$ENDIF}
   public
     constructor Create(CreateSuspended: Boolean; const StackSize: SizeUInt = DefaultStackSize);
     destructor Destroy; override;
@@ -56,10 +56,7 @@ type
     property ListenerIP: string read FListenerIP write FListenerIP;
     property ListenerPort: string read FListenerPort write FListenerPort;
     property Running: Boolean read FRunning write FRunning;
-    {$IFDEF ULTIBO}
-    {$ELSE}
-    property Socket: TTCPBlockSocket read FSocket write FSocket;
-    {$ENDIF}
+    property Socket: TLccTCPSocket read FSocket write FSocket;
     property TransferSendClass: TLccTransferThreadClass read FTransferSendClass write FTransferSendClass;
     property TransferReceiveClass: TLccTransferThreadClass read FTransferReceiveClass write FTransferReceiveClass;
     property Verbose: Boolean read FVerbose write FVerbose;
@@ -110,73 +107,71 @@ end;
 
 procedure TLccTransferManagerTcpListener.Execute;
 var
-  {$IFDEF ULTIBO}
-  {$ELSE}
   ConnectionSocketHandle: TSocket;
-  ConnectionSocket: TTCPBlockSocket;
-  {$ENDIF}
+  ConnectionSocket: TLccTCPSocket;
   SendThread: TLccTransferThread;
   ReceiveThread: TLccTransferThread;
   s: string;
   ErrorCode: Cardinal;
 begin
-  {$IFDEF ULTIBO}
-  {$ELSE}
-  Socket := TTCPBlockSocket.Create;          // Created in context of the thread
-  Socket.Family := SF_IP4;                  // IP4
-  Socket.ConvertLineEnd := True;            // Use #10, #13, or both to be a "string"
-  Socket.HeartbeatRate := 0;
-  Socket.SetTimeout(0);
+   Socket := TLccTCPSocket.Create;          // Created in context of the thread
+   {$IFDEF ULTIBO}
+   Socket.Family := AF_INET;
+   {$ELSE}
+   Socket.Family := SF_IP4;                  // IP4
+   Socket.ConvertLineEnd := True;            // Use #10, #13, or both to be a "string"
+   Socket.HeartbeatRate := 0;
+   Socket.SetTimeout(0);
+   {$ENDIF}
 
-  if Verbose then WriteLn('Starting TCP Server Listener: ' + ListenerIP + ':' + ListenerPort);
+   if Verbose then WriteLn('Starting TCP Server Listener: ' + ListenerIP + ':' + ListenerPort);
 
-  Socket.Bind(String( ListenerIP), ListenerPort);
-  if Socket.LastError = 0 then
-  begin
-    if Verbose then WriteLn('Listener Binding Successful');
-    Socket.Listen;
-    if Socket.LastError = 0 then
-    begin
-      if Verbose then WriteLn('Listener Listen Successful');
+   Socket.Bind(String( ListenerIP), ListenerPort);
+   if Socket.LastError = 0 then
+   begin
+     if Verbose then WriteLn('Listener Binding Successful');
+     Socket.Listen;
+     if Socket.LastError = 0 then
+     begin
+       if Verbose then WriteLn('Listener Listen Successful');
 
-      Running := True;
-      while not Terminated do
-      begin
+       Running := True;
+       while not Terminated do
+       begin
 
-        if Socket.CanRead(500) then
-        begin
-          ErrorCode := Socket.LastError;
-          s := Socket.LastErrorDesc;
-          if not Terminated and (Socket.LastError <> WSAETIMEDOUT) then
-          begin
-            if Socket.LastError = 0 then
-            begin
-              if Verbose then WriteLn('Listener New Connection');
-              ConnectionSocketHandle := Socket.Accept;
-              ConnectionSocket := TTCPBlockSocket.Create;
-              ConnectionSocket.Socket := ConnectionSocketHandle;
-              SendThread := TransferSendClass.Create(True, ConnectionSocket, td_Out);
-              ReceiveThread := TransferReceiveClass.Create(True, ConnectionSocket, td_In);
-              // Setup to be able to free both Threads and the socket when an error or connection is lost
-              ReceiveThread.FreeOnTerminate := True;
-              ReceiveThread.FreeTransferThreadOnTerminate := SendThread;
-              ReceiveThread.FreeSocketOnTerminate := True;
-              SendThread.Start;
-              ReceiveThread.Start;
-            end else
-              Terminate;
-          end
-        end;
-      end;
-    end else
-      if Verbose then WriteLn(Socket.LastErrorDesc)
-  end else
-    if Verbose then WriteLn(Socket.LastErrorDesc);
+         if Socket.CanRead(500) then
+         begin
+           ErrorCode := Socket.LastError;
+           s := Socket.LastErrorDesc;
+           if not Terminated and (Socket.LastError <> WSAETIMEDOUT) then
+           begin
+             if Socket.LastError = 0 then
+             begin
+               if Verbose then WriteLn('Listener New Connection');
+               ConnectionSocketHandle := Socket.Accept;
+               ConnectionSocket := TLccTCPSocket.Create;
+               ConnectionSocket.Socket := ConnectionSocketHandle;
+               SendThread := TransferSendClass.Create(True, ConnectionSocket, td_Out);
+               ReceiveThread := TransferReceiveClass.Create(True, ConnectionSocket, td_In);
+               // Setup to be able to free both Threads and the socket when an error or connection is lost
+               ReceiveThread.FreeOnTerminate := True;
+               ReceiveThread.FreeTransferThreadOnTerminate := SendThread;
+               ReceiveThread.FreeSocketOnTerminate := True;
+               SendThread.Start;
+               ReceiveThread.Start;
+             end else
+               Terminate;
+           end
+         end;
+       end;
+     end else
+       if Verbose then WriteLn(Socket.LastErrorDesc)
+   end else
+     if Verbose then WriteLn(Socket.LastErrorDesc);
 
-  Socket.CloseSocket;
-  FreeAndNil(FSocket);
-  Done := True;
-  {$ENDIF}
+   Socket.CloseSocket;
+   FreeAndNil(FSocket);
+   Done := True;
 end;
 
 { TLccTransferManagerTcpListener }
@@ -203,11 +198,6 @@ end;
 procedure TLccTransferManagerTcpServer.Start(ServerIP: string; Port: Word;
   Verbose: Boolean; TransferSendClass: TLccTransferThreadClass;
   TransferReceiveClass: TLccTransferThreadClass);
-{$IFDEF ULTIBO}
-begin
-
-end;
-{$ELSE}
 var
   Timeout: Integer;
 begin
@@ -227,7 +217,6 @@ begin
   end;
   FConnected := Listener.Running;
 end;
-{$ENDIF}
 
 initialization
   TcpListenerCount := 0;

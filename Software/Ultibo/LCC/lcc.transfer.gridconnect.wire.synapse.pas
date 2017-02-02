@@ -10,7 +10,15 @@ interface
 
 uses
   Classes, SysUtils,
-  lcc.utilities, lcc.node, blcksock, synsock, lcc.message,  lcc.types.can,
+  lcc.utilities, lcc.node,
+  {$IFDEF SYNAPSE}
+  blcksock, synsock,
+  {$ENDIF}
+  {$IFDEF ULTIBO}
+  Winsock2,
+  {$ENDIF}
+
+  lcc.message,  lcc.types.can,
   mustangpeak.threadedcirculararray, lcc.transfer.gridconnect.message_assembler_disassembler,
   lcc.transfer, lcc.transfer.gridconnect;
 
@@ -32,7 +40,7 @@ type
     function TransferWireToMessage(NextByte: Byte; var AMessage: TLccMessage; var SendAsError: Boolean): Boolean; override;
     property GridConnectHelper: TGridConnectHelper read FGridConnectHelper write FGridConnectHelper;
   public
-    constructor Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection); override;
+    constructor Create(CreateSuspended: Boolean; ASocket: TLccTCPSocket; ATransferDirection: TTransferDirection); override;
     destructor Destroy; override;
 
     property LccGridConnectAssembler: TLccMessageAssembler read FLccGridConnectAssembler write FLccGridConnectAssembler;
@@ -54,7 +62,7 @@ end;
 
 { TGridConnectReceiveTcpThread }
 
-constructor TGridConnectReceiveTcpThread.Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection);
+constructor TGridConnectReceiveTcpThread.Create(CreateSuspended: Boolean; ASocket: TLccTCPSocket; ATransferDirection: TTransferDirection);
 begin
   inherited Create(CreateSuspended, ASocket, ATransferDirection);
   GridConnectHelper := TGridConnectHelper.Create;

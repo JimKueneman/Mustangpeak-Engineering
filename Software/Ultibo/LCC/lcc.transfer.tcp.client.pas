@@ -13,9 +13,12 @@ uses
   Classes, SysUtils,
   {$IFDEF FPC}
   syncobjs,
-    {$IFNDEF ULTIBO}
+    {$IFDEF SYNAPSE}
       blcksock,
       synsock,
+    {$ENDIF}
+    {$IFDEF ULTIBO}
+    Winsock2,
     {$ENDIF}
   {$ENDIF}
   lcc.node,
@@ -33,17 +36,11 @@ type
     FConnected: Boolean;
     FTransferSend: TLccTransferThread;
     FTransferReceive: TLccTransferThread;
-    {$IFDEF ULTIBO}
-    {$ELSE}
-    FSocket: TTCPBlockSocket;
-    {$ENDIF}
+    FSocket: TLccTCPSocket;
   protected
     property TransferSend: TLccTransferThread read FTransferSend write FTransferSend;
     property TransferReceive: TLccTransferThread read FTransferReceive write FTransferReceive;
-    {$IFDEF ULTIBO}
-    {$ELSE}
-    property Socket: TTCPBlockSocket read FSocket write FSocket;
-    {$ENDIF}
+    property Socket: TLccTCPSocket read FSocket write FSocket;
   public
     constructor Create;
     destructor Destroy; override;
@@ -82,10 +79,7 @@ begin
     FreeAndNil(FTransferSend);
 
     TransferReceive.Terminate;
-    {$IFDEF ULTIBO}
-    {$ELSE}
     Socket.CloseSocket;                               // This should release the Wait on the Receive with an error
-    {$ENDIF}
     while not TransferReceive.Done do
       Sleep(100);
     FreeAndNil(FTransferReceive);
@@ -95,10 +89,7 @@ end;
 destructor TLccTransferManagerTcpClient.Destroy;
 begin
   Close;
-  {$IFDEF ULTIBO}
-  {$ELSE}
   FreeAndNil(FSocket);
-  {$ENDIF}
   InterLockedDecrement(TcpClientCount);
   inherited Destroy;
 end;
@@ -106,26 +97,30 @@ end;
 procedure TLccTransferManagerTcpClient.Start(ServerIP: string; Port: Word;
   Verbose: Boolean; TransferSendClass: TLccTransferThreadClass;
   TransferReceiveClass: TLccTransferThreadClass);
-{$IFDEF ULTIBO}
-begin
-
-end;
-{$ELSE}
 var
   RetryCount: Integer;
+  {$IFNDEF ULTIBO}
   Peer: TVarSin;
+  {$ENDIF}
 begin
 
   if Verbose then WriteLn('Starting TCP Client: ' + ServerIP + ':' + IntToStr(Port));
 
-  Socket := TTCPBlockSocket.Create;
+  Socket := TLccTCPSocket.Create;
+
+  {$IFDEF ULTIBO}
+  Socket.Family := AF_INET;
+  {$ELSE}
   Socket.Family := SF_IP4;                  // IP4
   Socket.ConvertLineEnd := True;            // Use #10, #13, or both to be a "string" for GridConnect
   Socket.SetTimeout(0);
+  {$ENDIF}
 
   if Verbose then WriteLn('Connecting TCP Client');
   Socket.Connect(String( ServerIP), String( IntToStr(Port)));
 
+  {$IFNDEF ULTIBO}
+  // May not need for Ultibo, this was for Andriod mainly..
   RetryCount := 0;
   while ((Socket.LastError = WSAEINPROGRESS) or (Socket.LastError = WSAEALREADY)) and (RetryCount < 40) do   {20 Second Wait}
   begin
@@ -136,6 +131,7 @@ begin
     Sleep(500);
     if Verbose then Write('.');
   end;
+  {$ENDIF}
 
   if Socket.LastError = 0 then
   begin
@@ -146,9 +142,8 @@ begin
     TransferReceive.Start;
     FConnected := True;
   end else
-    if Verbose then WriteLn('Failed to Connect: ' + Socket.GetErrorDesc(Socket.LastError));
+    if Verbose then WriteLn('Failed to Connect: ' + Socket.LastErrorDesc);
 end;
-{$ENDIF}
 
 initialization
   TcpClientCount := 0;

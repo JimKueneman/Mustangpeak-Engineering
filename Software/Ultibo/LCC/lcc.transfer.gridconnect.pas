@@ -13,10 +13,6 @@ interface
 
 uses
   Classes, SysUtils,
-  {$IFNDEF ULTIBO}
-    blcksock,
-    synsock,
-  {$ENDIF}
   lcc.transfer.tcp.client;
 
 const
