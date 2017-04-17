@@ -915,7 +915,9 @@ begin
           begin
             if Lowercase(XmlNodeName(Node)) = 'event' then
             begin
-              s := NodeIDStr + XmlNodeTextContent(Node);
+              s := XmlNodeTextContent(Node);
+              s := IntToHex(StrToInt(s), 4);
+              s := NodeIDStr + s;
               EventState := XmlAttributeRead(Node, 'default');
               if (Lowercase(EventState) = 'unknown') or (EventState = '') then
                 ProtocolEventsProduced.Add(StrToEventID(s), evs_Unknown)
@@ -952,7 +954,9 @@ begin
           begin
             if Lowercase(XmlNodeName(Node)) = 'event' then
             begin
-              s := NodeIDStr + XmlNodeTextContent(Node);
+              s := XmlNodeTextContent(Node);
+              s := IntToHex(StrToInt(s), 4);
+              s := NodeIDStr + s;
               EventState := XmlAttributeRead(Node, 'default');
               if (Lowercase(EventState) = 'unknown') or (EventState = '') then
                 ProtocolEventsConsumed.Add(StrToEventID(s), evs_Unknown)

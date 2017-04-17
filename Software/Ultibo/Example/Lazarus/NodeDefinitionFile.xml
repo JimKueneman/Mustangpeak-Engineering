@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <node>
 	<nodeid>
-		<name>$AABBCCDDEEFF</name>
+		<name>0xAABBCCDDEEFF</name>
 	</nodeid>
 	<protocols>
 		<supported>events</supported>
@@ -31,24 +31,25 @@
 			<supported>arbitrary</supported>
 			<unsupported>stream</unsupported>
 		</writelengths>
+		<!-- The Hi and Lo Memory Space could be calculated from the configuration.memory tag below but it is current no so it must be defined here -->
 		<memspace.hi>0xFF</memspace.hi>
 		<memspace.lo>0xF9</memspace.lo>
 	</configuration.options>
 	<configuration.memspace>
 		<!-- Configuration Definition Information (CDI) Space -->
 		<memspace present="true" readonly="true" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFF</memspace>
-	    <!-- All Memory Space -->
+		<!-- All Memory Space -->
 		<memspace present="true" readonly="true" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFE</memspace>
 		<!-- Configuration Space -->
 		<memspace present="true" readonly="false" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFD</memspace>
 		<!-- ACDI Manufacturer Space -->
 		<memspace present="true" readonly="true" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFC</memspace>
 		<!-- ACDI User Space -->
-	    <memspace present="true" readonly="false" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFB</memspace>
+		<memspace present="true" readonly="false" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFB</memspace>
 		<!-- Function Definition Definition (FDI)  -->
 		<memspace present="true" readonly="true" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFA</memspace>
-	    <!-- Train Configuration Space -->
-	    <memspace present="true" readonly="false" addresslo="0x00000000" addresshi="0x00FFFFFF">0xF9</memspace>
+		<!-- Train Configuration Space -->
+		<memspace present="true" readonly="false" addresslo="0x00000000" addresshi="0x00FFFFFF">0xF9</memspace>
 	</configuration.memspace>
 	<datagram>
 		<!-- Enter the number of Datagram buffers to reserve -->
@@ -56,10 +57,16 @@
 	</datagram>
 	<events>
 		<produced>
-			
+			<event default="unknown">$00</event>
+			<event default="valid">$01</event>
+			<event default="invalid">$02</event>
+			<event default="unknown">$03</event>
 		</produced>
 		<consumed>
-			
+			<event default="unknown">$70</event>
+			<event default="valid">$71</event>
+			<event default="invalid">$72</event>
+			<event default="unknown">$73</event>
 		</consumed>
 	</events>
 	<cdi>

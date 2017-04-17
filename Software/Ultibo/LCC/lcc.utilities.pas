@@ -492,7 +492,14 @@ end;
     IpStrings: TStringList;
     LocalName: String;
     i: Integer;
+    OwnsSocket: Boolean;
   begin
+    OwnsSocket := False;
+    if Socket = nil then
+    begin
+      OwnsSocket := True;
+      Socket := TTCPBlockSocket.Create;
+    end;
     Result := '';
     LocalName := Socket.LocalName;
     IpStrings := TStringList.Create;
@@ -502,6 +509,8 @@ end;
          Result := IpStrings[i];
     finally
       IpStrings.Free;
+      if OwnsSocket then
+        FreeAndNIl(Socket)
     end;
   end;
 {$ELSE}

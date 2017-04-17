@@ -46,11 +46,11 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="Compiled_Binaries\$(TargetCPU)-$(TargetOS\SimpleNode"/>
+      <Filename Value="Compiled_Binaries\$(TargetCPU)-$(TargetOS)\SimpleNode"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\LCC;..\..\Mustangpeak;..\..\Generics\src;..\..\Synapse;\usr\local\share\fpcsrc\packages\rtl-objpas\src\inc\"/>
+      <OtherUnitFiles Value="..\..\LCC;..\..\Mustangpeak;..\..\Generics\src;..\..\Synapse;\usr\local\share\fpcsrc\packages\rtl-objpas\src\inc"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Conditionals Value="if TargetOS = 'darwin' then

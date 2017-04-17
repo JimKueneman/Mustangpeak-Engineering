@@ -25,6 +25,8 @@ var
 begin
   {$IFDEF LCC_WINDOWS}
   Node := TLccNode.Create('Z:\Software\Ultibo\Example\Lazarus\NodeDefinitionFile.xml');
+//  IP := ResolveWindowsIp(nil);
+  IP := '127.0.0.1';
   {$ELSE}
   Node := TLccNode.Create('/Users/jimkueneman/Documents/Mustangpeak Engineering/Software/Ultibo/Example/Lazarus/NodeDefinitionFile.xml');
   IP := ResolveUnixIp;
