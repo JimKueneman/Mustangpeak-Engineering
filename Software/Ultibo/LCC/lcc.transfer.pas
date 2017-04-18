@@ -75,12 +75,18 @@ type
        constructor Create;
        destructor Destroy; override;
 
+       function AllocateFamily:Boolean; virtual;
+       function AllocateAddress(var ALength:Integer):PSockAddr;
+       function ReleaseAddress(var ASockAddr:PSockAddr;var ALength:Integer):Boolean;
+       function AllocateBoundAddress(var ALength:Integer):PSockAddr;
+       function AllocateSocket(ASocketType:Integer):TSocket;
+
        function Accept: TSocket;
        procedure Bind(IP, Port: string); overload;
        function CanRead(Timeout: Integer): Boolean;
        procedure Connect(IP, Port: string);
        function LastErrorDesc: string;
-       procedure Listen; overload;
+       function Listen: LongInt; overload;
        function RecvByte(Timeout: Integer): Byte;
        procedure SendString(Data: AnsiString);
 
@@ -131,6 +137,7 @@ implementation
 var
   TransferThreadCount: Integer;
 
+{$IFNDEF SYNAPSE}
 { TLccWinSock2TCPBuffer }
 
 function TLccWinSock2TCPBuffer.GetByte: Byte;
@@ -174,7 +181,7 @@ end;
 
 
 { TLccWinsock2TCPSocket }
-{$IFNDEF SYNAPSE}
+
 procedure TLccWinsock2TCPSocket.SetSocket(AValue: TSocket);
 var
   SockAddr, PeerAddr:PSockAddr;
@@ -219,6 +226,33 @@ begin
   inherited Destroy;
 end;
 
+function TLccWinsock2TCPSocket.AllocateFamily: Boolean;
+begin
+  Result := inherited AllocateFamily
+end;
+
+function TLccWinsock2TCPSocket.AllocateAddress(var ALength: Integer): PSockAddr;
+begin
+  Result := inherited AllocateAddress(ALength);
+end;
+
+function TLccWinsock2TCPSocket.ReleaseAddress(var ASockAddr: PSockAddr;
+  var ALength: Integer): Boolean;
+begin
+  Result := inherited ReleaseAddress(ASockAddr, ALength);
+end;
+
+function TLccWinsock2TCPSocket.AllocateBoundAddress(var ALength: Integer
+  ): PSockAddr;
+begin
+  Result := inherited AllocateBoundAddress(ALength);
+end;
+
+function TLccWinsock2TCPSocket.AllocateSocket(ASocketType: Integer): TSocket;
+begin
+  Result := inherited AllocateSocket(ASocketType);
+end;
+
 function TLccWinsock2TCPSocket.RecvByte(Timeout: Integer): Byte;
 begin
   Result := 0;
@@ -229,9 +263,9 @@ end;
 function TLccWinsock2TCPSocket.LastErrorDesc: string;
 begin
   // Wrapper to look like Synapse
-  case ErrorCode of
+  case LastError of
     0:
-      Result := '';
+      Result := 'OK';
     WSAEINTR: {10004}
       Result := 'Interrupted system call';
     WSAEBADF: {10009}
@@ -351,9 +385,9 @@ begin
   FSocket := Bind;
 end;
 
-procedure TLccWinsock2TCPSocket.Listen;
+function TLccWinsock2TCPSocket.Listen: LongInt;
 begin
-  Self.Listen(SOMAXCONN);
+  Result := Self.Listen(SOMAXCONN);
 end;
 
 function TLccWinsock2TCPSocket.CanRead(Timeout: Integer): Boolean;
@@ -363,7 +397,7 @@ begin
 //  ReadAvailable();
 // Result := Winsock2.CanRead(Timeout)
 
-  .;
+ // .;
 
   Result := not Buffer.Empty;
 end;

@@ -111,12 +111,31 @@ var
   ConnectionSocket: TLccTCPSocket;
   SendThread: TLccTransferThread;
   ReceiveThread: TLccTransferThread;
+  WSData: TWSAData;
   s: string;
   ErrorCode: Cardinal;
 begin
+   if WSAStartup( $0202, WSData) <> 0 then
+   begin
+     WriteLn('WSAStartup Error Description: ' + Socket.LastErrorDesc);
+     WriteLn('WSAStartup Error Code: ' + IntToStr(Socket.LastError));
+   end;
+
    Socket := TLccTCPSocket.Create;          // Created in context of the thread
-   {$IFDEF ULTIBO}
+   Socket.SocketType := SOCK_STREAM;
    Socket.Family := AF_INET;
+   Socket.Protocol := IPPROTO_IP;
+   {$IFDEF ULTIBO}
+   WriteLn('Connecting');
+   Socket.Connect(ListenerIP, ListenerPort);
+   if Socket.Socket = INVALID_SOCKET then
+   begin
+     WriteLn('Connect Error Description: ' + Socket.LastErrorDesc);
+     WriteLn('Connect Error Code: ' + IntToStr(Socket.LastError));
+   end else
+     WriteLn('Connected');
+
+
    {$ELSE}
    Socket.Family := SF_IP4;                  // IP4
    Socket.ConvertLineEnd := True;            // Use #10, #13, or both to be a "string"
@@ -130,7 +149,13 @@ begin
    if Socket.LastError = 0 then
    begin
      if Verbose then WriteLn('Listener Binding Successful');
-     Socket.Listen;
+
+     if Socket.Listen = SOCKET_ERROR then
+     begin
+       WriteLn('Listen Error Description: ' + Socket.LastErrorDesc);
+       WriteLn('Listen Error Code: ' + IntToStr(Socket.LastError));
+     end;
+
      if Socket.LastError = 0 then
      begin
        if Verbose then WriteLn('Listener Listen Successful');

@@ -131,12 +131,12 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\LCC;..\..\Generics\src;..\..\Mustangpeak;C:\Ultibo\Core\fpc\3.1.1\source\rtl\inc\;C:\Ultibo\;C:\Ultibo\Core\fpc\3.1.1\source\rtl\;C:\Ultibo\Core\fpc\3.1.1\source\packages\rtl-objpas\src\inc\"/>
+      <OtherUnitFiles Value="..\..\LCC;..\..\Generics\src;..\..\Mustangpeak;..\..\uTFTP;C:\Ultibo\Core\fpc\3.1.1\source\rtl\inc\;C:\Ultibo\;C:\Ultibo\Core\fpc\3.1.1\source\rtl\;C:\Ultibo\Core\fpc\3.1.1\source\packages\rtl-objpas\src\inc\"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <CodeGeneration>
       <SmartLinkUnit Value="True"/>
-      <TargetProcessor Value="armv7a"/>
+      <TargetProcessor Value="ARMV7A"/>
       <TargetController Value="RPI2B"/>
       <TargetCPU Value="arm"/>
       <TargetOS Value="ultibo"/>
