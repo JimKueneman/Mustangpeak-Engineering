@@ -122,10 +122,10 @@ begin
    end;
 
    Socket := TLccTCPSocket.Create;          // Created in context of the thread
+   {$IFDEF ULTIBO}
    Socket.SocketType := SOCK_STREAM;
    Socket.Family := AF_INET;
    Socket.Protocol := IPPROTO_IP;
-   {$IFDEF ULTIBO}
    WriteLn('Connecting');
    Socket.Connect(ListenerIP, ListenerPort);
    if Socket.Socket = INVALID_SOCKET then
@@ -150,11 +150,15 @@ begin
    begin
      if Verbose then WriteLn('Listener Binding Successful');
 
+     {$IFDEF ULTIBO}
      if Socket.Listen = SOCKET_ERROR then
      begin
        WriteLn('Listen Error Description: ' + Socket.LastErrorDesc);
        WriteLn('Listen Error Code: ' + IntToStr(Socket.LastError));
      end;
+     {$ELSE}
+     Socket.Listen;
+     {$ENDIF}
 
      if Socket.LastError = 0 then
      begin
