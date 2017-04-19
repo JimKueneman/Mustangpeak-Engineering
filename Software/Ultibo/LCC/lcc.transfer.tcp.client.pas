@@ -13,13 +13,8 @@ uses
   Classes, SysUtils,
   {$IFDEF FPC}
   syncobjs,
-    {$IFDEF SYNAPSE}
-      blcksock,
-      synsock,
-    {$ENDIF}
-    {$IFDEF ULTIBO}
-    Winsock2,
-    {$ENDIF}
+  blcksock,
+  synsock,
   {$ENDIF}
   lcc.node,
   lcc.message,
@@ -36,11 +31,11 @@ type
     FConnected: Boolean;
     FTransferSend: TLccTransferThread;
     FTransferReceive: TLccTransferThread;
-    FSocket: TLccTCPSocket;
+    FSocket: TTCPBlockSocket;
   protected
     property TransferSend: TLccTransferThread read FTransferSend write FTransferSend;
     property TransferReceive: TLccTransferThread read FTransferReceive write FTransferReceive;
-    property Socket: TLccTCPSocket read FSocket write FSocket;
+    property Socket: TTCPBlockSocket read FSocket write FSocket;
   public
     constructor Create;
     destructor Destroy; override;
@@ -106,15 +101,11 @@ begin
 
   if Verbose then WriteLn('Starting TCP Client: ' + ServerIP + ':' + IntToStr(Port));
 
-  Socket := TLccTCPSocket.Create;
+  Socket := TTCPBlockSocket.Create;
 
-  {$IFDEF ULTIBO}
-  Socket.Family := AF_INET;
-  {$ELSE}
   Socket.Family := SF_IP4;                  // IP4
   Socket.ConvertLineEnd := True;            // Use #10, #13, or both to be a "string" for GridConnect
   Socket.SetTimeout(0);
-  {$ENDIF}
 
   if Verbose then WriteLn('Connecting TCP Client');
   Socket.Connect(String( ServerIP), String( IntToStr(Port)));

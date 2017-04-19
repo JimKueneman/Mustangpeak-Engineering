@@ -13,13 +13,8 @@ uses
   Classes, SysUtils,
   {$IFDEF FPC}
   syncobjs,
-    {$IFDEF SYNAPSE}
-      blcksock,
-      synsock,
-    {$ENDIF}
-    {$IFDEF ULTIBO}
-    Winsock2,
-    {$ENDIF}
+  blcksock,
+  synsock,
   {$ENDIF}
   lcc.node,
   lcc.message,
@@ -41,7 +36,7 @@ type
     FListenerIP: string;
     FListenerPort: string;
     FRunning: Boolean;
-    FSocket: TLccTCPSocket;
+    FSocket: TTCPBlockSocket;
     FTransferReceive: TLccTransferThread;
     FTransferReceiveClass: TLccTransferThreadClass;
     FTransferSend: TLccTransferThread;
@@ -56,7 +51,7 @@ type
     property ListenerIP: string read FListenerIP write FListenerIP;
     property ListenerPort: string read FListenerPort write FListenerPort;
     property Running: Boolean read FRunning write FRunning;
-    property Socket: TLccTCPSocket read FSocket write FSocket;
+    property Socket: TTCPBlockSocket read FSocket write FSocket;
     property TransferSendClass: TLccTransferThreadClass read FTransferSendClass write FTransferSendClass;
     property TransferReceiveClass: TLccTransferThreadClass read FTransferReceiveClass write FTransferReceiveClass;
     property Verbose: Boolean read FVerbose write FVerbose;
@@ -108,7 +103,7 @@ end;
 procedure TLccTransferManagerTcpListener.Execute;
 var
   ConnectionSocketHandle: TSocket;
-  ConnectionSocket: TLccTCPSocket;
+  ConnectionSocket: TTCPBlockSocket;
   SendThread: TLccTransferThread;
   ReceiveThread: TLccTransferThread;
   WSData: TWSAData;
@@ -121,27 +116,12 @@ begin
      WriteLn('WSAStartup Error Code: ' + IntToStr(Socket.LastError));
    end;
 
-   Socket := TLccTCPSocket.Create;          // Created in context of the thread
-   {$IFDEF ULTIBO}
-   Socket.SocketType := SOCK_STREAM;
-   Socket.Family := AF_INET;
-   Socket.Protocol := IPPROTO_IP;
-   WriteLn('Connecting');
-   Socket.Connect(ListenerIP, ListenerPort);
-   if Socket.Socket = INVALID_SOCKET then
-   begin
-     WriteLn('Connect Error Description: ' + Socket.LastErrorDesc);
-     WriteLn('Connect Error Code: ' + IntToStr(Socket.LastError));
-   end else
-     WriteLn('Connected');
+   Socket := TTCPBlockSocket.Create;          // Created in context of the thread
 
-
-   {$ELSE}
    Socket.Family := SF_IP4;                  // IP4
    Socket.ConvertLineEnd := True;            // Use #10, #13, or both to be a "string"
    Socket.HeartbeatRate := 0;
    Socket.SetTimeout(0);
-   {$ENDIF}
 
    if Verbose then WriteLn('Starting TCP Server Listener: ' + ListenerIP + ':' + ListenerPort);
 
@@ -150,15 +130,7 @@ begin
    begin
      if Verbose then WriteLn('Listener Binding Successful');
 
-     {$IFDEF ULTIBO}
-     if Socket.Listen = SOCKET_ERROR then
-     begin
-       WriteLn('Listen Error Description: ' + Socket.LastErrorDesc);
-       WriteLn('Listen Error Code: ' + IntToStr(Socket.LastError));
-     end;
-     {$ELSE}
      Socket.Listen;
-     {$ENDIF}
 
      if Socket.LastError = 0 then
      begin
@@ -178,7 +150,7 @@ begin
              begin
                if Verbose then WriteLn('Listener New Connection');
                ConnectionSocketHandle := Socket.Accept;
-               ConnectionSocket := TLccTCPSocket.Create;
+               ConnectionSocket := TTCPBlockSocket.Create;
                ConnectionSocket.Socket := ConnectionSocketHandle;
                SendThread := TransferSendClass.Create(True, ConnectionSocket, td_Out);
                ReceiveThread := TransferReceiveClass.Create(True, ConnectionSocket, td_In);

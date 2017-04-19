@@ -12,6 +12,7 @@ uses
     {$IFDEF FPC}
       {$IFDEF ULTIBO}
       console,
+      Winsock2,
       {$ELSE}
       baseUnix,
       {$ENDIF}
@@ -19,14 +20,8 @@ uses
     strutils, Posix.NetinetIn, Posix.ArpaInet, Posix.SysSocket, Posix.Errno, Posix.Unistd,
     {$ENDIF}
   {$ENDIF}
-  {$IFNDEF ULTIBO}
-    {$IFDEF SYNAPSE}
-    blcksock,
-    {$ENDIF}
-    sockets,
-  {$ELSE}
-  Winsock2,
-  {$ENDIF}
+  blcksock,
+  sockets,
   Types, lcc.types;
 
 type

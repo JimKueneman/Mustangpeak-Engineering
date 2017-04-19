@@ -256,8 +256,12 @@ interface
 
 uses
   SyncObjs, SysUtils, Classes,
+ {$IFDEF ULTIBO}
+  synafpc, Winsock2, Ultibo;
+ {$ELSE}  
   Windows;
-
+ {$ENDIF}
+ 
 function InitSocketInterface(stack: String): Boolean;
 function DestroySocketInterface: Boolean;
 
@@ -782,7 +786,7 @@ procedure FD_SET(Socket: TSocket; var FDSet: TFDSet);
 procedure FD_ZERO(var FDSet: TFDSet);
 
 {=============================================================================}
-
+{$IFNDEF ULTIBO}
 type
   TWSAStartup = function(wVersionRequired: Word; var WSData: TWSAData): Integer;
     stdcall;
@@ -916,6 +920,49 @@ var
   __WSAFDIsSet: T__WSAFDIsSet = nil;
 
   WSAIoctl: TWSAIoctl = nil;
+{$ELSE}
+function WSAStartup(wVersionRequired: Word; var WSData: TWSAData): Integer; inline;
+function WSACleanup: Integer; inline;
+function WSAGetLastError: Integer; inline;
+function GetServByName(name, proto: PAnsiChar): PServEnt; inline;
+function GetServByPort(port: Integer; proto: PAnsiChar): PServEnt; inline;
+function GetProtoByName(name: PAnsiChar): PProtoEnt; inline;
+function GetProtoByNumber(proto: Integer): PProtoEnt; inline;
+function GetHostByName(name: PAnsiChar): PHostEnt; inline;
+function GetHostByAddr(addr: Pointer; len, Struc: Integer): PHostEnt; inline;
+function ssGetHostName(name: PAnsiChar; len: Integer): Integer; inline;
+function Shutdown(s: TSocket; how: Integer): Integer; inline;
+function SetSockOpt(s: TSocket; level, optname: Integer; optval: PAnsiChar; optlen: Integer): Integer; inline;
+function GetSockOpt(s: TSocket; level, optname: Integer; optval: PAnsiChar; var optlen: Integer): Integer; inline;
+function ssSendTo(s: TSocket; const Buf; len, flags: Integer; addrto: PSockAddr; tolen: Integer): Integer; inline;
+function ssSend(s: TSocket; const Buf; len, flags: Integer): Integer; inline;
+function ssRecv(s: TSocket; var Buf; len, flags: Integer): Integer; inline;
+function ssRecvFrom(s: TSocket; var Buf; len, flags: Integer; from: PSockAddr; var fromlen: Integer): Integer; inline;
+function ntohs(netshort: u_short): u_short; inline;
+function ntohl(netlong: u_long): u_long; inline;
+function Listen(s: TSocket; backlog: Integer): Integer; inline;
+function IoctlSocket(s: TSocket; cmd: DWORD; var arg: Integer): Integer; inline;
+function Inet_ntoa(inaddr: TInAddr): PAnsiChar; inline;
+function Inet_addr(cp: PAnsiChar): u_long; inline;
+function htons(hostshort: u_short): u_short; inline;
+function htonl(hostlong: u_long): u_long; inline;
+function ssGetSockName(s: TSocket; name: PSockAddr; var namelen: Integer): Integer; inline;
+function ssGetPeerName(s: TSocket; name: PSockAddr; var namelen: Integer): Integer; inline;
+function ssConnect(s: TSocket; name: PSockAddr; namelen: Integer): Integer; inline;
+function CloseSocket(s: TSocket): Integer; inline;
+function ssBind(s: TSocket; addr: PSockAddr; namelen: Integer): Integer; inline;
+function ssAccept(s: TSocket; addr: PSockAddr; var addrlen: Integer): TSocket; inline;
+function Socket(af, Struc, Protocol: Integer): TSocket; inline;
+function Select(nfds: Integer; readfds, writefds, exceptfds: PFDSet; timeout: PTimeVal): Longint; inline;
+
+function GetAddrInfo(NodeName: PAnsiChar; ServName: PAnsiChar; Hints: PAddrInfo; var Addrinfo: PAddrInfo): integer; inline;
+procedure FreeAddrInfo(ai: PAddrInfo); inline;
+function GetNameInfo( addr: PSockAddr; namelen: Integer; host: PAnsiChar; hostlen: DWORD; serv: PAnsiChar; servlen: DWORD; flags: integer): integer; inline;
+
+function __WSAFDIsSet(s: TSocket; var FDSet: TFDSet): Bool; inline;
+
+function WSAIoctl(s: TSocket; dwIoControlCode: DWORD; lpvInBuffer: Pointer; cbInBuffer: DWORD; lpvOutBuffer: Pointer; cbOutBuffer: DWORD; lpcbBytesReturned: PDWORD; lpOverlapped: Pointer; lpCompletionRoutine: pointer): u_int; inline;
+{$ENDIF}
 
 var
   SynSockCS: SyncObjs.TCriticalSection;
@@ -1502,10 +1549,203 @@ begin
 end;
 
 {=============================================================================}
+{$IFDEF ULTIBO}
+function WSAStartup(wVersionRequired: Word; var WSData: TWSAData): Integer; inline;
+begin
+ //Result := Winsock2.
+end;
+
+function WSACleanup: Integer; inline;
+begin
+ Result := Winsock2.WSACleanup;
+end;
+
+function WSAGetLastError: Integer; inline;
+begin
+ Result := Winsock2.WSAGetLastError;
+end;
+
+function GetServByName(name, proto: PAnsiChar): PServEnt; inline;
+begin
+ Result := PServEnt(Winsock2.getservbyname(name, proto));
+end;
+
+function GetServByPort(port: Integer; proto: PAnsiChar): PServEnt; inline;
+begin
+ Result := PServEnt(Winsock2.getservbyport(port, proto));
+end;
+
+function GetProtoByName(name: PAnsiChar): PProtoEnt; inline;
+begin
+ Result := PProtoEnt(Winsock2.getprotobyname(name));
+end;
+
+function GetProtoByNumber(proto: Integer): PProtoEnt; inline;
+begin
+ Result := PProtoEnt(Winsock2.getprotobynumber(proto));
+end;
+
+function GetHostByName(name: PAnsiChar): PHostEnt; inline;
+begin
+ Result := PHostEnt(Winsock2.gethostbyname(name));
+end;
+
+function GetHostByAddr(addr: Pointer; len, Struc: Integer): PHostEnt; inline;
+begin
+ Result := PHostEnt(Winsock2.gethostbyaddr(addr, len, Struc));
+end;
+
+function ssGetHostName(name: PAnsiChar; len: Integer): Integer; inline;
+begin
+ Result := Winsock2.gethostname(name, len);
+end;
+
+function Shutdown(s: TSocket; how: Integer): Integer; inline;
+begin
+ Result := Winsock2.shutdown(s, how);
+end;
+
+function SetSockOpt(s: TSocket; level, optname: Integer; optval: PAnsiChar; optlen: Integer): Integer; inline;
+begin
+ Result := Winsock2.setsockopt(s, level, optname, optval, optlen);
+end;
+
+function GetSockOpt(s: TSocket; level, optname: Integer; optval: PAnsiChar; var optlen: Integer): Integer; inline;
+begin
+ Result := Winsock2.getsockopt(s, level, optname, optval, optlen);
+end;
+
+function ssSendTo(s: TSocket; const Buf; len, flags: Integer; addrto: PSockAddr; tolen: Integer): Integer; inline;
+begin
+ Result := Winsock2.sendto(s, @Buf, len, flags, Winsock2.PSockAddr(addrto), tolen);
+end;
+
+function ssSend(s: TSocket; const Buf; len, flags: Integer): Integer; inline;
+begin
+ Result := Winsock2.send(s, @Buf, len, flags);
+end;
+
+function ssRecv(s: TSocket; var Buf; len, flags: Integer): Integer; inline;
+begin
+ Result := Winsock2.recv(s, @Buf, len, flags);
+end;
+
+function ssRecvFrom(s: TSocket; var Buf; len, flags: Integer; from: PSockAddr; var fromlen: Integer): Integer; inline;
+begin
+ Result := Winsock2.recvfrom(s, @Buf, len, flags, Winsock2.PSockAddr(from), @fromlen);
+end;
+
+function ntohs(netshort: u_short): u_short; inline;
+begin
+ Result := Winsock2.ntohs(netshort);
+end;
+
+function ntohl(netlong: u_long): u_long; inline;
+begin
+ Result := Winsock2.ntohl(netlong);
+end;
+
+function Listen(s: TSocket; backlog: Integer): Integer; inline;
+begin
+ Result := Winsock2.listen(s, backlog);
+end;
+
+function IoctlSocket(s: TSocket; cmd: DWORD; var arg: Integer): Integer; inline;
+begin
+ Result := Winsock2.ioctlsocket(s, cmd, @arg);
+end;
+
+function Inet_ntoa(inaddr: TInAddr): PAnsiChar; inline;
+begin
+ Result := Winsock2.inet_ntoa(Winsock2.TInAddr(inaddr));
+end;
+
+function Inet_addr(cp: PAnsiChar): u_long; inline;
+begin
+ Result := Winsock2.inet_addr(cp);
+end;
+
+function htons(hostshort: u_short): u_short; inline;
+begin
+ Result := Winsock2.htons(hostshort);
+end;
+
+function htonl(hostlong: u_long): u_long; inline;
+begin
+ Result := Winsock2.htonl(hostlong);
+end;
+
+function ssGetSockName(s: TSocket; name: PSockAddr; var namelen: Integer): Integer; inline;
+begin
+ Result := Winsock2.getsockname(s, Winsock2.TSockAddr(name^), namelen);
+end;
+
+function ssGetPeerName(s: TSocket; name: PSockAddr; var namelen: Integer): Integer; inline;
+begin
+ Result := Winsock2.getpeername(s, Winsock2.TSockAddr(name^), namelen);
+end;
+
+function ssConnect(s: TSocket; name: PSockAddr; namelen: Integer): Integer; inline;
+begin
+ Result := Winsock2.connect(s, Winsock2.PSockAddr(name), namelen)
+end;
+
+function CloseSocket(s: TSocket): Integer; inline;
+begin
+ Result := Winsock2.closesocket(s);
+end;
+
+function ssBind(s: TSocket; addr: PSockAddr; namelen: Integer): Integer; inline;
+begin
+ Result := Winsock2.bind(s, Winsock2.PSockAddr(addr), namelen)
+end;
+
+function ssAccept(s: TSocket; addr: PSockAddr; var addrlen: Integer): TSocket; inline;
+begin
+ Result := Winsock2.accept(s, Winsock2.PSockAddr(addr), addrlen);
+end;
+
+function Socket(af, Struc, Protocol: Integer): TSocket; inline;
+begin
+ Result := Winsock2.socket(af, Struc, Protocol);
+end;
+
+function Select(nfds: Integer; readfds, writefds, exceptfds: PFDSet; timeout: PTimeVal): Longint; inline;
+begin
+ Result := Winsock2.select(nfds, Winsock2.PFDSet(readfds), Winsock2.PFDSet(writefds), Winsock2.PFDSet(exceptfds), Winsock2.PTimeVal(timeout));
+end;
+
+function GetAddrInfo(NodeName: PAnsiChar; ServName: PAnsiChar; Hints: PAddrInfo; var Addrinfo: PAddrInfo): integer; inline;
+begin
+ Result := Winsock2.getaddrinfo(NodeName, ServName, Winsock2.PAddrInfo(Hints), Winsock2.PAddrInfo(Addrinfo));
+end;
+
+procedure FreeAddrInfo(ai: PAddrInfo); inline;
+begin
+ Winsock2.freeaddrinfo(Winsock2.PAddrInfo(ai));
+end;
+
+function GetNameInfo( addr: PSockAddr; namelen: Integer; host: PAnsiChar; hostlen: DWORD; serv: PAnsiChar; servlen: DWORD; flags: integer): integer; inline;
+begin
+ Result := Winsock2.getnameinfo(Winsock2.PSockAddr(addr), namelen, host, hostlen, serv, servlen, flags);
+end;
+
+function __WSAFDIsSet(s: TSocket; var FDSet: TFDSet): Bool; inline;
+begin
+ Result := Winsock2.__WSAFDIsSet(s, Winsock2.TFDSet(FDSet));
+end;
+
+function WSAIoctl(s: TSocket; dwIoControlCode: DWORD; lpvInBuffer: Pointer; cbInBuffer: DWORD; lpvOutBuffer: Pointer; cbOutBuffer: DWORD; lpcbBytesReturned: PDWORD; lpOverlapped: Pointer; lpCompletionRoutine: pointer): u_int; inline;
+begin
+ Result := Winsock2.WSAIoctl(s, dwIoControlCode, lpvInBuffer, cbInBuffer, lpvOutBuffer, cbOutBuffer, lpcbBytesReturned, lpOverlapped, lpCompletionRoutine);
+end;
+{$ENDIF}
+{=============================================================================}
 
 function InitSocketInterface(stack: String): Boolean;
 begin
   Result := False;
+  SockEnhancedApi := False;
   if stack = '' then
     stack := DLLStackName;
   SynSockCS.Enter;
@@ -1514,6 +1754,7 @@ begin
     begin
       SockEnhancedApi := False;
       SockWship6Api := False;
+      {$IFNDEF ULTIBO}
       LibHandle := LoadLibrary(PChar(Stack));
       if LibHandle <> 0 then
       begin
@@ -1574,6 +1815,10 @@ begin
 {$ENDIF}
         Result := True;
       end;
+      {$ELSE}
+      SockEnhancedApi := True;
+      Result := True;
+      {$ENDIF}
     end
     else Result := True;
     if Result then

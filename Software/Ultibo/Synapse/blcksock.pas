@@ -1715,7 +1715,11 @@ begin
         {$IFDEF MSWINDOWS}
         synsock.SetSockOpt(FSocket, integer(SOL_SOCKET), integer(SO_REUSEADDR or SO_BROADCAST), buf, SizeOf(x));
         {$ELSE}
-        synsock.SetSockOpt(FSocket, integer(SOL_SOCKET), integer(SO_REUSEPORT), buf, SizeOf(x));
+          {$IFDEF ULTIBO}
+          synsock.SetSockOpt(FSocket, integer(SOL_SOCKET), integer(SO_REUSEADDR or SO_BROADCAST), buf, SizeOf(x));
+          {$ELSE}
+          synsock.SetSockOpt(FSocket, integer(SOL_SOCKET), integer(SO_REUSEPORT), buf, SizeOf(x));
+          {$ENDIF}
         {$ENDIF}
       end;
     SOT_TTL:
