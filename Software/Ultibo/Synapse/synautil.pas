@@ -78,21 +78,20 @@ uses
 {$IFDEF MSWINDOWS}
   Windows,
 {$ELSE}
-  {$IFDEF FPC}
-    {$IFDEF ULTIBO}
+  {$IFDEF ULTIBO}
     Ultibo,
-    Winsock2,
+  {$ELSE} 
+    {$IFDEF FPC}
+      UnixUtil, Unix, BaseUnix,
     {$ELSE}
-    UnixUtil, Unix, BaseUnix,
+      Libc,
     {$ENDIF}
-  {$ELSE}
-    Libc,
   {$ENDIF}
 {$ENDIF}
 {$IFDEF CIL}
   System.IO,
 {$ENDIF}
-  SysUtils, Classes;
+  SysUtils, Classes, SynaFpc;
 
 {$IFDEF VER100}
 type
@@ -402,45 +401,25 @@ var
 {==============================================================================}
 
 function TimeZoneBias: integer;
-{$IFNDEF MSWINDOWS}
-  {$IFNDEF FPC}
-  var
-    t: TTime_T;
-    UT: TUnixTime;
-  begin
-    __time(@T);
-    localtime_r(@T, UT);
-    Result := ut.__tm_gmtoff div 60;
-  end;
-  {$ELSE}
-    {$IFDEF ULTIBO}
-    var
-      zoneinfo: TTimeZoneInformation;
-      bias: Integer;
-    begin
-      Zoneinfo.Bias := 0;  // Shut up compiler
-      case GetTimeZoneInformation(Zoneinfo) of
-        2:
-          bias := zoneinfo.Bias + zoneinfo.DaylightBias;
-        1:
-          bias := zoneinfo.Bias + zoneinfo.StandardBias;
-      else
-        bias := zoneinfo.Bias;
-      end;
-      Result := bias * (-1);
-    end;
-    {$ELSE}
-    begin
-      Result := TZSeconds div 60;
-    end;
-    {$ENDIF}
-  {$ENDIF}
+//{$IFNDEF MSWINDOWS}
+{$IF NOT(DEFINED(MSWINDOWS)) and NOT(DEFINED(ULTIBO))}
+{$IFNDEF FPC}
+var
+  t: TTime_T;
+  UT: TUnixTime;
+begin
+  __time(@T);
+  localtime_r(@T, UT);
+  Result := ut.__tm_gmtoff div 60;
+{$ELSE}
+begin
+  Result := TZSeconds div 60;
+{$ENDIF}
 {$ELSE}
 var
   zoneinfo: TTimeZoneInformation;
   bias: Integer;
 begin
-  Zoneinfo.Bias := 0;  // Shut up compiler
   case GetTimeZoneInformation(Zoneinfo) of
     2:
       bias := zoneinfo.Bias + zoneinfo.DaylightBias;
@@ -450,9 +429,8 @@ begin
     bias := zoneinfo.Bias;
   end;
   Result := bias * (-1);
-end;
 {$ENDIF}
-
+end;
 
 {==============================================================================}
 
@@ -776,129 +754,98 @@ end;
 {==============================================================================}
 
 function GetUTTime: TDateTime;
-{$IFDEF MSWINDOWS}
-  {$IFNDEF FPC}
-  var
-    st: TSystemTime;
-  begin
-    GetSystemTime(st);
-    result := SystemTimeToDateTime(st);
-  {$ELSE}
-  var
-    st: SysUtils.TSystemTime;
-    stw: Windows.TSystemTime;
-  begin
-    stw.Day := 0; // shut up compiler
-    GetSystemTime(stw);
-    st.Year := stw.wYear;
-    st.Month := stw.wMonth;
-    st.Day := stw.wDay;
-    st.Hour := stw.wHour;
-    st.Minute := stw.wMinute;
-    st.Second := stw.wSecond;
-    st.Millisecond := stw.wMilliseconds;
-    result := SystemTimeToDateTime(st);
-  {$ENDIF}
-{$ELSE}   // Not Windows
-  {$IFNDEF FPC}
-  var
-    TV: TTimeVal;
-  begin
-    gettimeofday(TV, nil);
-    Result := UnixDateDelta + (TV.tv_sec + TV.tv_usec / 1000000) / 86400;
-  {$ELSE}
-    {$IFDEF ULTIBO}
-      var
-      st: SysUtils.TSystemTime;
-      stw: SYSTEMTIME;
-    begin
-      GetSystemTime(stw);
-      st.Year := stw.wYear;
-      st.Month := stw.wMonth;
-      st.Day := stw.wDay;
-      st.Hour := stw.wHour;
-      st.Minute := stw.wMinute;
-      st.Second := stw.wSecond;
-      st.Millisecond := stw.wMilliseconds;
-      result := SystemTimeToDateTime(st);
-    {$ELSE}
-    var
-      TV: TimeVal;
-    begin
-      fpgettimeofday(@TV, nil);
-      Result := UnixDateDelta + (TV.tv_sec + TV.tv_usec / 1000000) / 86400;
-    {$ENDIF}
-  {$ENDIF}
+//{$IFDEF MSWINDOWS}
+{$IF DEFINED(MSWINDOWS) or DEFINED(ULTIBO)}
+{$IFNDEF FPC}
+var
+  st: TSystemTime;
+begin
+  GetSystemTime(st);
+  result := SystemTimeToDateTime(st);
+{$ELSE}
+var
+  st: SysUtils.TSystemTime;
+  stw: {$IFNDEF ULTIBO}Windows{$ELSE}Ultibo{$ENDIF}.TSystemTime;
+begin
+  GetSystemTime(stw);
+  st.Year := stw.wYear;
+  st.Month := stw.wMonth;
+  st.Day := stw.wDay;
+  st.Hour := stw.wHour;
+  st.Minute := stw.wMinute;
+  st.Second := stw.wSecond;
+  st.Millisecond := stw.wMilliseconds;
+  result := SystemTimeToDateTime(st);
+{$ENDIF}
+{$ELSE}
+{$IFNDEF FPC}
+var
+  TV: TTimeVal;
+begin
+  gettimeofday(TV, nil);
+  Result := UnixDateDelta + (TV.tv_sec + TV.tv_usec / 1000000) / 86400;
+{$ELSE}
+var
+  TV: TimeVal;
+begin
+  fpgettimeofday(@TV, nil);
+  Result := UnixDateDelta + (TV.tv_sec + TV.tv_usec / 1000000) / 86400;
+{$ENDIF}
 {$ENDIF}
 end;
 
 {==============================================================================}
 
 function SetUTTime(Newdt: TDateTime): Boolean;
-{$IFDEF MSWINDOWS}
-  {$IFNDEF FPC}
-  var
-    st: TSystemTime;
-  begin
-    DateTimeToSystemTime(newdt,st);
-    Result := SetSystemTime(st);
-  {$ELSE}
-  var
-    st: SysUtils.TSystemTime;
-    stw: Windows.TSystemTime;
-  begin
-    DateTimeToSystemTime(newdt,st);
-    stw.wYear := st.Year;
-    stw.wMonth := st.Month;
-    stw.wDay := st.Day;
-    stw.wHour := st.Hour;
-    stw.wMinute := st.Minute;
-    stw.wSecond := st.Second;
-    stw.wMilliseconds := st.Millisecond;
-    Result := SetSystemTime(stw);
-  {$ENDIF}
+//{$IFDEF MSWINDOWS}
+{$IF DEFINED(MSWINDOWS) or DEFINED(ULTIBO)}
+{$IFNDEF FPC}
+var
+  st: TSystemTime;
+begin
+  DateTimeToSystemTime(newdt,st);
+  Result := SetSystemTime(st);
 {$ELSE}
-  {$IFNDEF FPC}
-  var
-    TV: TTimeVal;
-    d: double;
-    TZ: Ttimezone;
-    PZ: PTimeZone;
-  begin
-    TZ.tz_minuteswest := 0;
-    TZ.tz_dsttime := 0;
-    PZ := @TZ;
-    gettimeofday(TV, PZ);
-    d := (newdt - UnixDateDelta) * 86400;
-    TV.tv_sec := trunc(d);
-    TV.tv_usec := trunc(frac(d) * 1000000);
-    Result := settimeofday(TV, TZ) <> -1;
-  {$ELSE}
-    {$IFDEF ULTIBO}
-    var
-      st: SysUtils.TSystemTime;
-      stw: SYSTEMTIME;
-    begin
-      DateTimeToSystemTime(newdt,st);
-      stw.wYear := st.Year;
-      stw.wMonth := st.Month;
-      stw.wDay := st.Day;
-      stw.wHour := st.Hour;
-      stw.wMinute := st.Minute;
-      stw.wSecond := st.Second;
-      stw.wMilliseconds := st.Millisecond;
-      Result := SetSystemTime(stw);
-    {$ELSE}
-    var
-      TV: TimeVal;
-      d: double;
-    begin
-      d := (newdt - UnixDateDelta) * 86400;
-      TV.tv_sec := trunc(d);
-      TV.tv_usec := trunc(frac(d) * 1000000);
-      Result := fpsettimeofday(@TV, nil) <> -1;
-    {$ENDIF}
-  {$ENDIF}
+var
+  st: SysUtils.TSystemTime;
+  stw: {$IFNDEF ULTIBO}Windows{$ELSE}Ultibo{$ENDIF}.TSystemTime;
+begin
+  DateTimeToSystemTime(newdt,st);
+  stw.wYear := st.Year;
+  stw.wMonth := st.Month;
+  stw.wDay := st.Day;
+  stw.wHour := st.Hour;
+  stw.wMinute := st.Minute;
+  stw.wSecond := st.Second;
+  stw.wMilliseconds := st.Millisecond;
+  Result := SetSystemTime(stw);
+{$ENDIF}
+{$ELSE}
+{$IFNDEF FPC}
+var
+  TV: TTimeVal;
+  d: double;
+  TZ: Ttimezone;
+  PZ: PTimeZone;
+begin
+  TZ.tz_minuteswest := 0;
+  TZ.tz_dsttime := 0;
+  PZ := @TZ;
+  gettimeofday(TV, PZ);
+  d := (newdt - UnixDateDelta) * 86400;
+  TV.tv_sec := trunc(d);
+  TV.tv_usec := trunc(frac(d) * 1000000);
+  Result := settimeofday(TV, TZ) <> -1;
+{$ELSE}
+var
+  TV: TimeVal;
+  d: double;
+begin
+  d := (newdt - UnixDateDelta) * 86400;
+  TV.tv_sec := trunc(d);
+  TV.tv_usec := trunc(frac(d) * 1000000);
+  Result := fpsettimeofday(@TV, nil) <> -1;
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -1167,7 +1114,7 @@ begin
   begin
     s := Trim(FetchEx(v, ';', '"'));
     if Pos(Uppercase(parameter), Uppercase(s)) = 1 then
-    begin
+    begin                       
       Delete(s, 1, Length(Parameter));
       s := Trim(s);
       if s = '' then
@@ -1747,7 +1694,7 @@ begin
     x := Pos(':', s);
     if x > 0 then
     begin
-      y:= Pos('=',s);
+      y:= Pos('=',s); 
       if not ((y > 0) and (y < x)) then
       begin
         s[x] := '=';
