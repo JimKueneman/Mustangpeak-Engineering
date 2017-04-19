@@ -94,9 +94,7 @@ procedure TLccTransferManagerTcpClient.Start(ServerIP: string; Port: Word;
   TransferReceiveClass: TLccTransferThreadClass);
 var
   RetryCount: Integer;
-  {$IFNDEF ULTIBO}
   Peer: TVarSin;
-  {$ENDIF}
 begin
 
   if Verbose then WriteLn('Starting TCP Client: ' + ServerIP + ':' + IntToStr(Port));
@@ -110,7 +108,6 @@ begin
   if Verbose then WriteLn('Connecting TCP Client');
   Socket.Connect(String( ServerIP), String( IntToStr(Port)));
 
-  {$IFNDEF ULTIBO}
   // May not need for Ultibo, this was for Andriod mainly..
   RetryCount := 0;
   while ((Socket.LastError = WSAEINPROGRESS) or (Socket.LastError = WSAEALREADY)) and (RetryCount < 40) do   {20 Second Wait}
@@ -122,7 +119,6 @@ begin
     Sleep(500);
     if Verbose then Write('.');
   end;
-  {$ENDIF}
 
   if Socket.LastError = 0 then
   begin

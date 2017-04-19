@@ -6,8 +6,6 @@ unit lcc.transfer;
 
 interface
 
-{.$UNDEF ULTIBO}
-
 {$I lcc_compilers.inc}
 
 uses

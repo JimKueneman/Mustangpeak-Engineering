@@ -33,14 +33,14 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="22"/>
         <CursorPos X="32" Y="12"/>
-        <UsageCount Value="75"/>
+        <UsageCount Value="73"/>
       </Unit3>
       <Unit4>
         <Filename Value="../../LCC/transfer.messagearray.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="58"/>
         <CursorPos X="33" Y="24"/>
-        <UsageCount Value="74"/>
+        <UsageCount Value="72"/>
       </Unit4>
       <Unit5>
         <Filename Value="../../LCC/lcc.transfer.gridconnect.wire.synapse.pas"/>
@@ -54,7 +54,7 @@
         <Filename Value="../../LCC/lcc.types.can.pas"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="41" Y="30"/>
-        <UsageCount Value="40"/>
+        <UsageCount Value="38"/>
       </Unit6>
       <Unit7>
         <Filename Value="../../LCC/lcc.transfer.tcp.server.pas"/>
@@ -76,7 +76,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="141"/>
         <CursorPos X="88" Y="170"/>
-        <UsageCount Value="28"/>
+        <UsageCount Value="26"/>
       </Unit9>
       <Unit10>
         <Filename Value="../../LCC/lcc.message.pas"/>
@@ -90,31 +90,32 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="311"/>
         <CursorPos X="3" Y="331"/>
-        <UsageCount Value="27"/>
+        <UsageCount Value="25"/>
       </Unit11>
       <Unit12>
         <Filename Value="../../Mustangpeak/mustangpeak.threadedcirculararray.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="85"/>
         <CursorPos X="15" Y="100"/>
-        <UsageCount Value="32"/>
+        <UsageCount Value="30"/>
       </Unit12>
       <Unit13>
         <Filename Value="../../LCC/lcc.transfer.gridconnect.message_assembler_disassembler.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="210"/>
         <CursorPos X="38" Y="231"/>
-        <UsageCount Value="37"/>
+        <UsageCount Value="35"/>
       </Unit13>
       <Unit14>
         <Filename Value="../../../../LccLib/Library/LCC/lcc_messages.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="425"/>
         <CursorPos X="53" Y="435"/>
-        <UsageCount Value="2"/>
+        <UsageCount Value="0"/>
       </Unit14>
       <Unit15>
         <Filename Value="../../LCC/lcc.transfer.tcp.client.pas"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
         <TopLine Value="88"/>
         <CursorPos X="28" Y="104"/>
@@ -142,23 +143,22 @@
         <EditorIndex Value="11"/>
         <TopLine Value="267"/>
         <CursorPos Y="283"/>
-        <UsageCount Value="40"/>
+        <UsageCount Value="49"/>
         <Loaded Value="True"/>
       </Unit18>
       <Unit19>
         <Filename Value="../../LCC/protocol.events.pas"/>
         <EditorIndex Value="10"/>
         <CursorPos X="15" Y="12"/>
-        <UsageCount Value="39"/>
+        <UsageCount Value="48"/>
         <Loaded Value="True"/>
       </Unit19>
       <Unit20>
         <Filename Value="../../Synapse/synautil.pas"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="5"/>
         <TopLine Value="79"/>
-        <CursorPos X="55" Y="92"/>
-        <UsageCount Value="11"/>
+        <CursorPos X="35" Y="89"/>
+        <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit20>
       <Unit21>
@@ -166,7 +166,7 @@
         <EditorIndex Value="6"/>
         <TopLine Value="15"/>
         <CursorPos X="12" Y="31"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit21>
     </Units>

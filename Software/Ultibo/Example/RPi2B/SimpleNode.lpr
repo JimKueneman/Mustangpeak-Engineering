@@ -110,12 +110,12 @@ begin
   begin
     GlobalNodeList.Add(Node);
   //  GlobalTransferManagerTcpClient.Start(IP, 12021, True, TGridConnectSendTcpThread, TGridConnectReceiveTcpThread);
-    {$IFDEF ULTIBO} ConsoleWriteLn('Starting Node'); {$ENDIF}
+    WriteLn('Starting Node');
     GlobalTransferManagerTcpServer.Start(IP, 12021, True, TGridConnectSendTcpThread, TGridConnectReceiveTcpThread);
    // if GlobalTransferManagerTcpClient.Connected then
     if GlobalTransferManagerTcpServer.Connected then
     begin
-      {$IFDEF ULTIBO} ConsoleWriteLn('Node Started'); {$ENDIF}
+      WriteLn('Node Started');
       Node.AliasIDEngine.Enabled := True; // Use CAN Aliases
       Node.Start;
       while True do

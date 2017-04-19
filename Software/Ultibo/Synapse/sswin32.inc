@@ -1551,8 +1551,35 @@ end;
 {=============================================================================}
 {$IFDEF ULTIBO}
 function WSAStartup(wVersionRequired: Word; var WSData: TWSAData): Integer; inline;
+var
+  WSD: Winsock2.TWSAData;
+  i: Integer;
 begin
- //Result := Winsock2.
+  FillChar(WSD, SizeOf(WSD), #0);
+
+  // There is a simpler way to deal with this but it may break if Ulbito ever defines itself as 64bit.
+  // This is verbose but very safe.
+  WSD.wVersion := WSData.wVersion;
+  WSD.wHighVersion := WSData.wHighVersion;
+  for i := 0 to WSADESCRIPTION_LEN - 1 do
+    WSD.szDescription[i] := WSData.szDescription[i];
+  for i := 0 to WSASYS_STATUS_LEN - 1 do
+    WSD.szSystemStatus[i] := WSData.szSystemStatus[i];
+  WSD.iMaxSockets := WSData.iMaxSockets;
+  WSD.iMaxUdpDg := WSData.iMaxUdpDg;
+  WSD.lpVendorInfo := WSData.lpVendorInfo;
+
+  Result := Winsock2.WSAStartup(wVersionRequired, WSD);
+
+  WSData.wVersion := WSD.wVersion;
+  WSData.wHighVersion := WSD.wHighVersion;
+   for i := 0 to WSADESCRIPTION_LEN - 1 do
+    WSData.szDescription[i] := WSD.szDescription[i];
+  for i := 0 to WSASYS_STATUS_LEN - 1 do
+    WSData.szSystemStatus[i] := WSD.szSystemStatus[i];
+  WSData.iMaxSockets := WSD.iMaxSockets;
+  WSData.iMaxUdpDg := WSD.iMaxUdpDg;
+  WSData.lpVendorInfo := WSD.lpVendorInfo;
 end;
 
 function WSACleanup: Integer; inline;
