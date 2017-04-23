@@ -187,7 +187,7 @@ begin
           end;
           FAliasRegistrationComplete := False;
           FPermitted := False;   // Start over
-          FState := 0;
+          FState := 0;           // Will restart the timer
           Result := True;
         end;
       end;
