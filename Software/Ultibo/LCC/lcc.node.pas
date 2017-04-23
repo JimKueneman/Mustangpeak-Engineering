@@ -33,11 +33,14 @@ type
     FPermitted: Boolean;
     FState: Integer;
     FTimer: TFPTImer;
+    FTimerBlank: Boolean;
+    procedure SetTimerBlank(AValue: Boolean);
   protected
     property LoginID: TNodeIDRec read FLoginID write FLoginID;
     property State: Integer read FState write FState;
     property LccNode: TLccNode read FLccNode write FLccNode;
     property Timer: TFPTimer read FTimer write FTimer;
+    property TimerBlank: Boolean read FTimerBlank write SetTimerBlank;
 
 
     function CreateAliasID(var Seed: TNodeID; Regenerate: Boolean): Word;
@@ -149,12 +152,12 @@ begin
   inherited Create;
   Timer := TFPTimer.Create(nil);
   Timer.OnTimer := @OnTimerProc;
-  Timer.Interval := 500;
+  TimerBlank := True;
+  Timer.StartTimer;
 end;
 
 function TLccAliasIDEngine.CheckForDuplicateAlias(LccMessage: TLccMessage): Boolean;
 var
-  i: Integer;
   LocalLccMessage: TLccMessage;
 begin
   Result := False;
@@ -162,12 +165,9 @@ begin
   begin
     if LccMessage.Source.Alias = LoginID.Alias then
     begin
-      Timer.StopTimer;
-      for i := 0 to 5 do
-      begin
-        CheckSynchronize;  // Make the timer tick
-        Sleep(100);        // Incase the timer ticks need to make sure we dont react to it and jump to wrong state
-      end;
+
+      TimerBlank := True;  // Stop the timer if it is ticking
+
       case LccMessage.CAN.MTI of
         MTI_CAN_CID0,
         MTI_CAN_CID1,
@@ -195,6 +195,13 @@ begin
   end;
 end;
 
+procedure TLccAliasIDEngine.SetTimerBlank(AValue: Boolean);
+begin
+  if FTimerBlank=AValue then Exit;
+  FTimerBlank:=AValue;
+  CheckSynchronize;  // Cause the event to be fired if the timer thread is already waiting to call it
+end;
+
 function TLccAliasIDEngine.CreateAliasID(var Seed: TNodeID; Regenerate: Boolean): Word;
 begin
   if Regenerate then
@@ -220,8 +227,8 @@ end;
 
 procedure TLccAliasIDEngine.OnTimerProc(Sender: TObject);
 begin
-  Inc(FState);
- // Timer.StopTimer;
+  if not TimerBlank then
+    Inc(FState);  // Don't try to modify the timer within the timer procedure it does not work on some platforms
 end;
 
 procedure TLccAliasIDEngine.ProcessMessages;
@@ -246,8 +253,9 @@ begin
          LocalLccMessage := TLccMessage.Create;
          LocalLccMessage.LoadCID(LoginID, 3);
          LccNode.MsgQueueSending.Add(LocalLccMessage);
+         TimerBlank := True;
          Timer.Interval := 200;
-         Timer.StartTimer;
+         TimerBlank := False;
          Inc(FState);
        end;
     1: begin
@@ -264,8 +272,9 @@ begin
          LccNode.MsgQueueSending.Add(LocalLccMessage);
          LccNode.FNodeID.Alias := LoginID.Alias;    // Copy the Alias over to the Node for use (the ID is the Seed)
          FPermitted := True;
+         TimerBlank := True;
          Timer.Interval := 100;
-         Timer.StartTimer;
+         TimerBlank := False;
          Inc(FState);
        end;
     3: begin
@@ -274,6 +283,9 @@ begin
     4: begin
          LccNode.SendAllEvents;
          FAliasRegistrationComplete := True;
+         TimerBlank := True;
+         Timer.Interval := 10000;   // Timer will hang in Ultibo so leave it running but with a huge interval
+         TimerBlank := False;
          Inc(FState);
        end;
     5: begin
@@ -1172,13 +1184,13 @@ end;
 
 destructor TDatagramQueue.Destroy;
 begin
- // Timer.StopTimer;
+  FreeAndNil(FTimer);
   {$IFDEF FPC}
   FreeAndNil(FQueue);
   {$ELSE}
   Queue.DisposeOf;
   {$ENDIF}
-  FreeAndNil(FTimer);
+
   inherited Destroy;
 end;
 
