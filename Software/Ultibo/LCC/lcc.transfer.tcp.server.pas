@@ -106,16 +106,8 @@ var
   ConnectionSocket: TTCPBlockSocket;
   SendThread: TLccTransferThread;
   ReceiveThread: TLccTransferThread;
-  WSData: TWSAData;
   s: string;
-  ErrorCode: Cardinal;
 begin
-   if WSAStartup( $0202, WSData) <> 0 then
-   begin
-     WriteLn('WSAStartup Error Description: ' + Socket.LastErrorDesc);
-     WriteLn('WSAStartup Error Code: ' + IntToStr(Socket.LastError));
-   end;
-
    Socket := TTCPBlockSocket.Create;          // Created in context of the thread
 
    Socket.Family := SF_IP4;                  // IP4
@@ -152,8 +144,8 @@ begin
                ConnectionSocketHandle := Socket.Accept;
                ConnectionSocket := TTCPBlockSocket.Create;
                ConnectionSocket.Socket := ConnectionSocketHandle;
-               SendThread := TransferSendClass.Create(True, ConnectionSocket, td_Out);
-               ReceiveThread := TransferReceiveClass.Create(True, ConnectionSocket, td_In);
+               SendThread := TransferSendClass.Create(True, ConnectionSocket, td_Out, Verbose);
+               ReceiveThread := TransferReceiveClass.Create(True, ConnectionSocket, td_In, Verbose);
                // Setup to be able to free both Threads and the socket when an error or connection is lost
                ReceiveThread.FreeOnTerminate := True;
                ReceiveThread.FreeTransferThreadOnTerminate := SendThread;

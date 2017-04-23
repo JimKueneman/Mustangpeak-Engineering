@@ -28,9 +28,12 @@ begin
 //  IP := ResolveWindowsIp(nil);
   IP := '127.0.0.1';
   {$ELSE}
-  Node := TLccNode.Create('/Users/jimkueneman/Documents/Mustangpeak Engineering/Software/Ultibo/Example/Lazarus/NodeDefinitionFile.xml');
+  // Laptop
+//  Node := TLccNode.Create('/Users/jimkueneman/Documents/Mustangpeak Engineering/Software/Ultibo/Example/Lazarus/NodeDefinitionFile.xml');
+  // Desktop
+  Node := TLccNode.Create('/Users/jimkueneman/Documents/Mustangpeak-Engineering/Software/Ultibo/Example/Lazarus/NodeDefinitionFile.xml');
   IP := ResolveUnixIp;
-  IP := '127.0.0.1';
+ // IP := '127.0.0.1';
   {$ENDIF}
   GlobalNodeList.Add(Node);
 //  GlobalTransferManagerTcpClient.Start(IP, 12021, False, TGridConnectSendTcpThread, TGridConnectReceiveTcpThread);

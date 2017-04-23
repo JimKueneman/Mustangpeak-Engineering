@@ -979,20 +979,27 @@ begin
         {$IFDEF LCC_WINDOWS}
         Node := XmlFindChildNode(Node, 'path_win');
         {$ELSE}
-        Node := XmlFindChildNode(Node, 'path');
+          {$IFDEF ULTIBO}
+          Node := XmlFindChildNode(Node, 'path_ultibo');
+          {$ELSE}
+          Node := XmlFindChildNode(Node, 'path');
+          {$ENDIF}
         {$ENDIF}
         if Assigned(Node) then
         begin
           CdiFile := XmlNodeTextContent(Node);
           if FileExists(CdiFile) then
           begin
-            CDI :=  XmlLoadFromFile(CdiFile);
+            CDI := XmlLoadFromFile(CdiFile);
             ProtocolConfigDefinitionInfo.LoadFromXml(CdiFile, nil);
             Node := XmlFindChildNode(RootNode, 'snip');
             if Assigned(Node) then
               if Lowercase(XmlNodeTextContent(Node)) = 'true' then
                 ProtocolSnip.LoadFromCdiXmlDoc(CDI);
           end;
+        end else
+        begin
+          beep;
         end;
       end;
 
@@ -1165,7 +1172,7 @@ end;
 
 destructor TDatagramQueue.Destroy;
 begin
-  Timer.StopTimer;
+ // Timer.StopTimer;
   {$IFDEF FPC}
   FreeAndNil(FQueue);
   {$ELSE}

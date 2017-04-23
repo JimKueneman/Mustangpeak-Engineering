@@ -34,7 +34,7 @@ type
     function TransferWireToMessage(NextByte: Byte; var AMessage: TLccMessage; var SendAsError: Boolean): Boolean; override;
     property GridConnectHelper: TGridConnectHelper read FGridConnectHelper write FGridConnectHelper;
   public
-    constructor Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection); override;
+    constructor Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection; IsVerbose: Boolean); override;
     destructor Destroy; override;
 
     property LccGridConnectAssembler: TLccMessageAssembler read FLccGridConnectAssembler write FLccGridConnectAssembler;
@@ -51,14 +51,20 @@ var
 begin
   Temp := LccMessage.ConvertToGridConnectStr(#10);
   SocketReference.SendString(String( Temp) + #10);
+
+   if Verbose then
+      WriteLn('<' + Temp);
+
   Result := True;
 end;
 
 { TGridConnectReceiveTcpThread }
 
-constructor TGridConnectReceiveTcpThread.Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection);
+constructor TGridConnectReceiveTcpThread.Create(CreateSuspended: Boolean;
+  ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection;
+  IsVerbose: Boolean);
 begin
-  inherited Create(CreateSuspended, ASocket, ATransferDirection);
+  inherited Create(CreateSuspended, ASocket, ATransferDirection, IsVerbose);
   GridConnectHelper := TGridConnectHelper.Create;
   LccGridConnectAssembler := TLccMessageAssembler.Create;
 end;
@@ -87,6 +93,7 @@ begin
 
   if GridConnectHelper.GridConnect_DecodeMachine(NextByte, GridConnectStrPtr) then
   begin
+
     AMessage := TLccMessage.Create;
     RecvString := GridConnectBufferToString(GridConnectStrPtr^);
 
@@ -94,6 +101,9 @@ begin
     // send error messages for messages that are not for us and will cache and
     // assemble ALL datagram and stream messages even if they are not for us.
     AMessage.LoadByGridConnectStr(RecvString);
+
+    if Verbose then
+      WriteLn('>' + RecvString);
 
     DuplicateAlias := False;
     // Look for a duplicate Alias Problem

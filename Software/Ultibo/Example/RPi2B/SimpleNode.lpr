@@ -44,6 +44,7 @@ uses
 var
   Node: TLccNode;
   IP: String;
+  HTTPListener: THTTPListener;
 
 
 {$IFDEF ULTIBO}
@@ -84,13 +85,13 @@ begin
 
 
 
-    {
+
     {Create and start HTTP Listener}
     HTTPListener := THTTPListener.Create;
     HTTPListener.Active := True;
     {Register Web Status}
     WebStatusRegister(HTTPListener,'','',True);
-     }
+
 
     ConsoleWriteLn('Creating Node');
     Node := TLccNode.Create('C:\NodeDefinitionFile.xml');

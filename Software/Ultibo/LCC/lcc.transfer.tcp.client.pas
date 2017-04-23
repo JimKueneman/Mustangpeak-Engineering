@@ -123,8 +123,8 @@ begin
   if Socket.LastError = 0 then
   begin
     if Verbose then WriteLn('Starting Threads');
-    TransferSend := TransferSendClass.Create(True, Socket, td_Out);
-    TransferReceive := TransferReceiveClass.Create(True, Socket, td_In);
+    TransferSend := TransferSendClass.Create(True, Socket, td_Out, Verbose);
+    TransferReceive := TransferReceiveClass.Create(True, Socket, td_In, Verbose);
     TransferSend.Start;
     TransferReceive.Start;
     FConnected := True;

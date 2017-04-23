@@ -169,6 +169,7 @@ type
 
 var
   GlobalSendEvent: TSimpleEvent;
+  ClassicSNIP: Boolean;
 
 implementation
 
@@ -309,7 +310,7 @@ begin
           begin
             Result := Result + ':X' + IntToHex(LocalMTI, 8) + 'N';
 
-            if MTI = MTI_SIMPLE_NODE_INFO_REPLY then
+            if (MTI = MTI_SIMPLE_NODE_INFO_REPLY) and (ClassicSNIP) then
             begin
               Result := Result + IntToHex(((Destination.Alias shr 8)) and $00FF, 2);
             end else
@@ -1518,6 +1519,7 @@ end;
 initialization
   CaptureTime := 1;
   GlobalSendEvent := TSimpleEvent.Create;
+  ClassicSNIP := True;
 
 finalization
   FreeAndNil(GlobalSendEvent);

@@ -70,8 +70,9 @@
 		</consumed>
 	</events>
 	<cdi>
-		<path>/Users/jimkueneman/Documents/Mustangpeak Engineering/Software/Ultibo/Example/Lazarus/example_cdi.xml</path>
+		<path>/Users/jimkueneman/Documents/Mustangpeak-Engineering/Software/Ultibo/Example/Lazarus/example_cdi.xml</path>
 		<path_win>Z:\Software\Ultibo\Example\Lazarus\example_cdi.xml</path_win>
+		<path_ultibo>c:\example_cdi.xml</path_ultibo>
 	</cdi>
 	<snip>
 		<loadfromcdi>true</loadfromcdi>

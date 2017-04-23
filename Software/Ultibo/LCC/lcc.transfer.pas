@@ -35,6 +35,7 @@ type
     FFreeTransferThreadOnTerminate: TLccTransferThread;
     FTransferDirection: TTransferDirection;
     FSocketReference: TTCPBlockSocket;
+    FVerbose: Boolean;
   protected
     function DispatchedToInternalNode(AMessage: TLccMessage): Boolean;
     procedure Execute; override;
@@ -44,12 +45,13 @@ type
     property Event: TSimpleEvent read FEvent write FEvent;
     property TransferDirection: TTransferDirection read FTransferDirection write FTransferDirection;
   public
-    constructor Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection); reintroduce; virtual;
+    constructor Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection; IsVerbose: Boolean); reintroduce; virtual;
     destructor Destroy; override;
     property Buffer: TThreadedCirularArrayObject read FBuffer write FBuffer;
     property Done: Boolean read FDone write FDone;
     property FreeTransferThreadOnTerminate: TLccTransferThread read FFreeTransferThreadOnTerminate write FFreeTransferThreadOnTerminate;
     property FreeSocketOnTerminate: Boolean read FFreeSocketOnTerminate write FFreeSocketOnTerminate;
+    property Verbose: Boolean read FVerbose write FVerbose;
   end;
 
    TLccTransferThreadClass = class of TLccTransferThread;
@@ -61,9 +63,11 @@ var
 
 { TLccTransferThread }
 
-constructor TLccTransferThread.Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection);
+constructor TLccTransferThread.Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection; IsVerbose: Boolean);
 begin
   inherited Create(CreateSuspended, DefaultStackSize);
+  FVerbose := IsVerbose;
+  if Verbose then WriteLn('Creating Transfer Thread: ' + ClassName);
   InterLockedIncrement(TransferThreadCount);
   FTransferDirection := ATransferDirection;
   FSocketReference := ASocket;
@@ -73,6 +77,7 @@ end;
 
 destructor TLccTransferThread.Destroy;
 begin
+  if Verbose then WriteLn('Destroying Transfer Thread: ' + ClassName);
   FreeAndNil(FEvent);
   FreeAndNil(FBuffer);
   InterLockedDecrement(TransferThreadCount);
@@ -97,6 +102,7 @@ var
   Code: Integer;
 
 begin
+  if Verbose then WriteLn('Starting Transfer Thread: ' + ClassName);
   while not Terminated do
   begin
     case TransferDirection of
@@ -142,9 +148,9 @@ begin
                   FreeDynamicArrayObjects(Messages);
                 end;
               end;
-            wrTimeout   : begin; end; // Time-out period expired
-            wrAbandoned : begin  end; // Wait operation was abandoned.
-            wrError     : begin  end; // An error occurred during the wait operation.
+            wrTimeout   : begin if Verbose then WriteLn('wrTimeout Error Returned in Send Thread: ' + ClassName);  end; // Time-out period expired
+            wrAbandoned : begin if Verbose then WriteLn('wrAbandoned Returned in Send Thread: ' + ClassName); end; // Wait operation was abandoned.
+            wrError     : begin if Verbose then WriteLn('wrError Returned in Send Thread: ' + ClassName);   end; // An error occurred during the wait operation.
           end;
         end;
       td_In :
@@ -153,7 +159,8 @@ begin
           if not Terminated then
           begin
             case SocketReference.LastError of
-              S_OK : begin
+              S_OK :
+                begin
                   LccMessage := nil;
                   SendReceiveError := False;
                   if TransferWireToMessage(NextByte, LccMessage, SendReceiveError) then
@@ -177,6 +184,9 @@ begin
                 end
               else
                 // Shut down for any error including WSACONNRESET
+
+                if Verbose then WriteLn('Error (maybe WSACONNRESET) Returned in Receive Thread: ' + ClassName);
+
                 s := SocketReference.LastErrorDesc;
                 Code := SocketReference.LastError;
 
@@ -200,6 +210,7 @@ begin
   if FreeSocketOnTerminate then
     FreeAndNil(FSocketReference);
   Done := True;
+  if Verbose then WriteLn('Finishing Transfer Thread: ' + ClassName);
 end;
 
 function TLccTransferThread.TransferMessageToWire(AMessage: TLccMessage): Boolean;
