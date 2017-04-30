@@ -112,7 +112,7 @@ begin
     GlobalNodeList.Add(Node);
   //  GlobalTransferManagerTcpClient.Start(IP, 12021, True, TGridConnectSendTcpThread, TGridConnectReceiveTcpThread);
     WriteLn('Starting Node');
-    GlobalTransferManagerTcpServer.Start(IP, 12021, True, TGridConnectSendTcpThread, TGridConnectReceiveTcpThread);
+    GlobalTransferManagerTcpServer.Start(IP, 12021, False, TGridConnectSendTcpThread, TGridConnectReceiveTcpThread);
    // if GlobalTransferManagerTcpClient.Connected then
     if GlobalTransferManagerTcpServer.Connected then
     begin

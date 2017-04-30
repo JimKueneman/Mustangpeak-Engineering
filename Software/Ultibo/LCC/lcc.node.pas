@@ -284,7 +284,7 @@ begin
          LccNode.SendAllEvents;
          FAliasRegistrationComplete := True;
          TimerBlank := True;
-         Timer.Interval := 10000;   // Timer will hang in Ultibo so leave it running but with a huge interval
+         Timer.Interval := 100;   // Timer will hang in Ultibo so leave it running but with a huge interval
          TimerBlank := False;
          Inc(FState);
        end;

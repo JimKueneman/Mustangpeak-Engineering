@@ -302,8 +302,8 @@ begin
            Tail := 0;
        end;
     finally
-      UnLockArray;
       DoAdd;
+      UnLockArray;
     end;
   end;
 end;
