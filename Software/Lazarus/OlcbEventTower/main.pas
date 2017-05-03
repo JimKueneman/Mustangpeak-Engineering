@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  ComCtrls, ActnList, EasyListview;
+  ComCtrls, ActnList, virtuallistview;
 
 type
 
@@ -33,12 +33,15 @@ type
     procedure FormShow(Sender: TObject);
     procedure ListViewEventsChange(Sender: TObject; Item: TListItem; Change: TItemChange);
   private
-    FFirstShow: Boolean;
+    FVirtualListview: TVirtualListview;
+    FShownOnce: Boolean;
     { private declarations }
     procedure UpdateUI;
+  protected
+    property VirtualListview: TVirtualListview read FVirtualListview write FVirtualListview;
   public
     { public declarations }
-    property FirstShow: Boolean read FFirstShow;
+    property ShownOnce: Boolean read FShownOnce;
   end;
 
 var
@@ -64,11 +67,51 @@ begin
 end;
 
 procedure TFormEventTower.FormShow(Sender: TObject);
+var
+  Item: TVirtualListviewItem;
 begin
   UpdateUI;
-  if FirstShow then
+  if not ShownOnce then
   begin
-    FFirstShow := True;;
+    FShownOnce := True;
+    VirtualListview := TVirtualListview.Create(Self);
+    VirtualListview.Parent := Panel2;
+    VirtualListview.Align := alClient;
+    VirtualListview.Visible := True;
+    VirtualListview.Images := ImageListListview;
+
+    VirtualListview.BeginUpdate;
+
+    Item := VirtualListview.Items.Add('New Event');
+    Item.Captions.Add('Type: Block');
+    Item.ImageIndex := 2;
+
+    Item := VirtualListview.Items.Add('New Event');
+    Item.Captions.Add('Type: Block');
+    Item.ImageIndex := 2;
+
+    Item := VirtualListview.Items.Add('New Event');
+    Item.Captions.Add('Type: Block');
+    Item.ImageIndex := 2;
+
+    Item := VirtualListview.Items.Add('New Event');
+    Item.Captions.Add('Type: Block');
+    Item.ImageIndex := 2;
+
+    Item := VirtualListview.Items.Add('New Event');
+    Item.Captions.Add('Type: Block');
+    Item.ImageIndex := 2;
+
+    Item := VirtualListview.Items.Add('New Event');
+    Item.Captions.Add('Type: Block');
+    Item.ImageIndex := 2;
+
+    VirtualListview.TextLayout := vtlCenter;
+    VirtualListview.Alignment := taCenter;
+    VirtualListview.CaptionLineCount := 2;
+    VirtualListview.DetailsIndent := 0;
+    VirtualListview.CaptionIndent := 0;
+    VirtualListview.EndUpdate;
   end;
 end;
 

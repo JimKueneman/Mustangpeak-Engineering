@@ -27,12 +27,15 @@
         <FormatVersion Value="1"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="1">
+    <RequiredPackages Count="2">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="VirtualListviewPackage"/>
       </Item1>
+      <Item2>
+        <PackageName Value="LCL"/>
+      </Item2>
     </RequiredPackages>
-    <Units Count="3">
+    <Units Count="4">
       <Unit0>
         <Filename Value="eventTower.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -49,16 +52,20 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="unitTypes"/>
       </Unit2>
+      <Unit3>
+        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit3>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
     <Target>
-      <Filename Value="eventTower"/>
+      <Filename Value="Compiled_Binaries/$(TargetCPU)-$(TargetOS)/eventTower"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../../Components/MustangpeakEasyListview/Source"/>
+      <OtherUnitFiles Value="../../Components/MustangpeakEasyListview/Source;../../Components/VirtualListview"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>

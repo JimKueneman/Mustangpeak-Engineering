@@ -1,10 +1,10 @@
 object FormEventTower: TFormEventTower
   Left = 499
-  Height = 524
+  Height = 577
   Top = 122
   Width = 719
   Caption = 'OpenLCB Event Tower (Alpha)'
-  ClientHeight = 524
+  ClientHeight = 577
   ClientWidth = 719
   OnShow = FormShow
   ShowHint = True
@@ -45,6 +45,7 @@ object FormEventTower: TFormEventTower
           Width = 150
         end>
       GridLines = True
+      MultiSelect = True
       RowSelect = True
       SmallImages = ImageListListview
       StateImages = ImageListListview
@@ -91,7 +92,7 @@ object FormEventTower: TFormEventTower
   object StatusBar1: TStatusBar
     Left = 0
     Height = 15
-    Top = 509
+    Top = 562
     Width = 719
     Panels = <>
   end
@@ -106,7 +107,7 @@ object FormEventTower: TFormEventTower
   end
   object Panel2: TPanel
     Left = 0
-    Height = 190
+    Height = 243
     Top = 319
     Width = 719
     Align = alClient
