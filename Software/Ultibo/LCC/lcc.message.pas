@@ -10,10 +10,7 @@ interface
 
 uses
   Classes, SysUtils,
-  {$IFDEF FPC}
-  syncobjs,
-  {$ENDIF}
-  lcc.types, mustangpeak.half_float, lcc.utilities, strutils,
+  syncobjs, lcc.types, mustangpeak.half_float, lcc.utilities, strutils,
   lcc.types.can;
 
 
@@ -580,14 +577,22 @@ constructor TLccMessage.Create;
 begin
   inherited Create;
   CAN := TLccCANMessage.Create;
-  InterLockedIncrement(AllocatedMessages);
+  {$IFDEF FPC}
+   InterLockedIncrement(AllocatedMessages);
+  {$ELSE}
+   TInterlocked.Increment(AllocatedMessages)
+  {$ENDIF}
 end;
 
 destructor TLccMessage.Destroy;
 begin
   FreeAndNil(FCAN);
   inherited Destroy;
+  {$IFDEF FPC}
   InterLockedDecrement(AllocatedMessages);
+  {$ELSE}
+  TInterlocked.Decrement(AllocatedMessages)
+  {$ENDIF}
 end;
 
 function TLccMessage.ExtractDataBytesAsEventID(StartIndex: Integer): PEventID;

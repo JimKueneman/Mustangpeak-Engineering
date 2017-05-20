@@ -16,6 +16,7 @@ uses
   {$ELSE}
     System.Generics.Collections,
     Types,
+    System.SyncObjs,
   {$ENDIF}
   lcc.types;
 
@@ -150,7 +151,11 @@ begin
     if (AMessage.Source.Alias = Alias) or (AMessage.Destination.Alias = Alias) then
     begin
       if AMessage.MTI = MTI_DATAGRAM then
+      {$IFDEF FPC}
         InterLockedDecrement(AllocatedDatagrams);
+      {$ELSE}
+        TinterLocked.Decrement(AllocatedDatagrams);
+      {$ENDIF}
       Messages.Delete(i);
       AMessage.Free
     end;
@@ -207,7 +212,11 @@ begin                                                                           
               InProcessMessage.MTI := MTI_DATAGRAM;
               LccMessage.Copy(InProcessMessage);
               Add(InProcessMessage);
+              {$IFDEF FPC}
               InterLockedIncrement(AllocatedDatagrams)
+              {$ELSE}
+              TInterlocked.Increment(AllocatedDatagrams)
+              {$ENDIF}
             end
           end;
         end;
@@ -228,7 +237,11 @@ begin                                                                           
             LccMessage.CAN.Active := False;
             LccMessage.MTI := MTI_DATAGRAM;
             LccMessage.CAN.MTI := 0;
+            {$IFDEF FPC}
             InterLockedDecrement(AllocatedDatagrams);
+            {$ELSE}
+            TInterlocked.Decrement(AllocatedDatagrams);
+            {$ENDIF}
             Result := imgcr_True
           end else
           begin

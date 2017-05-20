@@ -11,11 +11,9 @@ interface
 
 uses
   Classes, SysUtils,
-  {$IFDEF FPC}
   syncobjs,
   blcksock,
   synsock,
-  {$ENDIF}
   lcc.node,
   lcc.message,
   mustangpeak.threadedcirculararray,
@@ -58,26 +56,35 @@ var
 constructor TLccTransferManagerTcpClient.Create;
 begin
   inherited Create;
+  {$IFDEF FPC}
   InterLockedIncrement(TcpClientCount);
+  {$ELSE}
+  TInterlocked.Increment(TcpClientCount)
+  {$ENDIF}
 end;
 
 procedure TLccTransferManagerTcpClient.Close;
 begin
   if Connected then
   begin
-    // Kill Threads
+    try
+      // Kill Threads
 
-    // This will keep anything else from accessing the Send/Receive Threads
-    TransferSend.Terminate;
-    while not TransferSend.Done do
-      Sleep(100);
-    FreeAndNil(FTransferSend);
+      // This will keep anything else from accessing the Send/Receive Threads
+      TransferSend.Terminate;
+      GlobalSendEvent.SetEvent;
+      while not TransferSend.Done do
+        Sleep(100);
+      FreeAndNil(FTransferSend);
 
-    TransferReceive.Terminate;
-    Socket.CloseSocket;                               // This should release the Wait on the Receive with an error
-    while not TransferReceive.Done do
-      Sleep(100);
-    FreeAndNil(FTransferReceive);
+      TransferReceive.Terminate;
+      Socket.CloseSocket;                               // This should release the Wait on the Receive with an error
+      while not TransferReceive.Done do
+        Sleep(100);
+      FreeAndNil(FTransferReceive);
+    finally
+      FConnected := False;
+    end;
   end;
 end;
 
@@ -85,7 +92,11 @@ destructor TLccTransferManagerTcpClient.Destroy;
 begin
   Close;
   FreeAndNil(FSocket);
+  {$IFDEF FPC}
   InterLockedDecrement(TcpClientCount);
+  {$ELSE}
+  TInterlocked.Decrement(TcpClientCount);
+  {$ENDIF}
   inherited Destroy;
 end;
 

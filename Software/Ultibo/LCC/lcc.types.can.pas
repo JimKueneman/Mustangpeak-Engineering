@@ -1,6 +1,8 @@
 unit lcc.types.can;
 
+{$IFDEF FPC}
 {$mode objfpc}{$H+}
+{$ENDIF}
 
 interface
 

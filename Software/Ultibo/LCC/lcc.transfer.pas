@@ -9,12 +9,9 @@ interface
 {$I lcc_compilers.inc}
 
 uses
-  Classes, SysUtils,
-  {$IFDEF FPC}
-  syncobjs,
+  Classes, SysUtils, syncobjs,
   blcksock,
   synsock,
-  {$ENDIF}
   lcc.node,
   lcc.message,
   mustangpeak.threadedcirculararray,
@@ -65,10 +62,18 @@ var
 
 constructor TLccTransferThread.Create(CreateSuspended: Boolean; ASocket: TTCPBlockSocket; ATransferDirection: TTransferDirection; IsVerbose: Boolean);
 begin
+  {$IFDEF FPC}
   inherited Create(CreateSuspended, DefaultStackSize);
+  {$ELSE}
+  inherited Create(CreateSuspended);
+  {$ENDIF}
   FVerbose := IsVerbose;
   if Verbose then WriteLn('Creating Transfer Thread: ' + ClassName);
+  {$IFDEF FPC}
   InterLockedIncrement(TransferThreadCount);
+  {$ELSE}
+  TInterlocked.Increment(TransferThreadCount);
+  {$ENDIF}
   FTransferDirection := ATransferDirection;
   FSocketReference := ASocket;
   Buffer := TThreadedCirularArrayObject.Create;
@@ -80,7 +85,11 @@ begin
   if Verbose then WriteLn('Destroying Transfer Thread: ' + ClassName);
   FreeAndNil(FEvent);
   FreeAndNil(FBuffer);
+  {$IFDEF FPC}
   InterLockedDecrement(TransferThreadCount);
+  {$ELSE}
+  TInterlocked.Decrement(TransferThreadCount);
+  {$ENDIF}
   inherited Destroy;
 end;
 

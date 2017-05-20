@@ -282,8 +282,7 @@ begin
   {$IFDEF FPC}
   ReadXMLFile(Result, FilePath);
   {$ELSE}
-  Result := TXMLDocument.Create(nil) as IXMLDocument;
-  Result.LoadFromXML(FilePath);
+  Result := LoadXMLDocument(FilePath);
   {$ENDIF}
 end;
 
@@ -324,7 +323,12 @@ end;
 
 function XmlNodeTextContent(XmlNode: TMustangpeakXmlNode): string;
 begin
-  Result := string(XmlNode.{$IFDEF FPC}TextContent{$ELSE}Text{$ENDIF})
+  {$IFDEF FPC}
+  Result := string(XmlNode.TextContent)
+  {$ELSE}
+  if XmlNode.IsTextElement then
+    Result := string(XmlNode.Text)
+  {$ENDIF}
 end;
 
 procedure XmlNodeSetTextContent(XmlNode: TMustangpeakXmlNode; Text: string);

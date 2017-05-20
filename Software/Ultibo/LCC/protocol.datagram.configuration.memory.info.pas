@@ -9,7 +9,8 @@ interface
 {$I lcc_compilers.inc}
 
 uses
-  {$IFDEF FPC}Generics.Collections,{$ENDIF} Classes, SysUtils, lcc.types, lcc.objects,
+  {$IFDEF FPC}Generics.Collections,{$ELSE}System.Generics.Collections,{$ENDIF} Classes,
+  SysUtils, lcc.types, lcc.objects,
   lcc.message, lcc.utilities;
 
 type

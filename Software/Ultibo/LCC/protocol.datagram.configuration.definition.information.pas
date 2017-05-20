@@ -1,6 +1,8 @@
 unit protocol.datagram.configuration.definition.information;
 
-{$mode objfpc}{$H+}
+{$IFDEF FPC}
+{$mode delphi}{$H+}
+{$ENDIF}
 
 interface
 
@@ -87,7 +89,11 @@ begin
   begin
     XmlDoc := XmlLoadFromStream(AStream);
     ASnip.LoadFromCdiXmlDoc(XmlDoc);
+    {$IFDEF FPC}
     XmlDoc.Free;
+    {$ELSE}
+    XmlDoc := nil;
+    {$ENDIF}
   end;
 end;
 

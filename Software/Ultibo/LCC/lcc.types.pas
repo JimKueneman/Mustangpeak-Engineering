@@ -9,7 +9,14 @@ interface
 {$I lcc_compilers.inc}
 
 uses
-  Classes, SysUtils;
+  {$IFNDEF FPC}FMX.Types,{$ENDIF} Classes, SysUtils;
+
+{$IFNDEF FPC}
+type
+  TFPTimer = TTimer;
+  QWord = UInt64;
+  DWORD = LongWord;
+{$ENDIF}
 
 const
   LCC_BYTE_COUNT = 1024;       // This is longest data structure defined in Lcc

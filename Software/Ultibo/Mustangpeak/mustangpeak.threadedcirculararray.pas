@@ -217,8 +217,6 @@ begin
 end;
 
 procedure TThreadedCirularArrayInterface.Remove(var AnItem: IUnknown);
-var
-  i: Integer;
 begin
   AnItem := nil;
   LockArray;
@@ -539,8 +537,6 @@ begin
 end;
 
 procedure TThreadedCirularArrayByte.SetSize(AValue: Integer);
-var
-  i: Integer;
 begin
   if FSize = AValue then Exit;
   LockArray;

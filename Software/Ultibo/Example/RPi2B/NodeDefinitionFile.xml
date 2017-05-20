@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <node>
-	<nodeid>
-		<name>$AABBCCDDEEFF</name>
-	</nodeid>
+	<nodeid>$AABBCCDDEEFF</nodeid>
 	<protocols>
 		<supported>events</supported>
 		<supported>datagram</supported>

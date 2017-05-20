@@ -1,15 +1,15 @@
 unit protocol.traction.stni;
 
 {$IFDEF FPC}
-{$mode delphi}{$H+}
+//{$mode delphi}{$H+}
 {$ENDIF}
 
 interface
 
-{$I lcc_compilers.inc}
+//{$I lcc_compilers.inc}
 
-uses
-  Classes, SysUtils, lcc.objects, lcc.types, lcc.message, protocol.traction;
+//uses
+ // Classes, SysUtils, lcc.objects, lcc.types, lcc.message, protocol.traction;
 
 type
   TProtocolStni = class(TNodeProtocolBase)

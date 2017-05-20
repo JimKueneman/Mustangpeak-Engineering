@@ -52,6 +52,8 @@ type
     FVisible: Boolean;
     FVisibleIndex: Integer;
     FWidth: Integer;
+    function GetBottom: Integer;
+    function GetRight: Integer;
     procedure SetCaptions(AValue: TStringList);
     procedure SetColor(AValue: TColor);
     procedure SetEnabled(AValue: Boolean);
@@ -64,8 +66,9 @@ type
     procedure SetVisible(AValue: Boolean);
     procedure SetWidth(AValue: Integer);
   protected
-    procedure Paint(Canvas: TCanvas);
+    procedure Paint(Canvas: TCanvas; OffsetX, OffsetY: Integer);
   public
+    property Bottom: Integer read GetBottom;
     property Captions: TStringList read FCaptions write SetCaptions;
     property Color: TColor read FColor write SetColor default clBtnFace;
     property Enabled: Boolean read FEnabled write SetEnabled;
@@ -75,6 +78,7 @@ type
     property Index: Integer read FIndex;
     property Left: Integer read FLeft write SetLeft;
     property OwnerListview: TCustomVirtualListview read FOwnerListview;
+    property Right: Integer read GetRight;
     property Selected: Boolean read FSelected write SetSelected;
     property Tag: Integer read FTag write FTag;
     property Top: Integer read FTop write SetTop;
@@ -109,7 +113,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure Clear;
-    function Add(ACaption: string): TVirtualListviewItem;
+    function Add(ACaption: string; ImageIndex: Integer = -1): TVirtualListviewItem;
     procedure Delete(Index: Integer);
     function Remove(ACaption: string): TVirtualListviewItem;
     function Find(ACaption: string): TVirtualListviewItem;
@@ -152,7 +156,7 @@ type
     FMouseDownPt: TPoint;
     FState: TMouseControllerStateSet;
   protected
-    procedure Paint(Canvas: TCanvas);
+    procedure Paint(Canvas: TCanvas; OffsetX, OffsetY: Integer);
   public
     property MouseDownPt: TPoint read FMouseDownPt write FMouseDownPt;
     property MouseLastPt: TPoint read FMouseLastPt write FMouseLastPt;
@@ -166,13 +170,14 @@ type
 
   { TCustomVirtualListview }
 
-  TCustomVirtualListview = class(TScrollBox)
+  TCustomVirtualListview = class(TPanel)
   private
     FAlignment: TAlignment;
     FFocusedItem: TVirtualListviewItem;
-    FCalculatedHorzScrollRange: Integer;
+    FHorzScrollBar: TScrollBar;
     FImages: TImageList;
     FMouseController: TMustangpeakMouseController;
+    FOnDebugEvent: TNotifyEvent;
     FOnSort: TOnVirtualListviewSort;
     FTextLayout: TVirtualListviewTextLayout;
     FCaptionIndent: Integer;
@@ -181,6 +186,8 @@ type
     FDetailsFont: TFont;
     FDetailsIndent: Integer;
     FItems: TVirtualListviewItemList;
+    FVertScrollBar: TScrollBar;
+    FViewportRect: TRect;
     FVisibleItems: TVirtualListviewItemVisibleList;
     FUpdateLock: Integer;
     OnFocusChanged: TOnVirtualListviewFocusedChanged;
@@ -204,12 +211,17 @@ type
     property Items: TVirtualListviewItemList read FItems write FItems;
     property MouseController: TMustangpeakMouseController read FMouseController write FMouseController;
     property VisibleItems: TVirtualListviewItemVisibleList read FVisibleItems write FVisibleItems;
+    property OnDebugEvent: TNotifyEvent read FOnDebugEvent write FOnDebugEvent;
     property OnFocusedChanged: TOnVirtualListviewFocusedChanged read OnFocusChanged write OnFocusChanged;
     property OnSort: TOnVirtualListviewSort read FOnSort write FOnSort;
     property TextLayout: TVirtualListviewTextLayout read FTextLayout write SetTextLayout;
     property UpdateLock: Integer read FUpdateLock write FUpdateLock;
 
-    procedure CalculateAutoRanges; override;
+    property VertScrollbar: TScrollBar read FVertScrollBar;
+    property HorzScrollbar: TScrollBar read FHorzScrollBar;
+
+    procedure CalculateScrollbars;
+    procedure DoOnDebugEvent; virtual;
     procedure DoOnFocusChanged(LccItem, OldLccItem: TVirtualListviewItem); virtual;
     procedure DoOnResize; override;
     procedure DoOnShowHint(HintInfo: PHintInfo); override;
@@ -217,14 +229,19 @@ type
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
-    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
     procedure WMEraseBkgnd(var Message: TLMEraseBkgnd); message LM_ERASEBKGND;
     procedure WMShowWindow(var Message: TLMShowWindow); message LM_SHOWWINDOW;
     procedure WMKeyDown(var Message: TLMKeyDown); message LM_KEYDOWN;
     procedure WMSetFocus(var Message: TLMSetFocus); message LM_SETFOCUS;
+    procedure WMMouseWheel(var Message: TLMMouseEvent); message LM_MOUSEWHEEL;
     procedure Paint; override;
     procedure RebuildItems;
+    procedure OnScrollVertical(Sender: TObject; ScrollCode: TScrollCode; var ScrollPos: Integer);
+    procedure OnScrollHorizontal(Sender: TObject; ScrollCode: TScrollCode; var ScrollPos: Integer);
+    procedure OnFontChange(Sender: TObject);
   public
+    property ViewportRect: TRect read FViewportRect;
+
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
@@ -244,11 +261,14 @@ type
     function NextVisible(Item: TVirtualListviewItem): TVirtualListviewItem;
     function Previous(Item: TVirtualListviewItem): TVirtualListviewItem;
     function PreviousVisible(Item: TVirtualListviewItem): TVirtualListviewItem;
+    procedure ScrollDelta(X, Y: Integer);
     procedure ScrollIntoView(Item: TVirtualListviewItem);
   end;
 
   TVirtualListview = class(TCustomVirtualListview)
   public
+    property VertScrollbar;
+    property HorzScrollbar;
     property FocusedItem;
     property Items;
     property VisibleItems;
@@ -260,10 +280,16 @@ type
     property DetailsFont;
     property DetailsIndent;
     property Images;
+    property OnDebugEvent;
     property OnFocusedChanged;
     property OnSort;
     property TextLayout;
   end;
+
+
+procedure StackRect(var ResultRect: TRect; Upper, Lower: TRect);
+function HeightRect(ARect: TRect): Integer;
+function WidthRect(ARect: TRect): Integer;
 
 procedure Register;
 
@@ -280,6 +306,25 @@ begin
   ARect := Rect(0, 0, 0, 0);
 end;
 
+procedure StackRect(var ResultRect: TRect; Upper, Lower: TRect);
+begin
+  ResultRect := Lower;
+  if Lower.Top < Upper.Bottom then
+    OffsetRect(ResultRect, 0, Upper.Bottom - Lower.Top)
+  else
+    OffsetRect(ResultRect, 0, Lower.Top - Upper.Bottom);
+end;
+
+function HeightRect(ARect: TRect): Integer;
+begin
+  Result := ARect.Bottom - ARect.Top;
+end;
+
+function WidthRect(ARect: TRect): Integer;
+begin
+  Result := ARect.Right - ARect.Left;
+end;
+
 { TMustangpeakMouseController }
 
 constructor TMustangpeakMouseController.Create;
@@ -293,7 +338,7 @@ begin
   Result := State * [mcs_LeftButton, mcs_RightButton, mcs_MiddleButton] <> []
 end;
 
-procedure TMustangpeakMouseController.Paint(Canvas: TCanvas);
+procedure TMustangpeakMouseController.Paint(Canvas: TCanvas; OffsetX, OffsetY: Integer);
 var
   StartX, StartY, StopX, StopY: Integer;
 begin
@@ -405,10 +450,11 @@ begin
   end;
 end;
 
-procedure TVirtualListviewItem.Paint(Canvas: TCanvas);
+procedure TVirtualListviewItem.Paint(Canvas: TCanvas; OffsetX, OffsetY: Integer
+  );
 var
-  TextBox: TRect;
-  i, Offset: Integer;
+  TextBoundsRect, LocalBoundsRect: TRect;
+  i, LocalOffset: Integer;
   TextExtent: TSize;
   TextRects: array of TRect;
   ImageWidth: Integer;
@@ -430,6 +476,8 @@ begin
     OffsetRect(TextRects[0], OwnerListview.CaptionIndent + ImageWidth, 0);
     if TextRects[0].Right > Width - OwnerListview.CaptionIndent then
       TextRects[0].Right := Width - OwnerListview.CaptionIndent;
+    OffsetRect(TextRects[0], Left + OffsetX, Top + OffsetY);  // Get it oriented in the Item Bounds and scroll
+
 
     Canvas.Font.Assign(OwnerListview.DetailsFont);
     i := 1;
@@ -441,14 +489,22 @@ begin
       OffsetRect(TextRects[i], OwnerListview.DetailsIndent + ImageWidth, 0);
       if TextRects[i].Right > Width - OwnerListview.DetailsIndent then
         TextRects[i].Right := Width - OwnerListview.DetailsIndent;
-      OffsetRect(TextRects[i], 0, TextRects[i-1].Bottom);
+      OffsetRect(TextRects[i], Left + OffsetX, Top + OffsetY);  // Get it oriented in the Item Bounds and scroll
+      StackRect(TextRects[i], TextRects[i-1], TextRects[i]); // Get it oriented below the previous line
       Inc(i)
     end;
   end;
 
-  TextBox := Rect(0, 0, 0, 0);
-  for i := 0 to Length(TextRects) - 1 do
-    UnionRect(TextBox, TextBox, TextRects[i]);
+  // The Rectangles where the text is to be drawn in the item is now calculated and held in the TextRects variable (in Viewport Coordinates)
+  // It is postioned in the left top corner of the item, now need to adjust it to center/right/top/bottom based on properites
+
+  // Local variable to know the total bounds of the text
+  if Length(TextRects) > 0 then
+  begin
+    TextBoundsRect := TextRects[0];
+    for i := 0 to Length(TextRects) - 1 do
+      UnionRect(TextBoundsRect, TextBoundsRect, TextRects[i]);
+  end;
 
   case OwnerListview.TextLayout of
     vtlTop :
@@ -458,26 +514,28 @@ begin
       end;
     vtlCenter :
       begin
-        if TextBox.Bottom < Height then
-          Offset := (Height - TextBox.Bottom) div 2
+        if HeightRect(TextBoundsRect) < Height then
+          LocalOffset := (Height - HeightRect(TextBoundsRect)) div 2
         else
-          Offset := 0;
+          LocalOffset := 0;
 
         for i := 0 to Length(TextRects) - 1 do
-          OffsetRect(TextRects[i], 0, Offset);
+          OffsetRect(TextRects[i], 0, LocalOffset);
       end;
     vtlBottom :
       begin
-        if TextBox.Bottom < Height then
+        if TextBoundsRect.Bottom < Bottom then
         begin
-          Offset := Height - TextBox.Bottom
+          LocalOffset := Bottom - TextBoundsRect.Bottom
         end else
-          Offset := 0;
+          LocalOffset := 0;
 
         for i := 0 to Length(TextRects) - 1 do
-          OffsetRect(TextRects[i], 0, Offset);
+          OffsetRect(TextRects[i], 0, LocalOffset);
       end;
   end;
+
+  // Vertial adjustment of the text rectangled completed
 
   case OwnerListview.Alignment of
     taLeftJustify :
@@ -487,46 +545,53 @@ begin
       end;
     taCenter :
       begin
-        if TextBox.Right < Width then
-          Offset := (Width - TextBox.Right) div 2
+        if WidthRect(TextBoundsRect) < Width then
+          LocalOffset := (Width - WidthRect(TextBoundsRect)) div 2
         else
-          Offset := 0;
+          LocalOffset := 0;
 
         for i := 0 to Length(TextRects) - 1 do
-          OffsetRect(TextRects[i], Offset, 0);
+          OffsetRect(TextRects[i], LocalOffset, 0);
       end;
     taRightJustify :
       begin
-        if TextBox.Right < Width then
+        if WidthRect(TextBoundsRect) < Width then
         begin
-          Offset := Width - TextBox.Right
+          LocalOffset := Width - TextBoundsRect.Right
         end else
-          Offset := 0;
+          LocalOffset := 0;
 
         for i := 0 to Length(TextRects) - 1 do
-          OffsetRect(TextRects[i], Offset, 0);
+          OffsetRect(TextRects[i], LocalOffset, 0);
       end;
+
+    // Horizontal adjustment of the text boxes completed
   end;
 
-  Canvas.ClipRect := BoundsRect;
-  Canvas.Clipping := True;
+  // Create a local Bounds rect that is modified by the Scroll Postion
+  LocalBoundsRect := BoundsRect;
+  OffsetRect(LocalBoundsRect, OffsetX, OffsetY);
+ // Canvas.ClipRect := LocalBoundsRect;
+  //Canvas.Clipping := True;
 
   Canvas.Brush.Color := Color;
+  Canvas.FillRect(LocalBoundsRect);
 
-  Canvas.FillRect(BoundsRect);
   if Focused then
   begin
     Canvas.Pen.Width := 1;
     Canvas.Pen.Color := clHighlightedText;
     Canvas.Brush.Color := clHighlight;
-    Canvas.RoundRect(BoundsRect, 8, 8);
+    Canvas.RoundRect(LocalBoundsRect, 8, 8);
   end;
 
   if Assigned(OwnerListview.Images) and (ImageIndex > -1) then
-  case OwnerListview.TextLayout of
-    vtlTop    : OwnerListview.Images.Draw(Canvas, Left + 4, Top + 4, ImageIndex);
-    vtlCenter : OwnerListview.Images.Draw(Canvas, Left + 4, Top + ((Height - OwnerListview.Images.Height) div 2), ImageIndex);
-    vtlBottom : OwnerListview.Images.Draw(Canvas, Left + 4, Top + (Height - OwnerListview.Images.Height - 4), ImageIndex);
+  begin
+    case OwnerListview.TextLayout of
+      vtlTop    : OwnerListview.Images.Draw(Canvas, Left + 4 + OffsetX, Top + 4 + OffsetY, ImageIndex);
+      vtlCenter : OwnerListview.Images.Draw(Canvas, Left + 4 + OffsetX, Top + ((Height - OwnerListview.Images.Height) div 2) + OffsetY, ImageIndex);
+      vtlBottom : OwnerListview.Images.Draw(Canvas, Left + 4 + OffsetX, Top + (Height - OwnerListview.Images.Height - 4) + OffsetY, ImageIndex);
+    end;
   end;
 
 
@@ -535,7 +600,6 @@ begin
     Canvas.Font.Assign(OwnerListview.Font);
     if Focused then
       Canvas.Font.Color := clHighlightText;
-    OffsetRect(TextRects[0], Left, Top);
     Canvas.TextRect(TextRects[0], TextRects[0].Left, TextRects[0].Top, Captions[0]);
     Canvas.Font.Assign(OwnerListview.DetailsFont);
     if Focused then
@@ -543,7 +607,6 @@ begin
     i := 1;
     while (i < OwnerListview.CaptionLineCount) and (i < Captions.Count) do
     begin
-      OffsetRect(TextRects[i], Left, Top);
       Canvas.TextRect(TextRects[i], TextRects[i].Left, TextRects[i].Top, Captions[i]);
       Inc(i);
     end;
@@ -567,6 +630,16 @@ procedure TVirtualListviewItem.SetCaptions(AValue: TStringList);
 begin
   FCaptions.Assign(AValue);
   Invalidate(True);
+end;
+
+function TVirtualListviewItem.GetBottom: Integer;
+begin
+  Result := Top + Height;
+end;
+
+function TVirtualListviewItem.GetRight: Integer;
+begin
+  Result := Left + Width;
 end;
 
 procedure TVirtualListviewItem.SetColor(AValue: TColor);
@@ -652,22 +725,6 @@ begin
   Inc(FUpdateLock);
 end;
 
-procedure TCustomVirtualListview.CalculateAutoRanges;
-begin
-  HorzScrollBar.Page := 1;
-  VertScrollBar.Page := 1;
-  if DefaultItemHeight * VisibleItems.Count > ClientHeight then
-  {$IFDEF DARWIN}
-    VertScrollBar.Range := (DefaultItemHeight * (VisibleItems.Count + 1))    // Add 1 for OSX it has an issue
-  {$ELSE}
-    VertScrollBar.Range := (DefaultItemHeight * VisibleItems.Count)
-  {$ENDIF}
-  else
-    VertScrollBar.Range := 0;
-  HorzScrollBar.Range := 0;
-  AutoScroll := True;
-end;
-
 procedure TCustomVirtualListview.DoOnFocusChanged(LccItem, OldLccItem: TVirtualListviewItem);
 begin
   if Assigned(OnFocusChanged) then
@@ -731,8 +788,22 @@ begin
   FCaptionIndent := 4;
   FCaptionLineCount := 1;
   Color := clWindow;
-  VertScrollBar.Tracking := True;
-  HorzScrollBar.Tracking := True;
+  FVertScrollbar := TScrollBar.Create(Self);
+  VertScrollbar.Visible := False;
+  VertScrollbar.Align := alRight;
+  VertScrollbar.Parent := Self;
+  VertScrollbar.Kind := sbVertical;
+  VertScrollbar.OnScroll := @OnScrollVertical;
+
+  FHorzScrollbar := TScrollBar.Create(Self);
+  HorzScrollbar.Visible := False;
+  HorzScrollbar.Align := alBottom;
+  HorzScrollbar.Parent := Self;
+  HorzScrollbar.Kind := sbHorizontal;
+  HorzScrollbar.OnScroll := @OnScrollHorizontal;
+
+  Font.OnChange := @OnFontChange;
+  DetailsFont.OnChange := @OnFontChange;
 end;
 
 destructor TCustomVirtualListview.Destroy;
@@ -851,33 +922,6 @@ begin
   end;
 end;
 
-procedure TCustomVirtualListview.KeyDown(var Key: Word; Shift: TShiftState);
-begin
-  inherited KeyDown(Key, Shift);
-  case Key of
-    VK_DOWN :
-      begin
-        FocusedItem := NextVisible(FocusedItem);
-        if not Assigned(FocusedItem) then
-          FocusedItem := FirstVisible;
-      end;
-    VK_UP :
-      begin
-        FocusedItem := PreviousVisible(FocusedItem);
-        if not Assigned(FocusedItem) then
-          FocusedItem := FirstVisible;
-      end;
-    VK_HOME :
-      begin
-        FocusedItem := FirstVisible;
-      end;
-    VK_END :
-      begin
-        FocusedItem := LastVisible;
-      end;
-  end;
-end;
-
 function TCustomVirtualListview.Last: TVirtualListviewItem;
 begin
   Result := nil;
@@ -970,7 +1014,6 @@ var
   Item: TVirtualListviewItem;
   IntersetRect: TRect;
 begin
-
   Canvas.SaveHandleState;
 
   Canvas.Brush.Color := Color;
@@ -980,7 +1023,7 @@ begin
   Item := FirstInView;
   while Assigned(Item) do
   begin
-    Item.Paint(Canvas);
+    Item.Paint(Canvas, -HorzScrollbar.Position, -VertScrollbar.Position);
     Item := NextVisible(Item);
     if not IsInCurrentView(Item) then
       Item := nil
@@ -991,7 +1034,7 @@ begin
 
   if mcs_DragRect in MouseController.State then
    begin
-    MouseController.Paint(Canvas);
+    MouseController.Paint(Canvas, -HorzScrollbar.Position, -VertScrollbar.Position);
   end;
 
 
@@ -1025,6 +1068,59 @@ begin
   end;
 end;
 
+procedure TCustomVirtualListview.ScrollDelta(X, Y: Integer);
+var
+  DoInvalidate: Boolean;
+begin
+  DoInvalidate := True;
+  if Y > 0 then
+  begin
+    if VertScrollbar.Position + Y < 0 then
+    begin
+      DoInvalidate := VertScrollbar.Position <> 0;
+      VertScrollbar.Position := 0;
+    end else
+      VertScrollbar.Position := VertScrollbar.Position - Abs(Y);
+  end else
+  if Y < 0 then
+  begin
+    if VertScrollbar.Position + Y > VertScrollbar.Max then
+    begin
+      DoInvalidate := VertScrollbar.Position <> VertScrollbar.Max;
+      VertScrollbar.Position := VertScrollbar.Max
+    end else
+      VertScrollbar.Position := VertScrollbar.Position + Abs(Y);
+  end else
+    DoInvalidate := False;
+
+  if DoInvalidate then
+    Invalidate;
+
+  DoInvalidate := True;
+  if X > 0 then
+  begin
+    if HorzScrollbar.Position + X < 0 then
+    begin
+      DoInvalidate := HorzScrollbar.Position <> 0;
+      HorzScrollbar.Position := 0;
+    end else
+      HorzScrollbar.Position := HorzScrollbar.Position - Abs(X);
+  end else
+  if X < 0 then
+  begin
+    if HorzScrollbar.Position + X > HorzScrollbar.Max then
+    begin
+      DoInvalidate := HorzScrollbar.Position <> HorzScrollbar.Max;
+      HorzScrollbar.Position := HorzScrollbar.Max
+    end else
+      HorzScrollbar.Position := HorzScrollbar.Position + Abs(X);
+  end else
+    DoInvalidate := False;
+
+  if DoInvalidate then
+    Invalidate;
+end;
+
 procedure TCustomVirtualListview.RebuildItems;
 var
   i, NextTop, LocalVisibleIndex: Integer;
@@ -1032,6 +1128,7 @@ begin
   if UpdateLock > 0 then Exit;
   if Assigned(VisibleItems) and Assigned(Items) then
   begin
+    EmptyRect(FViewportRect);
     VisibleItems.Clear;
     NextTop := 0;
     LocalVisibleIndex := 0;
@@ -1044,16 +1141,32 @@ begin
         Inc(LocalVisibleIndex);
         VisibleItems.Add(Items[i]);
         Items[i].SetBounds(0, NextTop, ClientWidth, DefaultItemHeight);
+        UnionRect(FViewportRect, Items[i].BoundsRect, ViewportRect);
         NextTop := Items[i].Top + Items[i].Height;
       end else
       begin
         Items[i].Height := 0;
       end;
     end;
-    CalculateAutoRanges;
+    CalculateScrollbars;
     Invalidate;
     Update;
   end;
+end;
+
+procedure TCustomVirtualListview.OnScrollVertical(Sender: TObject; ScrollCode: TScrollCode; var ScrollPos: Integer);
+begin
+  Invalidate; // The component is not updated with the new information until after this returns so don't force an update yet
+end;
+
+procedure TCustomVirtualListview.OnScrollHorizontal(Sender: TObject; ScrollCode: TScrollCode; var ScrollPos: Integer);
+begin
+  Invalidate; // The component is not updated with the new information until after this returns so don't force an update yet
+end;
+
+procedure TCustomVirtualListview.OnFontChange(Sender: TObject);
+begin
+  Invalidate;
 end;
 
 procedure TCustomVirtualListview.SetAlignment(AValue: TAlignment);
@@ -1075,7 +1188,7 @@ end;
 
 procedure TCustomVirtualListview.WMEraseBkgnd(var Message: TLMEraseBkgnd);
 begin
-  beep;
+ // beep;   Only called with Windows
 end;
 
 procedure TCustomVirtualListview.CurrentViewRect(var ARect: TRect);
@@ -1093,12 +1206,45 @@ end;
 
 procedure TCustomVirtualListview.WMKeyDown(var Message: TLMKeyDown);
 begin
-  inherited;
+  // Don't do inherited it will swallow keys
+  case Message.CharCode of
+    VK_DOWN :
+      begin
+        FocusedItem := NextVisible(FocusedItem);
+        if not Assigned(FocusedItem) then
+          FocusedItem := FirstVisible;
+      end;
+    VK_UP :
+      begin
+        FocusedItem := PreviousVisible(FocusedItem);
+        if not Assigned(FocusedItem) then
+          FocusedItem := FirstVisible;
+      end;
+    VK_HOME :
+      begin
+        FocusedItem := FirstVisible;
+      end;
+    VK_END :
+      begin
+        FocusedItem := LastVisible;
+      end;
+  end;
 end;
 
 procedure TCustomVirtualListview.WMSetFocus(var Message: TLMSetFocus);
 begin
   inherited;
+end;
+
+procedure TCustomVirtualListview.WMMouseWheel(var Message: TLMMouseEvent);
+begin
+  if Message.WheelDelta <> 0 then
+  begin
+    if ssShift in Message.State then
+      ScrollDelta(Message.WheelDelta, 0)
+    else
+      ScrollDelta(0, Message.WheelDelta);
+  end;
 end;
 
 procedure TCustomVirtualListview.SetCaptionIndent(AValue: Integer);
@@ -1139,6 +1285,34 @@ begin
   Update
 end;
 
+procedure TCustomVirtualListview.CalculateScrollbars;
+begin
+  if ViewportRect.Bottom > ClientRect.Bottom then
+  begin
+    VertScrollbar.Max := ViewportRect.Bottom - ClientRect.Bottom;
+    VertScrollbar.Visible := True;
+  end else
+  begin
+    VertScrollbar.Visible := False;
+    VertScrollbar.Max := 0;
+  end;
+  if ViewportRect.Right > ClientRect.Right then
+  begin
+    HorzScrollbar.Max := ViewportRect.Right - ClientRect.Right;
+    HorzScrollbar.Visible := True;
+  end else
+  begin
+    HorzScrollbar.Visible := False;
+    HorzScrollbar.Max := 0;
+  end;
+end;
+
+procedure TCustomVirtualListview.DoOnDebugEvent;
+begin
+  if Assigned(FOnDebugEvent) then
+    OnDebugEvent(Self)
+end;
+
 procedure TCustomVirtualListview.SetFocusedItem(AValue: TVirtualListviewItem);
 var
   OldFocused: TVirtualListviewItem;
@@ -1156,10 +1330,11 @@ end;
 
 { TVirtualListviewItemList }
 
-function TVirtualListviewItemList.Add(ACaption: string): TVirtualListviewItem;
+function TVirtualListviewItemList.Add(ACaption: string; ImageIndex: Integer = -1): TVirtualListviewItem;
 begin
   Result := TVirtualListviewItem.Create;
   Result.Captions.Add(ACaption);
+  Result.ImageIndex := ImageIndex;
   Result.FOwnerListview := OwnerListview;
   ItemList.Add(Result);
   if Count > 0 then

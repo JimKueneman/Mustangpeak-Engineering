@@ -97,7 +97,11 @@ begin
     try
       XMLDoc := XmlLoadFromFile(CdiFilePath);
       Result := LoadFromCdiXmlDoc(XMLDoc);
+      {$IFDEF FPC}
       XMLDoc.Free;
+      {$ELSE}
+      XMLDoc := nil;
+      {$ENDIF}
     except
       // Quiet fail
     end;

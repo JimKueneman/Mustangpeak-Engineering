@@ -11,7 +11,7 @@ unit lcc.node;
 interface
 
 uses
-  Classes, SysUtils, lcc.types, contnrs, fpTimer, lcc.types.can,
+  Classes, SysUtils, lcc.types, contnrs, {$IFDEF FPC}fpTimer,{$ELSE}XMLDoc,{$ENDIF} lcc.types.can,
   lcc.message, protocol.snip, protocol.events, protocol.pip, protocol.acdi.mfg,
   protocol.acdi.user, lcc.utilities, mustangpeak.xmlutilities,
   mustangpeak.threadedcirculararray, protocol.datagram.configuration,
@@ -92,8 +92,8 @@ type
     property CDI: TMustangpeakXmlDocument read FCDI write FCDI;
     property DatagramQueue: TDatagramQueue read FDatagramQueue write FDatagramQueue;
   public
-    constructor Create(NodeDefinitionXmlFile: string);
-    constructor Create(NodeDefinitionXmlDoc: TMustangpeakXmlDocument);
+    constructor Create(NodeDefinitionXmlFile: string); {$IFNDEF FPC}overload;{$ENDIF}
+    constructor Create(NodeDefinitionXmlDoc: TMustangpeakXmlDocument); {$IFNDEF FPC}overload;{$ENDIF}
     destructor Destroy; override;
     function Start: Boolean; virtual;
     function ProcessMessages: Boolean;
@@ -151,9 +151,13 @@ constructor TLccAliasIDEngine.Create;
 begin
   inherited Create;
   Timer := TFPTimer.Create(nil);
-  Timer.OnTimer := @OnTimerProc;
+  Timer.OnTimer := {$IFDEF FPC}@{$ENDIF}OnTimerProc;
   TimerBlank := True;
+  {$IFDEF FPC}
   Timer.StartTimer;
+  {$ELSE}
+  Timer.Enabled := True;
+  {$ENDIF}
 end;
 
 function TLccAliasIDEngine.CheckForDuplicateAlias(LccMessage: TLccMessage): Boolean;
@@ -1100,8 +1104,8 @@ begin
        FDatagramQueue := TDatagramQueue.Create(Self);
        FMsgQueueReceived := TThreadedCirularArrayObject.Create;
        FMsgQueueSending := TThreadedCirularArrayObject.Create;
-       MsgQueueReceived.OnAdd := @MsgQueueReceiveAdded;
-       MsgQueueSending.OnAdd := @MsgQueueSendAdded;
+       MsgQueueReceived.OnAdd := {$IFDEF FPC}@{$ENDIF}MsgQueueReceiveAdded;
+       MsgQueueSending.OnAdd := {$IFDEF FPC}@{$ENDIF}MsgQueueSendAdded;
        FProtocolSnip := TProtocolSnip.Create;
        FProtocolEventsConsumed := TProtocolEvents.Create;
        FProtocolEventsProduced := TProtocolEvents.Create;
@@ -1114,22 +1118,31 @@ begin
        FProtocolConfigMemAddressSpaceInfo := TProtocolConfigMemAddressSpaceInfo.Create;
        FProtocolConfigDefinitionInfo := TProtocolConfigDefinitionInfo.Create(MSI_CDI, True);
 
-       FCDI := TMustangpeakXmlDocument.Create;
+       FCDI := {$IFDEF FPC}TMustangpeakXmlDocument{$ELSE}TXMLDocument{$ENDIF}.Create{$IFNDEF FPC}(nil){$ENDIF};
        if ProcessNodeDefinitionXml(XML) then
        begin
-          AliasIDEngine.LoginID := NodeID;;
+          AliasIDEngine.LoginID := NodeID;
+
+   {$IFDEF FPC}
        end else
          Fail;
      end else
        Fail;
    end else
      Fail;
+   {$ELSE}
+          end
+       end
+     end
+   {$ENDIF}
 end;
 
 constructor TLccNode.Create(NodeDefinitionXmlDoc: TMustangpeakXmlDocument);
 begin
   if not ProcessNodeDefinitionXml(NodeDefinitionXmlDoc) then
+  {$IFDEF FPC}
     Fail;
+  {$ENDIF}
 end;
 
 destructor TLccNode.Destroy;
@@ -1140,7 +1153,11 @@ begin
   FreeAndNil(FProtocolPip);
   FreeAndNil(FProtocolAcdiUser);
   FreeAndNil(FProtocolAcdiMfg);
+  {$IFDEF FPC}
   FreeAndNil(FCDI);
+  {$ELSE}
+  FCDI := nil;
+  {$ENDIF}
   FreeAndNil(FMsgQueueReceived);
   FreeAndNil(FMsgQueueSending);
   FreeAndNil(FDatagramQueue);
@@ -1178,8 +1195,12 @@ begin
   FOwnerNode := ANode;
   FTimer := TFPTimer.Create(nil);
   Timer.Interval := 1000;
-  Timer.OnTimer := @OnTimer;
+  Timer.OnTimer := {$IFDEF FPC}@{$ENDIF}OnTimer;
+  {$IFDEF FPC}
   Timer.StartTimer;
+  {$ELSE}
+  Timer.Enabled := True
+  {$ENDIF}
 end;
 
 destructor TDatagramQueue.Destroy;

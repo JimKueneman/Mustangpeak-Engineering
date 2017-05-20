@@ -1,6 +1,8 @@
 unit protocol.acdi.mfg;
 
+{$IFDEF FPC}
 {$mode objfpc}{$H+}
+{$ENDIF}
 
 interface
 

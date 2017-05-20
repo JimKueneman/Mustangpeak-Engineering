@@ -21,7 +21,9 @@ uses
     {$ENDIF}
   {$ENDIF}
   blcksock,
+  {$IFDEF FPC}
   sockets,
+  {$ENDIF}
   Types, lcc.types;
 
 type
