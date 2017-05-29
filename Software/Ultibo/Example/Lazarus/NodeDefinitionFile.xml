@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <node>
-	<nodeid>0xAABBCCDDEEFF</nodeid>
+	<nodeid>$AABBCCDDEEFF</nodeid>
 	<protocols>
 		<supported>events</supported>
 		<supported>datagram</supported>
@@ -29,25 +29,24 @@
 			<supported>arbitrary</supported>
 			<unsupported>stream</unsupported>
 		</writelengths>
-		<!-- The Hi and Lo Memory Space could be calculated from the configuration.memory tag below but it is current no so it must be defined here -->
 		<memspace.hi>0xFF</memspace.hi>
 		<memspace.lo>0xF9</memspace.lo>
 	</configuration.options>
 	<configuration.memspace>
 		<!-- Configuration Definition Information (CDI) Space -->
 		<memspace present="true" readonly="true" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFF</memspace>
-		<!-- All Memory Space -->
+	    <!-- All Memory Space -->
 		<memspace present="true" readonly="true" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFE</memspace>
 		<!-- Configuration Space -->
 		<memspace present="true" readonly="false" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFD</memspace>
 		<!-- ACDI Manufacturer Space -->
 		<memspace present="true" readonly="true" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFC</memspace>
 		<!-- ACDI User Space -->
-		<memspace present="true" readonly="false" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFB</memspace>
+	    <memspace present="true" readonly="false" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFB</memspace>
 		<!-- Function Definition Definition (FDI)  -->
 		<memspace present="true" readonly="true" addresslo="0x00000000" addresshi="0x00FFFFFF">0xFA</memspace>
-		<!-- Train Configuration Space -->
-		<memspace present="true" readonly="false" addresslo="0x00000000" addresshi="0x00FFFFFF">0xF9</memspace>
+	    <!-- Train Configuration Space -->
+	    <memspace present="true" readonly="false" addresslo="0x00000000" addresshi="0x00FFFFFF">0xF9</memspace>
 	</configuration.memspace>
 	<datagram>
 		<!-- Enter the number of Datagram buffers to reserve -->
@@ -55,24 +54,29 @@
 	</datagram>
 	<events>
 		<produced>
-			<event default="unknown">$00</event>
-			<event default="valid">$01</event>
-			<event default="invalid">$02</event>
-			<event default="unknown">$03</event>
+			<event>0000</event>
+			<event>0001</event>
+			<event>0002</event>
+			<event>0003</event>
+			<event>0004</event>
+			<event>0005</event>
+			<event>0006</event>
+			<event>0007</event>
+			<event>0008</event>
+			<event>0009</event>
 		</produced>
 		<consumed>
-			<event default="unknown">$70</event>
-			<event default="valid">$71</event>
-			<event default="invalid">$72</event>
-			<event default="unknown">$73</event>
+			<event>0010</event>
+			<event>0011</event>
+			<event>0012</event>
+			<event>0013</event>
+			<event>0014</event>
+			<event>0015</event>
+			<event>0016</event>
+			<event>0017</event>
+			<event>0018</event>
+			<event>0019</event>
 		</consumed>
 	</events>
-	<cdi>
-		<path>/Users/jimkueneman/Documents/Mustangpeak-Engineering/Software/Ultibo/Example/Lazarus/example_cdi.xml</path>
-		<path_win>Z:\Software\Ultibo\Example\Lazarus\example_cdi.xml</path_win>
-		<path_ultibo>c:\example_cdi.xml</path_ultibo>
-	</cdi>
-	<snip>
-		<loadfromcdi>true</loadfromcdi>
-	</snip>
+	<cdi>ExampleCdi.xml</cdi>
 </node>

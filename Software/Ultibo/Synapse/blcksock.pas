@@ -6141,7 +6141,11 @@ begin
           synsock.SetSockOpt(FSocket, integer(IPPROTO_IP), integer(IP_MULTICAST_LOOP), buf, SizeOf(x));
       end;
   end;
+  {$IFDEF FPC}
   Value.free;
+  {$ELSE}
+  Value.DisposeOf;
+  {$ENDIF}
 end;
 
 procedure TBlockSocket.DelayedOption(const Value: TSynaOption);

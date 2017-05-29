@@ -10,7 +10,7 @@
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
         <TopLine Value="22"/>
-        <CursorPos X="60" Y="40"/>
+        <CursorPos X="60" Y="41"/>
         <UsageCount Value="201"/>
         <Loaded Value="True"/>
       </Unit0>
@@ -188,10 +188,11 @@
       </Unit24>
       <Unit25>
         <Filename Value="..\..\LCC\lcc.node.pas"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="161"/>
-        <CursorPos X="39" Y="179"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="117"/>
+        <CursorPos X="24" Y="127"/>
         <UsageCount Value="101"/>
+        <Loaded Value="True"/>
       </Unit25>
       <Unit26>
         <Filename Value="..\..\LCC\lcc.message.pas"/>
@@ -215,7 +216,7 @@
       </Unit28>
       <Unit29>
         <Filename Value="..\..\Synapse\blcksock.pas"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="3"/>
         <TopLine Value="2756"/>
         <CursorPos X="18" Y="2773"/>
         <UsageCount Value="82"/>
@@ -231,7 +232,7 @@
       <Unit31>
         <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\ultibo\core\winsock2.pas"/>
         <UnitName Value="Winsock2"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="5"/>
         <TopLine Value="9424"/>
         <CursorPos X="31" Y="9436"/>
         <UsageCount Value="101"/>
@@ -263,7 +264,7 @@
       <Unit35>
         <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\ultibo\core\protocol.pas"/>
         <UnitName Value="Protocol"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="6"/>
         <TopLine Value="2737"/>
         <CursorPos X="15" Y="2762"/>
         <UsageCount Value="56"/>
@@ -278,9 +279,9 @@
       </Unit36>
       <Unit37>
         <Filename Value="..\..\Synapse\sswin32.inc"/>
-        <EditorIndex Value="3"/>
-        <TopLine Value="1740"/>
-        <CursorPos X="23" Y="1742"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="1267"/>
+        <CursorPos X="32" Y="1280"/>
         <UsageCount Value="78"/>
         <Loaded Value="True"/>
       </Unit37>
@@ -300,7 +301,7 @@
       <Unit40>
         <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\ultibo\core\globalconfig.pas"/>
         <UnitName Value="GlobalConfig"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="8"/>
         <TopLine Value="1479"/>
         <CursorPos X="11" Y="1484"/>
         <UsageCount Value="78"/>
@@ -317,7 +318,7 @@
       <Unit42>
         <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\ultibo\core\tcp.pas"/>
         <UnitName Value="TCP"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="7"/>
         <TopLine Value="2962"/>
         <CursorPos X="7" Y="2973"/>
         <UsageCount Value="56"/>
@@ -333,7 +334,7 @@
       </Unit43>
       <Unit44>
         <Filename Value="..\..\Mustangpeak\mustangpeak.threadedcirculararray.pas"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="2"/>
         <TopLine Value="177"/>
         <CursorPos X="76" Y="307"/>
         <UsageCount Value="14"/>
@@ -351,7 +352,7 @@
     <OtherDefines Count="1">
       <Define0 Value="SYNAPSE"/>
     </OtherDefines>
-    <JumpHistory Count="17" HistoryIndex="16">
+    <JumpHistory Count="19" HistoryIndex="18">
       <Position1>
         <Filename Value="..\..\Synapse\blcksock.pas"/>
         <Caret Line="2796" Column="18" TopLine="2785"/>
@@ -420,6 +421,14 @@
         <Filename Value="SimpleNode.lpr"/>
         <Caret Line="33" Column="11" TopLine="23"/>
       </Position17>
+      <Position18>
+        <Filename Value="..\..\LCC\lcc.node.pas"/>
+        <Caret Line="179" Column="39" TopLine="161"/>
+      </Position18>
+      <Position19>
+        <Filename Value="..\..\Synapse\sswin32.inc"/>
+        <Caret Line="1742" Column="23" TopLine="1740"/>
+      </Position19>
     </JumpHistory>
   </ProjectSession>
   <Debugging>

@@ -159,7 +159,7 @@ begin
     {$IFDEF FPC}
       TObject( EventList[i]).Free;
     {$ELSE}
-      EventList[i].Free;
+      EventList[i].DisposeOf;
     {$ENDIF}
   finally
     EventList.Clear

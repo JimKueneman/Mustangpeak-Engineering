@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2017/05/24 21:38:22.000.184,=C:\Users\Jim-Win10\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2017/05/24 21:39:07.000.739,Y:\Mustangpeak-Engineering\Software\Delphi\LccThrottle\main.pas=C:\Users\Jim-Win10\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2017/05/24 21:39:07.000.739,Y:\Mustangpeak-Engineering\Software\Delphi\LccThrottle\main.fmx=C:\Users\Jim-Win10\Documents\Embarcadero\Studio\Projects\Unit1.fmx</Transaction>
+    <Transaction>2017/05/24 21:40:26.000.460,Y:\Mustangpeak-Engineering\Software\Delphi\LccThrottle\LccThrottle.dproj=C:\Users\Jim-Win10\Documents\Embarcadero\Studio\Projects\Project1.dproj</Transaction>
+    <Transaction>2017/05/26 08:12:27.117,=Y:\Mustangpeak-Engineering\Software\Delphi\LccThrottle\Unit1.pas</Transaction>
+    <Transaction>2017/05/26 08:13:16.418,Y:\Mustangpeak-Engineering\Software\Ultibo\Mustangpeak\mustangpeak.vkbdhelper.pas=Y:\Mustangpeak-Engineering\Software\Delphi\LccThrottle\Unit1.pas</Transaction>
+  </Transactions>
+	<ActiveMobileDevice>
+		<POSX iOSSimulator="_iossimulator_FE14EBB5-C60A-4BF5-8CD8-9FD65B7BE65D" iOSDevice64="_iosdevice_4b0cda8c26db4d0930538a5f7f6151424386083e" iOSDevice32="_iosdevice_fcdc0f164862ca630d6c47462560933bcf56cdcd"/>
+		<NoProfile Android="0146914802014008"/>
+	</ActiveMobileDevice>
+</BorlandProject>

@@ -91,7 +91,7 @@ function GetTickCount : DWORD;
    so "wrap" value here so it fits within LongInt.
   Also, since same thing could happen with Windows that has been
    running for at least approx. 25 days, override it too.}
-{$IFNDEF LCC_WINDOWS}
+{$IFDEF FPC}
 var
   Hour, Minute, Second, MilliSecond: Word;
 {$ENDIF}
@@ -600,10 +600,10 @@ end;
       function NetAddrToStr (Entry : in_addr) : String;
       Var
         Dummy: String;
-        i, j: Longint;
+        i: Longint;
       begin
         NetAddrToStr := '';
-        j := entry.s_addr;
+    //    j := entry.s_addr;
         For i := 1 to 4 do
          begin
     //       Dummy := IntToStr( PArray4Int(j)^[i]);        // Crashes Delphi
@@ -625,8 +625,6 @@ end;
       HostAddr: SockAddr;
       l: Cardinal;
       UnixAddr: sockaddr_in;
-      i: Integer;
-
     begin
       err := 0;
 

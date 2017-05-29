@@ -81,7 +81,8 @@ begin
   inherited Create;
   FStream := TMemoryStream.Create;
   FAddressSpace := AnAddressSpace;
-  IsStringBasedStream := NullTerminatedString;
+ // IsStringBasedStream := NullTerminatedString;
+  FNullTerminatedString := IsStringBasedStream;
 end;
 
 destructor TStreamBasedProtocol.Destroy;

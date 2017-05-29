@@ -1,0 +1,146 @@
+inherited Form1_SmXhdpiPh: TForm1_SmXhdpiPh
+  ClientHeight = 375
+  ClientWidth = 250
+  DesignerMasterStyle = 3
+  inherited ToolBar1: TToolBar
+    Size.Width = 250.000000000000000000
+    Size.Height = 48.000000000000000000
+    inherited Label1: TLabel
+      Size.Width = 250.000000000000000000
+      Size.Height = 48.000000000000000000
+    end
+    inherited SpeedButtonMenu: TSpeedButton
+      Size.Width = 48.000000000000000000
+      Size.Height = 48.000000000000000000
+    end
+  end
+  inherited TabControlMain: TTabControl
+    Size.Width = 250.000000000000000000
+    Size.Height = 327.000000000000000000
+    inherited TabItemThrottle: TTabItem
+      Size.Width = 8.000000000000000000
+      Size.Height = 8.000000000000000000
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+      inherited RectangleThrottleBkGnd: TRectangle
+        Size.Width = 250.000000000000000000
+        Size.Height = 327.000000000000000000
+        inherited FlowLayout1: TFlowLayout
+          Size.Width = 250.000000000000000000
+          inherited ColorButton1: TColorButton
+            Position.X = 32.000000000000000000
+          end
+          inherited ColorButton2: TColorButton
+            Position.X = 125.000000000000000000
+          end
+          inherited ColorButton3: TColorButton
+            Position.X = 32.000000000000000000
+            Position.Y = 54.000000000000000000
+          end
+          inherited ColorButton4: TColorButton
+            Position.X = 125.000000000000000000
+            Position.Y = 54.000000000000000000
+          end
+          inherited ColorButton5: TColorButton
+            Position.X = 32.000000000000000000
+            Position.Y = 108.000000000000000000
+          end
+          inherited ColorButton6: TColorButton
+            Position.X = 125.000000000000000000
+            Position.Y = 108.000000000000000000
+          end
+          inherited ColorButton7: TColorButton
+            Position.X = 32.000000000000000000
+            Position.Y = 162.000000000000000000
+          end
+          inherited ColorButton8: TColorButton
+            Position.X = 125.000000000000000000
+            Position.Y = 162.000000000000000000
+          end
+          inherited ColorButton10: TColorButton
+            Position.X = 32.000000000000000000
+            Position.Y = 216.000000000000000000
+          end
+          inherited ColorButton11: TColorButton
+            Position.X = 125.000000000000000000
+            Position.Y = 216.000000000000000000
+          end
+          inherited ColorButton12: TColorButton
+            Position.X = 32.000000000000000000
+            Position.Y = 270.000000000000000000
+          end
+          inherited ColorButton9: TColorButton
+            Position.X = 125.000000000000000000
+            Position.Y = 270.000000000000000000
+          end
+        end
+        inherited Layout1: TLayout
+          Size.Width = 250.000000000000000000
+          Size.Height = 124.000000000000000000
+          inherited Label2: TLabel
+            Size.Height = 124.000000000000000000
+          end
+          inherited Label3: TLabel
+            Size.Width = 177.000000000000000000
+            Size.Height = 124.000000000000000000
+          end
+        end
+        inherited Layout2: TLayout
+          Size.Width = 250.000000000000000000
+          Size.Height = 0.000000000000000000
+          inherited ArcDialThrottle: TArcDial
+            Size.Width = 234.000000000000000000
+            Size.Height = 0.000000000000000000
+          end
+        end
+      end
+    end
+    inherited TabItemSelectThrottle: TTabItem
+      Size.Width = 8.000000000000000000
+      Size.Height = 8.000000000000000000
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+    end
+    inherited TabItemRoute: TTabItem
+      Size.Width = 8.000000000000000000
+      Size.Height = 8.000000000000000000
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+    end
+    inherited TabItemSettings: TTabItem
+      Size.Width = 8.000000000000000000
+      Size.Height = 8.000000000000000000
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+      inherited ListBoxSettings: TListBox
+        Size.Width = 250.000000000000000000
+        Size.Height = 327.000000000000000000
+        Viewport.Width = 250.000000000000000000
+        Viewport.Height = 327.000000000000000000
+        inherited ListBoxItemSettingsServer: TListBoxItem
+          Size.Width = 250.000000000000000000
+          Size.Height = 65.000000000000000000
+          inherited EditSettingsServer: TEdit
+            Position.Y = 32.000000000000000000
+            Size.Height = 32.000000000000000000
+            inherited LabelSettingsServer: TLabel
+              Position.Y = -19.000000000000000000
+            end
+          end
+        end
+        inherited ListBoxItemSettingsPort: TListBoxItem
+          Position.Y = 65.000000000000000000
+          Size.Width = 250.000000000000000000
+          Size.Height = 72.000000000000000000
+          inherited EditSettingsPort: TEdit
+            Position.Y = 32.000000000000000000
+            Size.Height = 32.000000000000000000
+            inherited LabelSettingsPort: TLabel
+              Position.Y = -19.000000000000000000
+            end
+          end
+        end
+      end
+    end
+  end
+end

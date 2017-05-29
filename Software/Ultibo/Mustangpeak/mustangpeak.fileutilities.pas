@@ -18,6 +18,9 @@ uses
     FMX.Forms,
     System.IOUtils,
   {$ENDIF}
+  {$IFDEF IOS}    // Delphi only
+  iOSapi.Foundation,
+  {$ENDIF}
   Classes, SysUtils;
 
 const
@@ -33,7 +36,21 @@ function GetSettingsPath: string;
 
 Function ValidateIP(IP4: string): Boolean; // Coding by Dave Sonsalla
 
+{$IFDEF IOS}   // Delphi only
+function GetFolder_Bundle() : String;
+{$ENDIF}
+
 implementation
+
+{$IFDEF IOS}   // Delphi only
+function GetFolder_Bundle() : String;
+var
+  LBundle: NSBundle;
+begin
+  LBundle := TNSBundle.Wrap(TNSBundle.OCClass.mainBundle);
+  Result := UTF8ToString(LBundle.bundlePath.UTF8String) + PathDelim;
+end;
+{$ENDIF}
 
 function GetSettingsPath: string;
 {$IFDEF DARWIN}

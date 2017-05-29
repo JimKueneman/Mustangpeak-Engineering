@@ -11,7 +11,8 @@ unit lcc.node;
 interface
 
 uses
-  Classes, SysUtils, lcc.types, contnrs, {$IFDEF FPC}fpTimer,{$ELSE}XMLDoc,{$ENDIF} lcc.types.can,
+  Classes, SysUtils, lcc.types, {$IFDEF FPC}contnrs,{$ELSE}System.Generics.Collections,{$ENDIF}
+  {$IFDEF FPC}fpTimer,{$ELSE}XMLDoc,{$ENDIF} lcc.types.can,
   lcc.message, protocol.snip, protocol.events, protocol.pip, protocol.acdi.mfg,
   protocol.acdi.user, lcc.utilities, mustangpeak.xmlutilities,
   mustangpeak.threadedcirculararray, protocol.datagram.configuration,
@@ -64,6 +65,7 @@ type
   private
     FAliasIDEngine: TLccAliasIDEngine;
     FCDI: TMustangpeakXmlDocument;
+    FCdiFileName: string;
     FDatagramQueue: TDatagramQueue;
     FInitialized: Boolean;
     FMsgQueueReceived: TThreadedCirularArrayObject;
@@ -90,10 +92,10 @@ type
     procedure SendAllConsumedEvents;
     procedure SendAllEvents;
     property CDI: TMustangpeakXmlDocument read FCDI write FCDI;
+    property CdiFileName: string read FCdiFileName write FCdiFileName;
     property DatagramQueue: TDatagramQueue read FDatagramQueue write FDatagramQueue;
   public
     constructor Create(NodeDefinitionXmlFile: string); {$IFNDEF FPC}overload;{$ENDIF}
-    constructor Create(NodeDefinitionXmlDoc: TMustangpeakXmlDocument); {$IFNDEF FPC}overload;{$ENDIF}
     destructor Destroy; override;
     function Start: Boolean; virtual;
     function ProcessMessages: Boolean;
@@ -123,11 +125,11 @@ type
   TDatagramQueue = class
   private
     FOwnerNode: TLccNode;
-    FQueue: TObjectList;
+    FQueue: TObjectList{$IFNDEF FPC}<TLccMessage>{$ENDIF};
     FTimer: TFPTimer;
   protected
     property OwnerNode: TLccNode read FOwnerNode write FOwnerNode;
-    property Queue: TObjectList read FQueue write FQueue;
+    property Queue: TObjectList{$IFNDEF FPC}<TLccMessage>{$ENDIF} read FQueue write FQueue;
     property Timer: TFPTimer read FTimer write FTimer;
     function FindBySourceNode(LccMessage: TLccMessage): Integer;
     procedure OnTimer(Sender: TObject);
@@ -342,15 +344,14 @@ function TLccNode.ProcessMessages: Boolean;
 var
   LccMessages: TDynamicArrayObject;
   LccMessage, LccMessageOut: TLccMessage;
-  i, j: Integer;
+  i: Integer;
   LocalNodeID: TNodeID;
   LocalEventID: TEventID;
   EventObj: TLccEvent;
-  s: string;
 begin
+  Result := False;
   Sleep(1);
 
-  LccMessage := nil;
   LccMessages := nil;
 
   // If using aliases run the message loop to manage them.
@@ -790,7 +791,7 @@ end;
 function TLccNode.ProcessNodeDefinitionXml(XML: TMustangpeakXmlDocument): Boolean;
 var
   Node, RootNode: TMustangpeakXmlNode;
-  s, CdiFile, EventState: string;
+  s, EventState: string;
   Supported: Boolean;
   MemSpaceIsPresent, MemSpaceReadOnly, MemAssumedZeroAddressLo: Boolean;
   MemAddressLo, MemAddressHi: DWord;
@@ -903,6 +904,7 @@ begin
             MemSpaceIsPresent := Lowercase( XmlAttributeRead(Node, 'present')) = 'true';
             MemSpaceReadOnly := Lowercase( XmlAttributeRead(Node, 'readonly')) = 'true';
             MemAddressHi := StrToInt64(XmlAttributeRead(Node, 'addresshi'));
+            MemAddressLo := 0;
             if XmlAttributeExists(Node, 'addresslo') then
               MemAddressLo := StrToInt64(XmlAttributeRead(Node, 'addresslo'))
             else
@@ -989,34 +991,12 @@ begin
       end;
 
       // Load our CDI File
+      CdiFileName := '';
       Node := XmlFindChildNode(RootNode, 'cdi');
       if Assigned(Node) then
       begin
-        {$IFDEF LCC_WINDOWS}
-        Node := XmlFindChildNode(Node, 'path_win');
-        {$ELSE}
-          {$IFDEF ULTIBO}
-          Node := XmlFindChildNode(Node, 'path_ultibo');
-          {$ELSE}
-          Node := XmlFindChildNode(Node, 'path');
-          {$ENDIF}
-        {$ENDIF}
         if Assigned(Node) then
-        begin
-          CdiFile := XmlNodeTextContent(Node);
-          if FileExists(CdiFile) then
-          begin
-            CDI := XmlLoadFromFile(CdiFile);
-            ProtocolConfigDefinitionInfo.LoadFromXml(CdiFile, nil);
-            Node := XmlFindChildNode(RootNode, 'snip');
-            if Assigned(Node) then
-              if Lowercase(XmlNodeTextContent(Node)) = 'true' then
-                ProtocolSnip.LoadFromCdiXmlDoc(CDI);
-          end;
-        end else
-        begin
-          beep;
-        end;
+          CdiFileName := XmlNodeTextContent(Node);
       end;
 
       // If we make it we are likely ok, should have a bit more checking....  1/18/17
@@ -1122,8 +1102,17 @@ begin
        if ProcessNodeDefinitionXml(XML) then
        begin
           AliasIDEngine.LoginID := NodeID;
-
+          if CdiFileName <> '' then
+          begin
+            CdiFileName := IncludeTrailingPathDelimiter( ExtractFileDir(NodeDefinitionXmlFile)) + CdiFileName;
+            if FileExists(CdiFileName) then
+            begin
+              CDI := XmlLoadFromFile(CdiFileName);
+              ProtocolConfigDefinitionInfo.LoadFromXml(CdiFileName, nil);
+              ProtocolSnip.LoadFromCdiXmlDoc(CDI);
+            end;
    {$IFDEF FPC}
+          end;
        end else
          Fail;
      end else
@@ -1134,15 +1123,8 @@ begin
           end
        end
      end
+   end;
    {$ENDIF}
-end;
-
-constructor TLccNode.Create(NodeDefinitionXmlDoc: TMustangpeakXmlDocument);
-begin
-  if not ProcessNodeDefinitionXml(NodeDefinitionXmlDoc) then
-  {$IFDEF FPC}
-    Fail;
-  {$ENDIF}
 end;
 
 destructor TLccNode.Destroy;
@@ -1190,7 +1172,7 @@ end;
 
 constructor TDatagramQueue.Create(ANode: TLccNode);
 begin
-  Queue := TObjectList.Create;
+  Queue := TObjectList{$IFNDEF FPC}<TLccMessage>{$ENDIF}.Create;
   Queue.OwnsObjects := True;
   FOwnerNode := ANode;
   FTimer := TFPTimer.Create(nil);

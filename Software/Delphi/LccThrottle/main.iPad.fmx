@@ -1,0 +1,121 @@
+inherited Form1_iPad: TForm1_iPad
+  ClientHeight = 1004
+  ClientWidth = 768
+  DesignerMasterStyle = 2
+  inherited ToolBar1: TToolBar
+    Size.Width = 768.000000000000000000
+    inherited Label1: TLabel
+      Size.Width = 768.000000000000000000
+    end
+  end
+  inherited TabControlMain: TTabControl
+    Size.Width = 768.000000000000000000
+    Size.Height = 960.000000000000000000
+    inherited TabItemThrottle: TTabItem
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+      inherited RectangleThrottleBkGnd: TRectangle
+        Opacity = 0.699999988079071000
+        Size.Width = 768.000000000000000000
+        Size.Height = 960.000000000000000000
+        inherited FlowLayout1: TFlowLayout
+          Size.Width = 768.000000000000000000
+          inherited ColorButton1: TColorButton
+            Position.X = 12.000000000000000000
+            inherited LabelF00: TLabel
+              Padding.Left = 4.000000000000000000
+            end
+          end
+          inherited ColorButton2: TColorButton
+            Position.X = 105.000000000000000000
+          end
+          inherited ColorButton3: TColorButton
+            Position.X = 198.000000000000000000
+          end
+          inherited ColorButton4: TColorButton
+            Position.X = 291.000000000000000000
+          end
+          inherited ColorButton5: TColorButton
+            Position.X = 384.000000000000000000
+          end
+          inherited ColorButton6: TColorButton
+            Position.X = 477.000000000000000000
+          end
+          inherited ColorButton7: TColorButton
+            Position.X = 570.000000000000000000
+          end
+          inherited ColorButton8: TColorButton
+            Position.X = 663.000000000000000000
+          end
+          inherited ColorButton10: TColorButton
+            Position.X = 198.000000000000000000
+            Position.Y = 54.000000000000000000
+          end
+          inherited ColorButton11: TColorButton
+            Position.X = 291.000000000000000000
+            Position.Y = 54.000000000000000000
+          end
+          inherited ColorButton12: TColorButton
+            Position.X = 384.000000000000000000
+            Position.Y = 54.000000000000000000
+          end
+          inherited ColorButton9: TColorButton
+            Position.X = 477.000000000000000000
+            Position.Y = 54.000000000000000000
+          end
+        end
+        inherited Layout1: TLayout
+          Align = Top
+          Position.Y = 203.000000000000000000
+          Size.Width = 768.000000000000000000
+          Size.Height = 54.000000000000000000
+          inherited Label2: TLabel
+            Size.Height = 54.000000000000000000
+          end
+          inherited Label3: TLabel
+            Size.Width = 695.000000000000000000
+            Size.Height = 54.000000000000000000
+          end
+        end
+        inherited Layout2: TLayout
+          Size.Width = 768.000000000000000000
+          Size.Height = 703.000000000000000000
+          inherited ArcDialThrottle: TArcDial
+            Size.Width = 752.000000000000000000
+            Size.Height = 687.000000000000000000
+          end
+        end
+      end
+    end
+    inherited TabItemSelectThrottle: TTabItem
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+    end
+    inherited TabItemRoute: TTabItem
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+    end
+    inherited TabItemSettings: TTabItem
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+      inherited ListBoxSettings: TListBox
+        Size.Width = 768.000000000000000000
+        Size.Height = 960.000000000000000000
+        Viewport.Width = 768.000000000000000000
+        Viewport.Height = 960.000000000000000000
+        inherited ListBoxItemSettingsServer: TListBoxItem
+          Size.Width = 768.000000000000000000
+          inherited EditSettingsServer: TEdit
+            inherited LabelSettingsServer: TLabel
+              Padding.Bottom = 8.000000000000000000
+              Margins.Bottom = 8.000000000000000000
+            end
+          end
+        end
+        inherited ListBoxItemSettingsPort: TListBoxItem
+          Size.Width = 768.000000000000000000
+        end
+      end
+    end
+  end
+end

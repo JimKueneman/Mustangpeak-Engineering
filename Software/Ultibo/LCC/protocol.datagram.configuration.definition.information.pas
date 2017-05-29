@@ -85,6 +85,7 @@ function TProtocolConfigDefinitionInfo.LoadSNIP(ASnip: TProtocolSnip): Boolean;
 var
   XmlDoc: TMustangpeakXmlDocument;
 begin
+  Result := False;
   if Assigned(ASnip) then
   begin
     XmlDoc := XmlLoadFromStream(AStream);
@@ -94,6 +95,7 @@ begin
     {$ELSE}
     XmlDoc := nil;
     {$ENDIF}
+    Result := True;
   end;
 end;
 

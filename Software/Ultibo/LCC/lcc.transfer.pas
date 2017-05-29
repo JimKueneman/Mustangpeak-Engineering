@@ -107,9 +107,6 @@ var
   Node: TLccNode;
   LccMessage: TLccMessage;
   NextByte: Byte;
-  s: string;
-  Code: Integer;
-
 begin
   if Verbose then WriteLn('Starting Transfer Thread: ' + ClassName);
   while not Terminated do
@@ -164,7 +161,7 @@ begin
         end;
       td_In :
         begin
-          NextByte := SocketReference.RecvByte(INFINITE);
+          NextByte := SocketReference.RecvByte(Integer( INFINITE));
           if not Terminated then
           begin
             case SocketReference.LastError of
@@ -196,9 +193,6 @@ begin
 
                 if Verbose then WriteLn('Error (maybe WSACONNRESET) Returned in Receive Thread: ' + ClassName);
 
-                s := SocketReference.LastErrorDesc;
-                Code := SocketReference.LastError;
-
                 // For a server application this allow the receive thread to own the
                 // send thread and associated socket and free then if the client shuts
                 // down the connection
@@ -224,12 +218,12 @@ end;
 
 function TLccTransferThread.TransferMessageToWire(AMessage: TLccMessage): Boolean;
 begin
-
+  Result := False
 end;
 
 function TLccTransferThread.TransferWireToMessage(AByte: Byte; var AMessage: TLccMessage; var SendAsError: Boolean): Boolean;
 begin
-
+  Result := False
 end;
 
 initialization

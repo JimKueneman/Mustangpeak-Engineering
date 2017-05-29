@@ -78,11 +78,5 @@
 			<event>0019</event>
 		</consumed>
 	</events>
-	<cdi>
-		<path>/Users/jimkueneman/Documents/Mustangpeak Engineering/Software/Ultibo/Example/Lazarus/example_cdi.xml</path>
-		<path_win>Z:\Software\Ultibo\Example\Lazarus\example_cdi.xml</path_win>
-	</cdi>
-	<snip>
-		<loadfromcdi>true</loadfromcdi>
-	</snip>
+	<cdi>ExampleCdi.xml</cdi>
 </node>

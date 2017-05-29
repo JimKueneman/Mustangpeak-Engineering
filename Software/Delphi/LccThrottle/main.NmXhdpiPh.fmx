@@ -1,0 +1,110 @@
+inherited Form1_NmXhdpiPh: TForm1_NmXhdpiPh
+  ClientHeight = 615
+  ClientWidth = 400
+  DesignerMasterStyle = 2
+  inherited ToolBar1: TToolBar
+    Size.Width = 400.000000000000000000
+    Size.Height = 48.000000000000000000
+    inherited Label1: TLabel
+      Size.Width = 400.000000000000000000
+      Size.Height = 48.000000000000000000
+    end
+    inherited SpeedButtonMenu: TSpeedButton
+      Size.Width = 48.000000000000000000
+      Size.Height = 48.000000000000000000
+    end
+  end
+  inherited TabControlMain: TTabControl
+    Size.Width = 400.000000000000000000
+    Size.Height = 567.000000000000000000
+    inherited TabItemThrottle: TTabItem
+      Size.Width = 8.000000000000000000
+      Size.Height = 8.000000000000000000
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+      inherited RectangleThrottleBkGnd: TRectangle
+        Size.Width = 400.000000000000000000
+        Size.Height = 567.000000000000000000
+        inherited FlowLayout1: TFlowLayout
+          Size.Width = 400.000000000000000000
+          inherited ColorButton1: TColorButton
+            Position.X = 14.000000000000000000
+          end
+          inherited ColorButton2: TColorButton
+            Position.X = 107.000000000000000000
+          end
+          inherited ColorButton3: TColorButton
+            Position.X = 200.000000000000000000
+          end
+          inherited ColorButton4: TColorButton
+            Position.X = 293.000000000000000000
+          end
+          inherited ColorButton5: TColorButton
+            Position.X = 14.000000000000000000
+          end
+          inherited ColorButton6: TColorButton
+            Position.X = 107.000000000000000000
+          end
+          inherited ColorButton7: TColorButton
+            Position.X = 200.000000000000000000
+          end
+          inherited ColorButton8: TColorButton
+            Position.X = 293.000000000000000000
+          end
+          inherited ColorButton10: TColorButton
+            Position.X = 14.000000000000000000
+          end
+          inherited ColorButton11: TColorButton
+            Position.X = 107.000000000000000000
+          end
+          inherited ColorButton12: TColorButton
+            Position.X = 200.000000000000000000
+          end
+          inherited ColorButton9: TColorButton
+            Position.X = 293.000000000000000000
+          end
+        end
+        inherited Layout1: TLayout
+          Align = Top
+          Position.Y = 203.000000000000000000
+          Size.Width = 400.000000000000000000
+          inherited Label3: TLabel
+            Size.Width = 327.000000000000000000
+          end
+        end
+        inherited Layout2: TLayout
+          Size.Width = 400.000000000000000000
+          Size.Height = 331.000000000000000000
+          inherited ArcDialThrottle: TArcDial
+            Size.Width = 384.000000000000000000
+            Size.Height = 315.000000000000000000
+          end
+        end
+      end
+    end
+    inherited TabItemSelectThrottle: TTabItem
+      Size.Width = 8.000000000000000000
+      Size.Height = 8.000000000000000000
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+    end
+    inherited TabItemRoute: TTabItem
+      Size.Width = 8.000000000000000000
+      Size.Height = 8.000000000000000000
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+    end
+    inherited TabItemSettings: TTabItem
+      Size.Width = 8.000000000000000000
+      Size.Height = 8.000000000000000000
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
+      inherited ListBoxSettings: TListBox
+        Size.Width = 50.000000000000000000
+        Size.Height = 50.000000000000000000
+        Viewport.Width = 330.000000000000000000
+        Viewport.Height = 513.000000000000000000
+      end
+    end
+  end
+end

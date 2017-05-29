@@ -441,7 +441,6 @@ var
   ByteStr: String;
   DestHi, DestLo: Byte;
   ZeroIndex: Boolean;
-  CAN_FrameType: DWord;
 begin
   Result := False;
   if GridConnectStr <> '' then

@@ -67,8 +67,10 @@ procedure XmlAttributeRemove(TargetNode: TMustangpeakXmlNode; Attribute: string)
 implementation
 
 procedure XmlAttributeForce(XmlDoc: TMustangpeakXmlDocument; TargetNode: TMustangpeakXmlNode; Attribute, Content: string);
+{$IFDEF FPC}
 var
   AttributeNode: TMustangpeakXmlNode;
+{$ENDIF}
 begin
   {$IFDEF FPC}
   if Assigned( TargetNode.Attributes) then
@@ -96,13 +98,15 @@ begin
   if Assigned(Node) then
     Result := string( Node.NodeValue);
   {$ELSE}
-  Result := TargetNode.Attributes[Attribute];
+  if TargetNode.HasAttribute(Attribute) then
+    Result := TargetNode.Attributes[Attribute]
+  else
+    Result := '';
   {$ENDIF}
 end;
 
 function XmlAttributeExists(TargetNode: TMustangpeakXmlNode; Attribute: string): Boolean;
 begin
-  Result := False;
   {$IFDEF FPC}
   if Assigned( TargetNode.Attributes) then
     Result := Assigned(TargetNode.Attributes.GetNamedItem(DOMString(Attribute)));
@@ -342,8 +346,10 @@ begin
 end;
 
 function XmlAttributeCreateAndSet(XmlDoc: TMustangpeakXmlDocument; TargetNode: TMustangpeakXmlNode; Attribute, Content: string): Boolean;
+{$IFDEF FPC}
 var
   AttributeNode: TMustangpeakXmlAttribute;
+{$ENDIF}
 begin
   Result := True;
   {$IFDEF FPC}

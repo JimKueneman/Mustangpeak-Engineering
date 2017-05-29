@@ -112,6 +112,7 @@ function TProtocolSnip.LoadFromCdiXmlDoc(CdiXMLDoc: TMustangpeakXmlDocument): Bo
 var
   CdiNode, IdentificationNode, ChildNode: TMustangpeakXmlNode;
 begin
+  Result := False;
   if Assigned(CdiXMLDoc) then
   begin
     CdiNode := XmlFindRootNode(CdiXMLDoc, 'cdi');

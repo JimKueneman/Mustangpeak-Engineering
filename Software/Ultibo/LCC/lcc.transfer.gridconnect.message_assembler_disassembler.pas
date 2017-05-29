@@ -115,7 +115,11 @@ var
 begin
   try
     for i := 0 to Messages.Count - 1 do
+    {$IFDEF FPC}
       Messages[i].Free
+    {$ELSE}
+      Messages[i].DisposeOf;
+    {$ENDIF}
   finally
     Messages.Clear;
   end;

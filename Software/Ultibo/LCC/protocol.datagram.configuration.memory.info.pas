@@ -79,7 +79,11 @@ var
 begin
   try
     for i := 0 to List.Count - 1 do
-      TObject(List[i]).Free;
+    {$IFDEF FPC}
+      List[i].Free;
+    {$ELSE}
+      List[i].DisposeOf
+    {$ENDIF}
   finally
     List.Clear
   end;
