@@ -8,7 +8,7 @@ object Form1: TForm1
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
   OnCreate = FormCreate
-  DesignerMasterStyle = 3
+  DesignerMasterStyle = 0
   object ToolBar1: TToolBar
     Size.Width = 296.000000000000000000
     Size.Height = 48.000000000000000000
@@ -31,6 +31,7 @@ object Form1: TForm1
       Size.PlatformDefault = False
       StyleLookup = 'detailstoolbutton'
       Text = 'Grab a Throttle'
+      OnClick = SpeedButtonMenuClick
     end
   end
   object TabControlMain: TTabControl
@@ -327,9 +328,9 @@ object Form1: TForm1
                 Margins.Right = 16.000000000000000000
                 Margins.Bottom = 4.000000000000000000
                 Position.X = 77.000000000000000000
-                Position.Y = 7.000000000000000000
+                Position.Y = 4.000000000000000000
                 Size.Width = 44.000000000000000000
-                Size.Height = 26.000000000000000000
+                Size.Height = 32.000000000000000000
                 Size.PlatformDefault = False
                 TabOrder = 0
               end
@@ -445,6 +446,57 @@ object Form1: TForm1
       Text = 'TabItemSelectThrottle'
       ExplicitSize.cx = 8.000000000000000000
       ExplicitSize.cy = 8.000000000000000000
+      object Circle1: TCircle
+        Fill.Kind = Gradient
+        Fill.Gradient.Points = <
+          item
+            Color = xFF464646
+            Offset = 0.000000000000000000
+          end
+          item
+            Color = claWhite
+            Offset = 1.000000000000000000
+          end>
+        Fill.Gradient.Style = Radial
+        Position.X = 72.000000000000000000
+        Position.Y = 160.000000000000000000
+        Size.Width = 193.000000000000000000
+        Size.Height = 193.000000000000000000
+        Size.PlatformDefault = False
+        Stroke.Kind = Gradient
+        Stroke.Gradient.Points = <
+          item
+            Color = xFF494949
+            Offset = 0.000000000000000000
+          end
+          item
+            Color = claWhite
+            Offset = 1.000000000000000000
+          end>
+        Stroke.Gradient.StartPosition.X = 0.500000000000000000
+        Stroke.Gradient.StopPosition.X = 0.499999970197677600
+        object Label2: TLabel
+          Align = Center
+          StyledSettings = [Family, FontColor]
+          Size.Width = 165.000000000000000000
+          Size.Height = 69.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Size = 36.000000000000000000
+          TextSettings.Font.Style = [fsBold]
+          TextSettings.HorzAlign = Center
+          Text = '0'
+          object Label3: TLabel
+            Align = Top
+            StyledSettings = [Family, Style, FontColor]
+            Size.Width = 165.000000000000000000
+            Size.Height = 17.000000000000000000
+            Size.PlatformDefault = False
+            TextSettings.Font.Size = 14.000000000000000000
+            TextSettings.HorzAlign = Center
+            Text = 'Speed:'
+          end
+        end
+      end
     end
     object TabItemRoute: TTabItem
       CustomIcon = <
@@ -466,14 +518,14 @@ object Form1: TForm1
         FooterAppearanceClassName = 'TListHeaderObjects'
         EditMode = True
         Align = Client
-        Size.Width = 296.000000000000000000
-        Size.Height = 446.000000000000000000
+        Size.Width = 50.000000000000000000
+        Size.Height = 25.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 0
       end
       object RectangleRouteHeader: TRectangle
         Align = MostTop
-        Size.Width = 296.000000000000000000
+        Size.Width = 50.000000000000000000
         Size.Height = 25.000000000000000000
         Size.PlatformDefault = False
       end
@@ -493,19 +545,19 @@ object Form1: TForm1
       ExplicitSize.cy = 8.000000000000000000
       object ListBoxSettings: TListBox
         Align = Client
-        Size.Width = 296.000000000000000000
-        Size.Height = 471.000000000000000000
+        Size.Width = 50.000000000000000000
+        Size.Height = 50.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 0
         DisableFocusEffect = True
         DefaultItemStyles.ItemStyle = ''
         DefaultItemStyles.GroupHeaderStyle = ''
         DefaultItemStyles.GroupFooterStyle = ''
-        Viewport.Width = 296.000000000000000000
-        Viewport.Height = 471.000000000000000000
+        Viewport.Width = 30.000000000000000000
+        Viewport.Height = 46.000000000000000000
         object ListBoxItemSettingsServer: TListBoxItem
           EnableDragHighlight = False
-          Size.Width = 296.000000000000000000
+          Size.Width = 30.000000000000000000
           Size.Height = 81.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
@@ -531,7 +583,7 @@ object Form1: TForm1
         object ListBoxItemSettingsPort: TListBoxItem
           EnableDragHighlight = False
           Position.Y = 81.000000000000000000
-          Size.Width = 296.000000000000000000
+          Size.Width = 30.000000000000000000
           Size.Height = 88.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 1
@@ -563,7 +615,7 @@ object Form1: TForm1
         object ListBoxItemLefty: TListBoxItem
           EnableDragHighlight = False
           Position.Y = 169.000000000000000000
-          Size.Width = 296.000000000000000000
+          Size.Width = 30.000000000000000000
           Size.Height = 40.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 2
@@ -588,10 +640,10 @@ object Form1: TForm1
             Margins.Top = 4.000000000000000000
             Margins.Right = 16.000000000000000000
             Margins.Bottom = 4.000000000000000000
-            Position.X = 236.000000000000000000
-            Position.Y = 7.000000000000000000
+            Position.X = -30.000000000000000000
+            Position.Y = 4.000000000000000000
             Size.Width = 44.000000000000000000
-            Size.Height = 26.000000000000000000
+            Size.Height = 32.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 1
             OnSwitch = SwitchLeftySwitch
@@ -604,7 +656,7 @@ object Form1: TForm1
     Mode = Drawer
     SplitViewOptions.Placement = Right
     Size.Width = 250.000000000000000000
-    Size.Height = 436.000000000000000000
+    Size.Height = 471.000000000000000000
     Size.PlatformDefault = False
     Visible = False
     TabOrder = 1
@@ -7466,14 +7518,14 @@ object Form1: TForm1
       Fill.Kind = Bitmap
       Opacity = 0.349999994039535500
       Size.Width = 249.000000000000000000
-      Size.Height = 436.000000000000000000
+      Size.Height = 471.000000000000000000
       Size.PlatformDefault = False
       Stroke.Kind = None
     end
     object LayoutMenu: TLayout
       Align = Client
       Size.Width = 249.000000000000000000
-      Size.Height = 436.000000000000000000
+      Size.Height = 471.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 1
       object LayoutNavigatorExistingThrottle: TLayout

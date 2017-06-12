@@ -317,20 +317,15 @@ object FormEventTower: TFormEventTower
       Top = 104
       Width = 717
       Align = alClient
-      Alignment = taLeftJustify
-      BevelOuter = bvNone
-      Caption = 'VirtualListview1'
-      ClientHeight = 281
-      ClientWidth = 717
       Color = clWindow
       ParentColor = False
       TabOrder = 1
+      Alignment = taLeftJustify
       CaptionIndent = 4
       CaptionLineCount = 1
       DefaultItemHeight = 44
       DetailsFont.Color = clGray
       DetailsIndent = 8
-      OnDebugEvent = VirtualListview1DebugEvent
       TextLayout = vtlTop
     end
   end

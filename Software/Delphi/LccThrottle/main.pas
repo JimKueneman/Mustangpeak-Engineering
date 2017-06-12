@@ -77,6 +77,9 @@ type
     EditAddress: TEdit;
     LabelTrainName: TLabel;
     Layout4: TLayout;
+    Circle1: TCircle;
+    Label2: TLabel;
+    Label3: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure LayoutNavigatorExistingThrottleClick(Sender: TObject);
     procedure LayoutNavigatorNewThrottleClick(Sender: TObject);
@@ -89,6 +92,7 @@ type
     procedure EditAddressKeyDown(Sender: TObject; var Key: Word; var KeyChar: Char; Shift: TShiftState);
     procedure EditAddressEnter(Sender: TObject);
     procedure ArcDialThrottleEnter(Sender: TObject);
+    procedure SpeedButtonMenuClick(Sender: TObject);
   private
     FArcDialLastAngle: single;
     { Private declarations }
@@ -119,7 +123,7 @@ begin
 
   if Angle <> ArcDialLastAngle then
   begin
-    if abs(ArcDialLastAngle - Angle) <>  then
+ //   if abs(ArcDialLastAngle - Angle) <>  then
 
   end;
   LabelThrottleSpeed.Text := FloatToStrF(Angle, ffGeneral, 0, 0, FormatSettings)
@@ -190,6 +194,11 @@ end;
 procedure TForm1.LoadDccAddress;
 begin
   LabelStatusBar.Text := 'Loading Address';
+end;
+
+procedure TForm1.SpeedButtonMenuClick(Sender: TObject);
+begin
+  MultiViewNavigator.ShowMaster;
 end;
 
 procedure TForm1.SwitchLeftySwitch(Sender: TObject);

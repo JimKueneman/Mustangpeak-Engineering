@@ -32,95 +32,67 @@
         <FormatVersion Value="1"/>
       </local>
     </RunParams>
-    <Units Count="22">
+    <Units Count="15">
       <Unit0>
         <Filename Value="SimpleNode.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit0>
       <Unit1>
-        <Filename Value="..\..\Mustangpeak_Lib\mustangpeak_xmlutilities.pas"/>
+        <Filename Value="..\..\LCC\protocol.snip.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit1>
       <Unit2>
-        <Filename Value="..\..\LCC\baseobjects.pas"/>
+        <Filename Value="..\..\LCC\protocol.pip.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit2>
       <Unit3>
-        <Filename Value="..\..\LCC\basemessage.pas"/>
+        <Filename Value="..\..\LCC\protocol.traction.stni.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit3>
       <Unit4>
-        <Filename Value="..\..\LCC\basetypes.pas"/>
+        <Filename Value="..\..\LCC\protocol.traction.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit4>
       <Unit5>
-        <Filename Value="..\..\Mustangpeak_Lib\mustangpeak_half_float.pas"/>
+        <Filename Value="..\..\LCC\protocol.events.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit5>
       <Unit6>
-        <Filename Value="..\..\LCC\baseutilities.pas"/>
+        <Filename Value="..\..\LCC\protocol.traction.fdi.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit6>
       <Unit7>
-        <Filename Value="..\..\LCC\protocol.snip.pas"/>
+        <Filename Value="..\..\LCC\protocol.traction.fci.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit7>
       <Unit8>
-        <Filename Value="..\..\LCC\protocol.pip.pas"/>
+        <Filename Value="..\..\LCC\protocol.datagram.cdi.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit8>
       <Unit9>
-        <Filename Value="..\..\LCC\protocol.traction.stni.pas"/>
+        <Filename Value="..\..\LCC\protocol.acdi.mfg.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit9>
       <Unit10>
-        <Filename Value="..\..\LCC\protocol.traction.pas"/>
+        <Filename Value="..\..\LCC\protocol.acdi.user.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit10>
       <Unit11>
-        <Filename Value="..\..\LCC\protocol.events.pas"/>
+        <Filename Value="..\..\LCC\protocol.datagram.configuration.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit11>
       <Unit12>
-        <Filename Value="..\..\LCC\protocol.traction.fdi.pas"/>
+        <Filename Value="..\..\LCC\protocol.datagram.configuration.memory.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit12>
       <Unit13>
-        <Filename Value="..\..\LCC\protocol.traction.fci.pas"/>
+        <Filename Value="..\..\LCC\protocol.datagram.configuration.memory.info.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit13>
       <Unit14>
-        <Filename Value="..\..\LCC\protocol.datagram.cdi.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit14>
-      <Unit15>
-        <Filename Value="..\..\LCC\protocol.acdi.mfg"/>
-        <IsPartOfProject Value="True"/>
-      </Unit15>
-      <Unit16>
-        <Filename Value="..\..\LCC\protocol.acdi.mfg.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit16>
-      <Unit17>
-        <Filename Value="..\..\LCC\protocol.acdi.user.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit17>
-      <Unit18>
-        <Filename Value="..\..\LCC\protocol.datagram.configuration.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit18>
-      <Unit19>
-        <Filename Value="..\..\LCC\protocol.datagram.configuration.memory.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit19>
-      <Unit20>
-        <Filename Value="..\..\LCC\protocol.datagram.configuration.memory.info.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit20>
-      <Unit21>
         <Filename Value="..\..\LCC\protocol.datagram.confguration.memory.options.pas"/>
         <IsPartOfProject Value="True"/>
-      </Unit21>
+      </Unit14>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

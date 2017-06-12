@@ -2,29 +2,28 @@ object FormLayoutBuilder: TFormLayoutBuilder
   Left = 0
   Top = 0
   Caption = 'Lcc Layout Builder 0.1'
-  ClientHeight = 415
-  ClientWidth = 650
+  ClientHeight = 401
+  ClientWidth = 594
   FormFactor.Width = 320
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
   OnCreate = FormCreate
-  OnCloseQuery = FormCloseQuery
   OnDestroy = FormDestroy
   DesignerMasterStyle = 0
   object LayoutBkgnd: TLayout
     Align = Client
     EnableDragHighlight = False
-    Size.Width = 650.000000000000000000
-    Size.Height = 393.000000000000000000
+    Size.Width = 594.000000000000000000
+    Size.Height = 379.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 0
     object ScrollBoxPanel: TScrollBox
       Touch.GestureManager = GestureManager
       Anchors = [akLeft, akTop, akRight, akBottom]
-      Position.X = 8.000000000000000000
+      Position.X = 144.000000000000000000
       Position.Y = 48.000000000000000000
-      Size.Width = 633.000000000000000000
-      Size.Height = 297.000000000000000000
+      Size.Width = 441.000000000000000000
+      Size.Height = 321.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 0
       OnDragEnter = ScrollBoxPanelDragEnter
@@ -33,8 +32,8 @@ object FormLayoutBuilder: TFormLayoutBuilder
       OnMouseDown = ScrollBoxPanelMouseDown
       OnMouseMove = ScrollBoxPanelMouseMove
       OnMouseUp = ScrollBoxPanelMouseUp
-      Viewport.Width = 633.000000000000000000
-      Viewport.Height = 297.000000000000000000
+      Viewport.Width = 441.000000000000000000
+      Viewport.Height = 321.000000000000000000
       object RectangleDragSelect: TRectangle
         Fill.Kind = Gradient
         Fill.Gradient.Points = <
@@ -59,55 +58,25 @@ object FormLayoutBuilder: TFormLayoutBuilder
         YRadius = 5.000000000000000000
       end
     end
-    object Button2: TButton
-      EnableDragHighlight = False
-      Position.X = 64.000000000000000000
-      Position.Y = 16.000000000000000000
-      Size.Width = 50.000000000000000000
-      Size.Height = 22.000000000000000000
-      Size.PlatformDefault = False
+    object CheckBoxEditMode: TCheckBox
+      Position.X = 232.000000000000000000
+      Position.Y = 8.000000000000000000
       TabOrder = 4
-      Text = 'Button1'
-      OnClick = Button2Click
-    end
-    object Button3: TButton
-      EnableDragHighlight = False
-      Position.X = 120.000000000000000000
-      Position.Y = 16.000000000000000000
-      Size.Width = 50.000000000000000000
-      Size.Height = 22.000000000000000000
-      Size.PlatformDefault = False
-      TabOrder = 3
-      Text = 'Button1'
-      OnClick = Button3Click
+      Text = 'Edit Mode'
+      OnChange = CheckBoxEditModeChange
     end
     object Button4: TButton
-      EnableDragHighlight = False
-      Position.X = 200.000000000000000000
-      Position.Y = 16.000000000000000000
-      Size.Width = 50.000000000000000000
-      Size.Height = 22.000000000000000000
-      Size.PlatformDefault = False
+      Position.X = 328.000000000000000000
+      Position.Y = 8.000000000000000000
       TabOrder = 5
       Text = 'Button4'
       OnClick = Button4Click
     end
-    object Button1: TButton
-      EnableDragHighlight = False
-      Position.X = 8.000000000000000000
-      Position.Y = 16.000000000000000000
-      Size.Width = 50.000000000000000000
-      Size.Height = 22.000000000000000000
-      Size.PlatformDefault = False
-      TabOrder = 6
-      Text = 'Button1'
-      OnClick = Button1Click
-    end
   end
   object StatusBar: TStatusBar
-    Position.Y = 393.000000000000000000
+    Position.Y = 379.000000000000000000
     ShowSizeGrip = True
-    Size.Width = 650.000000000000000000
+    Size.Width = 594.000000000000000000
     Size.Height = 22.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 1
@@ -128,6 +97,79 @@ object FormLayoutBuilder: TFormLayoutBuilder
       Size.PlatformDefault = False
       Text = 'Selected:'
     end
+    object LabelTrackSegmentCount: TLabel
+      Align = Left
+      Position.X = 401.000000000000000000
+      Size.Width = 192.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Segments:'
+    end
+  end
+  object MultiView1: TMultiView
+    NavigationPaneOptions.CollapsedWidth = 137.000000000000000000
+    Size.Width = 250.000000000000000000
+    Size.Height = 50.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    object LayoutMainDrawer: TLayout
+      Align = Client
+      Size.Width = 136.000000000000000000
+      Size.Height = 379.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      object RectangleMainMenu: TRectangle
+        Align = Client
+        Fill.Kind = Gradient
+        Fill.Gradient.Points = <
+          item
+            Color = claBlack
+            Offset = 0.000000000000000000
+          end
+          item
+            Color = xFF858585
+            Offset = 0.559006214141845700
+          end
+          item
+            Color = xFF858585
+            Offset = 1.000000000000000000
+          end
+          item
+            Color = claWhite
+            Offset = 1.000000000000000000
+          end>
+        Fill.Gradient.StartPosition.X = 0.500000000000000000
+        Fill.Gradient.StopPosition.X = 0.499999970197677600
+        Size.Width = 136.000000000000000000
+        Size.Height = 379.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object SpeedButton1: TSpeedButton
+        Action = ActionNewStraightSegment
+        Anchors = [akLeft, akTop, akRight]
+        Enabled = True
+        StyledSettings = [Family, Size, Style]
+        ImageIndex = -1
+        Size.Width = 136.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.FontColor = claWhitesmoke
+        Visible = True
+      end
+      object SpeedButton2: TSpeedButton
+        Action = ActionNewTurnoutSegment
+        Anchors = [akLeft, akTop, akRight]
+        Enabled = True
+        StyledSettings = [Family, Size, Style]
+        ImageIndex = -1
+        Position.Y = 40.000000000000000000
+        Size.Width = 137.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.FontColor = claWhitesmoke
+        Visible = True
+      end
+    end
   end
   object ImageList: TImageList
     Source = <
@@ -142,13 +184,13 @@ object FormLayoutBuilder: TFormLayoutBuilder
             PNG = {
               89504E470D0A1A0A0000000D494844520000002700000020080600000091A661
               8D000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              00C1494441545847ED97D10A80200C45ADFFFFE7CA68304259DBEEC6A27C128C
-              793A5ED35A2BDC96836DBBF87ABF4A3B99D62A34230E6EAE1CE76BCCFD99D364
-              07698B763D9FDF55BF7CE634A667CF726B2E5B7C02B4391818EA233CCA1A6235
-              A02704D41AC25C9835041C2D1FDC9A172ED49A172ED49A072EDC9A072EDC9A15
-              2EC59A152EC59A052ECD9A052ECD9A162ED59A162ED51AC175239215691C720B
-              B917D1DEE742CED0D99B69FF5B53E134E652C1C8E693CC85644A2AAA3127D5FA
-              D6F80EB4931430251B900D0000000049454E44AE426082}
+              00AF494441545847EDD4C10A83400C45D1D8FFFFE7DA3B22B810DA242FE9885E
+              28CCAA7D1CC7DACC2D9FCF7B3B8EF32C8D4DAF719CB4A3DC745D46EEB9739E94
+              5A677737F5FDB7903BAAC99E865A4EFA5229C695FD4F2AE5A46A941D57A6462A
+              39B91A65C695AA9142AE448DA2E3CAD5282B57A64691712D6A94912B5523EFB8
+              36358ACA95AB91675CAB1A45E45AD48871887C53695723AF5C9B1AF1631E95D6
+              711EB9D6617BBFDCB9BF14795B9FCCCC56B49314303023BDB70000000049454E
+              44AE426082}
             FileName = 
               'C:\Program Files\JMRI\resources\icons\track\line\LeftTO\os-lefth' +
               'and-west-closed-black.gif'
@@ -166,13 +208,12 @@ object FormLayoutBuilder: TFormLayoutBuilder
             PNG = {
               89504E470D0A1A0A0000000D494844520000002700000020080600000091A661
               8D000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              00BE494441545847ED97DD0A80200C46ADF77FE7CA485824E8B66F3F425E054E
-              3D9E3698A5241EDBC5763C7CF53BCBB899F62C343D0E6A2E1DE732E6FE9CE3E4
-              0EC256AB767A2E62DFFCD5CA313D8AA516D5F6D0D5AA06A2B747C3D1BD7BB938
-              32FF9AB78083D9B38083D9B38283D8B38283D8B38453DBB38453DBB38653D9B3
-              8653D9F38013DBF38013DBF38213D9F38213D9F38463DB632F60B515DFE0D97E
-              2FE4DDCA92C10A565A6BCBA7FBBC08B80A3905180537FA09213937825A67FE04
-              6E0E132F36C15F080000000049454E44AE426082}
+              00A9494441545847ED94C90E80300844ABFFFFCF2A78E1E052B62935BEA40907
+              53C707D22AB31C673B4BAEABC099562E8B22CD95631A73FFCC6988B07535B321
+              5DF8BC3989B4E8BE3BDA5CE8C766B6D5BD3F33C285D9CBFE215CF6B2C24DB34A
+              CCF632C3955B257798EC658773D9439923D4F610E1CCF690E608953D5438933D
+              B439A2DB1E329CDA9E7B512A91D69EDECDCFA1DBAA9281364774CFDC88704457
+              C051E1DE1832735FA1B51D6E0E132F9131BDD60000000049454E44AE426082}
             FileName = 
               'C:\Program Files\JMRI\resources\icons\track\line\RightTO\os-righ' +
               'thand-east-closed-black.gif'
@@ -190,9 +231,8 @@ object FormLayoutBuilder: TFormLayoutBuilder
             PNG = {
               89504E470D0A1A0A0000000D49484452000000270000000808060000007A59E6
               D6000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              003049444154384F636018C48011E8B6FF50F781D8830580DDC434585C83CD1D
-              C82137E8DC3964426E34CD0DBAB443AE83002E9605074930CFBB000000004945
-              4E44AE426082}
+              002A49444154384F6318CC801188FF439860F66001603731819983142087DCA0
+              034326E446D3DC30010C0C002E960507E3A7F6800000000049454E44AE426082}
             FileName = 
               'C:\Program Files\JMRI\resources\icons\track\line\TrackSeg\block-' +
               'black.gif'
@@ -224,12 +264,26 @@ object FormLayoutBuilder: TFormLayoutBuilder
             SourceRect.Bottom = 8.000000000000000000
           end>
       end>
-    Left = 360
-    Top = 88
+    Left = 224
+    Top = 160
   end
   object GestureManager: TGestureManager
     Sensitivity = 80.000000000000000000
-    Left = 312
-    Top = 192
+    Left = 472
+    Top = 216
+  end
+  object ActionListMain: TActionList
+    Left = 464
+    Top = 24
+    object ActionNewStraightSegment: TAction
+      Category = 'Segments'
+      Text = 'Straight Track'
+      OnExecute = ActionNewStraightSegmentExecute
+    end
+    object ActionNewTurnoutSegment: TAction
+      Category = 'Segments'
+      Text = 'Turnout Track'
+      OnExecute = ActionNewTurnoutSegmentExecute
+    end
   end
 end

@@ -9,49 +9,42 @@
         <Filename Value="SimpleNode.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="22"/>
-        <CursorPos X="60" Y="41"/>
+        <CursorPos X="10" Y="5"/>
         <UsageCount Value="201"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="..\..\Mustangpeak_Lib\mustangpeak_xmlutilities.pas"/>
-        <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="25" Y="33"/>
         <UsageCount Value="201"/>
       </Unit1>
       <Unit2>
         <Filename Value="..\..\LCC\baseobjects.pas"/>
-        <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="24" Y="9"/>
         <UsageCount Value="201"/>
       </Unit2>
       <Unit3>
         <Filename Value="..\..\LCC\basemessage.pas"/>
-        <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="30" Y="16"/>
         <UsageCount Value="224"/>
       </Unit3>
       <Unit4>
         <Filename Value="..\..\LCC\basetypes.pas"/>
-        <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="24" Y="9"/>
         <UsageCount Value="223"/>
       </Unit4>
       <Unit5>
         <Filename Value="..\..\Mustangpeak_Lib\mustangpeak_half_float.pas"/>
-        <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="32" Y="6"/>
         <UsageCount Value="223"/>
       </Unit5>
       <Unit6>
         <Filename Value="..\..\LCC\baseutilities.pas"/>
-        <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="10"/>
         <CursorPos X="19" Y="23"/>
@@ -115,7 +108,6 @@
       </Unit14>
       <Unit15>
         <Filename Value="..\..\LCC\protocol.acdi.mfg"/>
-        <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="5"/>
         <UsageCount Value="222"/>

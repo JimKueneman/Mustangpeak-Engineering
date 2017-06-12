@@ -3,7 +3,7 @@
   <ProjectSession>
     <Version Value="9"/>
     <BuildModes Active="Default"/>
-    <Units Count="23">
+    <Units Count="25">
       <Unit0>
         <Filename Value="eventTower.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -18,8 +18,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="141"/>
-        <CursorPos X="90" Y="164"/>
+        <TopLine Value="42"/>
+        <CursorPos X="16" Y="48"/>
         <UsageCount Value="274"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -35,294 +35,288 @@
       <Unit3>
         <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="1"/>
-        <TopLine Value="258"/>
-        <CursorPos X="35" Y="268"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="255"/>
+        <CursorPos X="63" Y="271"/>
         <UsageCount Value="271"/>
         <Loaded Value="True"/>
       </Unit3>
       <Unit4>
         <Filename Value="/Developer/lazarus/lcl/forms.pp"/>
         <UnitName Value="Forms"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="1865"/>
         <CursorPos Y="1881"/>
         <UsageCount Value="201"/>
-        <Loaded Value="True"/>
       </Unit4>
       <Unit5>
         <Filename Value="/Developer/lazarus/lcl/lcltype.pp"/>
         <UnitName Value="LCLType"/>
-        <EditorIndex Value="9"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="413"/>
         <CursorPos X="3" Y="428"/>
         <UsageCount Value="201"/>
-        <Loaded Value="True"/>
       </Unit5>
       <Unit6>
         <Filename Value="/Developer/lazarus/lcl/controls.pp"/>
         <UnitName Value="Controls"/>
-        <EditorIndex Value="14"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="1314"/>
         <CursorPos X="15" Y="1328"/>
         <UsageCount Value="109"/>
-        <Loaded Value="True"/>
       </Unit6>
       <Unit7>
         <Filename Value="/usr/local/share/fpcsrc/rtl/objpas/classes/classesh.inc"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="105"/>
         <CursorPos X="29" Y="102"/>
         <UsageCount Value="177"/>
-        <Loaded Value="True"/>
       </Unit7>
       <Unit8>
         <Filename Value="/Developer/lazarus/lcl/include/control.inc"/>
-        <EditorIndex Value="20"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="4216"/>
         <CursorPos X="33" Y="4222"/>
         <UsageCount Value="132"/>
-        <Loaded Value="True"/>
       </Unit8>
       <Unit9>
         <Filename Value="/Developer/lazarus/lcl/include/wincontrol.inc"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="6135"/>
         <CursorPos Y="6156"/>
         <UsageCount Value="201"/>
-        <Loaded Value="True"/>
       </Unit9>
       <Unit10>
         <Filename Value="/Developer/lazarus/lcl/interfaces/carbon/carbonprivate.pp"/>
         <UnitName Value="CarbonPrivate"/>
-        <EditorIndex Value="19"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="881"/>
         <CursorPos X="50" Y="902"/>
         <UsageCount Value="113"/>
-        <Loaded Value="True"/>
       </Unit10>
       <Unit11>
         <Filename Value="/Developer/lazarus/lcl/graphics.pp"/>
         <UnitName Value="Graphics"/>
-        <EditorIndex Value="15"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="543"/>
         <CursorPos X="15" Y="558"/>
         <UsageCount Value="229"/>
-        <Loaded Value="True"/>
       </Unit11>
       <Unit12>
         <Filename Value="/Developer/lazarus/lcl/include/customcontrol.inc"/>
-        <EditorIndex Value="18"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="62"/>
         <CursorPos X="3" Y="73"/>
         <UsageCount Value="108"/>
-        <Loaded Value="True"/>
       </Unit12>
       <Unit13>
         <Filename Value="/Developer/lazarus/lcl/include/canvas.inc"/>
-        <EditorIndex Value="17"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="256"/>
         <CursorPos X="3" Y="263"/>
         <UsageCount Value="229"/>
-        <Loaded Value="True"/>
       </Unit13>
       <Unit14>
         <Filename Value="../../../../LccLib/Library/LCC/lcc_nodemanager.pas"/>
-        <EditorIndex Value="13"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="917"/>
         <CursorPos Y="926"/>
         <UsageCount Value="114"/>
-        <Loaded Value="True"/>
       </Unit14>
       <Unit15>
         <Filename Value="/Developer/lazarus/lcl/stdctrls.pp"/>
         <UnitName Value="StdCtrls"/>
-        <EditorIndex Value="12"/>
-        <TopLine Value="129"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="126"/>
         <CursorPos X="3" Y="116"/>
         <UsageCount Value="230"/>
-        <Loaded Value="True"/>
       </Unit15>
       <Unit16>
         <Filename Value="/Developer/lazarus/lcl/extctrls.pp"/>
         <UnitName Value="ExtCtrls"/>
-        <EditorIndex Value="11"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="414"/>
         <CursorPos X="25" Y="428"/>
         <UsageCount Value="229"/>
-        <Loaded Value="True"/>
       </Unit16>
       <Unit17>
         <Filename Value="/usr/local/share/fpcsrc/packages/fcl-base/src/contnrs.pp"/>
-        <EditorIndex Value="10"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="69"/>
         <CursorPos X="14" Y="84"/>
         <UsageCount Value="204"/>
-        <Loaded Value="True"/>
       </Unit17>
       <Unit18>
         <Filename Value="/Developer/lazarus/lcl/lclintf.pas"/>
         <UnitName Value="LCLIntf"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="183"/>
         <CursorPos Y="204"/>
         <UsageCount Value="201"/>
-        <Loaded Value="True"/>
       </Unit18>
       <Unit19>
         <Filename Value="/Developer/lazarus/lcl/include/application.inc"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="2009"/>
         <CursorPos Y="2032"/>
         <UsageCount Value="201"/>
-        <Loaded Value="True"/>
       </Unit19>
       <Unit20>
         <Filename Value="/Developer/lazarus/lcl/include/font.inc"/>
-        <EditorIndex Value="16"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="633"/>
         <CursorPos X="3" Y="642"/>
         <UsageCount Value="201"/>
-        <Loaded Value="True"/>
       </Unit20>
       <Unit21>
         <Filename Value="/Developer/lazarus/lcl/include/controlactionlink.inc"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="-1"/>
         <CursorPos Y="14"/>
         <UsageCount Value="177"/>
-        <Loaded Value="True"/>
       </Unit21>
       <Unit22>
         <Filename Value="/Developer/lazarus/lcl/lmessages.pp"/>
         <UnitName Value="LMessages"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="591"/>
         <CursorPos X="15" Y="606"/>
         <UsageCount Value="177"/>
-        <Loaded Value="True"/>
       </Unit22>
+      <Unit23>
+        <Filename Value="/Developer/lazarus/lcl/lresources.pp"/>
+        <UnitName Value="LResources"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="3120"/>
+        <CursorPos Y="3135"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit23>
+      <Unit24>
+        <Filename Value="main.lfm"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="312"/>
+        <CursorPos X="33" Y="316"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="LFM"/>
+      </Unit24>
     </Units>
-    <JumpHistory Count="30" HistoryIndex="29">
+    <JumpHistory Count="29" HistoryIndex="28">
       <Position1>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="1199" Column="127" TopLine="1185"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="119" Column="59" TopLine="101"/>
       </Position1>
       <Position2>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="1188" TopLine="827"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="54" Column="21" TopLine="40"/>
       </Position2>
       <Position3>
-        <Filename Value="/Developer/lazarus/lcl/include/wincontrol.inc"/>
-        <Caret Line="6150" TopLine="6135"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="68" Column="31" TopLine="41"/>
       </Position3>
       <Position4>
-        <Filename Value="/Developer/lazarus/lcl/include/wincontrol.inc"/>
-        <Caret Line="6151" TopLine="6135"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="104" Column="42" TopLine="76"/>
       </Position4>
       <Position5>
-        <Filename Value="/Developer/lazarus/lcl/include/wincontrol.inc"/>
-        <Caret Line="6152" TopLine="6135"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="106" Column="21" TopLine="78"/>
       </Position5>
       <Position6>
-        <Filename Value="/Developer/lazarus/lcl/include/wincontrol.inc"/>
-        <Caret Line="6153" TopLine="6135"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="111" Column="42" TopLine="83"/>
       </Position6>
       <Position7>
-        <Filename Value="/Developer/lazarus/lcl/include/wincontrol.inc"/>
-        <Caret Line="6154" TopLine="6135"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="113" Column="21" TopLine="85"/>
       </Position7>
       <Position8>
-        <Filename Value="/Developer/lazarus/lcl/include/wincontrol.inc"/>
-        <Caret Line="6152" TopLine="6135"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="119" Column="21" TopLine="91"/>
       </Position8>
       <Position9>
-        <Filename Value="/Developer/lazarus/lcl/include/wincontrol.inc"/>
-        <Caret Line="6153" TopLine="6135"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="121" Column="21" TopLine="93"/>
       </Position9>
       <Position10>
-        <Filename Value="/Developer/lazarus/lcl/include/wincontrol.inc"/>
-        <Caret Line="6154" TopLine="6135"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="128" Column="24" TopLine="100"/>
       </Position10>
       <Position11>
-        <Filename Value="/Developer/lazarus/lcl/include/wincontrol.inc"/>
-        <Caret Line="6152" TopLine="6135"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="129" Column="24" TopLine="101"/>
       </Position11>
       <Position12>
-        <Filename Value="/Developer/lazarus/lcl/include/controlactionlink.inc"/>
-        <Caret Line="14"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="130" Column="24" TopLine="102"/>
       </Position12>
       <Position13>
-        <Filename Value="/Developer/lazarus/lcl/include/wincontrol.inc"/>
-        <Caret Line="6156" TopLine="6135"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="137" Column="24" TopLine="109"/>
       </Position13>
       <Position14>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="264" Column="42" TopLine="238"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="138" Column="24" TopLine="110"/>
       </Position14>
       <Position15>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="1083" Column="50" TopLine="1071"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="139" Column="24" TopLine="111"/>
       </Position15>
       <Position16>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="1207" TopLine="1192"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="184" Column="49" TopLine="157"/>
       </Position16>
       <Position17>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="1073" TopLine="1058"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="185" Column="52" TopLine="158"/>
       </Position17>
       <Position18>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="1080" TopLine="1058"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="186" Column="52" TopLine="159"/>
       </Position18>
       <Position19>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="1082" TopLine="1058"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="187" Column="55" TopLine="160"/>
       </Position19>
       <Position20>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="1085" TopLine="1061"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="198" Column="19" TopLine="170"/>
       </Position20>
       <Position21>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="1207" Column="13" TopLine="1204"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="203" Column="19" TopLine="175"/>
       </Position21>
       <Position22>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="1096" Column="15" TopLine="1069"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="209" Column="19" TopLine="181"/>
       </Position22>
       <Position23>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="264" Column="26" TopLine="252"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="214" Column="19" TopLine="186"/>
       </Position23>
       <Position24>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="1071" Column="45" TopLine="1047"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="222" Column="43" TopLine="194"/>
       </Position24>
       <Position25>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="1239" Column="63" TopLine="1239"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="224" Column="72" TopLine="196"/>
       </Position25>
       <Position26>
-        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
-        <Caret Line="1243" Column="18" TopLine="1239"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="238" Column="19" TopLine="210"/>
       </Position26>
       <Position27>
-        <Filename Value="/Developer/lazarus/lcl/lmessages.pp"/>
-        <Caret Line="606" Column="15" TopLine="591"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="239" Column="19" TopLine="211"/>
       </Position27>
       <Position28>
-        <Filename Value="main.pas"/>
-        <Caret Line="119" Column="59" TopLine="101"/>
+        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
+        <Caret Line="270" Column="15" TopLine="259"/>
       </Position28>
       <Position29>
-        <Filename Value="main.pas"/>
-        <Caret Line="120" Column="59" TopLine="102"/>
+        <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
+        <Caret Line="221" Column="35" TopLine="204"/>
       </Position29>
-      <Position30>
-        <Filename Value="main.pas"/>
-        <Caret Line="119" Column="59" TopLine="101"/>
-      </Position30>
     </JumpHistory>
   </ProjectSession>
   <Debugging>

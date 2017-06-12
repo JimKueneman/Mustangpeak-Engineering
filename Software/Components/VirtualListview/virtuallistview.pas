@@ -267,8 +267,6 @@ type
 
   TVirtualListview = class(TCustomVirtualListview)
   public
-    property VertScrollbar;
-    property HorzScrollbar;
     property FocusedItem;
     property Items;
     property VisibleItems;
@@ -284,6 +282,8 @@ type
     property OnFocusedChanged;
     property OnSort;
     property TextLayout;
+    property VertScrollbar;
+    property HorzScrollbar;
   end;
 
 
