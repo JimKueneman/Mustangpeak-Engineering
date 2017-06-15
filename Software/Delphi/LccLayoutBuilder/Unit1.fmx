@@ -12,14 +12,14 @@ object FormLayoutBuilder: TFormLayoutBuilder
   DesignerMasterStyle = 0
   object PanelMain: TPanel
     Align = Client
-    Size.Width = 619.000000000000000000
+    Size.Width = 595.000000000000000000
     Size.Height = 401.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 5
     object StatusBar: TStatusBar
       Position.Y = 379.000000000000000000
       ShowSizeGrip = True
-      Size.Width = 619.000000000000000000
+      Size.Width = 595.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 1
@@ -51,7 +51,7 @@ object FormLayoutBuilder: TFormLayoutBuilder
     end
     object Rectangle1: TRectangle
       Align = Top
-      Size.Width = 619.000000000000000000
+      Size.Width = 595.000000000000000000
       Size.Height = 44.000000000000000000
       Size.PlatformDefault = False
       object Button4: TButton
@@ -79,6 +79,7 @@ object FormLayoutBuilder: TFormLayoutBuilder
           'Drawer'
           'Custom'
           'NavigationPane')
+        ItemIndex = 0
         Position.X = 72.000000000000000000
         Position.Y = 4.000000000000000000
         Size.Width = 257.000000000000000000
@@ -99,7 +100,7 @@ object FormLayoutBuilder: TFormLayoutBuilder
     object ScrollBoxPanel: TScrollBox
       Touch.GestureManager = GestureManager
       Align = Client
-      Size.Width = 619.000000000000000000
+      Size.Width = 595.000000000000000000
       Size.Height = 335.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 3
@@ -109,31 +110,8 @@ object FormLayoutBuilder: TFormLayoutBuilder
       OnMouseDown = ScrollBoxPanelMouseDown
       OnMouseMove = ScrollBoxPanelMouseMove
       OnMouseUp = ScrollBoxPanelMouseUp
-      Viewport.Width = 619.000000000000000000
+      Viewport.Width = 595.000000000000000000
       Viewport.Height = 335.000000000000000000
-      object RectangleDragSelect: TRectangle
-        Fill.Kind = Gradient
-        Fill.Gradient.Points = <
-          item
-            Color = claMediumblue
-            Offset = 0.000000000000000000
-          end
-          item
-            Color = claWhite
-            Offset = 1.000000000000000000
-          end>
-        HitTest = False
-        Opacity = 0.200000002980232200
-        Position.X = 16.000000000000000000
-        Position.Y = 16.000000000000000000
-        Size.Width = 73.000000000000000000
-        Size.Height = 73.000000000000000000
-        Size.PlatformDefault = False
-        Stroke.Color = claBlue
-        Stroke.Thickness = 2.000000000000000000
-        XRadius = 5.000000000000000000
-        YRadius = 5.000000000000000000
-      end
     end
   end
   object MultiViewMain: TMultiView
@@ -143,68 +121,90 @@ object FormLayoutBuilder: TFormLayoutBuilder
     OnPresenterChanging = MultiViewMainPresenterChanging
     OnStartShowing = MultiViewMainStartShowing
     OnStartHiding = MultiViewMainStartHiding
-    Size.Width = 169.000000000000000000
+    Size.Width = 193.000000000000000000
     Size.Height = 401.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 3
     object ListBox1: TListBox
       Align = Client
-      Size.Width = 168.000000000000000000
-      Size.Height = 353.000000000000000000
+      Size.Width = 192.000000000000000000
+      Size.Height = 357.000000000000000000
       Size.PlatformDefault = False
+      StyleLookup = 'transparentlistboxstyle'
       TabOrder = 0
       DisableFocusEffect = True
       Images = ImageListMain
-      DefaultItemStyles.ItemStyle = ''
+      DefaultItemStyles.ItemStyle = 'listboxitemnodetail'
       DefaultItemStyles.GroupHeaderStyle = ''
       DefaultItemStyles.GroupFooterStyle = ''
-      Viewport.Width = 164.000000000000000000
-      Viewport.Height = 349.000000000000000000
-      object ListBoxItem1: TListBoxItem
+      Viewport.Width = 192.000000000000000000
+      Viewport.Height = 357.000000000000000000
+      object ListBoxGroupHeaderMultiviewTracks: TListBoxGroupHeader
+        TabOrder = 6
+        Text = 'Tracks'
+      end
+      object ListBoxItemStraight: TListBoxItem
         ImageIndex = 2
-        Size.Width = 164.000000000000000000
+        Position.Y = 19.000000000000000000
+        Size.Width = 192.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 0
-        Text = 'ListBoxItem1'
+        Text = 'Straight'
+        OnClick = ListBoxItemStraightClick
       end
-      object ListBoxItem2: TListBoxItem
+      object ListBoxItemTurnout: TListBoxItem
         ImageIndex = 0
-        Position.Y = 44.000000000000000000
-        Size.Width = 164.000000000000000000
+        Position.Y = 63.000000000000000000
+        Size.Width = 192.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 1
-        Text = 'ListBoxItem2'
+        Text = 'Turnout'
+        OnClick = ListBoxItemTurnoutClick
       end
-      object ListBoxItem3: TListBoxItem
+      object ListBoxItemCrossover: TListBoxItem
         ImageIndex = 1
-        Position.Y = 88.000000000000000000
-        Size.Width = 164.000000000000000000
+        Position.Y = 107.000000000000000000
+        Size.Width = 192.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 2
-        Text = 'ListBoxItem3'
+        Text = 'Crossover'
       end
-      object ListBoxItem4: TListBoxItem
+      object ListBoxItemScissor: TListBoxItem
         ImageIndex = 1
-        Position.Y = 132.000000000000000000
-        Size.Width = 164.000000000000000000
+        Position.Y = 151.000000000000000000
+        Size.Width = 192.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 4
+        Text = 'Scissor'
+      end
+      object ListBoxGroupHeaderMultiViewSignals: TListBoxGroupHeader
+        Position.Y = 195.000000000000000000
+        TabOrder = 5
+        Text = 'Signaling'
+      end
+      object ListBoxItemSignal: TListBoxItem
+        ImageIndex = 1
+        Position.Y = 214.000000000000000000
+        Size.Width = 192.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 3
-        Text = 'ListBoxItem4'
+        Text = 'Signal'
       end
     end
     object ToolBar1: TToolBar
-      Size.Width = 168.000000000000000000
-      Size.Height = 48.000000000000000000
+      Size.Width = 192.000000000000000000
+      Size.Height = 44.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 1
       object SpeedButtonMasterButton: TSpeedButton
         Align = Left
         Size.Width = 48.000000000000000000
-        Size.Height = 48.000000000000000000
+        Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
         StyleLookup = 'detailstoolbutton'
         Text = 'Where Are You'

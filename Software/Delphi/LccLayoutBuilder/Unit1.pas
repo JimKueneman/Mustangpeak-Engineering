@@ -17,13 +17,14 @@ type
 type
   TDragManager = class(TPersistent)
   private
-    FState: TDragState;
-    FStartViewportPoint: TPointF;
-    FPreviousVewportPoint: TPointF;
-    FCurrentViewportPoint: TPointF;
-    FShift: TShiftState;
-    FMouseButton: TMouseButton;
-    FEditMode: Boolean;
+    FState: TDragState;                 // What is either occuring or pending in terms of the drag
+    FStartViewportPoint: TPointF;       // The point the user intially clicked in the viewport
+    FPreviousVewportPoint: TPointF;     // The point the user was during a drag on the prevous time MouseMove was called
+    FCurrentViewportPoint: TPointF;     // The point in the current Mouse Move call
+    FShift: TShiftState;                // The state of the Shift keys when the drag started
+    FMouseButton: TMouseButton;         // Which button was down when the drag started
+    FEditMode: Boolean;                 // Allow dragging
+    FRectangleDragSelect: TRectangle;
     procedure SetEditMode(const Value: Boolean);
   public
     constructor Create; virtual;
@@ -33,6 +34,7 @@ type
     property EditMode: Boolean read FEditMode write SetEditMode;
     property MouseButton: TMouseButton read FMouseButton write FMouseButton;
     property PreviousVewportPoint: TPointF read FPreviousVewportPoint write FPreviousVewportPoint;
+    property RectangleDragSelect: TRectangle read FRectangleDragSelect write FRectangleDragSelect;
     property Shift: TShiftState read FShift write FShift;
     property StartViewportPoint: TPointF read FStartViewportPoint write FStartViewportPoint;
     property State: TDragState read FState write FState;
@@ -55,18 +57,20 @@ type
     Button4: TButton;
     CheckBoxEditMode: TCheckBox;
     ScrollBoxPanel: TScrollBox;
-    RectangleDragSelect: TRectangle;
     ComboBoxMultiViewMode: TComboBox;
     PanelMain: TPanel;
     ListBox1: TListBox;
-    ListBoxItem1: TListBoxItem;
-    ListBoxItem2: TListBoxItem;
-    ListBoxItem3: TListBoxItem;
-    ListBoxItem4: TListBoxItem;
+    ListBoxItemStraight: TListBoxItem;
+    ListBoxItemTurnout: TListBoxItem;
+    ListBoxItemCrossover: TListBoxItem;
+    ListBoxItemScissor: TListBoxItem;
     ImageListMain: TImageList;
     SpeedButtonMasterButton: TSpeedButton;
     ToolBar1: TToolBar;
     SpeedButtonMasterButton2: TSpeedButton;
+    ListBoxItemSignal: TListBoxItem;
+    ListBoxGroupHeaderMultiViewSignals: TListBoxGroupHeader;
+    ListBoxGroupHeaderMultiviewTracks: TListBoxGroupHeader;
     procedure FormCreate(Sender: TObject);
     procedure ScrollBoxPanelDragDrop(Sender: TObject; const Data: TDragObject; const Point: TPointF);
     procedure ScrollBoxPanelDragEnter(Sender: TObject; const Data: TDragObject; const Point: TPointF);
@@ -83,6 +87,8 @@ type
     procedure MultiViewMainPresenterChanging(Sender: TObject; var PresenterClass: TMultiViewPresentationClass);
     procedure MultiViewMainStartShowing(Sender: TObject);
     procedure MultiViewMainStartHiding(Sender: TObject);
+    procedure ListBoxItemStraightClick(Sender: TObject);
+    procedure ListBoxItemTurnoutClick(Sender: TObject);
   private
     FDragManager: TDragManager;
     FTrackSegmentManager: TTrackSegmentManager;
@@ -115,8 +121,8 @@ begin
   Segment := TrackSegmentManager.NewSegment(TTrackSegmentStraight, ScrollBoxPanel);
   FinalX := Max(0, TrackSegmentManager.CalculateSnapX(Random(Round( ScrollBoxPanel.Width)) - BASE_SEGMENT_WIDTH, BASE_SEGMENT_WIDTH));
   FinalY := Max(0, TrackSegmentManager.CalculateSnapY(Random(Round( ScrollBoxPanel.Height)) - BASE_SEGMENT_HEIGHT, BASE_SEGMENT_HEIGHT));
-  Segment.AnimateFloat('Position.X', FinalX , 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
-  Segment.AnimateFloat('Position.Y', FinalY, 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
+  TAnimator.AnimateFloat(Segment, 'Position.X', FinalX , 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
+  TAnimator.AnimateFloat(Segment, 'Position.Y', FinalY, 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
 end;
 
 procedure TFormLayoutBuilder.ActionNewTurnoutSegmentExecute(Sender: TObject);
@@ -127,8 +133,8 @@ begin
   Segment := TrackSegmentManager.NewSegment(TTrackSegmentTurnout, ScrollBoxPanel);
   FinalX := Max(0, TrackSegmentManager.CalculateSnapX(Random(Round( ScrollBoxPanel.Width)) - BASE_SEGMENT_WIDTH, BASE_SEGMENT_WIDTH));
   FinalY := Max(0, TrackSegmentManager.CalculateSnapY(Random(Round( ScrollBoxPanel.Height)) - BASE_SEGMENT_HEIGHT, BASE_SEGMENT_HEIGHT));
-  Segment.AnimateFloat('Position.X', FinalX , 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
-  Segment.AnimateFloat('Position.Y', FinalY, 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
+  TAnimator.AnimateFloat(Segment, 'Position.X', FinalX , 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
+  TAnimator.AnimateFloat(Segment, 'Position.Y', FinalY, 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
 end;
 
 procedure TFormLayoutBuilder.Button4Click(Sender: TObject);
@@ -150,19 +156,19 @@ end;
 procedure TFormLayoutBuilder.ComboBoxMultiViewModeChange(Sender: TObject);
 begin
   if ComboBoxMultiViewMode.ItemIndex > -1 then
+  begin
+    // Bug in popover, won't resize the MasterPane when it hides the MultiView
+    if TMultiViewMode( ComboBoxMultiViewMode.ItemIndex) = TMultiViewMode.Popover then
+      MultiViewMain.Mode := TMultiViewMode.Drawer;
     MultiViewMain.Mode := TMultiViewMode( ComboBoxMultiViewMode.ItemIndex);
+  end;
 end;
 
 procedure TFormLayoutBuilder.FormCreate(Sender: TObject);
-var
-  Segment: TTrackSegment;
-  BitSize: TSizeF;
-  Bitmap: TBitmap;
 begin
   FDragManager := TDragManager.Create;
   FTrackSegmentManager := TTrackSegmentManager.Create;
 
-  RectangleDragSelect.Parent := nil;
   TPlatformServices.Current.SupportsPlatformService(IFMXScreenService, ScreenService);
   TPlatformServices.Current.SupportsPlatformService(IFMXWindowService, WindowService);
 
@@ -176,6 +182,16 @@ begin
   FreeAndNil(FDragManager);
 end;
 
+procedure TFormLayoutBuilder.ListBoxItemStraightClick(Sender: TObject);
+begin
+  ActionNewStraightSegment.Execute
+end;
+
+procedure TFormLayoutBuilder.ListBoxItemTurnoutClick(Sender: TObject);
+begin
+  ActionNewTurnoutSegment.Execute
+end;
+
 procedure TFormLayoutBuilder.MultiViewMainPresenterChanging(Sender: TObject;
   var PresenterClass: TMultiViewPresentationClass);
 begin
@@ -185,9 +201,7 @@ begin
     SpeedButtonMasterButton2.Visible := False;
     MultiViewMain.MasterButton := nil;
   end else
-  if (PresenterClass = TMultiViewDrawerOverlapPresentation) or
-     (PresenterClass = TMultiViewDrawerPushingPresentation) or
-     (PresenterClass = TMultiViewPopoverPresentation) then
+  if PresenterClass = TMultiViewPopoverPresentation then
   begin
     SpeedButtonMasterButton.Visible := False;
     SpeedButtonMasterButton2.Visible := True;
@@ -198,27 +212,26 @@ begin
     SpeedButtonMasterButton.Visible := True;
     SpeedButtonMasterButton2.Visible := False;
     MultiViewMain.MasterButton := SpeedButtonMasterButton;
+  end else
+  if (PresenterClass = TMultiViewDrawerOverlapPresentation) or
+     (PresenterClass = TMultiViewDrawerPushingPresentation) then
+  begin
+    SpeedButtonMasterButton.Visible := True;
+    SpeedButtonMasterButton2.Visible := True;
+    MultiViewMain.MasterButton := SpeedButtonMasterButton2;
   end;
 end;
 
 procedure TFormLayoutBuilder.MultiViewMainStartHiding(Sender: TObject);
 begin
   if MultiViewMain.Mode = TMultiViewMode.Drawer then
-  begin
-    SpeedButtonMasterButton.Visible := False;
-    SpeedButtonMasterButton2.Visible := True;
     MultiViewMain.MasterButton := SpeedButtonMasterButton2;
-  end;
 end;
 
 procedure TFormLayoutBuilder.MultiViewMainStartShowing(Sender: TObject);
 begin
   if MultiViewMain.Mode = TMultiViewMode.Drawer then
-  begin
-    SpeedButtonMasterButton.Visible := True;
-    SpeedButtonMasterButton2.Visible := False;
     MultiViewMain.MasterButton := SpeedButtonMasterButton;
-  end;
 end;
 
 procedure TFormLayoutBuilder.ScrollBoxPanelDragDrop(Sender: TObject; const Data: TDragObject; const Point: TPointF);
@@ -373,11 +386,10 @@ begin
             begin
               if DragThresholdMet(DragManager.CurrentViewportPoint) then
               begin
-                RectangleDragSelect.Position.X := X;
-                RectangleDragSelect.Position.Y := Y;
-                RectangleDragSelect.Width := 0;
-                RectangleDragSelect.Height := 0;
-                RectangleDragSelect.Parent := ScrollBoxPanel;
+                DragManager.RectangleDragSelect.Position.Point := DragManager.StartViewportPoint;
+                DragManager.RectangleDragSelect.Width := 0;
+                DragManager.RectangleDragSelect.Height := 0;
+                DragManager.RectangleDragSelect.Parent := ScrollBoxPanel;
                 ScrollBoxPanel.Root.Captured := ScrollBoxPanel;
                 DragManager.State := TDragState.dsSelectRect;
               end;
@@ -386,34 +398,30 @@ begin
             begin
               if DragManager.CurrentViewportPoint.X < 0 then
                 DragManager.FCurrentViewportPoint.X := 0;
-              if DragManager.CurrentViewportPoint.X > ScrollBoxPanel.Width then
-                DragManager.FCurrentViewportPoint.X := ScrollBoxPanel.Width;
               if DragManager.CurrentViewportPoint.Y < 0 then
                 DragManager.FCurrentViewportPoint.Y := 0;
-              if DragManager.CurrentViewportPoint.Y > ScrollBoxPanel.Height then
-                DragManager.FCurrentViewportPoint.Y := ScrollBoxPanel.Height;
 
               if DragManager.CurrentViewportPoint.X - DragManager.StartViewportPoint.X < 0 then
               begin
-                RectangleDragSelect.Position.X := DragManager.CurrentViewportPoint.X;
-                RectangleDragSelect.Width := DragManager.StartViewportPoint.X - DragManager.CurrentViewportPoint.X;
+                DragManager.RectangleDragSelect.Position.X := DragManager.CurrentViewportPoint.X;
+                DragManager.RectangleDragSelect.Width := DragManager.StartViewportPoint.X - DragManager.CurrentViewportPoint.X;
               end else
               begin
-                RectangleDragSelect.Position.X := DragManager.StartViewportPoint.X;
-                RectangleDragSelect.Width := DragManager.CurrentViewportPoint.X - DragManager.StartViewportPoint.X;
+                DragManager.RectangleDragSelect.Position.X := DragManager.StartViewportPoint.X;
+                DragManager.RectangleDragSelect.Width := DragManager.CurrentViewportPoint.X - DragManager.StartViewportPoint.X;
               end;
               if DragManager.CurrentViewportPoint.Y - DragManager.StartViewportPoint.Y < 0 then
               begin
-                RectangleDragSelect.Position.Y := DragManager.CurrentViewportPoint.Y;
-                RectangleDragSelect.Height := DragManager.StartViewportPoint.Y - DragManager.CurrentViewportPoint.Y;
+                DragManager.RectangleDragSelect.Position.Y := DragManager.CurrentViewportPoint.Y;
+                DragManager.RectangleDragSelect.Height := DragManager.StartViewportPoint.Y - DragManager.CurrentViewportPoint.Y;
               end else
               begin
-                RectangleDragSelect.Position.Y := DragManager.StartViewportPoint.Y;
-                RectangleDragSelect.Height := DragManager.CurrentViewportPoint.Y - DragManager.StartViewportPoint.Y;
+                DragManager.RectangleDragSelect.Position.Y := DragManager.StartViewportPoint.Y;
+                DragManager.RectangleDragSelect.Height := DragManager.CurrentViewportPoint.Y - DragManager.StartViewportPoint.Y;
               end;
 
-              TempSelectRect := ScrollWindowClientToViewportRect(RectangleDragSelect.BoundsRect);
-              TrackSegmentManager.SelectByRect(TempSelectRect, ((ssCtrl in Shift) or (ssShift in Shift)));
+              TempSelectRect := ScrollWindowClientToViewportRect(DragManager.RectangleDragSelect.BoundsRect);
+              TrackSegmentManager.SelectByRect(DragManager.RectangleDragSelect.BoundsRect, ((ssCtrl in Shift) or (ssShift in Shift)));
               UpdateStatusBar;
             end;
         end;
@@ -436,7 +444,7 @@ var
 begin
   DragManager.FCurrentViewportPoint := ScrollWindowClientToViewport(X, Y);
 
-  RectangleDragSelect.Parent := nil;
+  DragManager.RectangleDragSelect.Parent := nil;
   if not DragManager.EditMode then
   begin
     HitSegment := TrackSegmentManager.FindSegmentByPt(DragManager.CurrentViewportPoint.X, DragManager.CurrentViewportPoint.Y);
@@ -470,10 +478,21 @@ end;
 constructor TDragManager.Create;
 begin
   inherited;
+  RectangleDragSelect := TRectangle.Create(nil);
+  RectangleDragSelect.Fill.Color := $FFE0E0E0;
+  RectangleDragSelect.Fill.Gradient.Color := TAlphaColorRec.Mediumblue;
+  RectangleDragSelect.Fill.Gradient.Color1 := TAlphaColorRec.White;
+  RectangleDragSelect.Opacity := 0.2;
+  RectangleDragSelect.CornerType := TCornerType.Round;
+  RectangleDragSelect.XRadius := 5;
+  RectangleDragSelect.YRadius := 5;
+  RectangleDragSelect.Fill.Kind := TBrushKind.Gradient;
+  RectangleDragSelect.Stroke.Color := TAlphAColorRec.Blue;
 end;
 
 destructor TDragManager.Destroy;
 begin
+  FreeAndNil(FRectangleDragSelect);
   inherited;
 end;
 
