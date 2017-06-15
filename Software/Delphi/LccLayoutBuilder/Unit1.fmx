@@ -3,37 +3,114 @@ object FormLayoutBuilder: TFormLayoutBuilder
   Top = 0
   Caption = 'Lcc Layout Builder 0.1'
   ClientHeight = 401
-  ClientWidth = 594
+  ClientWidth = 788
   FormFactor.Width = 320
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   DesignerMasterStyle = 0
-  object LayoutBkgnd: TLayout
+  object PanelMain: TPanel
     Align = Client
-    EnableDragHighlight = False
-    Size.Width = 594.000000000000000000
-    Size.Height = 379.000000000000000000
+    Size.Width = 619.000000000000000000
+    Size.Height = 401.000000000000000000
     Size.PlatformDefault = False
-    TabOrder = 0
+    TabOrder = 5
+    object StatusBar: TStatusBar
+      Position.Y = 379.000000000000000000
+      ShowSizeGrip = True
+      Size.Width = 619.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      object TextStatusMousePos: TText
+        Align = Left
+        Size.Width = 249.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Mouse Pos:'
+        TextSettings.WordWrap = False
+        TextSettings.HorzAlign = Leading
+      end
+      object LabelStatusSelection: TLabel
+        Align = Left
+        Position.X = 249.000000000000000000
+        Size.Width = 192.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Selected:'
+      end
+      object LabelTrackSegmentCount: TLabel
+        Align = Left
+        Position.X = 441.000000000000000000
+        Size.Width = 192.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Segments:'
+      end
+    end
+    object Rectangle1: TRectangle
+      Align = Top
+      Size.Width = 619.000000000000000000
+      Size.Height = 44.000000000000000000
+      Size.PlatformDefault = False
+      object Button4: TButton
+        Position.X = 464.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 73.000000000000000000
+        Size.Height = 33.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+        Text = 'Button4'
+        OnClick = Button4Click
+      end
+      object CheckBoxEditMode: TCheckBox
+        Position.X = 352.000000000000000000
+        Position.Y = 16.000000000000000000
+        TabOrder = 2
+        Text = 'Edit Mode'
+        OnChange = CheckBoxEditModeChange
+      end
+      object ComboBoxMultiViewMode: TComboBox
+        Items.Strings = (
+          'PlatformBehaviour'
+          'Pane'
+          'Popover'
+          'Drawer'
+          'Custom'
+          'NavigationPane')
+        Position.X = 72.000000000000000000
+        Position.Y = 4.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 32.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 3
+        OnChange = ComboBoxMultiViewModeChange
+      end
+      object SpeedButtonMasterButton2: TSpeedButton
+        Align = Left
+        Size.Width = 48.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        StyleLookup = 'detailstoolbutton'
+        Text = 'Where Are You'
+      end
+    end
     object ScrollBoxPanel: TScrollBox
       Touch.GestureManager = GestureManager
-      Anchors = [akLeft, akTop, akRight, akBottom]
-      Position.X = 144.000000000000000000
-      Position.Y = 48.000000000000000000
-      Size.Width = 441.000000000000000000
-      Size.Height = 321.000000000000000000
+      Align = Client
+      Size.Width = 619.000000000000000000
+      Size.Height = 335.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 0
+      TabOrder = 3
       OnDragEnter = ScrollBoxPanelDragEnter
       OnDragOver = ScrollBoxPanelDragOver
       OnDragDrop = ScrollBoxPanelDragDrop
       OnMouseDown = ScrollBoxPanelMouseDown
       OnMouseMove = ScrollBoxPanelMouseMove
       OnMouseUp = ScrollBoxPanelMouseUp
-      Viewport.Width = 441.000000000000000000
-      Viewport.Height = 321.000000000000000000
+      Viewport.Width = 619.000000000000000000
+      Viewport.Height = 335.000000000000000000
       object RectangleDragSelect: TRectangle
         Fill.Kind = Gradient
         Fill.Gradient.Points = <
@@ -58,116 +135,79 @@ object FormLayoutBuilder: TFormLayoutBuilder
         YRadius = 5.000000000000000000
       end
     end
-    object CheckBoxEditMode: TCheckBox
-      Position.X = 232.000000000000000000
-      Position.Y = 8.000000000000000000
-      TabOrder = 4
-      Text = 'Edit Mode'
-      OnChange = CheckBoxEditModeChange
-    end
-    object Button4: TButton
-      Position.X = 328.000000000000000000
-      Position.Y = 8.000000000000000000
-      TabOrder = 5
-      Text = 'Button4'
-      OnClick = Button4Click
-    end
   end
-  object StatusBar: TStatusBar
-    Position.Y = 379.000000000000000000
-    ShowSizeGrip = True
-    Size.Width = 594.000000000000000000
-    Size.Height = 22.000000000000000000
+  object MultiViewMain: TMultiView
+    TargetControl = PanelMain
+    Mode = Panel
+    NavigationPaneOptions.CollapsedWidth = 44.000000000000000000
+    OnPresenterChanging = MultiViewMainPresenterChanging
+    OnStartShowing = MultiViewMainStartShowing
+    OnStartHiding = MultiViewMainStartHiding
+    Size.Width = 169.000000000000000000
+    Size.Height = 401.000000000000000000
     Size.PlatformDefault = False
-    TabOrder = 1
-    object TextStatusMousePos: TText
-      Align = Left
-      Size.Width = 209.000000000000000000
-      Size.Height = 22.000000000000000000
-      Size.PlatformDefault = False
-      Text = 'Mouse Pos:'
-      TextSettings.WordWrap = False
-      TextSettings.HorzAlign = Leading
-    end
-    object LabelStatusSelection: TLabel
-      Align = Left
-      Position.X = 209.000000000000000000
-      Size.Width = 192.000000000000000000
-      Size.Height = 22.000000000000000000
-      Size.PlatformDefault = False
-      Text = 'Selected:'
-    end
-    object LabelTrackSegmentCount: TLabel
-      Align = Left
-      Position.X = 401.000000000000000000
-      Size.Width = 192.000000000000000000
-      Size.Height = 22.000000000000000000
-      Size.PlatformDefault = False
-      Text = 'Segments:'
-    end
-  end
-  object MultiView1: TMultiView
-    NavigationPaneOptions.CollapsedWidth = 137.000000000000000000
-    Size.Width = 250.000000000000000000
-    Size.Height = 50.000000000000000000
-    Size.PlatformDefault = False
-    TabOrder = 4
-    object LayoutMainDrawer: TLayout
+    TabOrder = 3
+    object ListBox1: TListBox
       Align = Client
-      Size.Width = 136.000000000000000000
-      Size.Height = 379.000000000000000000
+      Size.Width = 168.000000000000000000
+      Size.Height = 353.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 0
-      object RectangleMainMenu: TRectangle
-        Align = Client
-        Fill.Kind = Gradient
-        Fill.Gradient.Points = <
-          item
-            Color = claBlack
-            Offset = 0.000000000000000000
-          end
-          item
-            Color = xFF858585
-            Offset = 0.559006214141845700
-          end
-          item
-            Color = xFF858585
-            Offset = 1.000000000000000000
-          end
-          item
-            Color = claWhite
-            Offset = 1.000000000000000000
-          end>
-        Fill.Gradient.StartPosition.X = 0.500000000000000000
-        Fill.Gradient.StopPosition.X = 0.499999970197677600
-        Size.Width = 136.000000000000000000
-        Size.Height = 379.000000000000000000
-        Size.PlatformDefault = False
-      end
-      object SpeedButton1: TSpeedButton
-        Action = ActionNewStraightSegment
-        Anchors = [akLeft, akTop, akRight]
-        Enabled = True
-        StyledSettings = [Family, Size, Style]
-        ImageIndex = -1
-        Size.Width = 136.000000000000000000
+      DisableFocusEffect = True
+      Images = ImageListMain
+      DefaultItemStyles.ItemStyle = ''
+      DefaultItemStyles.GroupHeaderStyle = ''
+      DefaultItemStyles.GroupFooterStyle = ''
+      Viewport.Width = 164.000000000000000000
+      Viewport.Height = 349.000000000000000000
+      object ListBoxItem1: TListBoxItem
+        ImageIndex = 2
+        Size.Width = 164.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
-        TextSettings.FontColor = claWhitesmoke
-        Visible = True
+        TabOrder = 0
+        Text = 'ListBoxItem1'
       end
-      object SpeedButton2: TSpeedButton
-        Action = ActionNewTurnoutSegment
-        Anchors = [akLeft, akTop, akRight]
-        Enabled = True
-        StyledSettings = [Family, Size, Style]
-        ImageIndex = -1
-        Position.Y = 40.000000000000000000
-        Size.Width = 137.000000000000000000
+      object ListBoxItem2: TListBoxItem
+        ImageIndex = 0
+        Position.Y = 44.000000000000000000
+        Size.Width = 164.000000000000000000
         Size.Height = 44.000000000000000000
         Size.PlatformDefault = False
-        TextSettings.FontColor = claWhitesmoke
-        Visible = True
+        TabOrder = 1
+        Text = 'ListBoxItem2'
+      end
+      object ListBoxItem3: TListBoxItem
+        ImageIndex = 1
+        Position.Y = 88.000000000000000000
+        Size.Width = 164.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        Text = 'ListBoxItem3'
+      end
+      object ListBoxItem4: TListBoxItem
+        ImageIndex = 1
+        Position.Y = 132.000000000000000000
+        Size.Width = 164.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 3
+        Text = 'ListBoxItem4'
+      end
+    end
+    object ToolBar1: TToolBar
+      Size.Width = 168.000000000000000000
+      Size.Height = 48.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      object SpeedButtonMasterButton: TSpeedButton
+        Align = Left
+        Size.Width = 48.000000000000000000
+        Size.Height = 48.000000000000000000
+        Size.PlatformDefault = False
+        StyleLookup = 'detailstoolbutton'
+        Text = 'Where Are You'
       end
     end
   end
@@ -239,42 +279,18 @@ object FormLayoutBuilder: TFormLayoutBuilder
           end>
         Name = 'block-black'
       end>
-    Destination = <
-      item
-        Layers = <
-          item
-            Name = 'os-lefthand-west-closed-black'
-            SourceRect.Right = 39.000000000000000000
-            SourceRect.Bottom = 32.000000000000000000
-          end>
-      end
-      item
-        Layers = <
-          item
-            Name = 'os-righthand-east-closed-black'
-            SourceRect.Right = 39.000000000000000000
-            SourceRect.Bottom = 32.000000000000000000
-          end>
-      end
-      item
-        Layers = <
-          item
-            Name = 'block-black'
-            SourceRect.Right = 39.000000000000000000
-            SourceRect.Bottom = 8.000000000000000000
-          end>
-      end>
-    Left = 224
-    Top = 160
+    Destination = <>
+    Left = 384
+    Top = 192
   end
   object GestureManager: TGestureManager
     Sensitivity = 80.000000000000000000
-    Left = 472
-    Top = 216
+    Left = 384
+    Top = 144
   end
   object ActionListMain: TActionList
-    Left = 464
-    Top = 24
+    Left = 384
+    Top = 248
     object ActionNewStraightSegment: TAction
       Category = 'Segments'
       Text = 'Straight Track'
@@ -285,5 +301,124 @@ object FormLayoutBuilder: TFormLayoutBuilder
       Text = 'Turnout Track'
       OnExecute = ActionNewTurnoutSegmentExecute
     end
+  end
+  object ImageListMain: TImageList
+    Source = <
+      item
+        MultiResBitmap.LoadSize = 2
+        MultiResBitmap = <
+          item
+            Width = 36
+            Height = 36
+            PNG = {
+              89504E470D0A1A0A0000000D4948445200000024000000240806000000E10098
+              98000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              0047494441545847EDCE310A00200CC5D0EAFDEFAC225DC42193209A47A1E34F
+              48AF29F9176DDE79637CDBAFF9AF6110318818440C220611838841C420621031
+              8818440C923E13D101161202343C5F93E70000000049454E44AE426082}
+          end>
+        Name = '01'
+      end
+      item
+        MultiResBitmap.LoadSize = 2
+        MultiResBitmap = <
+          item
+            Width = 36
+            Height = 36
+            PNG = {
+              89504E470D0A1A0A0000000D4948445200000024000000240806000000E10098
+              98000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              0145494441545847ED974B4E03310C86FF845D615B8ED03BB063DF23B427E112
+              ED65BA67D73B7004D842377462E28E4702615733D358A4683EC91ABB8A1F7266
+              12171313FF8D20CF4124A4DB06E1216BCB007A3CE0B0E0DF6798BD10C2331077
+              37A07D44FC383978910B997FA2D91C41D447782DFB887B598E482B2D693F492B
+              097339040A43BA6209C7E05812763C258AE9846349D8715CB64D969CDF3EB385
+              FC32268457318B1241F7F90B7C13F307519EBF68404FA216E75C6CB5437CCEE4
+              EEBC8BE942EED29D764EA91D6A0F3D5FAC1CC696A5A5288EE839D482F83A10D5
+              0D2B875A5077377962E530BFB2BF422D886F6D51DDB072A805B523842F560E63
+              CBE24E1447F41CD77130F24242DA8A591C8E6D4D93D773B9B60EB416B320B4B6
+              8AE94555031A53DD08DB51CD90FF1D7ED187748BD7B28FB8F762540BF99CAAE2
+              8FE2C444FD005FEFC02897ADD35BCD0000000049454E44AE426082}
+          end>
+        Name = '02'
+      end
+      item
+        MultiResBitmap.Height = 64
+        MultiResBitmap.Width = 64
+        MultiResBitmap.LoadSize = 2
+        MultiResBitmap = <
+          item
+            Scale = 0.500000000000000000
+            Width = 36
+            Height = 36
+            PNG = {
+              89504E470D0A1A0A0000000D4948445200000024000000240806000000E10098
+              98000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              005F494441545847EDD6C109C0201404D13525D87F8DB66020FC93084B940413
+              E75DF424038A2AE06F528CC3B26A8DE9A5284DAD79C4B80C821C821C821C829C
+              E582BAD77CFB1C3CA5F7CCB065CE37CED01D7C3FDE4690439043904310B019E9
+              049B72093244E0C17E0000000049454E44AE426082}
+          end>
+        Name = '03'
+      end
+      item
+        MultiResBitmap.LoadSize = 2
+        MultiResBitmap = <
+          item
+            Width = 36
+            Height = 36
+            PNG = {
+              89504E470D0A1A0A0000000D4948445200000024000000240806000000E10098
+              98000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              005B494441545847EDD7B10AC0200C00D1D8B1FFFFADAE76C922154E0A8520F7
+              169DF43093219DA6E53A1B7DE4EE5FED7EDD7FE55A46B9A0BD912D9EF6938D73
+              1D19318818440C220611838841C42062102917E43788940B920E13F1005E820C
+              322313536A0000000049454E44AE426082}
+          end>
+        Name = '04'
+      end>
+    Destination = <
+      item
+        Layers = <
+          item
+            Name = '01'
+            SourceRect.Right = 36.000000000000000000
+            SourceRect.Bottom = 36.000000000000000000
+          end>
+      end
+      item
+        Layers = <
+          item
+            Name = '02'
+            SourceRect.Right = 36.000000000000000000
+            SourceRect.Bottom = 36.000000000000000000
+          end>
+      end
+      item
+        Layers = <
+          item
+            Name = '04'
+            SourceRect.Right = 36.000000000000000000
+            SourceRect.Bottom = 36.000000000000000000
+          end>
+      end
+      item
+        Layers = <
+          item
+            Name = '03'
+            SourceRect.Right = 64.000000000000000000
+            SourceRect.Bottom = 64.000000000000000000
+          end>
+      end
+      item
+        Layers = <
+          item
+            Name = '03'
+            SourceRect.Right = 64.000000000000000000
+            SourceRect.Bottom = 64.000000000000000000
+          end>
+      end>
+    Left = 320
+    Top = 208
   end
 end
