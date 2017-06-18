@@ -38,7 +38,6 @@ requires
   fmx;
 
 contains
-  mustangpeak.sketchpad in 'mustangpeak.sketchpad.pas',
-  mustangpeak.sketchpad.frame in 'mustangpeak.sketchpad.frame.pas' {SketchpadFrame: TFrame};
+  mustangpeak.sketchpad in 'mustangpeak.sketchpad.pas';
 
 end.
