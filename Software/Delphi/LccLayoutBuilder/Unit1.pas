@@ -9,7 +9,8 @@ uses
   System.Generics.Collections, System.ImageList, FMX.ImgList, FMX.Gestures, mustangpeak.tracksegment,
   System.Actions, FMX.ActnList, FMX.MultiView, FMX.Ani, Math, FMX.ListBox,
   FMX.ListView.Types, FMX.ListView.Appearances, FMX.ListView.Adapters.Base,
-  FMX.Header, FMX.ListView, FMX.MultiView.Presentations;
+  FMX.Header, FMX.ListView, FMX.MultiView.Presentations, mustangpeak.sketchpad,
+  FMX.Edit, FMX.EditBox, FMX.NumberBox, FMX.TabControl;
 
 type
   TDragState = (dsNone, dsDragging, dsSelectRect, dsDragPending, dsSelectRectPending);
@@ -25,6 +26,7 @@ type
     FMouseButton: TMouseButton;         // Which button was down when the drag started
     FEditMode: Boolean;                 // Allow dragging
     FRectangleDragSelect: TRectangle;
+    FRectangleForceContent: TRectangle;
     procedure SetEditMode(const Value: Boolean);
   public
     constructor Create; virtual;
@@ -46,17 +48,15 @@ type
     StatusBar: TStatusBar;
     TextStatusMousePos: TText;
     LabelStatusSelection: TLabel;
-    ImageList: TImageList;
     GestureManager: TGestureManager;
     MultiViewMain: TMultiView;
     ActionListMain: TActionList;
     ActionNewStraightSegment: TAction;
     ActionNewTurnoutSegment: TAction;
     LabelTrackSegmentCount: TLabel;
-    Rectangle1: TRectangle;
+    RectangleHeader: TRectangle;
     Button4: TButton;
     CheckBoxEditMode: TCheckBox;
-    ScrollBoxPanel: TScrollBox;
     ComboBoxMultiViewMode: TComboBox;
     PanelMain: TPanel;
     ListBox1: TListBox;
@@ -71,6 +71,22 @@ type
     ListBoxItemSignal: TListBoxItem;
     ListBoxGroupHeaderMultiViewSignals: TListBoxGroupHeader;
     ListBoxGroupHeaderMultiviewTracks: TListBoxGroupHeader;
+    ListBoxProperites: TListBox;
+    ListBoxItemPropertiesPanel: TListBoxItem;
+    ListBoxItemProperitesDimHeight: TListBoxItem;
+    ListBoxItemHeaderPropertiesHeader: TListBoxItem;
+    SpeedButtonPanelProperties: TSpeedButton;
+    Rectangle2: TRectangle;
+    Label1: TLabel;
+    NumberBoxPanelWidth: TNumberBox;
+    Label2: TLabel;
+    NumberBoxPanelHeight: TNumberBox;
+    ColorAnimation1: TColorAnimation;
+    RectanglePanelContainer: TRectangle;
+    SpeedButtonProperitesMaster: TSpeedButton;
+    TabControl1: TTabControl;
+    TabItem1: TTabItem;
+    TabItem2: TTabItem;
     procedure FormCreate(Sender: TObject);
     procedure ScrollBoxPanelDragDrop(Sender: TObject; const Data: TDragObject; const Point: TPointF);
     procedure ScrollBoxPanelDragEnter(Sender: TObject; const Data: TDragObject; const Point: TPointF);
@@ -89,9 +105,15 @@ type
     procedure MultiViewMainStartHiding(Sender: TObject);
     procedure ListBoxItemStraightClick(Sender: TObject);
     procedure ListBoxItemTurnoutClick(Sender: TObject);
+    procedure ListBoxGroupHeaderProperitesPanelClick(Sender: TObject);
+    procedure ListBoxItemHeaderPropertiesHeaderClick(Sender: TObject);
+    procedure NumberBoxPanelWidthChange(Sender: TObject);
+    procedure NumberBoxPanelHeightChange(Sender: TObject);
+    procedure SpeedButtonProperitesMasterClick(Sender: TObject);
   private
     FDragManager: TDragManager;
     FTrackSegmentManager: TTrackSegmentManager;
+    FSketchPad: TSketchpad;
   protected
     property DragManager: TDragManager read FDragManager write FDragManager;
     function ScrollWindowClientToViewport(var ClientX, ClientY: single): TPointF;
@@ -102,6 +124,7 @@ type
     WindowService: IFMXWindowService;
     ScreenService: IFMXScreenService;
 
+    property Sketchpad: TSketchpad read FSketchPad write FSketchPad;
     property TrackSegmentManager: TTrackSegmentManager read FTrackSegmentManager write FTrackSegmentManager;
   end;
 
@@ -118,9 +141,9 @@ var
   Segment: TTrackSegment;
   FinalX, FinalY: Single;
 begin
-  Segment := TrackSegmentManager.NewSegment(TTrackSegmentStraight, ScrollBoxPanel);
-  FinalX := Max(0, TrackSegmentManager.CalculateSnapX(Random(Round( ScrollBoxPanel.Width)) - BASE_SEGMENT_WIDTH, BASE_SEGMENT_WIDTH));
-  FinalY := Max(0, TrackSegmentManager.CalculateSnapY(Random(Round( ScrollBoxPanel.Height)) - BASE_SEGMENT_HEIGHT, BASE_SEGMENT_HEIGHT));
+  Segment := TrackSegmentManager.NewSegment(TTrackSegmentStraight, SketchPad.PadView);
+  FinalX := Max(0, TrackSegmentManager.CalculateSnapX(Random(Round( SketchPad.PadView.Width)) - BASE_SEGMENT_WIDTH, BASE_SEGMENT_WIDTH));
+  FinalY := Max(0, TrackSegmentManager.CalculateSnapY(Random(Round( SketchPad.PadView.Height)) - BASE_SEGMENT_HEIGHT, BASE_SEGMENT_HEIGHT));
   TAnimator.AnimateFloat(Segment, 'Position.X', FinalX , 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
   TAnimator.AnimateFloat(Segment, 'Position.Y', FinalY, 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
 end;
@@ -130,9 +153,9 @@ var
   Segment: TTrackSegment;
   FinalX, FinalY: Single;
 begin
-  Segment := TrackSegmentManager.NewSegment(TTrackSegmentTurnout, ScrollBoxPanel);
-  FinalX := Max(0, TrackSegmentManager.CalculateSnapX(Random(Round( ScrollBoxPanel.Width)) - BASE_SEGMENT_WIDTH, BASE_SEGMENT_WIDTH));
-  FinalY := Max(0, TrackSegmentManager.CalculateSnapY(Random(Round( ScrollBoxPanel.Height)) - BASE_SEGMENT_HEIGHT, BASE_SEGMENT_HEIGHT));
+  Segment := TrackSegmentManager.NewSegment(TTrackSegmentTurnout, SketchPad.PadView);
+  FinalX := Max(0, TrackSegmentManager.CalculateSnapX(Random(Round( SketchPad.PadView.Width)) - BASE_SEGMENT_WIDTH, BASE_SEGMENT_WIDTH));
+  FinalY := Max(0, TrackSegmentManager.CalculateSnapY(Random(Round( SketchPad.PadView.Height)) - BASE_SEGMENT_HEIGHT, BASE_SEGMENT_HEIGHT));
   TAnimator.AnimateFloat(Segment, 'Position.X', FinalX , 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
   TAnimator.AnimateFloat(Segment, 'Position.Y', FinalY, 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
 end;
@@ -166,20 +189,49 @@ end;
 
 procedure TFormLayoutBuilder.FormCreate(Sender: TObject);
 begin
+  FSketchPad := TSketchpad.Create(Self);
+  Sketchpad.Parent := RectanglePanelContainer;
+  Sketchpad.Align := TAlignLayout.Client;
+  Sketchpad.AutoHide := False;
+
   FDragManager := TDragManager.Create;
   FTrackSegmentManager := TTrackSegmentManager.Create;
 
   TPlatformServices.Current.SupportsPlatformService(IFMXScreenService, ScreenService);
   TPlatformServices.Current.SupportsPlatformService(IFMXWindowService, WindowService);
 
- // Broken in OSX, won't show
-  ScrollBoxPanel.AniCalculations.AutoShowing := False;
 end;
 
 procedure TFormLayoutBuilder.FormDestroy(Sender: TObject);
 begin
   FreeAndNil(FTrackSegmentManager);
   FreeAndNil(FDragManager);
+end;
+
+procedure TFormLayoutBuilder.ListBoxGroupHeaderProperitesPanelClick(
+  Sender: TObject);
+begin
+  if SpeedButtonPanelProperties.ImageIndex = 33 then
+  begin
+    SpeedButtonPanelProperties.ImageIndex := 34;
+  end else
+  begin
+    SpeedButtonPanelProperties.ImageIndex := 33;
+  end;
+end;
+
+procedure TFormLayoutBuilder.ListBoxItemHeaderPropertiesHeaderClick(Sender: TObject);
+begin
+  if SpeedButtonPanelProperties.ImageIndex = 33 then
+  begin
+    SpeedButtonPanelProperties.ImageIndex := 34;
+    TAnimator.AnimateFloat(ListBoxItemPropertiesPanel, 'Height', 0, 0.3, TAnimationType.In, TInterpolationType.Quadratic);
+  end else
+  begin
+    SpeedButtonPanelProperties.ImageIndex := 33;
+    TAnimator.AnimateFloat(ListBoxItemPropertiesPanel, 'Height', 125, 0.3, TAnimationType.Out, TInterpolationType.Quadratic);
+  end;
+
 end;
 
 procedure TFormLayoutBuilder.ListBoxItemStraightClick(Sender: TObject);
@@ -234,6 +286,16 @@ begin
     MultiViewMain.MasterButton := SpeedButtonMasterButton;
 end;
 
+procedure TFormLayoutBuilder.NumberBoxPanelHeightChange(Sender: TObject);
+begin
+  Sketchpad.PadView.Height := NumberBoxPanelHeight.Value;
+end;
+
+procedure TFormLayoutBuilder.NumberBoxPanelWidthChange(Sender: TObject);
+begin
+  Sketchpad.PadView.Width := NumberBoxPanelWidth.Value
+end;
+
 procedure TFormLayoutBuilder.ScrollBoxPanelDragDrop(Sender: TObject; const Data: TDragObject; const Point: TPointF);
 var
   ViewportX, ViewportY: single;
@@ -280,7 +342,6 @@ begin
   DragManager.FPreviousVewportPoint := DragManager.StartViewportPoint;
   DragManager.MouseButton := Button;
   DragManager.Shift := Shift;
-
 
   case Button of
     TMouseButton.mbLeft :
@@ -378,9 +439,15 @@ begin
                 DragManager.FCurrentViewportPoint.Y := DragManager.PreviousVewportPoint.Y;
 
               for i := 0 to TrackSegmentManager.Selection.Count - 1 do
-                TrackSegmentManager.Selection[i].Drag(DragManager.CurrentViewportPoint, BASE_SEGMENT_WIDTH, BASE_SEGMENT_HEIGHT);
+           //     TrackSegmentManager.Selection[i].Drag(DragManager.CurrentViewportPoint, BASE_SEGMENT_WIDTH, BASE_SEGMENT_HEIGHT);
+                TrackSegmentManager.Selection[i].Drag(DragManager.CurrentViewportPoint, 1, 1);
 
               TrackSegmentManager.RefreshSelectionBounds;
+
+              if TrackSegmentManager.CurrentSelectionBounds.Right > (SketchPad.ViewportPosition.X + SketchPad.Width) then
+                SketchPad.ScrollBy(-(TrackSegmentManager.CurrentSelectionBounds.Right - (SketchPad.ViewportPosition.X + SketchPad.Width)), 0);
+              if TrackSegmentManager.CurrentSelectionBounds.Bottom > (SketchPad.ViewportPosition.Y + SketchPad.Height) then
+                SketchPad.ScrollBy(-(TrackSegmentManager.CurrentSelectionBounds.Bottom - (SketchPad.ViewportPosition.Y + SketchPad.Height)), 0);
             end;
           dsSelectRectPending :
             begin
@@ -389,8 +456,8 @@ begin
                 DragManager.RectangleDragSelect.Position.Point := DragManager.StartViewportPoint;
                 DragManager.RectangleDragSelect.Width := 0;
                 DragManager.RectangleDragSelect.Height := 0;
-                DragManager.RectangleDragSelect.Parent := ScrollBoxPanel;
-                ScrollBoxPanel.Root.Captured := ScrollBoxPanel;
+                DragManager.RectangleDragSelect.Parent := SketchPad.PadView;
+                SketchPad.PadView.Root.Captured := SketchPad.PadView;
                 DragManager.State := TDragState.dsSelectRect;
               end;
             end;
@@ -457,14 +524,22 @@ end;
 
 function TFormLayoutBuilder.ScrollWindowClientToViewport(var ClientX, ClientY: single): TPointF;
 begin
-  Result.X := ClientX + ScrollBoxPanel.ViewportPosition.X;
-  Result.Y := ClientY + ScrollBoxPanel.ViewportPosition.Y;
+  Result.X := ClientX + SketchPad.ViewportPosition.X;
+  Result.Y := ClientY + SketchPad.ViewportPosition.Y;
 end;
 
 function TFormLayoutBuilder.ScrollWindowClientToViewportRect(ClientRect: TRectF): TRectF;
 begin
   Result.TopLeft := ScrollWindowClientToViewport(ClientRect.Left, ClientRect.Top);
   Result.BottomRight := ScrollWindowClientToViewport(ClientRect.Right, ClientRect.Bottom)
+end;
+
+procedure TFormLayoutBuilder.SpeedButtonProperitesMasterClick(Sender: TObject);
+begin
+  if ListBoxProperites.Width > 0  then
+    TAnimator.AnimateFloat(ListBoxProperites, 'Width', 0, 0.2, TAnimationType.&In, TInterpolationType.Exponential)
+  else
+    TAnimator.AnimateFloat(ListBoxProperites, 'Width', 175, 0.2, TAnimationType.&In, TInterpolationType.Exponential);
 end;
 
 procedure TFormLayoutBuilder.UpdateStatusBar;
@@ -488,11 +563,13 @@ begin
   RectangleDragSelect.YRadius := 5;
   RectangleDragSelect.Fill.Kind := TBrushKind.Gradient;
   RectangleDragSelect.Stroke.Color := TAlphAColorRec.Blue;
+
 end;
 
 destructor TDragManager.Destroy;
 begin
   FreeAndNil(FRectangleDragSelect);
+  FreeAndNil(FRectangleForceContent);
   inherited;
 end;
 

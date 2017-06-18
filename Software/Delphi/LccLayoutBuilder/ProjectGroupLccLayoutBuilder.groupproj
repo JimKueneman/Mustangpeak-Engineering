@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{0B9D7BAE-B3EB-4FD0-8500-7A4E9225CF27}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="LayoutBuilder.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\CommonLibrary\mustangpeak.fmx.sketchpad.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="LayoutBuilder">
+        <MSBuild Projects="LayoutBuilder.dproj"/>
+    </Target>
+    <Target Name="LayoutBuilder:Clean">
+        <MSBuild Projects="LayoutBuilder.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="LayoutBuilder:Make">
+        <MSBuild Projects="LayoutBuilder.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="mustangpeak_fmx_sketchpad">
+        <MSBuild Projects="..\CommonLibrary\mustangpeak.fmx.sketchpad.dproj"/>
+    </Target>
+    <Target Name="mustangpeak_fmx_sketchpad:Clean">
+        <MSBuild Projects="..\CommonLibrary\mustangpeak.fmx.sketchpad.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="mustangpeak_fmx_sketchpad:Make">
+        <MSBuild Projects="..\CommonLibrary\mustangpeak.fmx.sketchpad.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="LayoutBuilder;mustangpeak_fmx_sketchpad"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="LayoutBuilder:Clean;mustangpeak_fmx_sketchpad:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="LayoutBuilder:Make;mustangpeak_fmx_sketchpad:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

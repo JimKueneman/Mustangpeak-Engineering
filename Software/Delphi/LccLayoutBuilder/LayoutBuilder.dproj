@@ -96,7 +96,7 @@
     <PropertyGroup Condition="'$(Base_Android)'!=''">
         <Android_SplashImage426>$(BDS)\bin\Artwork\Android\FM_SplashImage_426x320.png</Android_SplashImage426>
         <Android_SplashImage470>$(BDS)\bin\Artwork\Android\FM_SplashImage_470x320.png</Android_SplashImage470>
-        <DCC_UsePackage>IndyIPClient;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;DBXInterBaseDriver;DataSnapClient;DataSnapCommon;xmlrtl;DataSnapNativeClient;DbxCommonDriver;IndyProtocols;dbxcds;FireDACCommonDriver;soaprtl;bindengine;bindcompdbx;fmxFireDAC;CustomIPTransport;emsclient;FireDAC;dsnap;IndyCore;CloudService;FireDACIBDriver;inet;IndyIPCommon;DataSnapFireDAC;FireDACDBXDriver;IndyIPServer;soapmidas;soapserver;dsnapxml;RESTComponents;dbexpress;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>IndyIPClient;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;DBXInterBaseDriver;DataSnapClient;DataSnapCommon;xmlrtl;DbxCommonDriver;IndyProtocols;dbxcds;FireDACCommonDriver;soaprtl;bindengine;bindcompdbx;fmxFireDAC;CustomIPTransport;emsclient;FireDAC;dsnap;IndyCore;CloudService;FireDACIBDriver;inet;IndyIPCommon;DataSnapFireDAC;FireDACDBXDriver;IndyIPServer;soapmidas;soapserver;dsnapxml;RESTComponents;dbexpress;$(DCC_UsePackage)</DCC_UsePackage>
         <EnabledSysJars>android-support-v4.dex.jar;apk-expansion.dex.jar;cloud-messaging.dex.jar;fmx.dex.jar;google-analytics-v2.dex.jar;google-play-billing.dex.jar;google-play-licensing.dex.jar;google-play-services.dex.jar</EnabledSysJars>
         <Android_SplashImage960>$(BDS)\bin\Artwork\Android\FM_SplashImage_960x720.png</Android_SplashImage960>
         <Android_LauncherIcon36>$(BDS)\bin\Artwork\Android\FM_LauncherIcon_36x36.png</Android_LauncherIcon36>
@@ -117,7 +117,7 @@
         <iPad_SpotLight50>$(BDS)\bin\Artwork\iOS\iPad\FM_SpotlightSearchIcon_50x50.png</iPad_SpotLight50>
         <iPad_Setting58>$(BDS)\bin\Artwork\iOS\iPad\FM_SettingIcon_58x58.png</iPad_Setting58>
         <VerInfo_Keys>CFBundleName=$(MSBuildProjectName);CFBundleDevelopmentRegion=en;CFBundleDisplayName=$(MSBuildProjectName);CFBundleIdentifier=$(MSBuildProjectName);CFBundleInfoDictionaryVersion=7.1;CFBundleVersion=1.0.0.0;CFBundlePackageType=APPL;CFBundleSignature=????;LSRequiresIPhoneOS=true;CFBundleAllowMixedLocalizations=YES;CFBundleExecutable=$(MSBuildProjectName);UIDeviceFamily=iPhone &amp; iPad;CFBundleResourceSpecification=ResourceRules.plist;NSLocationAlwaysUsageDescription=The reason for accessing the location information of the user;NSLocationWhenInUseUsageDescription=The reason for accessing the location information of the user;FMLocalNotificationPermission=false;UIBackgroundModes=</VerInfo_Keys>
-        <DCC_UsePackage>IndyIPClient;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;DBXInterBaseDriver;DataSnapClient;DataSnapCommon;xmlrtl;DataSnapNativeClient;DbxCommonDriver;IndyProtocols;dbxcds;FireDACCommonDriver;soaprtl;bindengine;bindcompdbx;fmxFireDAC;CustomIPTransport;emsclient;FireDAC;dsnap;fmxase;IndyCore;CloudService;FireDACIBDriver;inet;IndyIPCommon;DataSnapFireDAC;FireDACDBXDriver;IndyIPServer;soapmidas;soapserver;dsnapxml;RESTComponents;dbexpress;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>IndyIPClient;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;DBXInterBaseDriver;DataSnapClient;DataSnapCommon;xmlrtl;DbxCommonDriver;IndyProtocols;dbxcds;FireDACCommonDriver;soaprtl;bindengine;bindcompdbx;fmxFireDAC;CustomIPTransport;emsclient;FireDAC;dsnap;fmxase;IndyCore;CloudService;FireDACIBDriver;inet;IndyIPCommon;DataSnapFireDAC;FireDACDBXDriver;IndyIPServer;soapmidas;soapserver;dsnapxml;RESTComponents;dbexpress;$(DCC_UsePackage)</DCC_UsePackage>
         <iPad_AppIcon72>$(BDS)\bin\Artwork\iOS\iPad\FM_ApplicationIcon_72x72.png</iPad_AppIcon72>
         <iPad_Launch1024>$(BDS)\bin\Artwork\iOS\iPad\FM_LaunchImageLandscape_1024x748.png</iPad_Launch1024>
         <VerInfo_UIDeviceFamily>iPhoneAndiPad</VerInfo_UIDeviceFamily>
@@ -159,7 +159,7 @@
         <iPad_SpotLight50>$(BDS)\bin\Artwork\iOS\iPad\FM_SpotlightSearchIcon_50x50.png</iPad_SpotLight50>
         <iPad_Setting58>$(BDS)\bin\Artwork\iOS\iPad\FM_SettingIcon_58x58.png</iPad_Setting58>
         <VerInfo_Keys>CFBundleName=$(MSBuildProjectName);CFBundleDevelopmentRegion=en;CFBundleDisplayName=$(MSBuildProjectName);CFBundleIdentifier=$(MSBuildProjectName);CFBundleInfoDictionaryVersion=7.1;CFBundleVersion=1.0.0.0;CFBundlePackageType=APPL;CFBundleSignature=????;LSRequiresIPhoneOS=true;CFBundleAllowMixedLocalizations=YES;CFBundleExecutable=$(MSBuildProjectName);UIDeviceFamily=iPhone &amp; iPad;CFBundleResourceSpecification=ResourceRules.plist;NSLocationAlwaysUsageDescription=The reason for accessing the location information of the user;NSLocationWhenInUseUsageDescription=The reason for accessing the location information of the user;FMLocalNotificationPermission=false;UIBackgroundModes=</VerInfo_Keys>
-        <DCC_UsePackage>IndyIPClient;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;DBXInterBaseDriver;DataSnapClient;DataSnapCommon;xmlrtl;DataSnapNativeClient;DbxCommonDriver;IndyProtocols;dbxcds;FireDACCommonDriver;soaprtl;bindengine;bindcompdbx;fmxFireDAC;CustomIPTransport;emsclient;FireDAC;dsnap;fmxase;IndyCore;CloudService;FireDACIBDriver;inet;IndyIPCommon;DataSnapFireDAC;FireDACDBXDriver;IndyIPServer;soapmidas;soapserver;dsnapxml;RESTComponents;dbexpress;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>IndyIPClient;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;DBXInterBaseDriver;DataSnapClient;DataSnapCommon;xmlrtl;DbxCommonDriver;IndyProtocols;dbxcds;FireDACCommonDriver;soaprtl;bindengine;bindcompdbx;fmxFireDAC;CustomIPTransport;emsclient;FireDAC;dsnap;fmxase;IndyCore;CloudService;FireDACIBDriver;inet;IndyIPCommon;DataSnapFireDAC;FireDACDBXDriver;IndyIPServer;soapmidas;soapserver;dsnapxml;RESTComponents;dbexpress;$(DCC_UsePackage)</DCC_UsePackage>
         <iPad_AppIcon72>$(BDS)\bin\Artwork\iOS\iPad\FM_ApplicationIcon_72x72.png</iPad_AppIcon72>
         <iPad_Launch1024>$(BDS)\bin\Artwork\iOS\iPad\FM_LaunchImageLandscape_1024x748.png</iPad_Launch1024>
         <VerInfo_UIDeviceFamily>iPhoneAndiPad</VerInfo_UIDeviceFamily>
@@ -199,7 +199,7 @@
         <iPad_SpotLight40>$(BDS)\bin\Artwork\iOS\iPad\FM_SpotlightSearchIcon_40x40.png</iPad_SpotLight40>
         <iPad_SpotLight50>$(BDS)\bin\Artwork\iOS\iPad\FM_SpotlightSearchIcon_50x50.png</iPad_SpotLight50>
         <iPhone_Launch1242>$(BDS)\bin\Artwork\iOS\iPhone\FM_LaunchImage_1242x2208.png</iPhone_Launch1242>
-        <DCC_UsePackage>IndyIPClient;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;DBXInterBaseDriver;DataSnapClient;DataSnapCommon;xmlrtl;DataSnapNativeClient;DbxCommonDriver;IndyProtocols;dbxcds;FireDACCommonDriver;soaprtl;bindengine;bindcompdbx;fmxFireDAC;CustomIPTransport;emsclient;FireDAC;dsnap;fmxase;IndyCore;CloudService;FireDACIBDriver;inet;IndyIPCommon;DataSnapFireDAC;FireDACDBXDriver;IndyIPServer;soapmidas;soapserver;dsnapxml;RESTComponents;dbexpress;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>IndyIPClient;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;DBXInterBaseDriver;DataSnapClient;DataSnapCommon;xmlrtl;DbxCommonDriver;IndyProtocols;dbxcds;FireDACCommonDriver;soaprtl;bindengine;bindcompdbx;fmxFireDAC;CustomIPTransport;emsclient;FireDAC;dsnap;fmxase;IndyCore;CloudService;FireDACIBDriver;inet;IndyIPCommon;DataSnapFireDAC;FireDACDBXDriver;IndyIPServer;soapmidas;soapserver;dsnapxml;RESTComponents;dbexpress;$(DCC_UsePackage)</DCC_UsePackage>
         <iPad_Setting58>$(BDS)\bin\Artwork\iOS\iPad\FM_SettingIcon_58x58.png</iPad_Setting58>
         <iPad_AppIcon72>$(BDS)\bin\Artwork\iOS\iPad\FM_ApplicationIcon_72x72.png</iPad_AppIcon72>
         <iPad_Launch1024>$(BDS)\bin\Artwork\iOS\iPad\FM_LaunchImageLandscape_1024x748.png</iPad_Launch1024>
@@ -234,7 +234,7 @@
         <iPad_SpotLight100>$(BDS)\bin\Artwork\iOS\iPad\FM_SpotlightSearchIcon_100x100.png</iPad_SpotLight100>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_OSX32)'!=''">
-        <DCC_UsePackage>IndyIPClient;FireDACASADriver;FireDACTDataDriver;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;FireDACPgDriver;FireDACODBCDriver;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;inetdb;DBXInterBaseDriver;DataSnapClient;DataSnapServer;DataSnapCommon;xmlrtl;DataSnapNativeClient;DbxCommonDriver;IndyProtocols;dbxcds;DBXMySQLDriver;FireDACCommonDriver;soaprtl;bindengine;bindcompdbx;fmxFireDAC;DBXOracleDriver;CustomIPTransport;emsclient;FireDAC;dsnap;DBXInformixDriver;FireDACMSSQLDriver;fmxase;IndyCore;CloudService;DataSnapServerMidas;DBXFirebirdDriver;FireDACIBDriver;inet;IndyIPCommon;DataSnapFireDAC;fmxobj;FireDACDBXDriver;IndyIPServer;FireDACMySQLDriver;soapmidas;soapserver;inetdbxpress;DBXSybaseASADriver;dsnapxml;FireDACOracleDriver;fmxdae;RESTComponents;DataSnapIndy10ServerTransport;dbexpress;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>IndyIPClient;FireDACASADriver;FireDACTDataDriver;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;FireDACPgDriver;FireDACODBCDriver;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;inetdb;DBXInterBaseDriver;DataSnapClient;DataSnapServer;DataSnapCommon;xmlrtl;DbxCommonDriver;IndyProtocols;dbxcds;DBXMySQLDriver;FireDACCommonDriver;soaprtl;bindengine;bindcompdbx;fmxFireDAC;DBXOracleDriver;CustomIPTransport;emsclient;FireDAC;dsnap;DBXInformixDriver;FireDACMSSQLDriver;fmxase;IndyCore;CloudService;DataSnapServerMidas;DBXFirebirdDriver;FireDACIBDriver;inet;IndyIPCommon;DataSnapFireDAC;fmxobj;FireDACDBXDriver;IndyIPServer;FireDACMySQLDriver;soapmidas;soapserver;inetdbxpress;DBXSybaseASADriver;dsnapxml;FireDACOracleDriver;fmxdae;RESTComponents;DataSnapIndy10ServerTransport;dbexpress;$(DCC_UsePackage)</DCC_UsePackage>
         <VerInfo_Keys>CFBundleName=$(MSBuildProjectName);CFBundleDisplayName=$(MSBuildProjectName);CFBundleIdentifier=$(MSBuildProjectName);CFBundleVersion=1.0.0;CFBundlePackageType=APPL;CFBundleSignature=????;CFBundleAllowMixedLocalizations=YES;CFBundleExecutable=$(MSBuildProjectName);NSHighResolutionCapable=true;LSApplicationCategoryType=public.app-category.utilities;NSLocationAlwaysUsageDescription=The reason for accessing the location information of the user;NSLocationWhenInUseUsageDescription=The reason for accessing the location information of the user</VerInfo_Keys>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
     </PropertyGroup>
@@ -245,7 +245,7 @@
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <DCC_UsePackage>IndyIPClient;FireDACASADriver;FireDACTDataDriver;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;FireDACPgDriver;FireDACODBCDriver;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;inetdb;DBXInterBaseDriver;DataSnapClient;DataSnapServer;DataSnapCommon;DBXOdbcDriver;vclFireDAC;xmlrtl;DBXSybaseASEDriver;DataSnapNativeClient;DbxCommonDriver;svnui;vclimg;IndyProtocols;dbxcds;DBXMySQLDriver;DatasnapConnectorsFreePascal;FireDACCommonDriver;appanalytics;soaprtl;vclactnband;bindengine;vcldb;bindcompdbx;vcldsnap;bindcompvcl;vclie;fmxFireDAC;FireDACADSDriver;DBXDb2Driver;vcltouch;DBXOracleDriver;CustomIPTransport;emsclient;vclribbon;VCLRESTComponents;FireDAC;dsnap;DBXInformixDriver;FireDACMSSQLDriver;fmxase;vcl;IndyCore;VclSmp;DataSnapConnectors;DBXMSSQLDriver;CloudService;DataSnapServerMidas;DBXFirebirdDriver;FireDACIBDriver;dsnapcon;inet;IndyIPCommon;DataSnapFireDAC;fmxobj;FireDACDBXDriver;IndyIPServer;FireDACMySQLDriver;soapmidas;vclx;soapserver;inetdbxpress;svn;DBXSybaseASADriver;dsnapxml;FireDACOracleDriver;FireDACInfxDriver;FireDACDb2Driver;fmxdae;RESTComponents;FireDACMSAccDriver;DataSnapIndy10ServerTransport;dbexpress;adortl;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>IndyIPClient;FireDACASADriver;FireDACTDataDriver;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;FireDACPgDriver;FireDACODBCDriver;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;inetdb;DBXInterBaseDriver;DataSnapClient;DataSnapServer;DataSnapCommon;DBXOdbcDriver;vclFireDAC;xmlrtl;DBXSybaseASEDriver;DbxCommonDriver;svnui;vclimg;IndyProtocols;dbxcds;DBXMySQLDriver;DatasnapConnectorsFreePascal;FireDACCommonDriver;appanalytics;soaprtl;vclactnband;bindengine;vcldb;bindcompdbx;vcldsnap;bindcompvcl;vclie;fmxFireDAC;FireDACADSDriver;DBXDb2Driver;vcltouch;DBXOracleDriver;CustomIPTransport;emsclient;vclribbon;VCLRESTComponents;FireDAC;dsnap;DBXInformixDriver;FireDACMSSQLDriver;fmxase;vcl;IndyCore;VclSmp;DataSnapConnectors;DBXMSSQLDriver;CloudService;DataSnapServerMidas;DBXFirebirdDriver;FireDACIBDriver;dsnapcon;inet;IndyIPCommon;DataSnapFireDAC;fmxobj;FireDACDBXDriver;IndyIPServer;FireDACMySQLDriver;soapmidas;vclx;soapserver;inetdbxpress;svn;DBXSybaseASADriver;dsnapxml;FireDACOracleDriver;FireDACInfxDriver;FireDACDb2Driver;fmxdae;RESTComponents;FireDACMSAccDriver;DataSnapIndy10ServerTransport;dbexpress;adortl;$(DCC_UsePackage)</DCC_UsePackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
@@ -254,7 +254,7 @@
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <DCC_UsePackage>IndyIPClient;FireDACASADriver;FireDACTDataDriver;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;FireDACPgDriver;FireDACODBCDriver;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;inetdb;DBXInterBaseDriver;DataSnapClient;DataSnapServer;DataSnapCommon;DBXOdbcDriver;vclFireDAC;xmlrtl;DBXSybaseASEDriver;DataSnapNativeClient;DbxCommonDriver;vclimg;IndyProtocols;dbxcds;DBXMySQLDriver;DatasnapConnectorsFreePascal;FireDACCommonDriver;appanalytics;soaprtl;vclactnband;bindengine;vcldb;bindcompdbx;vcldsnap;bindcompvcl;vclie;fmxFireDAC;FireDACADSDriver;DBXDb2Driver;vcltouch;DBXOracleDriver;CustomIPTransport;emsclient;vclribbon;VCLRESTComponents;FireDAC;dsnap;DBXInformixDriver;FireDACMSSQLDriver;fmxase;vcl;IndyCore;VclSmp;DataSnapConnectors;DBXMSSQLDriver;CloudService;DataSnapServerMidas;DBXFirebirdDriver;FireDACIBDriver;dsnapcon;inet;IndyIPCommon;DataSnapFireDAC;fmxobj;FireDACDBXDriver;IndyIPServer;FireDACMySQLDriver;soapmidas;vclx;soapserver;inetdbxpress;DBXSybaseASADriver;dsnapxml;FireDACOracleDriver;FireDACInfxDriver;FireDACDb2Driver;fmxdae;RESTComponents;FireDACMSAccDriver;DataSnapIndy10ServerTransport;dbexpress;adortl;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>IndyIPClient;FireDACASADriver;FireDACTDataDriver;FireDACSqliteDriver;FireDACDSDriver;bindcompfmx;DBXSqliteDriver;LCC;FireDACPgDriver;FireDACODBCDriver;RESTBackendComponents;fmx;emsclientfiredac;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;tethering;inetdb;DBXInterBaseDriver;DataSnapClient;DataSnapServer;DataSnapCommon;DBXOdbcDriver;vclFireDAC;xmlrtl;DBXSybaseASEDriver;DbxCommonDriver;vclimg;IndyProtocols;dbxcds;DBXMySQLDriver;DatasnapConnectorsFreePascal;FireDACCommonDriver;appanalytics;soaprtl;vclactnband;bindengine;vcldb;bindcompdbx;vcldsnap;bindcompvcl;vclie;fmxFireDAC;FireDACADSDriver;DBXDb2Driver;vcltouch;DBXOracleDriver;CustomIPTransport;emsclient;vclribbon;VCLRESTComponents;FireDAC;dsnap;DBXInformixDriver;FireDACMSSQLDriver;fmxase;vcl;IndyCore;VclSmp;DataSnapConnectors;DBXMSSQLDriver;CloudService;DataSnapServerMidas;DBXFirebirdDriver;FireDACIBDriver;dsnapcon;inet;IndyIPCommon;DataSnapFireDAC;fmxobj;FireDACDBXDriver;IndyIPServer;FireDACMySQLDriver;soapmidas;vclx;soapserver;inetdbxpress;DBXSybaseASADriver;dsnapxml;FireDACOracleDriver;FireDACInfxDriver;FireDACDb2Driver;fmxdae;RESTComponents;FireDACMSAccDriver;DataSnapIndy10ServerTransport;dbexpress;adortl;$(DCC_UsePackage)</DCC_UsePackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1)'!=''">
         <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
@@ -285,6 +285,11 @@
             <FormType>fmx</FormType>
         </DCCReference>
         <DCCReference Include="mustangpeak.tracksegment.pas"/>
+        <DCCReference Include="..\CommonLibrary\mustangpeak.sketchpad.frame.pas">
+            <Form>SketchpadFrame</Form>
+            <FormType>fmx</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -305,6 +310,13 @@
                 <Source>
                     <Source Name="MainSource">LayoutBuilder.dpr</Source>
                 </Source>
+                <Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclDataSnapClient230.bpl">Embarcadero DBExpress DataSnap Client Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclDataSnapNativeClient230.bpl">Embarcadero DBExpress DataSnap Native Client Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclDataSnapProviderClient230.bpl">Embarcadero DBExpress DataSnap Provider Client Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k230.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp230.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="2">
                 <DeployFile LocalName="$(BDS)\bin\Artwork\iOS\iPad\FM_ApplicationIcon_144x144.png" Configuration="Debug" Class="iPad_AppIcon144">
@@ -345,12 +357,6 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="iOSSimulator\Debug\LayoutBuilder.rsm" Configuration="Debug" Class="DebugSymbols">
-                    <Platform Name="iOSSimulator">
-                        <RemoteName>LayoutBuilder.rsm</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
                 <DeployFile LocalName="$(BDS)\bin\Artwork\iOS\iPad\FM_ApplicationIcon_76x76.png" Configuration="Debug" Class="iPad_AppIcon76">
                     <Platform Name="iOSSimulator">
                         <Overwrite>true</Overwrite>
@@ -377,12 +383,12 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="$(BDS)\bin\Artwork\iOS\iPad\FM_SettingIcon_58x58.png" Configuration="Debug" Class="iPad_Setting58">
+                <DeployFile LocalName="$(BDS)\Redist\iossim32\libcgunwind.1.0.dylib" Class="DependencyModule">
                     <Platform Name="iOSSimulator">
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="$(BDS)\bin\Artwork\iOS\iPad\FM_ApplicationIcon_152x152.png" Configuration="Debug" Class="iPad_AppIcon152">
+                <DeployFile LocalName="$(BDS)\bin\Artwork\iOS\iPad\FM_SettingIcon_58x58.png" Configuration="Debug" Class="iPad_Setting58">
                     <Platform Name="iOSSimulator">
                         <Overwrite>true</Overwrite>
                     </Platform>
@@ -393,14 +399,14 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="$(BDS)\bin\Artwork\iOS\iPhone\FM_LaunchImage_2208x1242.png" Configuration="Debug" Class="iPhone_Launch2208">
+                <DeployFile LocalName="$(BDS)\bin\Artwork\iOS\iPad\FM_ApplicationIcon_152x152.png" Configuration="Debug" Class="iPad_AppIcon152">
                     <Platform Name="iOSSimulator">
-                        <RemoteName>Default-Landscape-736h@3x.png</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="$(BDS)\Redist\iossim32\libcgunwind.1.0.dylib" Class="DependencyModule">
+                <DeployFile LocalName="$(BDS)\bin\Artwork\iOS\iPhone\FM_LaunchImage_2208x1242.png" Configuration="Debug" Class="iPhone_Launch2208">
                     <Platform Name="iOSSimulator">
+                        <RemoteName>Default-Landscape-736h@3x.png</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
@@ -528,13 +534,6 @@
                 </DeployFile>
                 <DeployFile LocalName="iOSSimulator\Debug\LayoutBuilder.entitlements" Configuration="Debug" Class="ProjectiOSEntitlements">
                     <Platform Name="iOSSimulator">
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="OSX32\Debug\LayoutBuilder.rsm" Configuration="Debug" Class="DebugSymbols">
-                    <Platform Name="OSX32">
-                        <RemoteDir>Contents\MacOS\</RemoteDir>
-                        <RemoteName>LayoutBuilder.rsm</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
