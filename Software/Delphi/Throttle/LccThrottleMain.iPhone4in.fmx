@@ -1,0 +1,184 @@
+inherited TabbedwithNavigationForm_iPhone4in: TTabbedwithNavigationForm_iPhone4in
+  ClientHeight = 548
+  ClientWidth = 320
+  DesignerMasterStyle = 2
+  inherited TabControl1: TTabControl
+    Size.Width = 320.000000000000000000
+    Size.Height = 548.000000000000000000
+    inherited TabItem1: TTabItem
+      Size.Width = 80.000000000000000000
+      ExplicitSize.cx = 101.000000000000000000
+      ExplicitSize.cy = 49.000000000000000000
+      inherited TabControl2: TTabControl
+        inherited TabItem5: TTabItem
+          ExplicitSize.cx = 8.000000000000000000
+          ExplicitSize.cy = 8.000000000000000000
+          inherited ToolBar1: TToolBar
+            Size.Height = 44.000000000000000000
+            inherited lblTitle1: TLabel
+              Size.Height = 44.000000000000000000
+            end
+            inherited btnNext: TSpeedButton
+              Size.Height = 44.000000000000000000
+            end
+          end
+        end
+        inherited TabItem6: TTabItem
+          Size.Width = 11.000000000000000000
+          Size.Height = 11.000000000000000000
+          ExplicitSize.cx = 8.000000000000000000
+          ExplicitSize.cy = 8.000000000000000000
+          inherited ToolBar2: TToolBar
+            Size.Height = 44.000000000000000000
+            inherited lblTitle2: TLabel
+              Size.Height = 44.000000000000000000
+            end
+            inherited btnBack: TSpeedButton
+              Size.Height = 44.000000000000000000
+            end
+          end
+        end
+      end
+    end
+    inherited TabItem2: TTabItem
+      Size.Width = 80.000000000000000000
+      ExplicitSize.cx = 102.000000000000000000
+      ExplicitSize.cy = 49.000000000000000000
+      inherited ToolBar3: TToolBar
+        Size.Height = 44.000000000000000000
+        inherited lblTitle3: TLabel
+          Size.Height = 44.000000000000000000
+        end
+      end
+      inherited FramedVertScrollBox1: TFramedVertScrollBox
+        Size.Height = 6.000000000000000000
+        Viewport.Width = 320.000000000000000000
+        Viewport.Height = 455.000000000000000000
+        inherited Rectangle1: TRectangle
+          Opacity = 0.100000001490116100
+          Size.Width = 320.000000000000000000
+          Size.Height = 455.000000000000000000
+          inherited Layout1: TLayout
+            Size.Width = 320.000000000000000000
+            inherited Label3: TLabel
+              Size.Width = 288.000000000000000000
+            end
+            inherited BWTrackBar1: TBWTrackBar
+              Size.Width = 288.000000000000000000
+              Size.Height = 36.000000000000000000
+            end
+          end
+          inherited Layout2: TLayout
+            Size.Width = 320.000000000000000000
+            inherited BWTrackBar2: TBWTrackBar
+              Position.Y = 91.000000000000000000
+              Size.Width = 288.000000000000000000
+              Size.Height = 36.000000000000000000
+            end
+            inherited Layout3: TLayout
+              Size.Width = 288.000000000000000000
+              inherited Layout4: TLayout
+                Position.X = 233.000000000000000000
+              end
+              inherited Layout5: TLayout
+                Size.Width = 233.000000000000000000
+                inherited Layout6: TLayout
+                  Size.Width = 233.000000000000000000
+                end
+                inherited Label4: TLabel
+                  Size.Width = 233.000000000000000000
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+    inherited TabItem3: TTabItem
+      Size.Width = 80.000000000000000000
+      ExplicitSize.cx = 101.000000000000000000
+      ExplicitSize.cy = 49.000000000000000000
+      inherited ToolBar4: TToolBar
+        Size.Height = 44.000000000000000000
+        inherited lblTitle4: TLabel
+          Size.Height = 44.000000000000000000
+        end
+      end
+    end
+    inherited TabItem4: TTabItem
+      Size.Width = 80.000000000000000000
+      ExplicitSize.cx = 99.000000000000000000
+      ExplicitSize.cy = 49.000000000000000000
+      inherited ToolBar5: TToolBar
+        Size.Width = 320.000000000000000000
+        Size.Height = 44.000000000000000000
+        inherited lblTitle5: TLabel
+          Size.Width = 320.000000000000000000
+          Size.Height = 44.000000000000000000
+        end
+      end
+      inherited Panel2: TPanel
+        Size.Width = 320.000000000000000000
+        Size.Height = 455.000000000000000000
+        inherited Edit1: TEdit
+          Position.Y = 85.000000000000000000
+          Margins.Top = 4.000000000000000000
+          Size.Width = 260.000000000000000000
+          Size.Height = 30.000000000000000000
+        end
+        inherited Edit2: TEdit
+          Position.Y = 183.000000000000000000
+          Margins.Top = 4.000000000000000000
+          Size.Width = 260.000000000000000000
+          Size.Height = 30.000000000000000000
+        end
+        inherited Label1: TLabel
+          Margins.Bottom = 16.000000000000000000
+          Size.Width = 280.000000000000000000
+        end
+        inherited Label2: TLabel
+          Margins.Bottom = 16.000000000000000000
+          Position.Y = 123.000000000000000000
+          Size.Width = 280.000000000000000000
+        end
+        inherited CheckBoxTCP: TCheckBox
+          Position.Y = 233.000000000000000000
+          Size.Width = 280.000000000000000000
+        end
+        inherited LabelNodeInfoPath: TLabel
+          Position.Y = 256.000000000000000000
+          Size.Width = 280.000000000000000000
+          Size.Height = 23.000000000000000000
+        end
+        inherited LabelCdiPath: TLabel
+          Position.Y = 283.000000000000000000
+          Size.Width = 280.000000000000000000
+          Size.Height = 23.000000000000000000
+        end
+      end
+    end
+  end
+  inherited GestureManager1: TGestureManager
+    GestureData = <
+      item
+        Control = TabControl1
+        Collection = <
+          item
+            GestureID = sgiLeft
+          end
+          item
+            GestureID = sgiRight
+          end>
+      end
+      item
+        Control = TabControl2
+        Collection = <
+          item
+            GestureID = sgiLeft
+          end
+          item
+            GestureID = sgiRight
+          end>
+      end>
+  end
+end

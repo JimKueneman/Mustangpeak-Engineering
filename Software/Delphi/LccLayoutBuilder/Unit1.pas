@@ -194,6 +194,8 @@ begin
   Sketchpad.Align := TAlignLayout.Client;
   Sketchpad.AutoHide := False;
 
+  ComboBoxMultiViewMode.ItemIndex := 0; // Set to platform, assumes at design time it is -1
+
   FDragManager := TDragManager.Create;
   FTrackSegmentManager := TTrackSegmentManager.Create;
 

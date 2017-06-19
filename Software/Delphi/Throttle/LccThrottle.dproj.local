@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<ActiveMobileDevice>
+		<POSX iOSSimulator="_iossimulator_067E2586-7036-46D9-BE63-0CFF9CD8CC0E" iOSDevice32="_iosdevice_4b0cda8c26db4d0930538a5f7f6151424386083e" iOSDevice64="_iosdevice_4b0cda8c26db4d0930538a5f7f6151424386083e"/>
+		<NoProfile Android="0146914802014008"/>
+	</ActiveMobileDevice>
+	<BT_BuildType>Debug</BT_BuildType>
+	<Transactions>
+    <Transaction>2017/05/21 05:42:45.000.631,Y:\Mustangpeak-Engineering\Software\Delphi\Throttle\TabbedwithNavigation.dproj=Y:\Mustangpeak-Engineering\Software\Delphi\Throttle\LccThrottle.dproj</Transaction>
+    <Transaction>2017/05/21 05:43:35.000.489,Y:\Mustangpeak-Engineering\Software\Delphi\Throttle\TabbedFormwithNavigation.fmx=Y:\Mustangpeak-Engineering\Software\Delphi\Throttle\LccThrottleMain.fmx</Transaction>
+    <Transaction>2017/05/21 05:43:35.000.489,Y:\Mustangpeak-Engineering\Software\Delphi\Throttle\TabbedFormwithNavigation.pas=Y:\Mustangpeak-Engineering\Software\Delphi\Throttle\LccThrottleMain.pas</Transaction>
+    <Transaction>2017/05/22 05:43:11.000.280,=Y:\Mustangpeak-Engineering\Software\Delphi\Throttle\Unit1.pas</Transaction>
+  </Transactions>
+</BorlandProject>

@@ -1,9 +1,9 @@
-program TabbedWithNavigation;
+program LccThrottle;
 
 uses
   System.StartUpCopy,
   FMX.Forms,
-  TabbedFormwithNavigation in 'TabbedFormwithNavigation.pas' {TabbedwithNavigationForm};
+  LccThrottleMain in 'LccThrottleMain.pas' {TabbedwithNavigationForm};
 
 {$R *.res}
 
