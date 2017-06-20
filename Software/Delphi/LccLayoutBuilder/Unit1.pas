@@ -110,6 +110,7 @@ type
     procedure NumberBoxPanelWidthChange(Sender: TObject);
     procedure NumberBoxPanelHeightChange(Sender: TObject);
     procedure SpeedButtonProperitesMasterClick(Sender: TObject);
+    procedure FormResize(Sender: TObject);
   private
     FDragManager: TDragManager;
     FTrackSegmentManager: TTrackSegmentManager;
@@ -208,6 +209,19 @@ procedure TFormLayoutBuilder.FormDestroy(Sender: TObject);
 begin
   FreeAndNil(FTrackSegmentManager);
   FreeAndNil(FDragManager);
+end;
+
+procedure TFormLayoutBuilder.FormResize(Sender: TObject);
+begin
+  {$IF Defined(IOS) or Defined(ANDROID)}
+  if Assigned(ScreenService) then
+  begin
+    if Width <> Trunc( ScreenService.GetScreenSize.X * ScreenService.GetScreenScale) then
+      Width := Trunc( ScreenService.GetScreenSize.X * ScreenService.GetScreenScale);
+    if Height <> Trunc( ScreenService.GetScreenSize.Y * ScreenService.GetScreenScale) then
+      Height := Trunc( ScreenService.GetScreenSize.Y * ScreenService.GetScreenScale);
+  end;
+  {$ENDIF}
 end;
 
 procedure TFormLayoutBuilder.ListBoxGroupHeaderProperitesPanelClick(
