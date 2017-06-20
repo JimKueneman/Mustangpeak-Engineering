@@ -1,4 +1,4 @@
-unit Unit1;
+﻿unit Unit1;
 
 interface
 
@@ -88,12 +88,6 @@ type
     TabItem1: TTabItem;
     TabItem2: TTabItem;
     procedure FormCreate(Sender: TObject);
-    procedure ScrollBoxPanelDragDrop(Sender: TObject; const Data: TDragObject; const Point: TPointF);
-    procedure ScrollBoxPanelDragEnter(Sender: TObject; const Data: TDragObject; const Point: TPointF);
-    procedure ScrollBoxPanelMouseMove(Sender: TObject; Shift: TShiftState; X,Y: Single);
-    procedure ScrollBoxPanelDragOver(Sender: TObject; const Data: TDragObject; const Point: TPointF; var Operation: TDragOperation);
-    procedure ScrollBoxPanelMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
-    procedure ScrollBoxPanelMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
     procedure Button4Click(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure CheckBoxEditModeChange(Sender: TObject);
@@ -117,8 +111,16 @@ type
     FSketchPad: TSketchpad;
   protected
     property DragManager: TDragManager read FDragManager write FDragManager;
-    function ScrollWindowClientToViewport(var ClientX, ClientY: single): TPointF;
-    function ScrollWindowClientToViewportRect(ClientRect: TRectF): TRectF;
+
+    function SketchPadClientToViewport(var ClientX, ClientY: single): TPointF;
+    function PadViewClientToViewportRect(ClientRect: TRectF): TRectF;
+    procedure PadViewDragDrop(Sender: TObject; const Data: TDragObject; const Point: TPointF);
+    procedure PadViewDragEnter(Sender: TObject; const Data: TDragObject; const Point: TPointF);
+    procedure PadViewMouseMove(Sender: TObject; Shift: TShiftState; X,Y: Single);
+    procedure PadViewDragOver(Sender: TObject; const Data: TDragObject; const Point: TPointF; var Operation: TDragOperation);
+    procedure PadViewMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+    procedure PadViewMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+
     procedure UpdateStatusBar;
   public
     { Public declarations }
@@ -196,6 +198,7 @@ begin
   Sketchpad.AutoHide := False;
 
   ComboBoxMultiViewMode.ItemIndex := 0; // Set to platform, assumes at design time it is -1
+  ListBoxProperites.Width := 0;         // Mainly for mobile devices
 
   FDragManager := TDragManager.Create;
   FTrackSegmentManager := TTrackSegmentManager.Create;
@@ -312,48 +315,48 @@ begin
   Sketchpad.PadView.Width := NumberBoxPanelWidth.Value
 end;
 
-procedure TFormLayoutBuilder.ScrollBoxPanelDragDrop(Sender: TObject; const Data: TDragObject; const Point: TPointF);
+procedure TFormLayoutBuilder.PadViewDragDrop(Sender: TObject; const Data: TDragObject; const Point: TPointF);
 var
   ViewportX, ViewportY: single;
 begin
   ViewportX := Point.X;
   ViewportY := Point.Y;
-  ScrollWindowClientToViewport(ViewportX, ViewportY);
+  SketchPadClientToViewport(ViewportX, ViewportY);
 
   TextStatusMousePos.Text := 'Mouse Pos X:' + FloatToStrF(ViewportX, ffFixed, 4, 4) + ' Y: ' + FloatToStrF(ViewportX, ffFixed, 4, 4);
 end;
 
-procedure TFormLayoutBuilder.ScrollBoxPanelDragEnter(Sender: TObject; const Data: TDragObject; const Point: TPointF);
+procedure TFormLayoutBuilder.PadViewDragEnter(Sender: TObject; const Data: TDragObject; const Point: TPointF);
 var
   ViewportX, ViewportY: single;
 begin
   ViewportX := Point.X;
   ViewportY := Point.Y;
-  ScrollWindowClientToViewport(ViewportX, ViewportY);
+  SketchPadClientToViewport(ViewportX, ViewportY);
 
   TextStatusMousePos.Text := 'Mouse Pos X:' + FloatToStrF(ViewportX, ffFixed, 4, 4) + ' Y: ' + FloatToStrF(ViewportY, ffFixed, 4, 4);
 end;
 
-procedure TFormLayoutBuilder.ScrollBoxPanelDragOver(Sender: TObject; const Data: TDragObject; const Point: TPointF; var Operation: TDragOperation);
+procedure TFormLayoutBuilder.PadViewDragOver(Sender: TObject; const Data: TDragObject; const Point: TPointF; var Operation: TDragOperation);
 var
   ViewportX, ViewportY: single;
 begin
   ViewportX := Point.X;
   ViewportY := Point.Y;
-  ScrollWindowClientToViewport(ViewportX, ViewportY);
+  SketchPadClientToViewport(ViewportX, ViewportY);
 
   TextStatusMousePos.Text := 'Mouse Pos X:' + FloatToStrF(Point.X, ffFixed, 4, 4) + ' Y: ' + FloatToStrF(Point.Y, ffFixed, 4, 4);
   Operation := TDragOperation.None
 end;
 
-procedure TFormLayoutBuilder.ScrollBoxPanelMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+procedure TFormLayoutBuilder.PadViewMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 var
   i: Integer;
   TrackSelected: Boolean;
 begin
 
   // Convert the Client Coordinates into Viewport of the ScrollWindow
-  DragManager.FStartViewportPoint := ScrollWindowClientToViewport(X, Y);
+  DragManager.FStartViewportPoint := SketchPadClientToViewport(X, Y);
   DragManager.FCurrentViewportPoint := DragManager.StartViewportPoint;
   DragManager.FPreviousVewportPoint := DragManager.StartViewportPoint;
   DragManager.MouseButton := Button;
@@ -408,7 +411,7 @@ begin
   end;
 end;
 
-procedure TFormLayoutBuilder.ScrollBoxPanelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Single);
+procedure TFormLayoutBuilder.PadViewMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Single);
 
   function DragThresholdMet(ViewportPt: TPointF): Boolean;
   const DRAG_THRESHOLD = 5;
@@ -421,7 +424,7 @@ var
   DeltaPt: TPointF;
   TempSelectRect: TRectF;
 begin
-  DragManager.FCurrentViewportPoint := ScrollWindowClientToViewport(X, Y);
+  DragManager.FCurrentViewportPoint := SketchPadClientToViewport(X, Y);
   // Calulate the difference in the last point and this point
   DeltaPt.X := DragManager.CurrentViewportPoint.X - DragManager.PreviousVewportPoint.X;
   DeltaPt.Y := DragManager.CurrentViewportPoint.Y - DragManager.PreviousVewportPoint.Y;
@@ -503,7 +506,7 @@ begin
                 DragManager.RectangleDragSelect.Height := DragManager.CurrentViewportPoint.Y - DragManager.StartViewportPoint.Y;
               end;
 
-              TempSelectRect := ScrollWindowClientToViewportRect(DragManager.RectangleDragSelect.BoundsRect);
+              TempSelectRect := PadViewClientToViewportRect(DragManager.RectangleDragSelect.BoundsRect);
               TrackSegmentManager.SelectByRect(DragManager.RectangleDragSelect.BoundsRect, ((ssCtrl in Shift) or (ssShift in Shift)));
               UpdateStatusBar;
             end;
@@ -521,11 +524,11 @@ begin
   DragManager.FPreviousVewportPoint := DragManager.CurrentViewportPoint;
 end;
 
-procedure TFormLayoutBuilder.ScrollBoxPanelMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+procedure TFormLayoutBuilder.PadViewMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 var
   HitSegment: TTrackSegment;
 begin
-  DragManager.FCurrentViewportPoint := ScrollWindowClientToViewport(X, Y);
+  DragManager.FCurrentViewportPoint := SketchPadClientToViewport(X, Y);
 
   DragManager.RectangleDragSelect.Parent := nil;
   if not DragManager.EditMode then
@@ -538,16 +541,16 @@ begin
   UpdateStatusBar;
 end;
 
-function TFormLayoutBuilder.ScrollWindowClientToViewport(var ClientX, ClientY: single): TPointF;
+function TFormLayoutBuilder.SketchPadClientToViewport(var ClientX, ClientY: single): TPointF;
 begin
   Result.X := ClientX + SketchPad.ViewportPosition.X;
   Result.Y := ClientY + SketchPad.ViewportPosition.Y;
 end;
 
-function TFormLayoutBuilder.ScrollWindowClientToViewportRect(ClientRect: TRectF): TRectF;
+function TFormLayoutBuilder.PadViewClientToViewportRect(ClientRect: TRectF): TRectF;
 begin
-  Result.TopLeft := ScrollWindowClientToViewport(ClientRect.Left, ClientRect.Top);
-  Result.BottomRight := ScrollWindowClientToViewport(ClientRect.Right, ClientRect.Bottom)
+  Result.TopLeft := SketchPadClientToViewport(ClientRect.Left, ClientRect.Top);
+  Result.BottomRight := SketchPadClientToViewport(ClientRect.Right, ClientRect.Bottom)
 end;
 
 procedure TFormLayoutBuilder.SpeedButtonProperitesMasterClick(Sender: TObject);
