@@ -1,4 +1,4 @@
-﻿unit Unit1;
+unit Unit1;
 
 interface
 
@@ -10,7 +10,7 @@ uses
   System.Actions, FMX.ActnList, FMX.MultiView, FMX.Ani, Math, FMX.ListBox,
   FMX.ListView.Types, FMX.ListView.Appearances, FMX.ListView.Adapters.Base,
   FMX.Header, FMX.ListView, FMX.MultiView.Presentations, mustangpeak.sketchpad,
-  FMX.Edit, FMX.EditBox, FMX.NumberBox, FMX.TabControl;
+  FMX.Edit, FMX.EditBox, FMX.NumberBox, FMX.TabControl, system.diagnostics;
 
 type
   TDragState = (dsNone, dsDragging, dsSelectRect, dsDragPending, dsSelectRectPending);
@@ -56,7 +56,6 @@ type
     LabelTrackSegmentCount: TLabel;
     RectangleHeader: TRectangle;
     Button4: TButton;
-    CheckBoxEditMode: TCheckBox;
     ComboBoxMultiViewMode: TComboBox;
     PanelMain: TPanel;
     ListBox1: TListBox;
@@ -84,9 +83,8 @@ type
     ColorAnimation1: TColorAnimation;
     RectanglePanelContainer: TRectangle;
     SpeedButtonProperitesMaster: TSpeedButton;
-    TabControl1: TTabControl;
-    TabItem1: TTabItem;
-    TabItem2: TTabItem;
+    CheckBoxEditMode: TCheckBox;
+    CheckBoxMultiSelectMode: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure Button4Click(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -105,15 +103,17 @@ type
     procedure NumberBoxPanelHeightChange(Sender: TObject);
     procedure SpeedButtonProperitesMasterClick(Sender: TObject);
     procedure FormResize(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   private
     FDragManager: TDragManager;
     FTrackSegmentManager: TTrackSegmentManager;
     FSketchPad: TSketchpad;
+    FTapDuration: TStopwatch;     // Record not an object
   protected
     property DragManager: TDragManager read FDragManager write FDragManager;
 
     function SketchPadClientToViewport(var ClientX, ClientY: single): TPointF;
-    function PadViewClientToViewportRect(ClientRect: TRectF): TRectF;
+    function SketchPadClientToViewportRect(ClientRect: TRectF): TRectF;
     procedure PadViewDragDrop(Sender: TObject; const Data: TDragObject; const Point: TPointF);
     procedure PadViewDragEnter(Sender: TObject; const Data: TDragObject; const Point: TPointF);
     procedure PadViewMouseMove(Sender: TObject; Shift: TShiftState; X,Y: Single);
@@ -127,6 +127,7 @@ type
     WindowService: IFMXWindowService;
     ScreenService: IFMXScreenService;
 
+    property TapDuration: TStopwatch read FTapDuration write FTapDuration;
     property Sketchpad: TSketchpad read FSketchPad write FSketchPad;
     property TrackSegmentManager: TTrackSegmentManager read FTrackSegmentManager write FTrackSegmentManager;
   end;
@@ -196,6 +197,13 @@ begin
   Sketchpad.Parent := RectanglePanelContainer;
   Sketchpad.Align := TAlignLayout.Client;
   Sketchpad.AutoHide := False;
+  Sketchpad.PadView.OnMouseDown := PadViewMouseDown;
+  Sketchpad.PadView.OnMouseMove := PadViewMouseMove;
+  Sketchpad.PadView.OnMouseUp := PadViewMouseUp;
+  Sketchpad.PadView.OnDragEnter := PadViewDragEnter;
+  Sketchpad.PadView.OnDragDrop := PadViewDragDrop;
+
+  TapDuration := TStopwatch.Create;
 
   ComboBoxMultiViewMode.ItemIndex := 0; // Set to platform, assumes at design time it is -1
   ListBoxProperites.Width := 0;         // Mainly for mobile devices
@@ -225,6 +233,12 @@ begin
       Height := Trunc( ScreenService.GetScreenSize.Y * ScreenService.GetScreenScale);
   end;
   {$ENDIF}
+end;
+
+procedure TFormLayoutBuilder.FormShow(Sender: TObject);
+begin
+  NumberBoxPanelWidth.Value := Sketchpad.PadView.Width;
+  NumberBoxPanelHeight.Value := Sketchpad.PadView.Height;
 end;
 
 procedure TFormLayoutBuilder.ListBoxGroupHeaderProperitesPanelClick(
@@ -354,6 +368,8 @@ var
   i: Integer;
   TrackSelected: Boolean;
 begin
+  SketchPad.PadView.Root.Captured := SketchPad.PadView;
+  TapDuration.Start;
 
   // Convert the Client Coordinates into Viewport of the ScrollWindow
   DragManager.FStartViewportPoint := SketchPadClientToViewport(X, Y);
@@ -476,7 +492,6 @@ begin
                 DragManager.RectangleDragSelect.Width := 0;
                 DragManager.RectangleDragSelect.Height := 0;
                 DragManager.RectangleDragSelect.Parent := SketchPad.PadView;
-                SketchPad.PadView.Root.Captured := SketchPad.PadView;
                 DragManager.State := TDragState.dsSelectRect;
               end;
             end;
@@ -506,7 +521,7 @@ begin
                 DragManager.RectangleDragSelect.Height := DragManager.CurrentViewportPoint.Y - DragManager.StartViewportPoint.Y;
               end;
 
-              TempSelectRect := PadViewClientToViewportRect(DragManager.RectangleDragSelect.BoundsRect);
+              TempSelectRect := SketchPadClientToViewportRect(DragManager.RectangleDragSelect.BoundsRect);
               TrackSegmentManager.SelectByRect(DragManager.RectangleDragSelect.BoundsRect, ((ssCtrl in Shift) or (ssShift in Shift)));
               UpdateStatusBar;
             end;
@@ -528,6 +543,10 @@ procedure TFormLayoutBuilder.PadViewMouseUp(Sender: TObject; Button: TMouseButto
 var
   HitSegment: TTrackSegment;
 begin
+  SketchPad.PadView.Root.Captured := nil;
+  TapDuration.Stop;
+//  TapDuration.ElapsedMilliseconds
+
   DragManager.FCurrentViewportPoint := SketchPadClientToViewport(X, Y);
 
   DragManager.RectangleDragSelect.Parent := nil;
@@ -547,7 +566,7 @@ begin
   Result.Y := ClientY + SketchPad.ViewportPosition.Y;
 end;
 
-function TFormLayoutBuilder.PadViewClientToViewportRect(ClientRect: TRectF): TRectF;
+function TFormLayoutBuilder.SketchPadClientToViewportRect(ClientRect: TRectF): TRectF;
 begin
   Result.TopLeft := SketchPadClientToViewport(ClientRect.Left, ClientRect.Top);
   Result.BottomRight := SketchPadClientToViewport(ClientRect.Right, ClientRect.Bottom)

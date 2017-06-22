@@ -10,6 +10,7 @@ object FormLayoutBuilder: TFormLayoutBuilder
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnResize = FormResize
+  OnShow = FormShow
   DesignerMasterStyle = 0
   object PanelMain: TPanel
     Align = Client
@@ -65,16 +66,6 @@ object FormLayoutBuilder: TFormLayoutBuilder
         Text = 'Button4'
         OnClick = Button4Click
       end
-      object CheckBoxEditMode: TCheckBox
-        Align = Left
-        Position.X = 290.000000000000000000
-        Size.Width = 120.000000000000000000
-        Size.Height = 33.000000000000000000
-        Size.PlatformDefault = False
-        TabOrder = 2
-        Text = 'Edit Mode'
-        OnChange = CheckBoxEditModeChange
-      end
       object ComboBoxMultiViewMode: TComboBox
         Align = Left
         Items.Strings = (
@@ -88,7 +79,7 @@ object FormLayoutBuilder: TFormLayoutBuilder
         Size.Width = 169.000000000000000000
         Size.Height = 33.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 3
+        TabOrder = 2
         OnChange = ComboBoxMultiViewModeChange
       end
       object SpeedButtonMasterButton2: TSpeedButton
@@ -242,46 +233,31 @@ object FormLayoutBuilder: TFormLayoutBuilder
         Selectable = False
         Position.Y = 157.000000000000000000
         Size.Width = 174.000000000000000000
-        Size.Height = 128.000000000000000000
+        Size.Height = 68.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 0
-        object TabControl1: TTabControl
-          Align = Client
-          Size.Width = 174.000000000000000000
-          Size.Height = 128.000000000000000000
+        object CheckBoxEditMode: TCheckBox
+          Align = Top
+          Margins.Left = 4.000000000000000000
+          Position.X = 4.000000000000000000
+          Size.Width = 170.000000000000000000
+          Size.Height = 33.000000000000000000
           Size.PlatformDefault = False
-          TabHeight = 49.000000000000000000
-          TabIndex = 0
-          TabOrder = 1
-          TabPosition = PlatformDefault
-          object TabItem1: TTabItem
-            CustomIcon = <
-              item
-              end>
-            IsSelected = True
-            Size.Width = 67.000000000000000000
-            Size.Height = 49.000000000000000000
-            Size.PlatformDefault = False
-            StyleLookup = ''
-            TabOrder = 0
-            Text = 'TabItem1'
-            ExplicitSize.cx = 67.000000000000000000
-            ExplicitSize.cy = 26.000000000000000000
-          end
-          object TabItem2: TTabItem
-            CustomIcon = <
-              item
-              end>
-            IsSelected = False
-            Size.Width = 68.000000000000000000
-            Size.Height = 49.000000000000000000
-            Size.PlatformDefault = False
-            StyleLookup = ''
-            TabOrder = 0
-            Text = 'TabItem2'
-            ExplicitSize.cx = 68.000000000000000000
-            ExplicitSize.cy = 26.000000000000000000
-          end
+          TabOrder = 3
+          Text = 'Edit Mode'
+          OnChange = CheckBoxEditModeChange
+        end
+        object CheckBoxMultiSelectMode: TCheckBox
+          Align = Top
+          Margins.Left = 4.000000000000000000
+          Position.X = 4.000000000000000000
+          Position.Y = 33.000000000000000000
+          Size.Width = 170.000000000000000000
+          Size.Height = 33.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Multiselect Mode'
+          OnChange = CheckBoxEditModeChange
         end
       end
     end

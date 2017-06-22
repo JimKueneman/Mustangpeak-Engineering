@@ -63,7 +63,8 @@ begin
   PadView.Position.Y := 0;
 
 
-  PadView.Width := 300;
+  PadView.Width := 200;
+  PadView.Height := 300;
   PadView.Fill.Kind := TBrushKind.None;
   PadView.Fill.Gradient.Color := TAlphaColorRec.Aqua;
   PadView.Fill.Gradient.Color1 := TAlphaColorRec.Antiquewhite;
