@@ -26,8 +26,6 @@ type
     FOccupied: Boolean;
     FManager: TTrackSegmentManager;
     FSelected: Boolean;
-    FMouseDownPt: TPointF;
-    FMouseDownOffsetPt: TPointF;
     FOnSelectedChanged: TNotifyEvent;
     procedure SetSelected(const Value: Boolean);
     procedure SetBrushWidth(const Value: single);
@@ -46,18 +44,14 @@ type
     procedure SetWidth(const Value: Single); override;
     procedure SetHeight(const Value: Single); override;
 
-    property MouseDownPt: TPointF read FMouseDownPt write FMouseDownPt;
-    property MouseDownOffsetPt: TPointF read FMouseDownOffsetPt write FMouseDownOffsetPt;
-
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
     procedure Click; override;
     procedure InvalidateBitmap;
-    procedure DragBegin(ViewportPt: TPointF);
-    procedure Drag(ViewportPt: TPointF; SnapX, SnapY: single);
-    procedure MoveTo(ViewportPt: TPointF; SnapX, SnapY: single);
+    procedure MoveBy(DeltaPt: TPointF);
+    procedure MoveTo(ViewportPt: TPointF);
 
     property BitmapGenerated: Boolean read FBitmapGenerated;
     property Opacity: single read FOpacity write SetOpacity;
@@ -97,23 +91,22 @@ type
   private
     FSegment: TObjectList<TTrackSegment>;
     FSelection: TObjectList<TTrackSegment>;
-    FCurrentSelectionBounds: TRectF;
   public
     constructor Create;
     destructor Destroy; override;
-    property CurrentSelectionBounds: TRectF read FCurrentSelectionBounds write FCurrentSelectionBounds;
     property Segment: TObjectList<TTrackSegment> read FSegment;
     property Selection: TObjectList<TTrackSegment> read FSelection;
 
     function FindSegmentByPt(ViewportX, ViewportY: single): TTrackSegment;
 
     function NewSegment(ASegmentClass: TTrackSegmentClass; AParent: TFmxObject): TTrackSegment;
-    procedure RefreshSelectionBounds;
-    function CalculateSnapX(TargetX: single; SnapX: single): single;
-    function CalculateSnapY(TargetY: single; SnapY: single): single;
+    function CalculateSnap(Target: single; Snap: single): single;
+    function CalculateSnapPt(Target: TPointF; SnapX, SnapY: single): TPointF;
+    procedure MoveSelectedBy(DeltaPt: TPointF);
     procedure SelectAll;
     function SelectByPt(ViewportX, ViewportY: single): Boolean;
     function SelectByRect(SelectRect: TRectF; Combine: Boolean): Boolean;
+    function SelectionBounds: TRectF;
     procedure UnSelectAll;
   end;
 
@@ -294,29 +287,15 @@ begin
   inherited;
 end;
 
-procedure TTrackSegment.Drag(ViewportPt: TPointF; SnapX, SnapY: single);
+procedure TTrackSegment.MoveBy(DeltaPt: TPointF);
 begin
-  MoveTo(TPointF.Create(ViewportPt.X - MouseDownOffsetPt.X, ViewportPt.Y - MouseDownOffsetPt.Y), SnapX, SnapY)
+  MoveTo(TPointF.Create(Position.X + DeltaPt.X, Position.Y + DeltaPt.Y))
 end;
 
-procedure TTrackSegment.DragBegin(ViewportPt: TPointF);
+procedure TTrackSegment.MoveTo(ViewportPt: TPointF);
 begin
-  FMouseDownPt := ViewportPt;
-  FMouseDownOffsetPt.X := MouseDownPt.X - Position.X;
-  FMouseDownOffsetPt.Y := MouseDownPt.Y - Position.Y;
-end;
-
-procedure TTrackSegment.MoveTo(ViewportPt: TPointF; SnapX, SnapY: single);
-begin
-  if Assigned(Manager) then
-  begin
-    Position.X := Manager.CalculateSnapX(ViewportPt.X, SnapX);
-    Position.Y := Manager.CalculateSnapY(ViewportPt.Y, SnapY);
-  end else
-  begin
-    Position.X := ViewportPt.X;
-    Position.Y := ViewportPt.Y;
-  end;
+  Position.X := ViewportPt.X;
+  Position.Y := ViewportPt.Y;
 end;
 
 procedure TTrackSegment.SetWidth(const Value: Single);
@@ -500,39 +479,22 @@ end;
 { TTrackSegmentManager }
 
 
-procedure TTrackSegmentManager.RefreshSelectionBounds;
-var
-  i: Integer;
+function TTrackSegmentManager.CalculateSnap(Target, Snap: single): single;
 begin
-  FCurrentSelectionBounds := CurrentSelectionBounds.Empty;
-  if Selection.Count > 0 then
-    FCurrentSelectionBounds := Selection[0].BoundsRect;
-  for i := 1 to Selection.Count - 1 do
-    UnionRect(FCurrentSelectionBounds, FCurrentSelectionBounds, Selection[i].BoundsRect)
+  if Snap > 0 then
+  begin
+    if Frac(Target/Snap) < 0.5 then
+      Result := Snap * Trunc(Target/Snap)
+    else
+      Result := (Snap * Trunc(Target/Snap)) + Snap
+  end else
+    Result := Target;
 end;
 
-function TTrackSegmentManager.CalculateSnapX(TargetX, SnapX: single): single;
+function TTrackSegmentManager.CalculateSnapPt(Target: TPointF; SnapX, SnapY: single): TPointF;
 begin
-  if SnapX > 0 then
-  begin
-    if Frac(TargetX/SnapX) < 0.5 then
-      Result := SnapX * Trunc(TargetX/SnapX)
-    else
-      Result := (SnapX * Trunc(TargetX/SnapX)) + SnapX
-  end else
-    Result := TargetX;
-end;
-
-function TTrackSegmentManager.CalculateSnapY(TargetY, SnapY: single): single;
-begin
-  if SnapY > 0 then
-  begin
-    if Frac(TargetY/SnapY) < 0.5 then
-      Result := SnapY * Trunc(TargetY/SnapY)
-    else
-      Result := (SnapY * Trunc(TargetY/SnapY)) + SnapY
-  end else
-    Result := TargetY;
+  Result.X := CalculateSnap(Target.X, SnapX);
+  Result.Y := CalculateSnap(Target.Y, SnapY)
 end;
 
 constructor TTrackSegmentManager.Create;
@@ -562,6 +524,14 @@ begin
       Result := Segment[i];
     Inc(i);
   end;
+end;
+
+procedure TTrackSegmentManager.MoveSelectedBy(DeltaPt: TPointF);
+var
+  i: Integer;
+begin
+  for i := 0 to Selection.Count - 1 do
+    Selection[i].MoveBy(DeltaPt);
 end;
 
 function TTrackSegmentManager.NewSegment(ASegmentClass: TTrackSegmentClass; AParent: TFmxObject): TTrackSegment;
@@ -618,12 +588,23 @@ begin
   end;
 end;
 
+function TTrackSegmentManager.SelectionBounds: TRectF;
+var
+  i: Integer;
+begin
+  Result := Result.Empty;
+  if Selection.Count > 0 then
+    Result := Selection[0].BoundsRect;
+  for i := 1 to Selection.Count - 1 do
+    UnionRect(Result, Result, Selection[i].BoundsRect)
+end;
+
 procedure TTrackSegmentManager.UnSelectAll;
 var
   i: Integer;
 begin
-  for i := 0 to Segment.Count - 1 do
-    Segment[i].Selected := False;
+  for i := Selection.Count - 1 downto 0 do
+    Selection[i].Selected := False;
 end;
 
 end.
