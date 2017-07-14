@@ -4,7 +4,8 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Types, FMX.Controls, FMX.Objects, FMX.Graphics, System.Generics.Collections;
+  FMX.Types, FMX.Controls, FMX.Objects, FMX.Graphics, System.Generics.Collections,
+  mustangpeak.dragmanager;
 
 const
   BASE_SEGMENT_WIDTH = 80;
@@ -33,7 +34,6 @@ type
     procedure SetOpacity(const Value: single);
     procedure SetBkGndColor(const Value: TAlphaColor);
     procedure SetOccupied(const Value: Boolean);
-    function GetSelected: Boolean;
   protected
     procedure DoSelectedChanged; virtual;
     procedure GenerateBitmap; virtual;
@@ -49,9 +49,11 @@ type
     destructor Destroy; override;
 
     procedure Click; override;
+    procedure LoadFromStream(Stream: TStream); virtual;
     procedure InvalidateBitmap;
     procedure MoveBy(DeltaPt: TPointF);
     procedure MoveTo(ViewportPt: TPointF);
+    procedure SaveToStream(Stream: TStream); virtual;
 
     property BitmapGenerated: Boolean read FBitmapGenerated;
     property Opacity: single read FOpacity write SetOpacity;
@@ -60,7 +62,7 @@ type
     property BrushWidth: single read FBrushWidth write SetBrushWidth;
     property Occupied: Boolean read FOccupied write SetOccupied;
     property Manager: TTrackSegmentManager read FManager;
-    property Selected: Boolean read GetSelected write SetSelected;
+    property Selected: Boolean read FSelected write SetSelected;
 
     property OnSelectedChanged: TNotifyEvent read FOnSelectedChanged write FOnSelectedChanged;
   end;
@@ -85,9 +87,11 @@ type
 
     constructor Create(AOwner: TComponent); override;
     procedure Click; override;
+    procedure LoadFromStream(Stream: TStream); override;
+    procedure SaveToStream(Stream: TStream); override;
   end;
 
-  TTrackSegmentManager = class(TPersistent)
+  TTrackSegmentManager = class(TDragManager)
   private
     FSegment: TObjectList<TTrackSegment>;
     FSelection: TObjectList<TTrackSegment>;
@@ -100,8 +104,6 @@ type
     function FindSegmentByPt(ViewportX, ViewportY: single): TTrackSegment;
 
     function NewSegment(ASegmentClass: TTrackSegmentClass; AParent: TFmxObject): TTrackSegment;
-    function CalculateSnap(Target: single; Snap: single): single;
-    function CalculateSnapPt(Target: TPointF; SnapX, SnapY: single): TPointF;
     procedure MoveSelectedBy(DeltaPt: TPointF);
     procedure SelectAll;
     function SelectByPt(ViewportX, ViewportY: single): Boolean;
@@ -154,15 +156,20 @@ begin
   FBitmapGenerated := True;
 end;
 
-function TTrackSegment.GetSelected: Boolean;
-begin
-  Result := FSelected;
-end;
-
 procedure TTrackSegment.InvalidateBitmap;
 begin
   if BitmapGenerated then
     GenerateBitmap;
+end;
+
+procedure TTrackSegment.LoadFromStream(Stream: TStream);
+begin
+  Stream.Read(FOpacity, SizeOf(Opacity));
+  Stream.Write(FBkGndColor, SizeOf(BkGndColor));
+  Stream.Write(FBrushColor, SizeOf(BrushColor));
+  Stream.Write(FBrushWidth, SizeOf(BrushWidth));
+  Stream.Write(FOccupied, SizeOf(Occupied));
+  Stream.Write(FSelected, SizeOf(Selected));
 end;
 
 procedure TTrackSegment.Paint;
@@ -217,6 +224,16 @@ begin  CanvasState := ACanvas.SaveState;
   finally
     ACanvas.RestoreState(CanvasState);
   end;
+end;
+
+procedure TTrackSegment.SaveToStream(Stream: TStream);
+begin
+  Stream.Write(Opacity, SizeOf(Opacity));
+  Stream.Write(BkGndColor, SizeOf(BkGndColor));
+  Stream.Write(BrushColor, SizeOf(BrushColor));
+  Stream.Write(BrushWidth, SizeOf(BrushWidth));
+  Stream.Write(Occupied, SizeOf(Occupied));
+  Stream.Write(Selected, SizeOf(Selected));
 end;
 
 procedure TTrackSegment.SetBkGndColor(const Value: TAlphaColor);
@@ -467,6 +484,18 @@ begin
   end;
 end;
 
+procedure TTrackSegmentTurnout.LoadFromStream(Stream: TStream);
+begin
+  inherited;
+  Stream.Read(FRouting, SizeOf(FRouting));
+end;
+
+procedure TTrackSegmentTurnout.SaveToStream(Stream: TStream);
+begin
+  inherited;
+  Stream.Write(FRouting, SizeOf(Routing))
+end;
+
 procedure TTrackSegmentTurnout.SetRouting(const Value: TTurnoutRouting);
 begin
   if FRouting <> Value then
@@ -478,27 +507,9 @@ end;
 
 { TTrackSegmentManager }
 
-
-function TTrackSegmentManager.CalculateSnap(Target, Snap: single): single;
-begin
-  if Snap > 0 then
-  begin
-    if Frac(Target/Snap) < 0.5 then
-      Result := Snap * Trunc(Target/Snap)
-    else
-      Result := (Snap * Trunc(Target/Snap)) + Snap
-  end else
-    Result := Target;
-end;
-
-function TTrackSegmentManager.CalculateSnapPt(Target: TPointF; SnapX, SnapY: single): TPointF;
-begin
-  Result.X := CalculateSnap(Target.X, SnapX);
-  Result.Y := CalculateSnap(Target.Y, SnapY)
-end;
-
 constructor TTrackSegmentManager.Create;
 begin
+  inherited;
   FSegment := TObjectList<TTrackSegment>.Create;
   FSelection := TObjectList<TTrackSegment>.Create;
   Selection.OwnsObjects := False;
