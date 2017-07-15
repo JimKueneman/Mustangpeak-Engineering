@@ -109,6 +109,30 @@ object FormLayoutBuilder: TFormLayoutBuilder
         Text = 'SpeedButtonProperitesMaster'
         OnClick = SpeedButtonProperitesMasterClick
       end
+      object ButtonSaveToXml: TButton
+        Action = ActionSaveToXml
+        Align = Left
+        Enabled = True
+        ImageIndex = -1
+        Position.X = 290.000000000000000000
+        Size.Width = 103.000000000000000000
+        Size.Height = 33.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 3
+        Visible = True
+      end
+      object ButtonLoadFromXml: TButton
+        Action = ActionLoadFromXml
+        Align = Left
+        Enabled = True
+        ImageIndex = -1
+        Position.X = 393.000000000000000000
+        Size.Width = 103.000000000000000000
+        Size.Height = 33.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 4
+        Visible = True
+      end
     end
     object ListBoxProperites: TListBox
       Align = Right
@@ -352,6 +376,10 @@ object FormLayoutBuilder: TFormLayoutBuilder
   object ActionListMain: TActionList
     Left = 384
     Top = 248
+    object ActionLoadFromXml: TAction
+      Text = 'Load From Xml...'
+      OnExecute = ActionLoadFromXmlExecute
+    end
     object ActionNewStraightSegment: TAction
       Category = 'Segments'
       Text = 'Straight Track'
@@ -361,6 +389,10 @@ object FormLayoutBuilder: TFormLayoutBuilder
       Category = 'Segments'
       Text = 'Turnout Track'
       OnExecute = ActionNewTurnoutSegmentExecute
+    end
+    object ActionSaveToXml: TAction
+      Text = 'Save To Xml...'
+      OnExecute = ActionSaveToXmlExecute
     end
   end
   object ImageListMain: TImageList
@@ -3758,5 +3790,13 @@ object FormLayoutBuilder: TFormLayoutBuilder
       end>
     Left = 320
     Top = 208
+  end
+  object OpenDialog: TOpenDialog
+    Left = 536
+    Top = 248
+  end
+  object SaveDialog: TSaveDialog
+    Left = 448
+    Top = 192
   end
 end

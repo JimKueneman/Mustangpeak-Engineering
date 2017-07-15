@@ -52,6 +52,7 @@ function XmlNodeName(XmlNode: TMustangpeakXmlNode): string;
 // Element content (text) functions
 function XmlNodeTextContent(XmlNode: TMustangpeakXmlNode): string;
 procedure XmlNodeSetTextContent(XmlNode: TMustangpeakXmlNode; Text: string);
+procedure XmlNodeSetTextContentForceCreate(XmlDoc: TMustangpeakXmlDocument; Parent: TMustangpeakXmlNode; Name, Value: string);
 
 // Enumerator functions
 function XmlNextSiblingNode(XmlNode: TMustangpeakXmlNode): TMustangpeakXmlNode;
@@ -242,6 +243,7 @@ begin
   Result := TXMLDocument.Create;
   {$ELSE}
   Result := TXMLDocument.Create(nil) as IXMLDocument;
+  Result.Active := True;
   {$ENDIF}
 end;
 
@@ -250,7 +252,7 @@ begin
   {$IFDEF FPC}
   WriteXMLFile(XmlDoc, FilePath);
   {$ELSE}
-  XmlDoc.SaveToXML(FilePath);
+  XmlDoc.SaveToFile(FilePath);
   {$ENDIF}
 end;
 
@@ -333,6 +335,17 @@ begin
   if XmlNode.IsTextElement then
     Result := string(XmlNode.Text)
   {$ENDIF}
+end;
+
+procedure XmlNodeSetTextContentForceCreate(XmlDoc: TMustangpeakXmlDocument; Parent: TMustangpeakXmlNode; Name, Value: string);
+var
+  Child: TMustangpeakXmlNode;
+begin
+  Child := XmlFindChildNode(Parent, Name);
+  if Assigned(Child) then
+    XmlNodeSetTextContent(Child, Value)
+  else
+    XmlCreateChildNode(XmlDoc, Parent, Name, Value)
 end;
 
 procedure XmlNodeSetTextContent(XmlNode: TMustangpeakXmlNode; Text: string);

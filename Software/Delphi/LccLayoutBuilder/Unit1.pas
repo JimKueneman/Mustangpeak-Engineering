@@ -10,7 +10,8 @@ uses
   System.Actions, FMX.ActnList, FMX.MultiView, FMX.Ani, Math, FMX.ListBox,
   FMX.ListView.Types, FMX.ListView.Appearances, FMX.ListView.Adapters.Base,
   FMX.Header, FMX.ListView, FMX.MultiView.Presentations,
-  FMX.Edit, FMX.EditBox, FMX.NumberBox, FMX.TabControl, system.diagnostics, mustangpeak.dragmanager;
+  FMX.Edit, FMX.EditBox, FMX.NumberBox, FMX.TabControl, system.diagnostics,
+  mustangpeak.dragmanager, mustangpeak.xmlutilities;
 
 type
   TFormLayoutBuilder = class(TForm)
@@ -52,6 +53,12 @@ type
     TextSnapMousePos: TText;
     CheckBoxEditMode: TCheckBox;
     CheckBoxMultiSelectMode: TCheckBox;
+    ActionSaveToXml: TAction;
+    ButtonSaveToXml: TButton;
+    OpenDialog: TOpenDialog;
+    SaveDialog: TSaveDialog;
+    ActionLoadFromXml: TAction;
+    ButtonLoadFromXml: TButton;
     procedure FormCreate(Sender: TObject);
     procedure Button4Click(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -72,6 +79,8 @@ type
     procedure ScrollBoxSketchpadMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
     procedure ScrollBoxSketchpadMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
     procedure ScrollBoxSketchpadTap(Sender: TObject; const Point: TPointF);
+    procedure ActionSaveToXmlExecute(Sender: TObject);
+    procedure ActionLoadFromXmlExecute(Sender: TObject);
   private
     FTrackSegmentManager: TTrackSegmentManager;
     FTapDuration: TStopwatch;     // Record not an object
@@ -97,6 +106,24 @@ implementation
 {$R *.fmx}
 
 
+procedure TFormLayoutBuilder.ActionLoadFromXmlExecute(Sender: TObject);
+var
+  XmlDoc: TMustangpeakXmlDocument;
+  Root, Layout: TMustangpeakXmlNode;
+begin
+  if OpenDialog.Execute then
+  begin
+    XmlDoc := XmlLoadFromFile(OpenDialog.FileName);
+    Root := XmlFindRootNode(XmlDoc, 'mustangpeak');
+    if Assigned(Root) then
+    begin
+      Layout := XmlFindChildNode(Root, 'layout');
+      if Assigned(Layout) then
+        TrackSegmentManager.LoadFromXML(XmlDoc, Layout, ScrollBoxSketchpad);
+    end;
+  end;
+end;
+
 procedure TFormLayoutBuilder.ActionNewStraightSegmentExecute(Sender: TObject);
 var
   Segment: TTrackSegment;
@@ -119,6 +146,22 @@ begin
   FinalY := Max(0, TrackSegmentManager.CalculateSnap(Random(Round( ScrollBoxSketchpad.Height)) - BASE_SEGMENT_HEIGHT, BASE_SEGMENT_HEIGHT));
   TAnimator.AnimateFloat(Segment, 'Position.X', FinalX , 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
   TAnimator.AnimateFloat(Segment, 'Position.Y', FinalY, 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
+end;
+
+procedure TFormLayoutBuilder.ActionSaveToXmlExecute(Sender: TObject);
+var
+  XmlDoc: TMustangpeakXmlDocument;
+  Root, Layout: TMustangpeakXmlNode;
+begin
+ // SaveDialog.
+  if SaveDialog.Execute then
+  begin
+    XmlDoc := XmlCreateEmptyDocument;
+    Root := XmlCreateRootNode(XmlDoc, 'mustangpeak', '');
+    Layout := XmlCreateChildNode(XmlDoc, Root, 'layout', '');
+    TrackSegmentManager.SaveToXML(XmlDoc, Layout);
+    XmlWriteToFile(SaveDialog.FileName, XmlDoc);
+  end;
 end;
 
 procedure TFormLayoutBuilder.Button4Click(Sender: TObject);

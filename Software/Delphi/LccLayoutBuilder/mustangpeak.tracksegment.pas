@@ -5,7 +5,7 @@ interface
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Objects, FMX.Graphics, System.Generics.Collections,
-  mustangpeak.dragmanager;
+  mustangpeak.dragmanager, mustangpeak.xmlutilities;
 
 const
   BASE_SEGMENT_WIDTH = 80;
@@ -50,10 +50,12 @@ type
 
     procedure Click; override;
     procedure LoadFromStream(Stream: TStream); virtual;
+    procedure LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode); virtual;
     procedure InvalidateBitmap;
     procedure MoveBy(DeltaPt: TPointF);
     procedure MoveTo(ViewportPt: TPointF);
     procedure SaveToStream(Stream: TStream); virtual;
+    procedure SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode); virtual;
 
     property BitmapGenerated: Boolean read FBitmapGenerated;
     property Opacity: single read FOpacity write SetOpacity;
@@ -88,7 +90,9 @@ type
     constructor Create(AOwner: TComponent); override;
     procedure Click; override;
     procedure LoadFromStream(Stream: TStream); override;
+    procedure LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode); override;
     procedure SaveToStream(Stream: TStream); override;
+    procedure SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode); override;
   end;
 
   TTrackSegmentManager = class(TDragManager)
@@ -96,15 +100,17 @@ type
     FSegment: TObjectList<TTrackSegment>;
     FSelection: TObjectList<TTrackSegment>;
   public
-    constructor Create;
+    constructor Create; override;
     destructor Destroy; override;
     property Segment: TObjectList<TTrackSegment> read FSegment;
     property Selection: TObjectList<TTrackSegment> read FSelection;
 
     function FindSegmentByPt(ViewportX, ViewportY: single): TTrackSegment;
 
+    procedure LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode; SegmentParent: TFmxObject); virtual;
     function NewSegment(ASegmentClass: TTrackSegmentClass; AParent: TFmxObject): TTrackSegment;
     procedure MoveSelectedBy(DeltaPt: TPointF);
+    procedure SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode); virtual;
     procedure SelectAll;
     function SelectByPt(ViewportX, ViewportY: single): Boolean;
     function SelectByRect(SelectRect: TRectF; Combine: Boolean): Boolean;
@@ -172,6 +178,74 @@ begin
   Stream.Write(FSelected, SizeOf(Selected));
 end;
 
+procedure TTrackSegment.LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode);
+var
+  ReadStr: string;
+  ChildNode: TMustangpeakXmlNode;
+begin
+  ChildNode := XmlFindChildNode(Node, 'opacity');
+  if Assigned(ChildNode) then
+  begin
+    ReadStr := XmlNodeTextContent(ChildNode);
+    if ReadStr <> '' then FOpacity := StrToFloat(ReadStr)
+  end;
+  ChildNode := XmlFindChildNode(Node, 'bkgndcolor');
+  if Assigned(ChildNode) then
+  begin
+    ReadStr := XmlNodeTextContent(ChildNode);
+    if ReadStr <> '' then FBkGndColor := StrToInt64(ReadStr)
+  end;
+  ChildNode := XmlFindChildNode(Node, 'brushcolor');
+  if Assigned(ChildNode) then
+  begin
+    ReadStr := XmlNodeTextContent(ChildNode);
+    if ReadStr <> '' then FBrushColor := StrToInt64(ReadStr)
+  end;
+  ChildNode := XmlFindChildNode(Node, 'brushwidth');
+  if Assigned(ChildNode) then
+  begin
+    ReadStr := XmlNodeTextContent(ChildNode);
+    if ReadStr <> '' then FBrushWidth := StrToFloat(ReadStr)
+  end;
+  ChildNode := XmlFindChildNode(Node, 'position.x');
+  if Assigned(ChildNode) then
+  begin
+    ReadStr := XmlNodeTextContent(ChildNode);
+    if ReadStr <> '' then Position.X := StrToFloat(ReadStr)
+  end;
+  ChildNode := XmlFindChildNode(Node, 'position.y');
+  if Assigned(ChildNode) then
+  begin
+    ReadStr := XmlNodeTextContent(ChildNode);
+    if ReadStr <> '' then Position.Y := StrToFloat(ReadStr)
+  end;
+  ChildNode := XmlFindChildNode(Node, 'width');
+  if Assigned(ChildNode) then
+  begin
+    ReadStr := XmlNodeTextContent(ChildNode);
+    if ReadStr <> '' then Width := StrToFloat(ReadStr)
+  end;
+  ChildNode := XmlFindChildNode(Node, 'height');
+  if Assigned(ChildNode) then
+  begin
+    ReadStr := XmlNodeTextContent(ChildNode);
+    if ReadStr <> '' then Height := StrToFloat(ReadStr)
+  end;
+
+  ChildNode := XmlFindChildNode(Node, 'occupied');
+  if Assigned(ChildNode) then
+  begin
+    ReadStr := XmlNodeTextContent(ChildNode);
+    FOccupied := ReadStr = 'true'
+  end;
+  ChildNode := XmlFindChildNode(Node, 'selected');
+  if Assigned(ChildNode) then
+  begin
+    ReadStr := XmlNodeTextContent(ChildNode);
+    FSelected := ReadStr = 'true'
+  end;
+end;
+
 procedure TTrackSegment.Paint;
 begin
   if not BitmapGenerated then
@@ -234,6 +308,27 @@ begin
   Stream.Write(BrushWidth, SizeOf(BrushWidth));
   Stream.Write(Occupied, SizeOf(Occupied));
   Stream.Write(Selected, SizeOf(Selected));
+end;
+
+procedure TTrackSegment.SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode);
+begin
+  XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'classname', ClassName);
+  XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'opacity', FloatToStr(Opacity));
+  XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'bkgndcolor', IntToStr(BkGndColor));
+  XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'brushcolor', IntToStr(BrushColor));
+  XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'brushwidth', FloatToStr(BrushWidth));
+  if Occupied then
+    XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'occupied', 'true')
+  else
+    XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'occupied', 'false');
+  if Selected then
+    XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'selected', 'true')
+  else
+    XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'selected', 'false');
+  XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'position.x', FloatToStr(Position.X));
+  XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'position.y', FloatToStr(Position.Y));
+  XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'width', FloatToStr(Width));
+  XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'height', FloatToStr(Height));
 end;
 
 procedure TTrackSegment.SetBkGndColor(const Value: TAlphaColor);
@@ -490,10 +585,33 @@ begin
   Stream.Read(FRouting, SizeOf(FRouting));
 end;
 
+procedure TTrackSegmentTurnout.LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode);
+var
+  ChildNode: TMustangpeakXmlNode;
+  ReadStr: string;
+begin
+  inherited;
+  ChildNode := XmlFindChildNode(Node, 'routing');
+  if Assigned(ChildNode) then
+  begin
+    ReadStr := XmlNodeTextContent(ChildNode);
+    if ReadStr = 'diverging' then Routing := Diverging;
+  end;
+end;
+
 procedure TTrackSegmentTurnout.SaveToStream(Stream: TStream);
 begin
   inherited;
   Stream.Write(FRouting, SizeOf(Routing))
+end;
+
+procedure TTrackSegmentTurnout.SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode);
+begin
+  inherited;
+  case Routing of
+     Straight  : XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'routing', 'straight');
+     Diverging : XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'routing', 'diverging')
+  end;
 end;
 
 procedure TTrackSegmentTurnout.SetRouting(const Value: TTurnoutRouting);
@@ -537,6 +655,42 @@ begin
   end;
 end;
 
+procedure TTrackSegmentManager.LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode; SegmentParent: TFmxObject);
+var
+  i: Integer;
+  Child, ClassNameNode: TMustangpeakXmlNode;
+  ASegment: TTrackSegment;
+  ClassNameStr: string;
+  NewClass: TPersistentClass;
+begin
+  Selection.Clear;
+  Segment.Clear;
+  Child := XmlFirstChild(Node);
+  while Assigned(Child) do
+  begin
+    if XmlNodeName(Child) = 'segment' then
+    begin
+      ClassNameNode := XmlFindChildNode(Child, 'classname');
+      if Assigned(ClassNameNode) then
+      begin
+        ClassNameStr := XmlNodeTextContent(ClassNameNode);
+        NewClass := FindClass(ClassNameStr);
+        if Assigned(NewClass) then
+        begin
+          ASegment := NewSegment(TTrackSegmentClass( NewClass), SegmentParent);
+          ASegment.LoadFromXML(XmlDoc, Child);
+        end;
+      end;
+    end;
+    Child := XmlNextSiblingNode(Child)
+  end;
+  for i := 0 to Segment.Count - 1 do
+  begin
+    Child := XmlCreateChildNode(XmlDoc, Node, 'segment', '');
+    Segment[i].SaveToXML(XmlDoc, Child);
+  end;
+end;
+
 procedure TTrackSegmentManager.MoveSelectedBy(DeltaPt: TPointF);
 var
   i: Integer;
@@ -552,6 +706,18 @@ begin
   Result.Parent := AParent;
   Result.BrushWidth := 2;
   Segment.Add(Result);
+end;
+
+procedure TTrackSegmentManager.SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode);
+var
+  i: Integer;
+  Child: TMustangpeakXmlNode;
+begin
+  for i := 0 to Segment.Count - 1 do
+  begin
+    Child := XmlCreateChildNode(XmlDoc, Node, 'segment', '');
+    Segment[i].SaveToXML(XmlDoc, Child);
+  end;
 end;
 
 procedure TTrackSegmentManager.SelectAll;
@@ -617,5 +783,11 @@ begin
   for i := Selection.Count - 1 downto 0 do
     Selection[i].Selected := False;
 end;
+
+initialization
+  RegisterClass(TTrackSegmentStraight);
+  RegisterClass(TTrackSegmentTurnout);
+
+finalization
 
 end.
