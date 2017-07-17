@@ -17,25 +17,17 @@ type
 type
   TTrackSegmentManager = class;
 
-  TTrackSegment = class(TImage)
+  TTrackSegment = class(TSelectableObject)
   private
-    FOpacity: single;
     FBrushColor: TAlphaColor;
     FBrushWidth: single;
     FBitmapGenerated: Boolean;
     FBkGndColor: TAlphaColor;
     FOccupied: Boolean;
-    FManager: TTrackSegmentManager;
-    FSelected: Boolean;
-    FOnSelectedChanged: TNotifyEvent;
-    procedure SetSelected(const Value: Boolean);
-    procedure SetBrushWidth(const Value: single);
     procedure SetColor(const Value: TAlphaColor);
-    procedure SetOpacity(const Value: single);
     procedure SetBkGndColor(const Value: TAlphaColor);
     procedure SetOccupied(const Value: Boolean);
   protected
-    procedure DoSelectedChanged; virtual;
     procedure GenerateBitmap; virtual;
     procedure Paint; override;
     procedure PaintSelection; virtual;
@@ -49,24 +41,17 @@ type
     destructor Destroy; override;
 
     procedure Click; override;
-    procedure LoadFromStream(Stream: TStream); virtual;
-    procedure LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode); virtual;
+    procedure LoadFromStream(Stream: TStream); override;
+    procedure LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode); override;
     procedure InvalidateBitmap;
-    procedure MoveBy(DeltaPt: TPointF);
-    procedure MoveTo(ViewportPt: TPointF);
-    procedure SaveToStream(Stream: TStream); virtual;
-    procedure SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode); virtual;
+    procedure SaveToStream(Stream: TStream); override;
+    procedure SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode); override;
+    procedure VisualPropertyUpdated; override;
 
     property BitmapGenerated: Boolean read FBitmapGenerated;
-    property Opacity: single read FOpacity write SetOpacity;
     property BkGndColor: TAlphaColor read FBkGndColor write SetBkGndColor;
     property BrushColor: TAlphaColor read FBrushColor write SetColor;
-    property BrushWidth: single read FBrushWidth write SetBrushWidth;
     property Occupied: Boolean read FOccupied write SetOccupied;
-    property Manager: TTrackSegmentManager read FManager;
-    property Selected: Boolean read FSelected write SetSelected;
-
-    property OnSelectedChanged: TNotifyEvent read FOnSelectedChanged write FOnSelectedChanged;
   end;
   TTrackSegmentClass = class of TTrackSegment;
 
@@ -96,26 +81,9 @@ type
   end;
 
   TTrackSegmentManager = class(TDragManager)
-  private
-    FSegment: TObjectList<TTrackSegment>;
-    FSelection: TObjectList<TTrackSegment>;
   public
     constructor Create; override;
     destructor Destroy; override;
-    property Segment: TObjectList<TTrackSegment> read FSegment;
-    property Selection: TObjectList<TTrackSegment> read FSelection;
-
-    function FindSegmentByPt(ViewportX, ViewportY: single): TTrackSegment;
-
-    procedure LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode; SegmentParent: TFmxObject); virtual;
-    function NewSegment(ASegmentClass: TTrackSegmentClass; AParent: TFmxObject): TTrackSegment;
-    procedure MoveSelectedBy(DeltaPt: TPointF);
-    procedure SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode); virtual;
-    procedure SelectAll;
-    function SelectByPt(ViewportX, ViewportY: single): Boolean;
-    function SelectByRect(SelectRect: TRectF; Combine: Boolean): Boolean;
-    function SelectionBounds: TRectF;
-    procedure UnSelectAll;
   end;
 
 implementation
@@ -142,21 +110,6 @@ begin
   inherited;
 end;
 
-procedure TTrackSegment.DoSelectedChanged;
-begin
-  if Assigned(Manager) then
-  begin
-    if Selected then
-    begin
-      if Manager.Selection.IndexOf(Self) < 0 then
-        Manager.Selection.Add(Self)
-    end else
-      Manager.Selection.Remove(Self);
-  end;
-  if Assigned(OnSelectedChanged) then
-    OnSelectedChanged(Self);
-end;
-
 procedure TTrackSegment.GenerateBitmap;
 begin
   FBitmapGenerated := True;
@@ -170,12 +123,9 @@ end;
 
 procedure TTrackSegment.LoadFromStream(Stream: TStream);
 begin
-  Stream.Read(FOpacity, SizeOf(Opacity));
-  Stream.Write(FBkGndColor, SizeOf(BkGndColor));
-  Stream.Write(FBrushColor, SizeOf(BrushColor));
-  Stream.Write(FBrushWidth, SizeOf(BrushWidth));
-  Stream.Write(FOccupied, SizeOf(Occupied));
-  Stream.Write(FSelected, SizeOf(Selected));
+  Stream.Read(FBkGndColor, SizeOf(BkGndColor));
+  Stream.Read(FBrushColor, SizeOf(BrushColor));
+  Stream.Read(FOccupied, SizeOf(Occupied));
 end;
 
 procedure TTrackSegment.LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode);
@@ -183,12 +133,7 @@ var
   ReadStr: string;
   ChildNode: TMustangpeakXmlNode;
 begin
-  ChildNode := XmlFindChildNode(Node, 'opacity');
-  if Assigned(ChildNode) then
-  begin
-    ReadStr := XmlNodeTextContent(ChildNode);
-    if ReadStr <> '' then FOpacity := StrToFloat(ReadStr)
-  end;
+  inherited;
   ChildNode := XmlFindChildNode(Node, 'bkgndcolor');
   if Assigned(ChildNode) then
   begin
@@ -200,12 +145,6 @@ begin
   begin
     ReadStr := XmlNodeTextContent(ChildNode);
     if ReadStr <> '' then FBrushColor := StrToInt64(ReadStr)
-  end;
-  ChildNode := XmlFindChildNode(Node, 'brushwidth');
-  if Assigned(ChildNode) then
-  begin
-    ReadStr := XmlNodeTextContent(ChildNode);
-    if ReadStr <> '' then FBrushWidth := StrToFloat(ReadStr)
   end;
   ChildNode := XmlFindChildNode(Node, 'position.x');
   if Assigned(ChildNode) then
@@ -237,12 +176,6 @@ begin
   begin
     ReadStr := XmlNodeTextContent(ChildNode);
     FOccupied := ReadStr = 'true'
-  end;
-  ChildNode := XmlFindChildNode(Node, 'selected');
-  if Assigned(ChildNode) then
-  begin
-    ReadStr := XmlNodeTextContent(ChildNode);
-    FSelected := ReadStr = 'true'
   end;
 end;
 
@@ -302,29 +235,21 @@ end;
 
 procedure TTrackSegment.SaveToStream(Stream: TStream);
 begin
-  Stream.Write(Opacity, SizeOf(Opacity));
+  inherited;
   Stream.Write(BkGndColor, SizeOf(BkGndColor));
   Stream.Write(BrushColor, SizeOf(BrushColor));
-  Stream.Write(BrushWidth, SizeOf(BrushWidth));
   Stream.Write(Occupied, SizeOf(Occupied));
-  Stream.Write(Selected, SizeOf(Selected));
 end;
 
 procedure TTrackSegment.SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode);
 begin
-  XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'classname', ClassName);
-  XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'opacity', FloatToStr(Opacity));
+  inherited;
   XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'bkgndcolor', IntToStr(BkGndColor));
   XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'brushcolor', IntToStr(BrushColor));
-  XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'brushwidth', FloatToStr(BrushWidth));
   if Occupied then
     XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'occupied', 'true')
   else
     XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'occupied', 'false');
-  if Selected then
-    XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'selected', 'true')
-  else
-    XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'selected', 'false');
   XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'position.x', FloatToStr(Position.X));
   XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'position.y', FloatToStr(Position.Y));
   XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'width', FloatToStr(Width));
@@ -336,15 +261,6 @@ begin
   if FBkGndColor <> Value then
   begin
     FBkGndColor := Value;
-    InvalidateBitmap;
-  end;
-end;
-
-procedure TTrackSegment.SetBrushWidth(const Value: single);
-begin
-  if FBrushWidth <> Value then
-  begin
-    FBrushWidth := Value;
     InvalidateBitmap;
   end;
 end;
@@ -373,47 +289,20 @@ begin
   end;
 end;
 
-procedure TTrackSegment.SetOpacity(const Value: single);
-begin
-  if FOpacity <> Value then
-  begin
-    FOpacity := Value;
-    InvalidateBitmap;
-  end;
-end;
-
-procedure TTrackSegment.SetSelected(const Value: Boolean);
-begin
-  if Value <> Selected then
-  begin
-    FSelected := Value;
-    InvalidateBitmap;
-    InvalidateRect(BoundsRect);
- //   Selection.HideSelection := not Value;
-    DoSelectedChanged;
-  end;
-end;
-
 procedure TTrackSegment.SetSize(const AValue: TControlSize);
 begin
   inherited;
-end;
-
-procedure TTrackSegment.MoveBy(DeltaPt: TPointF);
-begin
-  MoveTo(TPointF.Create(Position.X + DeltaPt.X, Position.Y + DeltaPt.Y))
-end;
-
-procedure TTrackSegment.MoveTo(ViewportPt: TPointF);
-begin
-  Position.X := ViewportPt.X;
-  Position.Y := ViewportPt.Y;
 end;
 
 procedure TTrackSegment.SetWidth(const Value: Single);
 begin
   inherited;
 //  Selection.Width := Value;
+end;
+
+procedure TTrackSegment.VisualPropertyUpdated;
+begin
+  InvalidateBitmap;
 end;
 
 { TTrackSegmentStraight }
@@ -628,160 +517,11 @@ end;
 constructor TTrackSegmentManager.Create;
 begin
   inherited;
-  FSegment := TObjectList<TTrackSegment>.Create;
-  FSelection := TObjectList<TTrackSegment>.Create;
-  Selection.OwnsObjects := False;
 end;
 
 destructor TTrackSegmentManager.Destroy;
 begin
-  Selection.Clear;
-  FreeAndNil(FSelection);
-  Segment.Clear;
-  FreeAndNil(FSegment);
-end;
-
-function TTrackSegmentManager.FindSegmentByPt(ViewportX, ViewportY: single): TTrackSegment;
-var
-  i: Integer;
-begin
-  Result := nil;
-  i := 0;
-  while not Assigned(Result) and (i < Segment.Count) do
-  begin
-    if PtInRect(Segment[i].BoundsRect, TPointF.Create(ViewportX, ViewportY)) then
-      Result := Segment[i];
-    Inc(i);
-  end;
-end;
-
-procedure TTrackSegmentManager.LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode; SegmentParent: TFmxObject);
-var
-  i: Integer;
-  Child, ClassNameNode: TMustangpeakXmlNode;
-  ASegment: TTrackSegment;
-  ClassNameStr: string;
-  NewClass: TPersistentClass;
-begin
-  Selection.Clear;
-  Segment.Clear;
-  Child := XmlFirstChild(Node);
-  while Assigned(Child) do
-  begin
-    if XmlNodeName(Child) = 'segment' then
-    begin
-      ClassNameNode := XmlFindChildNode(Child, 'classname');
-      if Assigned(ClassNameNode) then
-      begin
-        ClassNameStr := XmlNodeTextContent(ClassNameNode);
-        NewClass := FindClass(ClassNameStr);
-        if Assigned(NewClass) then
-        begin
-          ASegment := NewSegment(TTrackSegmentClass( NewClass), SegmentParent);
-          ASegment.LoadFromXML(XmlDoc, Child);
-        end;
-      end;
-    end;
-    Child := XmlNextSiblingNode(Child)
-  end;
-  for i := 0 to Segment.Count - 1 do
-  begin
-    Child := XmlCreateChildNode(XmlDoc, Node, 'segment', '');
-    Segment[i].SaveToXML(XmlDoc, Child);
-  end;
-end;
-
-procedure TTrackSegmentManager.MoveSelectedBy(DeltaPt: TPointF);
-var
-  i: Integer;
-begin
-  for i := 0 to Selection.Count - 1 do
-    Selection[i].MoveBy(DeltaPt);
-end;
-
-function TTrackSegmentManager.NewSegment(ASegmentClass: TTrackSegmentClass; AParent: TFmxObject): TTrackSegment;
-begin
-  Result := ASegmentClass.Create(nil);
-  Result.FManager := Self;
-  Result.Parent := AParent;
-  Result.BrushWidth := 2;
-  Segment.Add(Result);
-end;
-
-procedure TTrackSegmentManager.SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode);
-var
-  i: Integer;
-  Child: TMustangpeakXmlNode;
-begin
-  for i := 0 to Segment.Count - 1 do
-  begin
-    Child := XmlCreateChildNode(XmlDoc, Node, 'segment', '');
-    Segment[i].SaveToXML(XmlDoc, Child);
-  end;
-end;
-
-procedure TTrackSegmentManager.SelectAll;
-var
-  i: Integer;
-begin
-  Selection.Clear;
-  for i := 0 to Segment.Count - 1 do
-    Segment[i].Selected := True;
-end;
-
-function TTrackSegmentManager.SelectByPt(ViewportX, ViewportY: single): Boolean;
-var
-  i: Integer;
-begin
-  i := 0;
-  Result := False;
-  while (i < Segment.Count) and not Result do
-  begin
-    if PtInRect(Segment[i].BoundsRect, TPointF.Create(ViewportX, ViewportY)) then
-    begin
-      Segment[i].Selected := True;
-      Result := True;
-    end;
-    Inc(i);
-  end;
-end;
-
-function TTrackSegmentManager.SelectByRect(SelectRect: TRectF; Combine: Boolean): Boolean;
-var
-  i: Integer;
-begin
-  Result := False;
-  for i := 0 to Segment.Count - 1 do
-  begin
-    if IntersectRect(Segment[i].BoundsRect, SelectRect) then
-    begin
-      Segment[i].Selected := True;
-      Result := True;
-    end else
-    begin
-      if not Combine then
-        Segment[i].Selected := False;
-    end;
-  end;
-end;
-
-function TTrackSegmentManager.SelectionBounds: TRectF;
-var
-  i: Integer;
-begin
-  Result := Result.Empty;
-  if Selection.Count > 0 then
-    Result := Selection[0].BoundsRect;
-  for i := 1 to Selection.Count - 1 do
-    UnionRect(Result, Result, Selection[i].BoundsRect)
-end;
-
-procedure TTrackSegmentManager.UnSelectAll;
-var
-  i: Integer;
-begin
-  for i := Selection.Count - 1 downto 0 do
-    Selection[i].Selected := False;
+  inherited;
 end;
 
 initialization

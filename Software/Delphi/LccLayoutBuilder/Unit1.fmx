@@ -2,7 +2,7 @@ object FormLayoutBuilder: TFormLayoutBuilder
   Left = 0
   Top = 0
   Caption = 'Lcc Layout Builder 0.1'
-  ClientHeight = 401
+  ClientHeight = 474
   ClientWidth = 900
   FormFactor.Width = 320
   FormFactor.Height = 480
@@ -14,19 +14,19 @@ object FormLayoutBuilder: TFormLayoutBuilder
   object PanelMain: TPanel
     Align = Client
     Size.Width = 707.000000000000000000
-    Size.Height = 401.000000000000000000
+    Size.Height = 474.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 5
     object StatusBar: TStatusBar
-      Position.Y = 379.000000000000000000
+      Position.Y = 452.000000000000000000
       ShowSizeGrip = True
       Size.Width = 707.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 1
+      TabOrder = 0
       object TextStatusMousePos: TText
         Align = Left
-        Size.Width = 185.000000000000000000
+        Size.Width = 233.000000000000000000
         Size.Height = 22.000000000000000000
         Size.PlatformDefault = False
         Text = 'Mouse Pos:'
@@ -35,7 +35,7 @@ object FormLayoutBuilder: TFormLayoutBuilder
       end
       object LabelStatusSelection: TLabel
         Align = Left
-        Position.X = 185.000000000000000000
+        Position.X = 233.000000000000000000
         Size.Width = 111.000000000000000000
         Size.Height = 22.000000000000000000
         Size.PlatformDefault = False
@@ -43,21 +43,11 @@ object FormLayoutBuilder: TFormLayoutBuilder
       end
       object LabelTrackSegmentCount: TLabel
         Align = Left
-        Position.X = 296.000000000000000000
+        Position.X = 344.000000000000000000
         Size.Width = 113.000000000000000000
         Size.Height = 22.000000000000000000
         Size.PlatformDefault = False
         Text = 'Segments:'
-      end
-      object TextSnapMousePos: TText
-        Align = Left
-        Position.X = 409.000000000000000000
-        Size.Width = 192.000000000000000000
-        Size.Height = 22.000000000000000000
-        Size.PlatformDefault = False
-        Text = 'Snap MousePos:'
-        TextSettings.WordWrap = False
-        TextSettings.HorzAlign = Leading
       end
     end
     object RectangleHeader: TRectangle
@@ -92,7 +82,7 @@ object FormLayoutBuilder: TFormLayoutBuilder
         OnChange = ComboBoxMultiViewModeChange
       end
       object SpeedButtonMasterButton2: TSpeedButton
-        Align = Left
+        Align = MostLeft
         Size.Width = 48.000000000000000000
         Size.Height = 33.000000000000000000
         Size.PlatformDefault = False
@@ -139,27 +129,27 @@ object FormLayoutBuilder: TFormLayoutBuilder
       Position.X = 533.000000000000000000
       Position.Y = 33.000000000000000000
       Size.Width = 174.000000000000000000
-      Size.Height = 346.000000000000000000
+      Size.Height = 419.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = 'transparentlistboxstyle'
-      TabOrder = 2
+      TabOrder = 1
       DisableFocusEffect = True
       Images = ImageListMain
       DefaultItemStyles.ItemStyle = 'listboxitemstyle'
       DefaultItemStyles.GroupHeaderStyle = ''
       DefaultItemStyles.GroupFooterStyle = ''
       Viewport.Width = 174.000000000000000000
-      Viewport.Height = 346.000000000000000000
-      object ListBoxItemHeaderPropertiesHeader: TListBoxItem
+      Viewport.Height = 419.000000000000000000
+      object ListBoxItemEditPropertiesHeader: TListBoxItem
         EnableDragHighlight = False
         Selectable = False
         Size.Width = 174.000000000000000000
         Size.Height = 32.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 2
-        Text = 'Panel Properites'
-        OnClick = ListBoxItemHeaderPropertiesHeaderClick
-        object SpeedButtonPanelProperties: TSpeedButton
+        Text = 'Edit Properites'
+        OnClick = ListBoxItemEditPropertiesHeaderClick
+        object SpeedButtonEditProperties: TSpeedButton
           Align = Right
           HitTest = False
           Images = ImageListMain
@@ -170,17 +160,17 @@ object FormLayoutBuilder: TFormLayoutBuilder
           Size.PlatformDefault = False
         end
       end
-      object ListBoxItemPropertiesPanel: TListBoxItem
+      object ListBoxItemEditPropertiesPanel: TListBoxItem
         ClipChildren = True
         ClipParent = True
         EnableDragHighlight = False
         Selectable = False
         Position.Y = 32.000000000000000000
         Size.Width = 174.000000000000000000
-        Size.Height = 125.000000000000000000
+        Size.Height = 225.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 1
-        object Rectangle2: TRectangle
+        TabOrder = 0
+        object RectangleEditProperties: TRectangle
           Align = Client
           Fill.Kind = Gradient
           Fill.Gradient.Points = <
@@ -199,14 +189,14 @@ object FormLayoutBuilder: TFormLayoutBuilder
           Fill.Gradient.StartPosition.X = 0.500000000000000000
           Fill.Gradient.StopPosition.X = 0.499999970197677600
           Size.Width = 174.000000000000000000
-          Size.Height = 125.000000000000000000
+          Size.Height = 225.000000000000000000
           Size.PlatformDefault = False
           object CheckBoxEditMode: TCheckBox
             Align = Top
             Margins.Left = 4.000000000000000000
             Position.X = 4.000000000000000000
             Size.Width = 170.000000000000000000
-            Size.Height = 33.000000000000000000
+            Size.Height = 44.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 2
             Text = 'Edit Mode'
@@ -216,13 +206,55 @@ object FormLayoutBuilder: TFormLayoutBuilder
             Align = Top
             Margins.Left = 4.000000000000000000
             Position.X = 4.000000000000000000
-            Position.Y = 33.000000000000000000
+            Position.Y = 44.000000000000000000
             Size.Width = 170.000000000000000000
-            Size.Height = 33.000000000000000000
+            Size.Height = 44.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 3
             Text = 'Multiselect Mode'
             OnChange = CheckBoxEditModeChange
+          end
+          object SpeedButtonSelectAll: TSpeedButton
+            Action = ActionSelectAll
+            Align = Top
+            Enabled = True
+            ImageIndex = -1
+            Margins.Left = 4.000000000000000000
+            Position.X = 4.000000000000000000
+            Position.Y = 88.000000000000000000
+            Size.Width = 170.000000000000000000
+            Size.Height = 44.000000000000000000
+            Size.PlatformDefault = False
+            TextSettings.HorzAlign = Leading
+            Visible = True
+          end
+          object SpeedButtonUnSelectAll: TSpeedButton
+            Action = ActionUnSelectAll
+            Align = Top
+            Enabled = True
+            ImageIndex = -1
+            Margins.Left = 4.000000000000000000
+            Position.X = 4.000000000000000000
+            Position.Y = 132.000000000000000000
+            Size.Width = 170.000000000000000000
+            Size.Height = 44.000000000000000000
+            Size.PlatformDefault = False
+            TextSettings.HorzAlign = Leading
+            Visible = True
+          end
+          object SpeedButton1: TSpeedButton
+            Action = ActionDelete
+            Align = Top
+            Enabled = True
+            ImageIndex = -1
+            Margins.Left = 4.000000000000000000
+            Position.X = 4.000000000000000000
+            Position.Y = 176.000000000000000000
+            Size.Width = 170.000000000000000000
+            Size.Height = 44.000000000000000000
+            Size.PlatformDefault = False
+            TextSettings.HorzAlign = Leading
+            Visible = True
           end
         end
         object ColorAnimation1: TColorAnimation
@@ -231,14 +263,73 @@ object FormLayoutBuilder: TFormLayoutBuilder
           StopValue = claWhite
         end
       end
-      object ListBoxItemProperitesDimHeight: TListBoxItem
+      object ListBoxItemItemProperitesHeader: TListBoxItem
         EnableDragHighlight = False
         Selectable = False
-        Position.Y = 157.000000000000000000
+        Position.Y = 257.000000000000000000
         Size.Width = 174.000000000000000000
-        Size.Height = 68.000000000000000000
+        Size.Height = 32.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 0
+        TabOrder = 1
+        Text = 'Item Properites'
+        OnClick = ListBoxItemItemProperitesHeaderClick
+        object SpeedButtonItemProperties: TSpeedButton
+          Align = Right
+          HitTest = False
+          Images = ImageListMain
+          ImageIndex = 33
+          Position.X = 142.000000000000000000
+          Size.Width = 32.000000000000000000
+          Size.Height = 32.000000000000000000
+          Size.PlatformDefault = False
+        end
+      end
+      object ListBoxItemItemProperitesPanel: TListBoxItem
+        ClipChildren = True
+        ClipParent = True
+        EnableDragHighlight = False
+        Selectable = False
+        Position.Y = 289.000000000000000000
+        Size.Width = 174.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 3
+        object RectangleItemProperites: TRectangle
+          Align = Client
+          Fill.Kind = Gradient
+          Fill.Gradient.Points = <
+            item
+              Color = xFF5F9CE4
+              Offset = 0.000000000000000000
+            end
+            item
+              Color = xFF1E5596
+              Offset = 0.000000000000000000
+            end
+            item
+              Color = xFF69A4EB
+              Offset = 1.000000000000000000
+            end>
+          Fill.Gradient.StartPosition.X = 0.500000000000000000
+          Fill.Gradient.StopPosition.X = 0.499999970197677600
+          Size.Width = 174.000000000000000000
+          Size.Height = 44.000000000000000000
+          Size.PlatformDefault = False
+          object LabelNone: TLabel
+            Align = Top
+            Margins.Left = 4.000000000000000000
+            Position.X = 4.000000000000000000
+            Size.Width = 170.000000000000000000
+            Size.Height = 44.000000000000000000
+            Size.PlatformDefault = False
+            Text = '[None]'
+          end
+        end
+        object ColorAnimation2: TColorAnimation
+          Duration = 0.200000002980232200
+          StartValue = claWhite
+          StopValue = claWhite
+        end
       end
     end
     object RectanglePanelContainer: TRectangle
@@ -250,22 +341,21 @@ object FormLayoutBuilder: TFormLayoutBuilder
       Padding.Bottom = 8.000000000000000000
       Opacity = 0.500000000000000000
       Size.Width = 533.000000000000000000
-      Size.Height = 346.000000000000000000
+      Size.Height = 419.000000000000000000
       Size.PlatformDefault = False
       Stroke.Color = claCornflowerblue
     end
     object ScrollBoxSketchpad: TScrollBox
-      OnTap = ScrollBoxSketchpadTap
       Align = Client
       Size.Width = 533.000000000000000000
-      Size.Height = 346.000000000000000000
+      Size.Height = 419.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 3
+      TabOrder = 2
       OnMouseDown = ScrollBoxSketchpadMouseDown
       OnMouseMove = ScrollBoxSketchpadMouseMove
       OnMouseUp = ScrollBoxSketchpadMouseUp
       Viewport.Width = 533.000000000000000000
-      Viewport.Height = 346.000000000000000000
+      Viewport.Height = 419.000000000000000000
     end
   end
   object MultiViewMain: TMultiView
@@ -276,13 +366,13 @@ object FormLayoutBuilder: TFormLayoutBuilder
     OnStartShowing = MultiViewMainStartShowing
     OnStartHiding = MultiViewMainStartHiding
     Size.Width = 193.000000000000000000
-    Size.Height = 401.000000000000000000
+    Size.Height = 474.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 3
     object ListBox1: TListBox
       Align = Client
       Size.Width = 192.000000000000000000
-      Size.Height = 353.000000000000000000
+      Size.Height = 426.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = 'transparentlistboxstyle'
       TabOrder = 0
@@ -292,7 +382,7 @@ object FormLayoutBuilder: TFormLayoutBuilder
       DefaultItemStyles.GroupHeaderStyle = ''
       DefaultItemStyles.GroupFooterStyle = ''
       Viewport.Width = 192.000000000000000000
-      Viewport.Height = 353.000000000000000000
+      Viewport.Height = 426.000000000000000000
       object ListBoxGroupHeaderMultiviewTracks: TListBoxGroupHeader
         TabOrder = 6
         Text = 'Tracks'
@@ -374,9 +464,10 @@ object FormLayoutBuilder: TFormLayoutBuilder
     Top = 48
   end
   object ActionListMain: TActionList
-    Left = 384
-    Top = 248
+    Left = 408
+    Top = 120
     object ActionLoadFromXml: TAction
+      Category = 'Xml'
       Text = 'Load From Xml...'
       OnExecute = ActionLoadFromXmlExecute
     end
@@ -391,8 +482,24 @@ object FormLayoutBuilder: TFormLayoutBuilder
       OnExecute = ActionNewTurnoutSegmentExecute
     end
     object ActionSaveToXml: TAction
+      Category = 'Xml'
       Text = 'Save To Xml...'
       OnExecute = ActionSaveToXmlExecute
+    end
+    object ActionSelectAll: TAction
+      Category = 'Segments'
+      Text = 'Select All'
+      OnExecute = ActionSelectAllExecute
+    end
+    object ActionUnSelectAll: TAction
+      Category = 'Segments'
+      Text = 'UnSelect All'
+      OnExecute = ActionUnSelectAllExecute
+    end
+    object ActionDelete: TAction
+      Category = 'Segments'
+      Text = 'Delete'
+      OnExecute = ActionDeleteExecute
     end
   end
   object ImageListMain: TImageList
@@ -3788,15 +3895,15 @@ object FormLayoutBuilder: TFormLayoutBuilder
             Name = 'icons8-Chevron Down'
           end>
       end>
-    Left = 320
-    Top = 208
+    Left = 496
+    Top = 56
   end
   object OpenDialog: TOpenDialog
-    Left = 536
-    Top = 248
+    Left = 320
+    Top = 112
   end
   object SaveDialog: TSaveDialog
-    Left = 448
-    Top = 192
+    Left = 416
+    Top = 56
   end
 end

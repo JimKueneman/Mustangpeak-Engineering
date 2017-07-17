@@ -41,16 +41,14 @@ type
     ListBoxGroupHeaderMultiViewSignals: TListBoxGroupHeader;
     ListBoxGroupHeaderMultiviewTracks: TListBoxGroupHeader;
     ListBoxProperites: TListBox;
-    ListBoxItemPropertiesPanel: TListBoxItem;
-    ListBoxItemProperitesDimHeight: TListBoxItem;
-    ListBoxItemHeaderPropertiesHeader: TListBoxItem;
-    SpeedButtonPanelProperties: TSpeedButton;
-    Rectangle2: TRectangle;
+    ListBoxItemEditPropertiesPanel: TListBoxItem;
+    ListBoxItemEditPropertiesHeader: TListBoxItem;
+    SpeedButtonEditProperties: TSpeedButton;
+    RectangleEditProperties: TRectangle;
     ColorAnimation1: TColorAnimation;
     RectanglePanelContainer: TRectangle;
     SpeedButtonProperitesMaster: TSpeedButton;
     ScrollBoxSketchpad: TScrollBox;
-    TextSnapMousePos: TText;
     CheckBoxEditMode: TCheckBox;
     CheckBoxMultiSelectMode: TCheckBox;
     ActionSaveToXml: TAction;
@@ -59,6 +57,18 @@ type
     SaveDialog: TSaveDialog;
     ActionLoadFromXml: TAction;
     ButtonLoadFromXml: TButton;
+    SpeedButtonSelectAll: TSpeedButton;
+    ActionSelectAll: TAction;
+    ActionUnSelectAll: TAction;
+    SpeedButtonUnSelectAll: TSpeedButton;
+    ListBoxItemItemProperitesHeader: TListBoxItem;
+    SpeedButtonItemProperties: TSpeedButton;
+    ListBoxItemItemProperitesPanel: TListBoxItem;
+    RectangleItemProperites: TRectangle;
+    ColorAnimation2: TColorAnimation;
+    LabelNone: TLabel;
+    SpeedButton1: TSpeedButton;
+    ActionDelete: TAction;
     procedure FormCreate(Sender: TObject);
     procedure Button4Click(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -71,24 +81,28 @@ type
     procedure MultiViewMainStartHiding(Sender: TObject);
     procedure ListBoxItemStraightClick(Sender: TObject);
     procedure ListBoxItemTurnoutClick(Sender: TObject);
-    procedure ListBoxGroupHeaderProperitesPanelClick(Sender: TObject);
-    procedure ListBoxItemHeaderPropertiesHeaderClick(Sender: TObject);
+    procedure ListBoxItemEditPropertiesHeaderClick(Sender: TObject);
+    procedure ListBoxItemItemProperitesHeaderClick(Sender: TObject);
     procedure SpeedButtonProperitesMasterClick(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure ScrollBoxSketchpadMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Single);
     procedure ScrollBoxSketchpadMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
     procedure ScrollBoxSketchpadMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
-    procedure ScrollBoxSketchpadTap(Sender: TObject; const Point: TPointF);
     procedure ActionSaveToXmlExecute(Sender: TObject);
     procedure ActionLoadFromXmlExecute(Sender: TObject);
+    procedure ActionSelectAllExecute(Sender: TObject);
+    procedure ActionUnSelectAllExecute(Sender: TObject);
+    procedure ActionDeleteExecute(Sender: TObject);
+
   private
     FTrackSegmentManager: TTrackSegmentManager;
-    FTapDuration: TStopwatch;     // Record not an object
+    FTapDuration: TStopwatch;
   protected
     function SketchPadClientToViewport(var ClientX, ClientY: single): TPointF;
     function SketchPadClientToViewportRect(ClientRect: TRectF): TRectF;
-
-    procedure UpdateStatusBar;
+    procedure OnSelectionChange(Sender: TObject; SelectableObject: TSelectableObject; Selected: Boolean);
+    procedure OnSelectableObjectCreate(Sender: TObject; SelectableObject: TSelectableObject);
+    procedure OnSelectableObjectDestroy(Sender: TObject; SelectableObject: TSelectableObject);
   public
     { Public declarations }
     WindowService: IFMXWindowService;
@@ -105,6 +119,11 @@ implementation
 
 {$R *.fmx}
 
+
+procedure TFormLayoutBuilder.ActionDeleteExecute(Sender: TObject);
+begin
+  TrackSegmentManager.DeleteSelected;
+end;
 
 procedure TFormLayoutBuilder.ActionLoadFromXmlExecute(Sender: TObject);
 var
@@ -126,10 +145,10 @@ end;
 
 procedure TFormLayoutBuilder.ActionNewStraightSegmentExecute(Sender: TObject);
 var
-  Segment: TTrackSegment;
+  Segment: TSelectableObject;
   FinalX, FinalY: Single;
 begin
-  Segment := TrackSegmentManager.NewSegment(TTrackSegmentStraight,  ScrollBoxSketchpad);
+  Segment := TrackSegmentManager.NewSelectableObject(TTrackSegmentStraight,  ScrollBoxSketchpad);
   FinalX := Max(0, TrackSegmentManager.CalculateSnap(Random(Round( ScrollBoxSketchpad.Width)) - BASE_SEGMENT_WIDTH, BASE_SEGMENT_WIDTH));
   FinalY := Max(0, TrackSegmentManager.CalculateSnap(Random(Round( ScrollBoxSketchpad.Height)) - BASE_SEGMENT_HEIGHT, BASE_SEGMENT_HEIGHT));
   TAnimator.AnimateFloat(Segment, 'Position.X', FinalX , 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
@@ -138,10 +157,10 @@ end;
 
 procedure TFormLayoutBuilder.ActionNewTurnoutSegmentExecute(Sender: TObject);
 var
-  Segment: TTrackSegment;
+  Segment: TSelectableObject;
   FinalX, FinalY: Single;
 begin
-  Segment := TrackSegmentManager.NewSegment(TTrackSegmentTurnout, ScrollBoxSketchpad);
+  Segment := TrackSegmentManager.NewSelectableObject(TTrackSegmentTurnout, ScrollBoxSketchpad);
   FinalX := Max(0, TrackSegmentManager.CalculateSnap(Random(Round( ScrollBoxSketchpad.Width)) - BASE_SEGMENT_WIDTH, BASE_SEGMENT_WIDTH));
   FinalY := Max(0, TrackSegmentManager.CalculateSnap(Random(Round( ScrollBoxSketchpad.Height)) - BASE_SEGMENT_HEIGHT, BASE_SEGMENT_HEIGHT));
   TAnimator.AnimateFloat(Segment, 'Position.X', FinalX , 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
@@ -162,6 +181,16 @@ begin
     TrackSegmentManager.SaveToXML(XmlDoc, Layout);
     XmlWriteToFile(SaveDialog.FileName, XmlDoc);
   end;
+end;
+
+procedure TFormLayoutBuilder.ActionSelectAllExecute(Sender: TObject);
+begin
+  TrackSegmentManager.SelectAll;
+end;
+
+procedure TFormLayoutBuilder.ActionUnSelectAllExecute(Sender: TObject);
+begin
+  TrackSegmentManager.UnSelectAll;
 end;
 
 procedure TFormLayoutBuilder.Button4Click(Sender: TObject);
@@ -207,10 +236,15 @@ begin
   TPlatformServices.Current.SupportsPlatformService(IFMXScreenService, ScreenService);
   TPlatformServices.Current.SupportsPlatformService(IFMXWindowService, WindowService);
 
+  TrackSegmentManager.OnSelectionChange := OnSelectionChange;
+  TrackSegmentManager.OnSelectableObjectCreate := OnSelectableObjectCreate;
+  TrackSegmentManager.OnSelectableObjectDestroy := OnSelectableObjectDestroy;
+
 end;
 
 procedure TFormLayoutBuilder.FormDestroy(Sender: TObject);
 begin
+  TrackSegmentManager.SelectableObject.Clear;
   FreeAndNil(FTrackSegmentManager);
 end;
 
@@ -227,30 +261,50 @@ begin
   {$ENDIF}
 end;
 
-procedure TFormLayoutBuilder.ListBoxGroupHeaderProperitesPanelClick(
-  Sender: TObject);
+procedure TFormLayoutBuilder.ListBoxItemItemProperitesHeaderClick(Sender: TObject);
+var
+  TotalH: single;
+  i: Integer;
 begin
-  if SpeedButtonPanelProperties.ImageIndex = 33 then
+  if SpeedButtonItemProperties.ImageIndex = 33 then
   begin
-    SpeedButtonPanelProperties.ImageIndex := 34;
+    SpeedButtonItemProperties.ImageIndex := 34;
+    TAnimator.AnimateFloat(ListBoxItemItemProperitesPanel, 'Height', 0, 0.3, TAnimationType.In, TInterpolationType.Quadratic);
   end else
   begin
-    SpeedButtonPanelProperties.ImageIndex := 33;
+    SpeedButtonItemProperties.ImageIndex := 33;
+    TotalH := -1;
+    for i := 0 to RectangleItemProperites.ControlsCount - 1 do
+    begin
+      if RectangleItemProperites.Controls[i].Visible then
+        if RectangleItemProperites.Controls[i].Position.Y > TotalH then
+          TotalH := RectangleItemProperites.Controls[i].Position.Y + RectangleItemProperites.Controls[i].Height;
+    end;
+    TAnimator.AnimateFloat(ListBoxItemItemProperitesPanel, 'Height', TotalH, 0.3, TAnimationType.Out, TInterpolationType.Quadratic);
   end;
 end;
 
-procedure TFormLayoutBuilder.ListBoxItemHeaderPropertiesHeaderClick(Sender: TObject);
+procedure TFormLayoutBuilder.ListBoxItemEditPropertiesHeaderClick(Sender: TObject);
+var
+  TotalH: single;
+  i: Integer;
 begin
-  if SpeedButtonPanelProperties.ImageIndex = 33 then
+  if SpeedButtonEditProperties.ImageIndex = 33 then
   begin
-    SpeedButtonPanelProperties.ImageIndex := 34;
-    TAnimator.AnimateFloat(ListBoxItemPropertiesPanel, 'Height', 0, 0.3, TAnimationType.In, TInterpolationType.Quadratic);
+    SpeedButtonEditProperties.ImageIndex := 34;
+    TAnimator.AnimateFloat(ListBoxItemEditPropertiesPanel, 'Height', 0, 0.3, TAnimationType.In, TInterpolationType.Quadratic);
   end else
   begin
-    SpeedButtonPanelProperties.ImageIndex := 33;
-    TAnimator.AnimateFloat(ListBoxItemPropertiesPanel, 'Height', 125, 0.3, TAnimationType.Out, TInterpolationType.Quadratic);
+    SpeedButtonEditProperties.ImageIndex := 33;
+    TotalH := -1;
+    for i := 0 to RectangleEditProperties.ControlsCount - 1 do
+    begin
+      if RectangleEditProperties.Controls[i].Visible then
+        if RectangleEditProperties.Controls[i].Position.Y > TotalH then
+          TotalH := RectangleEditProperties.Controls[i].Position.Y + RectangleEditProperties.Controls[i].Height;
+    end;
+    TAnimator.AnimateFloat(ListBoxItemEditPropertiesPanel, 'Height', TotalH, 0.3, TAnimationType.Out, TInterpolationType.Quadratic);
   end;
-
 end;
 
 procedure TFormLayoutBuilder.ListBoxItemStraightClick(Sender: TObject);
@@ -305,6 +359,21 @@ begin
     MultiViewMain.MasterButton := SpeedButtonMasterButton;
 end;
 
+procedure TFormLayoutBuilder.OnSelectableObjectCreate(Sender: TObject; SelectableObject: TSelectableObject);
+begin
+  LabelTrackSegmentCount.Text := 'Segments: ' + IntToStr(TrackSegmentManager.SelectableObject.Count);
+end;
+
+procedure TFormLayoutBuilder.OnSelectableObjectDestroy(Sender: TObject; SelectableObject: TSelectableObject);
+begin
+  LabelTrackSegmentCount.Text := 'Segments: ' + IntToStr(TrackSegmentManager.SelectableObject.Count);
+end;
+
+procedure TFormLayoutBuilder.OnSelectionChange(Sender: TObject; SelectableObject: TSelectableObject; Selected: Boolean);
+begin
+  LabelStatusSelection.Text :=  'Selections: ' + IntToStr(TrackSegmentManager.Selection.Count);
+end;
+
 procedure TFormLayoutBuilder.ScrollBoxSketchpadMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 var
   i, StartingCount: Integer;
@@ -332,19 +401,19 @@ begin
           StartingCount := TrackSegmentManager.Selection.Count;
 
           // Needs to be called on all segments so they get the position of the click
-          for i := 0 to TrackSegmentManager.Segment.Count - 1 do
+          for i := 0 to TrackSegmentManager.SelectableObject.Count - 1 do
           begin
-            if PtInRect(TrackSegmentManager.Segment[i].BoundsRect, TrackSegmentManager.MouseDownViewportPoint) then
+            if PtInRect(TrackSegmentManager.SelectableObject[i].BoundsRect, TrackSegmentManager.MouseDownViewportPoint) then
             begin
               if ToggleSelection then
-                TrackSegmentManager.Segment[i].Selected := not TrackSegmentManager.Segment[i].Selected
+                TrackSegmentManager.SelectableObject[i].Selected := not TrackSegmentManager.SelectableObject[i].Selected
               else
-                TrackSegmentManager.Segment[i].Selected := True;
+                TrackSegmentManager.SelectableObject[i].Selected := True;
               HitOne := True;
             end else
             begin
               if not IsMultiSelect and (StartingCount < 2) then
-                TrackSegmentManager.Segment[i].Selected := False;
+                TrackSegmentManager.SelectableObject[i].Selected := False;
             end;
           end;
 
@@ -359,8 +428,6 @@ begin
           else
             TrackSegmentManager.State := TDragState.dsDragPending;
         end;
-
-        UpdateStatusBar;
       end;
     TMouseButton.mbRight :
       begin
@@ -411,14 +478,11 @@ procedure TFormLayoutBuilder.ScrollBoxSketchpadMouseMove(Sender: TObject; Shift:
 
     IsMultiSelect := (ssCtrl in Shift) or (ssShift in Shift);
     TrackSegmentManager.SelectByRect(TrackSegmentManager.RectangleDragSelect.BoundsRect, IsMultiSelect);
-    UpdateStatusBar;
-
   end;
 
   procedure LocalDoDrag;
   var
     SelectRectSnapPt, DeltaPt: TPointF;
-    DeltaX, DeltaY: single;
   begin
     SelectRectSnapPt := TPointF.Create(TrackSegmentManager.MouseCurrentViewportPoint.X - TrackSegmentManager.MouseSelectRectOffset.X, TrackSegmentManager.MouseCurrentViewportPoint.Y - TrackSegmentManager.MouseSelectRectOffset.Y);
 
@@ -451,10 +515,6 @@ procedure TFormLayoutBuilder.ScrollBoxSketchpadMouseMove(Sender: TObject; Shift:
       ScrollboxSketchpad.ScrollBy(0, -(TrackSegmentManager.DragSelectCurrentRect.Bottom - (ScrollboxSketchpad.ViewportPosition.Y + ScrollboxSketchpad.Height)));
   end;
 
-var
-  i: Integer;
-  DeltaPt: TPointF;
-  TempSelectRect: TRectF;
 begin
   TrackSegmentManager.MouseCurrentViewportPoint := SketchPadClientToViewport(X, Y);
 
@@ -512,7 +572,7 @@ end;
 
 procedure TFormLayoutBuilder.ScrollBoxSketchpadMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 var
-  HitSegment: TTrackSegment;
+  HitSegment: TSelectableObject;
 begin
   ScrollBoxSketchpad.Root.Captured := nil;
   TapDuration.Stop;
@@ -523,17 +583,11 @@ begin
   TrackSegmentManager.RectangleDragSelect.Parent := nil;
   if not TrackSegmentManager.EditMode then
   begin
-    HitSegment := TrackSegmentManager.FindSegmentByPt(TrackSegmentManager.MouseCurrentViewportPoint.X, TrackSegmentManager.MouseCurrentViewportPoint.Y);
+    HitSegment := TrackSegmentManager.FindSelectableObjectByPt(TrackSegmentManager.MouseCurrentViewportPoint.X, TrackSegmentManager.MouseCurrentViewportPoint.Y);
     if Assigned(HitSegment) then
       HitSegment.Click;
   end;
   TrackSegmentManager.State := dsNone;
-  UpdateStatusBar;
-end;
-
-procedure TFormLayoutBuilder.ScrollBoxSketchpadTap(Sender: TObject; const Point: TPointF);
-begin
-  beep;
 end;
 
 function TFormLayoutBuilder.SketchPadClientToViewport(var ClientX, ClientY: single): TPointF;
@@ -554,12 +608,6 @@ begin
     TAnimator.AnimateFloat(ListBoxProperites, 'Width', 0, 0.2, TAnimationType.&In, TInterpolationType.Exponential)
   else
     TAnimator.AnimateFloat(ListBoxProperites, 'Width', 175, 0.2, TAnimationType.&In, TInterpolationType.Exponential);
-end;
-
-procedure TFormLayoutBuilder.UpdateStatusBar;
-begin
-  LabelStatusSelection.Text :=  'Selections: ' + IntToStr(TrackSegmentManager.Selection.Count);
-  LabelTrackSegmentCount.Text := 'Segments: ' + IntToStr(TrackSegmentManager.Segment.Count);
 end;
 
 end.
