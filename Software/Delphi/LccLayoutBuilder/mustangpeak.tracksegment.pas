@@ -82,7 +82,7 @@ type
 
   TTrackSegmentManager = class(TDragManager)
   public
-    constructor Create; override;
+    constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
   end;
 
@@ -514,7 +514,7 @@ end;
 
 { TTrackSegmentManager }
 
-constructor TTrackSegmentManager.Create;
+constructor TTrackSegmentManager.Create(AOwner: TComponent);
 begin
   inherited;
 end;

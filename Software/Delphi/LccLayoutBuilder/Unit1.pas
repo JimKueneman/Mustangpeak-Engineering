@@ -50,7 +50,7 @@ type
     SpeedButtonProperitesMaster: TSpeedButton;
     ScrollBoxSketchpad: TScrollBox;
     CheckBoxEditMode: TCheckBox;
-    CheckBoxMultiSelectMode: TCheckBox;
+    CheckBoxSelectModifier: TCheckBox;
     ActionSaveToXml: TAction;
     ButtonSaveToXml: TButton;
     OpenDialog: TOpenDialog;
@@ -67,7 +67,7 @@ type
     RectangleItemProperites: TRectangle;
     ColorAnimation2: TColorAnimation;
     LabelNone: TLabel;
-    SpeedButton1: TSpeedButton;
+    SpeedButtonDeleteAll: TSpeedButton;
     ActionDelete: TAction;
     procedure FormCreate(Sender: TObject);
     procedure Button4Click(Sender: TObject);
@@ -93,6 +93,7 @@ type
     procedure ActionSelectAllExecute(Sender: TObject);
     procedure ActionUnSelectAllExecute(Sender: TObject);
     procedure ActionDeleteExecute(Sender: TObject);
+    procedure CheckBoxSelectModifierChange(Sender: TObject);
 
   private
     FTrackSegmentManager: TTrackSegmentManager;
@@ -209,6 +210,11 @@ begin
   TrackSegmentManager.EditMode := CheckBoxEditMode.IsChecked;
 end;
 
+procedure TFormLayoutBuilder.CheckBoxSelectModifierChange(Sender: TObject);
+begin
+  TrackSegmentManager.SelectionModifier := CheckBoxSelectModifier.IsChecked
+end;
+
 procedure TFormLayoutBuilder.ComboBoxMultiViewModeChange(Sender: TObject);
 begin
   if ComboBoxMultiViewMode.ItemIndex > -1 then
@@ -231,7 +237,7 @@ begin
   ComboBoxMultiViewMode.ItemIndex := 0; // Set to platform, assumes at design time it is -1
   ListBoxProperites.Width := 0;         // Mainly for mobile devices
 
-  FTrackSegmentManager := TTrackSegmentManager.Create;
+  FTrackSegmentManager := TTrackSegmentManager.Create(nil);
 
   TPlatformServices.Current.SupportsPlatformService(IFMXScreenService, ScreenService);
   TPlatformServices.Current.SupportsPlatformService(IFMXWindowService, WindowService);
@@ -375,219 +381,22 @@ begin
 end;
 
 procedure TFormLayoutBuilder.ScrollBoxSketchpadMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
-var
-  i, StartingCount: Integer;
-  IsMultiSelect, ToggleSelection, HitOne: Boolean;
 begin
-  ScrollBoxSketchpad.Root.Captured := ScrollBoxSketchpad;
+  TrackSegmentManager.MouseDownScrollBox(ScrollBoxSketchpad, Sender, Button, Shift, X, Y);
   TapDuration.Start;
-
-  // Convert the Client Coordinates into Viewport of the ScrollWindow
-  TrackSegmentManager.MouseDownViewportPoint := SketchPadClientToViewport(X, Y);
-  TrackSegmentManager.MouseCurrentViewportPoint := TrackSegmentManager.MouseDownViewportPoint;
-  TrackSegmentManager.MousePreviousVewportPoint := TrackSegmentManager.MouseDownViewportPoint;
-  TrackSegmentManager.MouseButton := Button;
-  TrackSegmentManager.Shift := Shift;
-
-  case Button of
-    TMouseButton.mbLeft :
-      begin
-        // Only allow selection and dragging when in Edit Mode;
-        if TrackSegmentManager.EditMode then
-        begin
-          IsMultiSelect := (ssCtrl in Shift) or (ssShift in Shift);
-          ToggleSelection := (ssCtrl in Shift) or (ssShift in Shift);
-          HitOne := False;
-          StartingCount := TrackSegmentManager.Selection.Count;
-
-          // Needs to be called on all segments so they get the position of the click
-          for i := 0 to TrackSegmentManager.SelectableObject.Count - 1 do
-          begin
-            if PtInRect(TrackSegmentManager.SelectableObject[i].BoundsRect, TrackSegmentManager.MouseDownViewportPoint) then
-            begin
-              if ToggleSelection then
-                TrackSegmentManager.SelectableObject[i].Selected := not TrackSegmentManager.SelectableObject[i].Selected
-              else
-                TrackSegmentManager.SelectableObject[i].Selected := True;
-              HitOne := True;
-            end else
-            begin
-              if not IsMultiSelect and (StartingCount < 2) then
-                TrackSegmentManager.SelectableObject[i].Selected := False;
-            end;
-          end;
-
-          if not HitOne and not IsMultiSelect then
-            TrackSegmentManager.UnSelectAll;
-
-          TrackSegmentManager.DragSelectStartRect := TrackSegmentManager.SelectionBounds;
-          TrackSegmentManager.DragSelectCurrentRect := TrackSegmentManager.SelectionBounds;
-
-          if (TrackSegmentManager.Selection.Count = 0) or IsMultiSelect then
-            TrackSegmentManager.State := TDragState.dsSelectRectPending
-          else
-            TrackSegmentManager.State := TDragState.dsDragPending;
-        end;
-      end;
-    TMouseButton.mbRight :
-      begin
-
-      end;
-    TMouseButton.mbMiddle :
-      begin
-
-      end;
-  end;
 end;
 
 procedure TFormLayoutBuilder.ScrollBoxSketchpadMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Single);
-
-  function LocalDragThresholdMet(ViewportPt: TPointF): Boolean;
-  const DRAG_THRESHOLD = 5;
-  begin
-    Result := (Abs(TrackSegmentManager.MouseDownViewportPoint.X - ViewportPt.X) > DRAG_THRESHOLD) or (Abs(TrackSegmentManager.MouseDownViewportPoint.Y - ViewportPt.Y) > DRAG_THRESHOLD);
-  end;
-
-  procedure LocalDoDragSelect;
-  var
-    IsMultiSelect: Boolean;
-  begin
-    if TrackSegmentManager.MouseCurrentViewportPoint.X < 0 then
-      TrackSegmentManager.MouseCurrentViewportPoint.Create(0, TrackSegmentManager.MouseCurrentViewportPoint.Y);
-    if TrackSegmentManager.MouseCurrentViewportPoint.Y < 0 then
-       TrackSegmentManager.MouseCurrentViewportPoint.Create(TrackSegmentManager.MouseCurrentViewportPoint.X, 0);
-
-    if TrackSegmentManager.MouseCurrentViewportPoint.X - TrackSegmentManager.MouseDownViewportPoint.X < 0 then
-    begin
-      TrackSegmentManager.RectangleDragSelect.Position.X := TrackSegmentManager.MouseCurrentViewportPoint.X;
-      TrackSegmentManager.RectangleDragSelect.Width := TrackSegmentManager.MouseDownViewportPoint.X - TrackSegmentManager.MouseCurrentViewportPoint.X;
-    end else
-    begin
-      TrackSegmentManager.RectangleDragSelect.Position.X := TrackSegmentManager.MouseDownViewportPoint.X;
-      TrackSegmentManager.RectangleDragSelect.Width := TrackSegmentManager.MouseCurrentViewportPoint.X - TrackSegmentManager.MouseDownViewportPoint.X;
-    end;
-    if TrackSegmentManager.MouseCurrentViewportPoint.Y - TrackSegmentManager.MouseDownViewportPoint.Y < 0 then
-    begin
-      TrackSegmentManager.RectangleDragSelect.Position.Y := TrackSegmentManager.MouseCurrentViewportPoint.Y;
-      TrackSegmentManager.RectangleDragSelect.Height := TrackSegmentManager.MouseDownViewportPoint.Y - TrackSegmentManager.MouseCurrentViewportPoint.Y;
-    end else
-    begin
-      TrackSegmentManager.RectangleDragSelect.Position.Y := TrackSegmentManager.MouseDownViewportPoint.Y;
-      TrackSegmentManager.RectangleDragSelect.Height := TrackSegmentManager.MouseCurrentViewportPoint.Y - TrackSegmentManager.MouseDownViewportPoint.Y;
-    end;
-
-    IsMultiSelect := (ssCtrl in Shift) or (ssShift in Shift);
-    TrackSegmentManager.SelectByRect(TrackSegmentManager.RectangleDragSelect.BoundsRect, IsMultiSelect);
-  end;
-
-  procedure LocalDoDrag;
-  var
-    SelectRectSnapPt, DeltaPt: TPointF;
-  begin
-    SelectRectSnapPt := TPointF.Create(TrackSegmentManager.MouseCurrentViewportPoint.X - TrackSegmentManager.MouseSelectRectOffset.X, TrackSegmentManager.MouseCurrentViewportPoint.Y - TrackSegmentManager.MouseSelectRectOffset.Y);
-
-    SelectRectSnapPt := TrackSegmentManager.CalculateSnapPt(SelectRectSnapPt, BASE_SEGMENT_WIDTH, BASE_SEGMENT_HEIGHT);
-
-    if SelectRectSnapPt.X < 0 then
-      DeltaPt.X := 0
-    else
-      DeltaPt.X := SelectRectSnapPt.X - TrackSegmentManager.DragSelectCurrentRect.Left;
-    if SelectRectSnapPt.Y < 0 then
-      DeltaPt.Y := 0
-    else
-      DeltaPt.Y := SelectRectSnapPt.Y - TrackSegmentManager.DragSelectCurrentRect.Top;
-
-    TrackSegmentManager.MoveSelectedBy(DeltaPt);
-
-    TrackSegmentManager.DragSelectCurrentRect := TrackSegmentManager.SelectionBounds;
-
-    if TrackSegmentManager.DragSelectCurrentRect.Left < ScrollboxSketchpad.ViewportPosition.X then
-      ScrollboxSketchpad.ScrollBy(+(TrackSegmentManager.DragSelectCurrentRect.Left - ScrollboxSketchpad.ViewportPosition.X), 0)
-    else
-      if TrackSegmentManager.DragSelectCurrentRect.Right > (ScrollboxSketchpad.ViewportPosition.X + ScrollboxSketchpad.Width) then
-      ScrollboxSketchpad.ScrollBy(-(TrackSegmentManager.DragSelectCurrentRect.Right - (ScrollboxSketchpad.ViewportPosition.X + ScrollboxSketchpad.Width)), 0);
-
-
-    if TrackSegmentManager.DragSelectCurrentRect.Bottom < ScrollboxSketchpad.ViewportPosition.Y then
-      ScrollboxSketchpad.ScrollBy(0, +(TrackSegmentManager.DragSelectCurrentRect.Bottom - ScrollboxSketchpad.ViewportPosition.Y))
-    else
-    if TrackSegmentManager.DragSelectCurrentRect.Bottom > (ScrollboxSketchpad.ViewportPosition.Y + ScrollboxSketchpad.Height) then
-      ScrollboxSketchpad.ScrollBy(0, -(TrackSegmentManager.DragSelectCurrentRect.Bottom - (ScrollboxSketchpad.ViewportPosition.Y + ScrollboxSketchpad.Height)));
-  end;
-
 begin
-  TrackSegmentManager.MouseCurrentViewportPoint := SketchPadClientToViewport(X, Y);
-
-  case TrackSegmentManager.MouseButton of
-    TMouseButton.mbLeft :
-      begin
-        TextStatusMousePos.Text := 'Mouse Pos X:' + FloatToStrF(TrackSegmentManager.MouseCurrentViewportPoint.X, ffFixed, 4, 4) + ' Y: ' + FloatToStrF(TrackSegmentManager.MouseCurrentViewportPoint.Y, ffFixed, 4, 4);
-
-        case TrackSegmentManager.State of
-          dsNone :
-            begin
-
-            end;
-          dsDragPending :
-            begin
-              if LocalDragThresholdMet(TrackSegmentManager.MouseCurrentViewportPoint) then
-              begin
-                TrackSegmentManager.State := TDragState.dsDragging;
-                LocalDoDrag;
-              end;
-            end;
-          dsDragging :
-            begin
-              LocalDoDrag;
-            end;
-          dsSelectRectPending :
-            begin
-              if LocalDragThresholdMet(TrackSegmentManager.MouseCurrentViewportPoint) then
-              begin
-                TrackSegmentManager.RectangleDragSelect.Position.Point := TrackSegmentManager.MouseDownViewportPoint;
-                TrackSegmentManager.RectangleDragSelect.Width := 0;
-                TrackSegmentManager.RectangleDragSelect.Height := 0;
-                TrackSegmentManager.RectangleDragSelect.Parent := ScrollBoxSketchpad;
-                TrackSegmentManager.State := TDragState.dsSelectRect;
-                LocalDoDragSelect;
-              end;
-            end;
-          dsSelectRect :
-            begin
-              LocalDoDragSelect;
-            end;
-        end;
-      end;
-    TMouseButton.mbRight :
-      begin
-      end;
-    TMouseButton.mbMiddle :
-      begin
-
-      end;
-  end;
-  // Update previous to current for next mouse move call
-  TrackSegmentManager.MousePreviousVewportPoint := TrackSegmentManager.MouseCurrentViewportPoint;
+  TrackSegmentManager.MouseMoveScrollBox(ScrollBoxSketchpad, Sender, Shift, X, Y, BASE_SEGMENT_WIDTH, BASE_SEGMENT_HEIGHT);
+  TextStatusMousePos.Text := 'Mouse Pos X:' + FloatToStrF(TrackSegmentManager.MouseCurrentViewportPoint.X, ffFixed, 4, 4) + ' Y: ' + FloatToStrF(TrackSegmentManager.MouseCurrentViewportPoint.Y, ffFixed, 4, 4);
 end;
 
 procedure TFormLayoutBuilder.ScrollBoxSketchpadMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
-var
-  HitSegment: TSelectableObject;
 begin
-  ScrollBoxSketchpad.Root.Captured := nil;
+  TrackSegmentManager.MouseUpScrollBox(ScrollBoxSketchpad, Sender, Button, Shift, X, Y);
   TapDuration.Stop;
 //  TapDuration.ElapsedMilliseconds
-
-  TrackSegmentManager.MouseCurrentViewportPoint := SketchPadClientToViewport(X, Y);
-
-  TrackSegmentManager.RectangleDragSelect.Parent := nil;
-  if not TrackSegmentManager.EditMode then
-  begin
-    HitSegment := TrackSegmentManager.FindSelectableObjectByPt(TrackSegmentManager.MouseCurrentViewportPoint.X, TrackSegmentManager.MouseCurrentViewportPoint.Y);
-    if Assigned(HitSegment) then
-      HitSegment.Click;
-  end;
-  TrackSegmentManager.State := dsNone;
 end;
 
 function TFormLayoutBuilder.SketchPadClientToViewport(var ClientX, ClientY: single): TPointF;

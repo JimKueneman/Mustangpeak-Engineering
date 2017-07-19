@@ -4,7 +4,8 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, FMX.Types,
-  FMX.Objects, FMX.Graphics, System.Generics.Collections, mustangpeak.xmlutilities;
+  FMX.Objects, FMX.Graphics, System.Generics.Collections, mustangpeak.xmlutilities,
+  FMX.Layouts;
 
 type
   TDragState = (dsNone, dsDragging, dsSelectRect, dsDragPending, dsSelectRectPending);
@@ -17,7 +18,6 @@ type
   TDragManagerSelectionChange = procedure(Sender: TObject; SelectableObject: TSelectableObject; Selected: Boolean) of object;
   TDragManagerSelectableObjectCreate = procedure(Sender: TObject; SelectableObject: TSelectableObject) of object;
   TDragManagerSelectableObjectDestroy = procedure(Sender: TObject; SelectableObject: TSelectableObject) of object;
-
 
   TSelectableObject = class(TImage)
   private
@@ -55,24 +55,25 @@ type
     property Selection: TObjectList<TSelectableObject> read FSelection;
   end;
 
-  TDragManager = class(TPersistent)
+  TDragManager = class(TComponent)
   private
-    FState: TDragState;                  // What is either occuring or pending in terms of the drag
+    FDragState: TDragState;                  // What is either occuring or pending in terms of the drag
     FMouseDownViewportPoint: TPointF;    // The point the user intially clicked in the viewport
     FMousePreviousVewportPoint: TPointF; // The point the user was during a drag on the prevous time MouseMove was called
     FMouseCurrentViewportPoint: TPointF; // The point in the current Mouse Move call
-    FShift: TShiftState;                 // The state of the Shift keys when the drag started
+    FMouseShift: TShiftState;                 // The state of the Shift keys when the drag started
     FMouseButton: TMouseButton;          // Which button was down when the drag started
     FEditMode: Boolean;                  // Allow dragging
     FDragSelectCurrentRect: TRectF;
     FDragSelectStartRect: TRectF;
-    FRectangleDragSelect: TRectangle;
+    FDragSelectRectangle: TRectangle;
     FSelection: TObjectList<TSelectableObject>;
     FSelectableObject: TObjectList<TSelectableObject>;
     FOnSelectionChange: TDragManagerSelectionChange;
     FOnSelectionChanging: TDragManagerSelectionChanging;
     FOnSelectableObjectDestroy: TDragManagerSelectableObjectDestroy;
     FOnSelectableObjectCreate: TDragManagerSelectableObjectCreate;
+    FSelectionModifier: Boolean;
     procedure SetEditMode(const Value: Boolean);
   protected
     procedure DoSelectableObjectCreate(SelectableObject: TSelectableObject);
@@ -80,31 +81,35 @@ type
     procedure DoSelectionChange(SelectableObject: TSelectableObject; Selected: Boolean);
     procedure DoSelectionChanging(SelectableObject: TSelectableObject; Selected: Boolean; var Allow: Boolean);
   public
-    constructor Create; virtual;
+    constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
+    property DragSelectCurrentRect: TRectF read FDragSelectCurrentRect write FDragSelectCurrentRect;
+    property DragSelectRectangle: TRectangle read FDragSelectRectangle write FDragSelectRectangle;
+    property DragSelectStartRect: TRectF read FDragSelectStartRect write FDragSelectStartRect;
+    property DragState: TDragState read FDragState write FDragState;
     property EditMode: Boolean read FEditMode write SetEditMode;
     property MouseButton: TMouseButton read FMouseButton write FMouseButton;
     property MouseCurrentViewportPoint: TPointF read FMouseCurrentViewportPoint write FMouseCurrentViewportPoint;
     property MouseDownViewportPoint: TPointF read FMouseDownViewportPoint write FMouseDownViewportPoint;
     property MousePreviousVewportPoint: TPointF read FMousePreviousVewportPoint write FMousePreviousVewportPoint;
-    property DragSelectStartRect: TRectF read FDragSelectStartRect write FDragSelectStartRect;
+    property MouseShift: TShiftState read FMouseShift write FMouseShift;
     property OnSelectableObjectCreate: TDragManagerSelectableObjectCreate read FOnSelectableObjectCreate write FOnSelectableObjectCreate;
     property OnSelectableObjectDestroy: TDragManagerSelectableObjectDestroy read FOnSelectableObjectDestroy write FOnSelectableObjectDestroy;
     property OnSelectionChange: TDragManagerSelectionChange read FOnSelectionChange write FOnSelectionChange;
     property OnSelectionChanging: TDragManagerSelectionChanging read FOnSelectionChanging write FOnSelectionChanging;
-    property DragSelectCurrentRect: TRectF read FDragSelectCurrentRect write FDragSelectCurrentRect;
-    property RectangleDragSelect: TRectangle read FRectangleDragSelect write FRectangleDragSelect;
-    property Selection: TObjectList<TSelectableObject> read FSelection;
     property SelectableObject: TObjectList<TSelectableObject> read FSelectableObject;
-    property Shift: TShiftState read FShift write FShift;
-    property State: TDragState read FState write FState;
+    property Selection: TObjectList<TSelectableObject> read FSelection;
+    property SelectionModifier: Boolean read FSelectionModifier write FSelectionModifier;
 
     function CalculateSnap(Target: single; Snap: single): single;
     function CalculateSnapPt(Target: TPointF; SnapX, SnapY: single): TPointF;
     procedure DeleteSelected; virtual;
-    function FindSelectableObjectByPt(ViewportX, ViewportY: single): TSelectableObject;
+    function FindSelectableObjectByPt(ViewportPt: TPointF): TSelectableObject;
     procedure LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode; SegmentParent: TFmxObject); virtual;
+    procedure MouseDownScrollBox(TargetScrollBox: TScrollBox; Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+    procedure MouseMoveScrollBox(TargetScrollBox: TScrollBox; Sender: TObject; Shift: TShiftState; X, Y: Single; DragXSnap, DragYSnap: Single);
+    procedure MouseUpScrollBox(TargetScrollBox: TScrollBox; Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
     function MouseSelectRectOffset: TPointF;
     procedure MoveSelectedBy(DeltaPt: TPointF);
     function NewSelectableObject(ASegmentClass: TSelectableImageClass; AParent: TFmxObject): TSelectableObject;
@@ -138,23 +143,23 @@ begin
   Result.Y := CalculateSnap(Target.Y, SnapY)
 end;
 
-constructor TDragManager.Create;
+constructor TDragManager.Create(AOwner: TComponent);
 begin
   inherited;
   FSelection := TObjectList<TSelectableObject>.Create;
   Selection.OwnsObjects := False;
   FSelectableObject := TObjectList<TSelectableObject>.Create;
   SelectableObject.OwnsObjects := True;
-  RectangleDragSelect := TRectangle.Create(nil);
-  RectangleDragSelect.Fill.Color := $FFE0E0E0;
-  RectangleDragSelect.Fill.Gradient.Color := TAlphaColorRec.Mediumblue;
-  RectangleDragSelect.Fill.Gradient.Color1 := TAlphaColorRec.White;
-  RectangleDragSelect.Opacity := 0.2;
-  RectangleDragSelect.CornerType := TCornerType.Round;
-  RectangleDragSelect.XRadius := 5;
-  RectangleDragSelect.YRadius := 5;
-  RectangleDragSelect.Fill.Kind := TBrushKind.Gradient;
-  RectangleDragSelect.Stroke.Color := TAlphAColorRec.Blue;
+  DragSelectRectangle := TRectangle.Create(nil);
+  DragSelectRectangle.Fill.Color := $FFE0E0E0;
+  DragSelectRectangle.Fill.Gradient.Color := TAlphaColorRec.Mediumblue;
+  DragSelectRectangle.Fill.Gradient.Color1 := TAlphaColorRec.White;
+  DragSelectRectangle.Opacity := 0.2;
+  DragSelectRectangle.CornerType := TCornerType.Round;
+  DragSelectRectangle.XRadius := 5;
+  DragSelectRectangle.YRadius := 5;
+  DragSelectRectangle.Fill.Kind := TBrushKind.Gradient;
+  DragSelectRectangle.Stroke.Color := TAlphAColorRec.Blue;
 
 end;
 
@@ -176,7 +181,7 @@ begin
   SelectableObject.Clear;
   FreeAndNil(FSelectableObject);
   FreeAndNil(FSelection);
-  FreeAndNil(FRectangleDragSelect);
+  FreeAndNil(FDragSelectRectangle);
   inherited;
 end;
 
@@ -205,7 +210,7 @@ begin
     OnSelectionChanging(Self, SelectableObject, Selected, Allow);
 end;
 
-function TDragManager.FindSelectableObjectByPt(ViewportX, ViewportY: single): TSelectableObject;
+function TDragManager.FindSelectableObjectByPt(ViewportPt: TPointF): TSelectableObject;
 var
   i: Integer;
 begin
@@ -213,7 +218,7 @@ begin
   i := 0;
   while not Assigned(Result) and (i < SelectableObject.Count) do
   begin
-    if PtInRect(SelectableObject[i].BoundsRect, TPointF.Create(ViewportX, ViewportY)) then
+    if PtInRect(SelectableObject[i].BoundsRect, TPointF.Create(ViewportPt.X, ViewportPt.Y)) then
       Result := SelectableObject[i];
     Inc(i);
   end;
@@ -256,9 +261,230 @@ begin
   end;
 end;
 
+procedure TDragManager.MouseDownScrollBox(TargetScrollBox: TScrollBox; Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+var
+  CurrentSelectionBounds: TRectF;
+  TrackSegment: TSelectableObject;
+  Modifier: Boolean;
+begin
+  TargetScrollBox.Root.Captured := TargetScrollBox;
+
+  // Convert the Client Coordinates into Viewport of the ScrollWindow
+  FMouseDownViewportPoint.X := TargetScrollBox.ViewportPosition.X + X;
+  FMouseDownViewportPoint.Y := TargetScrollBox.ViewportPosition.Y + Y;
+  MouseCurrentViewportPoint := MouseDownViewportPoint;
+  MousePreviousVewportPoint := MouseDownViewportPoint;
+  MouseButton := Button;
+  MouseShift := Shift;
+
+  case Button of
+    TMouseButton.mbLeft :
+      begin
+        // Only allow selection and dragging when in Edit Mode;
+        if EditMode then
+        begin
+
+          Modifier := ((ssCtrl in Shift) or (ssShift in Shift)) or SelectionModifier;
+
+          TrackSegment := FindSelectableObjectByPt(MouseDownViewportPoint);
+          if Assigned(TrackSegment) then
+          begin
+            if TrackSegment.Selected then    // Already Selected?
+            begin
+              if Selection.Count = 1 then
+              begin
+                DragState := TDragState.dsDragPending;
+              end else
+              begin
+                if Modifier then
+                  TrackSegment.Selected := False
+                else
+                  DragState := TDragState.dsDragPending;
+              end;
+            end else
+            begin
+              if not Modifier then
+                UnselectAll;
+              TrackSegment.Selected := True;
+              DragState := TDragState.dsDragPending;
+            end;
+          end else
+          begin
+            if not Modifier then
+              UnselectAll;
+            DragState := TDragState.dsSelectRectPending
+          end;
+
+          DragSelectStartRect := SelectionBounds;
+          DragSelectCurrentRect := DragSelectStartRect;
+        end;
+      end;
+    TMouseButton.mbRight :
+      begin
+
+      end;
+    TMouseButton.mbMiddle :
+      begin
+
+      end;
+  end;
+end;
+
+procedure TDragManager.MouseMoveScrollBox(TargetScrollBox: TScrollBox; Sender: TObject; Shift: TShiftState; X, Y: Single; DragXSnap, DragYSnap: Single);
+
+  function LocalDragThresholdMet(ViewportPt: TPointF): Boolean;
+  const DRAG_THRESHOLD = 5;
+  begin
+    Result := (Abs(MouseDownViewportPoint.X - ViewportPt.X) > DRAG_THRESHOLD) or (Abs(MouseDownViewportPoint.Y - ViewportPt.Y) > DRAG_THRESHOLD);
+  end;
+
+  procedure LocalDoDragSelect;
+  var
+    IsMultiSelect: Boolean;
+  begin
+    if MouseCurrentViewportPoint.X < 0 then
+      MouseCurrentViewportPoint.Create(0, MouseCurrentViewportPoint.Y);
+    if MouseCurrentViewportPoint.Y < 0 then
+       MouseCurrentViewportPoint.Create(MouseCurrentViewportPoint.X, 0);
+
+    if MouseCurrentViewportPoint.X - MouseDownViewportPoint.X < 0 then
+    begin
+      DragSelectRectangle.Position.X := MouseCurrentViewportPoint.X;
+      DragSelectRectangle.Width := MouseDownViewportPoint.X - MouseCurrentViewportPoint.X;
+    end else
+    begin
+      DragSelectRectangle.Position.X := MouseDownViewportPoint.X;
+      DragSelectRectangle.Width := MouseCurrentViewportPoint.X - MouseDownViewportPoint.X;
+    end;
+    if MouseCurrentViewportPoint.Y - MouseDownViewportPoint.Y < 0 then
+    begin
+      DragSelectRectangle.Position.Y := MouseCurrentViewportPoint.Y;
+      DragSelectRectangle.Height := MouseDownViewportPoint.Y - MouseCurrentViewportPoint.Y;
+    end else
+    begin
+      DragSelectRectangle.Position.Y := MouseDownViewportPoint.Y;
+      DragSelectRectangle.Height := MouseCurrentViewportPoint.Y - MouseDownViewportPoint.Y;
+    end;
+
+    IsMultiSelect := ((ssCtrl in Shift) or (ssShift in Shift)) or SelectionModifier;
+    SelectByRect(DragSelectRectangle.BoundsRect, IsMultiSelect);
+  end;
+
+  procedure LocalDoDrag;
+  var
+    SelectRectSnapPt, DeltaPt: TPointF;
+  begin
+    SelectRectSnapPt := TPointF.Create(MouseCurrentViewportPoint.X - MouseSelectRectOffset.X, MouseCurrentViewportPoint.Y - MouseSelectRectOffset.Y);
+
+    SelectRectSnapPt := CalculateSnapPt(SelectRectSnapPt, DragXSnap, DragYSnap);
+
+    if SelectRectSnapPt.X < 0 then
+      DeltaPt.X := 0
+    else
+      DeltaPt.X := SelectRectSnapPt.X - DragSelectCurrentRect.Left;
+    if SelectRectSnapPt.Y < 0 then
+      DeltaPt.Y := 0
+    else
+      DeltaPt.Y := SelectRectSnapPt.Y - DragSelectCurrentRect.Top;
+
+    MoveSelectedBy(DeltaPt);
+
+    DragSelectCurrentRect := SelectionBounds;
+
+    if DragSelectCurrentRect.Left < TargetScrollBox.ViewportPosition.X then
+      TargetScrollBox.ScrollBy(+(DragSelectCurrentRect.Left - TargetScrollBox.ViewportPosition.X), 0)
+    else
+      if DragSelectCurrentRect.Right > (TargetScrollBox.ViewportPosition.X + TargetScrollBox.Width) then
+      TargetScrollBox.ScrollBy(-(DragSelectCurrentRect.Right - (TargetScrollBox.ViewportPosition.X + TargetScrollBox.Width)), 0);
+
+
+    if DragSelectCurrentRect.Bottom < TargetScrollBox.ViewportPosition.Y then
+      TargetScrollBox.ScrollBy(0, +(DragSelectCurrentRect.Bottom - TargetScrollBox.ViewportPosition.Y))
+    else
+    if DragSelectCurrentRect.Bottom > (TargetScrollBox.ViewportPosition.Y + TargetScrollBox.Height) then
+      TargetScrollBox.ScrollBy(0, -(DragSelectCurrentRect.Bottom - (TargetScrollBox.ViewportPosition.Y + TargetScrollBox.Height)));
+  end;
+
+begin
+   // Convert the Client Coordinates into Viewport of the ScrollWindow
+  FMouseCurrentViewportPoint.X := TargetScrollBox.ViewportPosition.X + X;
+  FMouseCurrentViewportPoint.Y := TargetScrollBox.ViewportPosition.Y + Y;
+
+  case MouseButton of
+    TMouseButton.mbLeft :
+      begin
+    //    TextStatusMousePos.Text := 'Mouse Pos X:' + FloatToStrF(TrackSegmentManager.MouseCurrentViewportPoint.X, ffFixed, 4, 4) + ' Y: ' + FloatToStrF(TrackSegmentManager.MouseCurrentViewportPoint.Y, ffFixed, 4, 4);
+
+        case DragState of
+          dsNone :
+            begin
+
+            end;
+          dsDragPending :
+            begin
+              if LocalDragThresholdMet(MouseCurrentViewportPoint) then
+              begin
+                DragState := TDragState.dsDragging;
+                LocalDoDrag;
+              end;
+            end;
+          dsDragging :
+            begin
+              LocalDoDrag;
+            end;
+          dsSelectRectPending :
+            begin
+              if LocalDragThresholdMet(MouseCurrentViewportPoint) then
+              begin
+                DragSelectRectangle.Position.Point := MouseDownViewportPoint;
+                DragSelectRectangle.Width := 0;
+                DragSelectRectangle.Height := 0;
+                DragSelectRectangle.Parent := TargetScrollBox;
+                DragState := TDragState.dsSelectRect;
+                LocalDoDragSelect;
+              end;
+            end;
+          dsSelectRect :
+            begin
+              LocalDoDragSelect;
+            end;
+        end;
+      end;
+    TMouseButton.mbRight :
+      begin
+      end;
+    TMouseButton.mbMiddle :
+      begin
+
+      end;
+  end;
+  // Update previous to current for next mouse move call
+  MousePreviousVewportPoint := MouseCurrentViewportPoint;
+end;
+
 function TDragManager.MouseSelectRectOffset: TPointF;
 begin
   Result := TPointF.Create(MouseDownViewportPoint.X - DragSelectStartRect.Left, MouseDownViewportPoint.Y - DragSelectStartRect.Top)
+end;
+
+procedure TDragManager.MouseUpScrollBox(TargetScrollBox: TScrollBox; Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+var
+  HitSegment: TSelectableObject;
+begin
+  TargetScrollBox.Root.Captured := nil;
+
+     // Convert the Client Coordinates into Viewport of the ScrollWindow
+  FMouseCurrentViewportPoint.X := TargetScrollBox.ViewportPosition.X + X;
+  FMouseCurrentViewportPoint.Y := TargetScrollBox.ViewportPosition.Y + Y;
+
+  DragSelectRectangle.Parent := nil;
+  if not EditMode then
+  begin
+    HitSegment := FindSelectableObjectByPt(MouseCurrentViewportPoint);
+    if Assigned(HitSegment) then
+      HitSegment.Click;
+  end;
+  DragState := dsNone;
 end;
 
 procedure TDragManager.MoveSelectedBy(DeltaPt: TPointF);
@@ -365,6 +591,8 @@ procedure TDragManager.UnselectAll;
 var
   i: Integer;
 begin
+  if True then
+
   for i := Selection.Count - 1 downto 0 do
     Selection[i].Selected := False;
 end;
