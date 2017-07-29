@@ -5,7 +5,7 @@ interface
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Objects, FMX.Graphics, System.Generics.Collections,
-  mustangpeak.dragmanager, mustangpeak.xmlutilities;
+  mustangpeak.dragmanager, mustangpeak.xmlutilities, System.UIConsts;
 
 const
   BASE_SEGMENT_WIDTH = 80;
@@ -18,12 +18,16 @@ type
   TTrackSegmentManager = class;
 
   TTrackSegment = class(TSelectableObject)
+  private type
+    TGrabHandle = (None, LeftTop, RightTop, LeftBottom, RightBottom);
   private
     FBrushColor: TAlphaColor;
     FBrushWidth: single;
     FBitmapGenerated: Boolean;
     FBkGndColor: TAlphaColor;
     FOccupied: Boolean;
+    FGripSize: single;
+    FHotHandle: TGrabHandle;
     procedure SetColor(const Value: TAlphaColor);
     procedure SetBkGndColor(const Value: TAlphaColor);
     procedure SetOccupied(const Value: Boolean);
@@ -51,6 +55,7 @@ type
     property BitmapGenerated: Boolean read FBitmapGenerated;
     property BkGndColor: TAlphaColor read FBkGndColor write SetBkGndColor;
     property BrushColor: TAlphaColor read FBrushColor write SetColor;
+    property GripSize: single read FGripSize write FGripSize;
     property Occupied: Boolean read FOccupied write SetOccupied;
   end;
   TTrackSegmentClass = class of TTrackSegment;
@@ -103,6 +108,7 @@ begin
   FBkGndColor := TAlphaColorRec.White;
   FBrushWidth := 3;
   FOpacity := 1;
+  FGripSize := 3;
 end;
 
 destructor TTrackSegment.Destroy;
@@ -189,12 +195,88 @@ end;
 procedure TTrackSegment.PaintSelection;
 var
   R: TRectF;
+  Fill: TBrush;
+
+  // sets the canvas color depending if the control is enabled and if
+  // we need to draw a zone being hot or not
+  procedure SelectZoneColor(HotZone: Boolean);
+  begin
+    if Enabled then
+      if HotZone then
+        Fill.Color := claRed
+      else
+        Fill.Color := $FFFFFFFF
+    else
+      Fill.Color := claGrey;
+  end;
+
+var
+  Stroke: TStrokeBrush;
+
 begin
   if Selected then
   begin
     R := LocalRect;
-    R.Inflate(-0.5, -0.5);
-    Bitmap.Canvas.DrawDashRect(R, 0, 0, AllCorners, 1000, $FF1072C5);
+    R.Inflate(-GripSize, -GripSize);
+    Bitmap.Canvas.DrawDashRect(R, 0, 0, AllCorners, 1, $FF1072C5);
+
+
+
+    Fill := TBrush.Create(TBrushKind.Solid, claWhite);
+    Stroke := TStrokeBrush.Create(TBrushKind.Solid, $FF1072C5);
+    try
+      R := LocalRect;
+      SelectZoneColor(FHotHandle = TGrabHandle.LeftTop);
+      Bitmap.Canvas.FillEllipse(TRectF.Create(R.Left, R.Top, R.Left + 2*GripSize, R.Top + 2*GripSize),
+        AbsoluteOpacity, Fill);
+      Bitmap.Canvas.DrawEllipse(TRectF.Create(R.Left, R.Top, R.Left + 2*GripSize, R.Top + 2*GripSize),
+        AbsoluteOpacity, Stroke);
+        {
+      Bitmap.Canvas.FillEllipse(TRectF.Create(R.Left - GripSize, R.Top - GripSize, R.Left + GripSize, R.Top + GripSize),
+        AbsoluteOpacity, Fill);
+      Bitmap.Canvas.DrawEllipse(TRectF.Create(R.Left - GripSize, R.Top - GripSize, R.Left + GripSize, R.Top + GripSize),
+        AbsoluteOpacity, Stroke);
+               }
+      R := LocalRect;
+      SelectZoneColor(FHotHandle = TGrabHandle.RightTop);
+      Bitmap.Canvas.FillEllipse(TRectF.Create(R.Right - GripSize, R.Top - GripSize, R.Right + GripSize, R.Top + GripSize),
+        AbsoluteOpacity, Fill);
+      Bitmap.Canvas.DrawEllipse(TRectF.Create(R.Right - GripSize, R.Top - GripSize, R.Right + GripSize, R.Top + GripSize),
+        AbsoluteOpacity, Stroke);
+        {
+      Bitmap.Canvas.FillEllipse(TRectF.Create(R.Right - GripSize, R.Top - GripSize, R.Right + GripSize, R.Top + GripSize),
+        AbsoluteOpacity, Fill);
+      Bitmap.Canvas.DrawEllipse(TRectF.Create(R.Right - GripSize, R.Top - GripSize, R.Right + GripSize, R.Top + GripSize),
+        AbsoluteOpacity, Stroke);
+                  }
+      R := LocalRect;
+      SelectZoneColor(FHotHandle = TGrabHandle.LeftBottom);
+      Bitmap.Canvas.FillEllipse(TRectF.Create(R.Left - GripSize, R.Bottom - GripSize, R.Left + GripSize, R.Bottom + GripSize),
+        AbsoluteOpacity, Fill);
+      Bitmap.Canvas.DrawEllipse(TRectF.Create(R.Left - GripSize, R.Bottom - GripSize, R.Left + GripSize, R.Bottom + GripSize),
+        AbsoluteOpacity, Stroke);
+        {
+      Bitmap.Canvas.FillEllipse(TRectF.Create(R.Left - GripSize, R.Bottom - GripSize, R.Left + GripSize, R.Bottom + GripSize),
+        AbsoluteOpacity, Fill);
+      Bitmap.Canvas.DrawEllipse(TRectF.Create(R.Left - GripSize, R.Bottom - GripSize, R.Left + GripSize, R.Bottom + GripSize),
+        AbsoluteOpacity, Stroke);
+          }
+      R := LocalRect;
+      SelectZoneColor(FHotHandle = TGrabHandle.RightBottom);
+      Bitmap.Canvas.FillEllipse(TRectF.Create(R.Right - GripSize, R.Bottom - GripSize, R.Right + GripSize, R.Bottom + GripSize),
+        AbsoluteOpacity, Fill);
+      Bitmap.Canvas.DrawEllipse(TRectF.Create(R.Right - GripSize, R.Bottom - GripSize, R.Right + GripSize, R.Bottom + GripSize),
+        AbsoluteOpacity, Stroke);
+        {
+      Bitmap.Canvas.FillEllipse(TRectF.Create(R.Right - GripSize, R.Bottom - GripSize, R.Right + GripSize, R.Bottom + GripSize),
+        AbsoluteOpacity, Fill);
+      Bitmap.Canvas.DrawEllipse(TRectF.Create(R.Right - GripSize, R.Bottom - GripSize, R.Right + GripSize, R.Bottom + GripSize),
+        AbsoluteOpacity, Stroke);
+           }
+    finally
+      Fill.Free;
+      Stroke.Free;
+    end;
   end;
 end;
 

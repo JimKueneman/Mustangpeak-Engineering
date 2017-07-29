@@ -9,6 +9,7 @@ uses
 
 type
   TDragState = (dsNone, dsDragging, dsSelectRect, dsDragPending, dsSelectRectPending);
+  TZOrder = (zoTopDown, zoBottomUp);
 
 type
   TDragManager = class;   // forward
@@ -74,8 +75,10 @@ type
     FOnSelectableObjectDestroy: TDragManagerSelectableObjectDestroy;
     FOnSelectableObjectCreate: TDragManagerSelectableObjectCreate;
     FSelectionModifier: Boolean;
+    FClipboard: TMustangpeakXmlDocument;
     procedure SetEditMode(const Value: Boolean);
   protected
+    property Clipboard: TMustangpeakXmlDocument read FClipboard write FClipboard;
     procedure DoSelectableObjectCreate(SelectableObject: TSelectableObject);
     procedure DoSelectableObjectDestroy(SelectableObject: TSelectableObject);
     procedure DoSelectionChange(SelectableObject: TSelectableObject; Selected: Boolean);
@@ -104,15 +107,17 @@ type
 
     function CalculateSnap(Target: single; Snap: single): single;
     function CalculateSnapPt(Target: TPointF; SnapX, SnapY: single): TPointF;
+    procedure CopySelected;
     procedure DeleteSelected; virtual;
-    function FindSelectableObjectByPt(ViewportPt: TPointF): TSelectableObject;
-    procedure LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode; SegmentParent: TFmxObject); virtual;
+    function FindSelectableObjectByPt(ViewportPt: TPointF; ZOrder: TZOrder): TSelectableObject;
+    procedure LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode; ParentObject: TFmxObject); virtual;
     procedure MouseDownScrollBox(TargetScrollBox: TScrollBox; Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
     procedure MouseMoveScrollBox(TargetScrollBox: TScrollBox; Sender: TObject; Shift: TShiftState; X, Y: Single; DragXSnap, DragYSnap: Single);
     procedure MouseUpScrollBox(TargetScrollBox: TScrollBox; Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
     function MouseSelectRectOffset: TPointF;
     procedure MoveSelectedBy(DeltaPt: TPointF);
     function NewSelectableObject(ASegmentClass: TSelectableImageClass; AParent: TFmxObject): TSelectableObject;
+    procedure PasteTo(ParentObject: TFmxObject);
     procedure SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode); virtual;
     procedure SelectAll; virtual;
     function SelectByPt(ViewportX, ViewportY: single): Boolean;
@@ -143,6 +148,23 @@ begin
   Result.Y := CalculateSnap(Target.Y, SnapY)
 end;
 
+procedure TDragManager.CopySelected;
+var
+  i: Integer;
+  RootNode, ChildNode, SegmentNode: TMustangpeakXmlNode;
+begin
+  XmlFreeDocument(FClipboard);
+  Clipboard := XmlCreateEmptyDocument;
+  RootNode := XmlCreateRootNode(Clipboard, 'clipboard', '');
+  ChildNode := XmlCreateChildNode(Clipboard, RootNode, 'structure', '');
+  for i := 0 to Selection.Count - 1 do
+  begin
+    SegmentNode := XmlCreateChildNode(Clipboard, ChildNode, 'segment', '');
+    Selection[i].SaveToXML(Clipboard, SegmentNode);
+  end;
+
+end;
+
 constructor TDragManager.Create(AOwner: TComponent);
 begin
   inherited;
@@ -160,7 +182,6 @@ begin
   DragSelectRectangle.YRadius := 5;
   DragSelectRectangle.Fill.Kind := TBrushKind.Gradient;
   DragSelectRectangle.Stroke.Color := TAlphAColorRec.Blue;
-
 end;
 
 procedure TDragManager.DeleteSelected;
@@ -179,9 +200,10 @@ begin
   UnSelectAll;
   Selection.Clear;
   SelectableObject.Clear;
-  FreeAndNil(FSelectableObject);
-  FreeAndNil(FSelection);
-  FreeAndNil(FDragSelectRectangle);
+  SelectableObject.DisposeOf;
+  Selection.DisposeOf;
+  DragSelectRectangle.DisposeOf;
+  XmlFreeDocument(FClipboard);
   inherited;
 end;
 
@@ -210,23 +232,35 @@ begin
     OnSelectionChanging(Self, SelectableObject, Selected, Allow);
 end;
 
-function TDragManager.FindSelectableObjectByPt(ViewportPt: TPointF): TSelectableObject;
+function TDragManager.FindSelectableObjectByPt(ViewportPt: TPointF; ZOrder: TZOrder): TSelectableObject;
 var
   i: Integer;
 begin
   Result := nil;
-  i := 0;
-  while not Assigned(Result) and (i < SelectableObject.Count) do
+  if ZOrder = zoTopDown then
   begin
-    if PtInRect(SelectableObject[i].BoundsRect, TPointF.Create(ViewportPt.X, ViewportPt.Y)) then
-      Result := SelectableObject[i];
-    Inc(i);
+    i := SelectableObject.Count - 1;
+    while not Assigned(Result) and (i > -1) do
+    begin
+      if PtInRect(SelectableObject[i].BoundsRect, TPointF.Create(ViewportPt.X, ViewportPt.Y)) then
+        Result := SelectableObject[i];
+      Dec(i);
+    end;
+  end else
+  if ZOrder = zoBottomUp then
+  begin
+    i := 0;
+    while not Assigned(Result) and (i < SelectableObject.Count) do
+    begin
+      if PtInRect(SelectableObject[i].BoundsRect, TPointF.Create(ViewportPt.X, ViewportPt.Y)) then
+        Result := SelectableObject[i];
+      Inc(i);
+    end;
   end;
 end;
 
-procedure TDragManager.LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode; SegmentParent: TFmxObject);
+procedure TDragManager.LoadFromXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode; ParentObject: TFmxObject);
 var
-  i: Integer;
   Child, ClassNameNode: TMustangpeakXmlNode;
   ASegment: TSelectableObject;
   ClassNameStr: string;
@@ -247,23 +281,17 @@ begin
         NewClass := FindClass(ClassNameStr);
         if Assigned(NewClass) then
         begin
-          ASegment := NewSelectableObject(TSelectableImageClass( NewClass), SegmentParent);
+          ASegment := NewSelectableObject(TSelectableImageClass( NewClass), ParentObject);
           ASegment.LoadFromXML(XmlDoc, Child);
         end;
       end;
     end;
     Child := XmlNextSiblingNode(Child)
   end;
-  for i := 0 to SelectableObject.Count - 1 do
-  begin
-    Child := XmlCreateChildNode(XmlDoc, Node, 'segment', '');
-    SelectableObject[i].SaveToXML(XmlDoc, Child);
-  end;
 end;
 
 procedure TDragManager.MouseDownScrollBox(TargetScrollBox: TScrollBox; Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 var
-  CurrentSelectionBounds: TRectF;
   TrackSegment: TSelectableObject;
   Modifier: Boolean;
 begin
@@ -286,7 +314,7 @@ begin
 
           Modifier := ((ssCtrl in Shift) or (ssShift in Shift)) or SelectionModifier;
 
-          TrackSegment := FindSelectableObjectByPt(MouseDownViewportPoint);
+          TrackSegment := FindSelectableObjectByPt(MouseDownViewportPoint, zoTopDown);
           if Assigned(TrackSegment) then
           begin
             if TrackSegment.Selected then    // Already Selected?
@@ -480,7 +508,7 @@ begin
   DragSelectRectangle.Parent := nil;
   if not EditMode then
   begin
-    HitSegment := FindSelectableObjectByPt(MouseCurrentViewportPoint);
+    HitSegment := FindSelectableObjectByPt(MouseCurrentViewportPoint, zoTopDown);
     if Assigned(HitSegment) then
       HitSegment.Click;
   end;
@@ -503,6 +531,44 @@ begin
   Result.BrushWidth := 2;
   SelectableObject.Add(Result);
   DoSelectableObjectCreate(Result);
+end;
+
+procedure TDragManager.PasteTo(ParentObject: TFmxObject);
+var
+  RootNode, ChildNode, ClassNameNode: TMustangpeakXmlNode;
+  ASegment: TSelectableObject;
+  ClassNameStr: string;
+  NewClass: TPersistentClass;
+begin
+  UnselectAll;
+  RootNode := XmlFindRootNode(Clipboard, 'clipboard');
+  if Assigned(RootNode) then
+  begin
+    ChildNode := XmlFindChildNode(RootNode, 'structure');
+    if Assigned(ChildNode) then
+    begin
+     ChildNode := XmlFirstChild(ChildNode);
+      while Assigned(ChildNode) do
+      begin
+        if XmlNodeName(ChildNode) = 'segment' then
+        begin
+          ClassNameNode := XmlFindChildNode(ChildNode, 'classname');
+          if Assigned(ClassNameNode) then
+          begin
+            ClassNameStr := XmlNodeTextContent(ClassNameNode);
+            NewClass := FindClass(ClassNameStr);
+            if Assigned(NewClass) then
+            begin
+              ASegment := NewSelectableObject(TSelectableImageClass( NewClass), ParentObject);
+              ASegment.LoadFromXML(Clipboard, ChildNode);
+              ASegment.Selected := True;
+            end;
+          end;
+        end;
+        ChildNode := XmlNextSiblingNode(ChildNode)
+      end;
+    end;
+  end;
 end;
 
 procedure TDragManager.SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMustangpeakXmlNode);
@@ -637,12 +703,6 @@ var
   ChildNode: TMustangpeakXmlNode;
 begin
   inherited;
-  ChildNode := XmlFindChildNode(Node, 'selected');
-  if Assigned(ChildNode) then
-  begin
-    ReadStr := XmlNodeTextContent(ChildNode);
-    FSelected := ReadStr = 'true'
-  end;
   ChildNode := XmlFindChildNode(Node, 'opacity');
   if Assigned(ChildNode) then
   begin
@@ -686,10 +746,6 @@ procedure TSelectableObject.SaveToXML(XmlDoc: TMustangpeakXmlDocument; Node: TMu
 begin
   inherited;
   XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'classname', ClassName);
-  if Selected then
-    XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'selected', 'true')
-  else
-    XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'selected', 'false');
   XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'opacity', FloatToStr(Opacity));
   XmlNodeSetTextContentForceCreate(XmlDoc, Node, 'brushwidth', FloatToStr(BrushWidth));
 end;

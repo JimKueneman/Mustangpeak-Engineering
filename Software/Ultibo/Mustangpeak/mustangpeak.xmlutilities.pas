@@ -234,6 +234,7 @@ begin
   FreeAndNil(XmlDoc)
   {$ELSE}
      // Is and interface and will free itself
+     XmlDoc := nil;
   {$ENDIF}
 end;
 

@@ -69,38 +69,43 @@ type
     LabelNone: TLabel;
     SpeedButtonDeleteAll: TSpeedButton;
     ActionDelete: TAction;
-    procedure FormCreate(Sender: TObject);
-    procedure Button4Click(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
-    procedure CheckBoxEditModeChange(Sender: TObject);
+    ActionCopy: TAction;
+    ActionPaste: TAction;
+    SpeedButtonCopy: TSpeedButton;
+    SpeedButtonPaste: TSpeedButton;
+    Rectangle1: TRectangle;
+    procedure ActionCopyExecute(Sender: TObject);
+    procedure ActionDeleteExecute(Sender: TObject);
+    procedure ActionLoadFromXmlExecute(Sender: TObject);
     procedure ActionNewStraightSegmentExecute(Sender: TObject);
     procedure ActionNewTurnoutSegmentExecute(Sender: TObject);
+    procedure ActionPasteExecute(Sender: TObject);
+    procedure ActionSaveToXmlExecute(Sender: TObject);
+    procedure ActionSelectAllExecute(Sender: TObject);
+    procedure ActionUnSelectAllExecute(Sender: TObject);
+    procedure Button4Click(Sender: TObject);
+    procedure CheckBoxEditModeChange(Sender: TObject);
+    procedure CheckBoxSelectModifierChange(Sender: TObject);
     procedure ComboBoxMultiViewModeChange(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormResize(Sender: TObject);
+    procedure ListBoxItemEditPropertiesHeaderClick(Sender: TObject);
+    procedure ListBoxItemItemProperitesHeaderClick(Sender: TObject);
+    procedure ListBoxItemStraightClick(Sender: TObject);
+    procedure ListBoxItemTurnoutClick(Sender: TObject);
     procedure MultiViewMainPresenterChanging(Sender: TObject; var PresenterClass: TMultiViewPresentationClass);
     procedure MultiViewMainStartShowing(Sender: TObject);
     procedure MultiViewMainStartHiding(Sender: TObject);
-    procedure ListBoxItemStraightClick(Sender: TObject);
-    procedure ListBoxItemTurnoutClick(Sender: TObject);
-    procedure ListBoxItemEditPropertiesHeaderClick(Sender: TObject);
-    procedure ListBoxItemItemProperitesHeaderClick(Sender: TObject);
-    procedure SpeedButtonProperitesMasterClick(Sender: TObject);
-    procedure FormResize(Sender: TObject);
     procedure ScrollBoxSketchpadMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Single);
     procedure ScrollBoxSketchpadMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
     procedure ScrollBoxSketchpadMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
-    procedure ActionSaveToXmlExecute(Sender: TObject);
-    procedure ActionLoadFromXmlExecute(Sender: TObject);
-    procedure ActionSelectAllExecute(Sender: TObject);
-    procedure ActionUnSelectAllExecute(Sender: TObject);
-    procedure ActionDeleteExecute(Sender: TObject);
-    procedure CheckBoxSelectModifierChange(Sender: TObject);
+    procedure SpeedButtonProperitesMasterClick(Sender: TObject);
 
   private
     FTrackSegmentManager: TTrackSegmentManager;
     FTapDuration: TStopwatch;
   protected
-    function SketchPadClientToViewport(var ClientX, ClientY: single): TPointF;
-    function SketchPadClientToViewportRect(ClientRect: TRectF): TRectF;
     procedure OnSelectionChange(Sender: TObject; SelectableObject: TSelectableObject; Selected: Boolean);
     procedure OnSelectableObjectCreate(Sender: TObject; SelectableObject: TSelectableObject);
     procedure OnSelectableObjectDestroy(Sender: TObject; SelectableObject: TSelectableObject);
@@ -120,6 +125,11 @@ implementation
 
 {$R *.fmx}
 
+
+procedure TFormLayoutBuilder.ActionCopyExecute(Sender: TObject);
+begin
+  TrackSegmentManager.CopySelected;
+end;
 
 procedure TFormLayoutBuilder.ActionDeleteExecute(Sender: TObject);
 begin
@@ -166,6 +176,11 @@ begin
   FinalY := Max(0, TrackSegmentManager.CalculateSnap(Random(Round( ScrollBoxSketchpad.Height)) - BASE_SEGMENT_HEIGHT, BASE_SEGMENT_HEIGHT));
   TAnimator.AnimateFloat(Segment, 'Position.X', FinalX , 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
   TAnimator.AnimateFloat(Segment, 'Position.Y', FinalY, 0.25, TAnimationType.&In, TInterpolationType.Quadratic);
+end;
+
+procedure TFormLayoutBuilder.ActionPasteExecute(Sender: TObject);
+begin
+  TrackSegmentManager.PasteTo(ScrollBoxSketchpad);
 end;
 
 procedure TFormLayoutBuilder.ActionSaveToXmlExecute(Sender: TObject);
@@ -251,7 +266,7 @@ end;
 procedure TFormLayoutBuilder.FormDestroy(Sender: TObject);
 begin
   TrackSegmentManager.SelectableObject.Clear;
-  FreeAndNil(FTrackSegmentManager);
+  TrackSegmentManager.DisposeOf;
 end;
 
 procedure TFormLayoutBuilder.FormResize(Sender: TObject);
@@ -397,18 +412,6 @@ begin
   TrackSegmentManager.MouseUpScrollBox(ScrollBoxSketchpad, Sender, Button, Shift, X, Y);
   TapDuration.Stop;
 //  TapDuration.ElapsedMilliseconds
-end;
-
-function TFormLayoutBuilder.SketchPadClientToViewport(var ClientX, ClientY: single): TPointF;
-begin
-  Result.X := ClientX + ScrollBoxSketchpad.ViewportPosition.X;
-  Result.Y := ClientY + ScrollBoxSketchpad.ViewportPosition.Y;
-end;
-
-function TFormLayoutBuilder.SketchPadClientToViewportRect(ClientRect: TRectF): TRectF;
-begin
-  Result.TopLeft := SketchPadClientToViewport(ClientRect.Left, ClientRect.Top);
-  Result.BottomRight := SketchPadClientToViewport(ClientRect.Right, ClientRect.Bottom)
 end;
 
 procedure TFormLayoutBuilder.SpeedButtonProperitesMasterClick(Sender: TObject);
