@@ -8,7 +8,7 @@
     <logicalFolder name="LoadableFiles"
                    displayName="Prebuilt Files"
                    projectFiles="true">
-      <itemPath>/Users/jimkueneman/Documents/Mustangpeak-Engineering/Automotive/FuelPumpDrive/dsPIC24FV08KM101/Sparky.hex</itemPath>
+      <itemPath>../Sparky.hex</itemPath>
     </logicalFolder>
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
@@ -19,6 +19,9 @@
                    projectFiles="false">
     </logicalFolder>
   </logicalFolder>
+  <sourceRootList>
+    <Elem>..</Elem>
+  </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
     <conf name="default" type="4">
