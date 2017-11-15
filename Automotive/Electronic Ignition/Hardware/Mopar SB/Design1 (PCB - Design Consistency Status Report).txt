@@ -1,0 +1,19 @@
+Design Consistency Status Report
+--------------------------------
+
+Report File:        W:\Mustangpeak Engineering\Automotive\Mopar EFI\Design1 (PCB - Design Consistency Status Report).txt
+Report Written:     Sunday, November 05, 2017
+Project Path:       W:\Mustangpeak Engineering\Automotive\Mopar EFI\SB Ignitor.prj
+Design Path:        W:\Mustangpeak Engineering\Automotive\Mopar EFI\Design1.pcb
+Design Title:       
+Created:            11/3/2017 7:06:57 PM
+Last Saved:         11/5/2017 7:36:13 PM
+Editing Time:       303 min
+Units:              mil (precision 0)
+
+
+Checking integrity of Schematic and Pcb designs in project "SB Ignitor"
+=======================================================================
+
+
+End Of Report.
