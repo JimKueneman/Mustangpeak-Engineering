@@ -53,6 +53,12 @@ type
 
    TLccTransferThreadClass = class of TLccTransferThread;
 
+var
+ // Warning the application must pull the messages out of the Queues periodocially if used.
+   HookQueueReceived: TThreadedCirularArrayObject;
+   HookQueueSend: TThreadedCirularArrayObject;
+   HooksEnabled: Boolean;
+
 implementation
 
 var
@@ -151,6 +157,25 @@ begin
                   finally
                     GlobalNodeList.UnLockArray;
                   end;
+                  if HooksEnabled then
+                  begin
+                    HookQueueSend.LockArray;
+                    try
+                      HookQueueSend.RemoveChunk(Messages);
+                    finally
+                      HookQueueSend.UnLockArray;
+                    end;
+                    for i := 0 to Length(Messages) - 1 do
+                    begin
+                      // If internal node then send the message back to our internal node
+                      // if it was for an internal node only send broadcast messages to the wire..
+                      SendToWire := True;
+                      if DispatchedToInternalNode(Messages[i] as TLccMessage) then
+                        SendToWire := not (Messages[i] as TLccMessage).IsAddressedMessage;
+                      if SendToWire then
+                        TransferMessageToWire(Messages[i] as TLccMessage);
+                    end;
+                  end;
                   FreeDynamicArrayObjects(Messages);
                 end;
               end;
@@ -170,7 +195,7 @@ begin
                   LccMessage := nil;
                   SendReceiveError := False;
                   if TransferWireToMessage(NextByte, LccMessage, SendReceiveError) then
-                  begin
+                  try
                     GlobalNodeList.LockArray;
                     try
                       Node := GlobalNodeList.FirstObject as TLccNode;
@@ -182,10 +207,18 @@ begin
                           Node.MsgQueueReceived.Add(LccMessage.Clone);
                         Node := GlobalNodeList.NextObject as TLccNode;
                       end;
-                      FreeAndNil(LccMessage);
                     finally
                       GlobalNodeList.UnLockArray;
                     end;
+                    if HooksEnabled then
+                    begin
+                      if SendReceiveError then
+                        HookQueueSend.Add(LccMessage.Clone)
+                      else
+                        HookQueueReceived.Add(LccMessage.Clone);
+                    end;
+                  finally
+                    FreeAndNil(LccMessage);
                   end;
                 end
               else
@@ -228,6 +261,15 @@ end;
 
 initialization
   TransferThreadCount := 0;
+  HookQueueReceived := TThreadedCirularArrayObject.Create;
+  HookQueueReceived.OwnsObjects := True;
+  HookQueueSend := TThreadedCirularArrayObject.Create;
+  HookQueueSend.OwnsObjects := True;
+  HooksEnabled := False;
+
+finalization
+  FreeAndNil(HookQueueReceived);
+  FreeAndNil(HookQueueSend);
 
 end.
 

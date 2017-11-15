@@ -12,6 +12,7 @@
 8Mhz Crystal||#SM=2||@Manufacturer=ECS Inc||@Manufacturer Part Number=ECS-80-20-5PXDU-TR||@Distributor=Digikey||@Distributor Part Number=XC1526CT-ND||#DIL=2||@Manufacturer=ECS Inc||@Manufacturer Part Number=ECS-80-20-4||@Distributor=Digikey||@Distributor Part Number=X165-ND
 8Mhz Kyocera Crystal||#SML=2||@Manufacturer=AVX/Kyocera Corp||@Manufacturer Part Number=CX5032GB08000H0HPQZ1||@Distributor=Digikey||@Distributor Part Number=1253-1373-1-ND
 10Mhz Crystal||#SM=2||@Manufacturer=ECS Inc||@Manufacturer Part Number=ECS-100-20-5PXDU-TR||@Distributor=Digikey||@Distributor Part Number=XC1528CT-ND||#DIL=2||@Manufacturer=ECS Inc||@Manufacturer Part Number=ECS-100-20-4VX||@Distributor=Digikey||@Distributor Part Number=XC1574-ND
+10Mhz Kyocera Crystal||#SML=2||@Manufacturer=AVX/Kyocera Corp||@Manufacturer Part Number=CX5032GB10000H0HPQZ1||@Distributor=Digikey||@Distributor Part Number=1253-1374-1-ND
 23K256||#DIL=8||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 25AA1024||#SM=8||@Manufacturer=Microchip||@Manufacturer Part Number=25AA1024-I/SM||@Distributor=Digikey||@Distributor Part Number=25AA1024-I/SM-ND||#DIL=8||@Manufacturer=Microchip||@Manufacturer Part Number=25AA1024-I/P||@Distributor=Digikey||@Distributor Part Number=25AA1024-I/P-ND
 25AAxx||#DIL=8||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
@@ -58,6 +59,7 @@ MCP6544||#DIL=14||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Di
 MMBTA56||#SM=3||@Manufacturer=Fairchild Semiconductor||@Manufacturer Part Number=MMBTA56||@Distributor=Digikey||@Distributor Part Number=MMBTA56FSCT-ND
 MPC2200||#SM=20||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 PESD1CAN||#SM=3||@Manufacturer=NXP Semiconductor||@Manufacturer Part Number=PESD1CAN,215||@Distributor=Digikey||@Distributor Part Number=568-4032-1-ND
+PIC16F18323||#SM=14||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 SB560||#DIL=2||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 Series 27L Encoder||#MISC=7||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 Si9956BDY||#SM=8||@Manufacturer=Vishay||@Manufacturer Part Number=Si9956BDY||@Distributor=Digikey||@Distributor Part Number=SI9945BDY-T1-GE3CT-ND
@@ -71,4 +73,5 @@ SP3078E||#SM=8||@Manufacturer=Exar||@Manufacturer Part Number=SP3078EMN-L||@Dist
 ST485||#DIL=8||@Manufacturer=ST Microelectronics||@Manufacturer Part Number=ST485B/C||@Distributor=Digikey||@Distributor Part Number=497-6728-5-ND
 STB16NF06L||#SM=3||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 TestPoint 63 mil||#DIL=1||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+VB525SP-E||#SM=11||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 VOM452||#SM=6||@Manufacturer=Vishay||@Manufacturer Part Number=VOM452T||@Distributor=Digikey||@Distributor Part Number=751-1492-1-ND

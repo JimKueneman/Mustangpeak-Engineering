@@ -51,6 +51,7 @@ mikroE mikroBUS||16
 OC_Opto||6
 OC_Opto_No_Bias||4
 PESD1CAN||3
+PIC16F18323||14
 PicKit 3 Header||6
 Power Barrel Connector||4
 PowerBlock||2
@@ -81,3 +82,4 @@ TL317-SO8 Regulator||8
 TortiousPWB||2
 TortoiseBoardEdge||8
 USB-B||4
+VB525SP-E||12

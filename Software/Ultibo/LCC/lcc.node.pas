@@ -744,18 +744,23 @@ begin
                                    end;
                                MCP_OP_LOCK :
                                    begin
+                                     SendAckReply(LccMessage, False, 0);
                                    end;
                                MCP_OP_GET_UNIQUEID :
                                    begin
+                                     SendAckReply(LccMessage, False, 0);
                                    end;
                                MCP_OP_FREEZE :
                                    begin
+                                     SendAckReply(LccMessage, False, 0);
                                    end;
                                MCP_OP_INDICATE :
                                    begin
+                                     SendAckReply(LccMessage, False, 0);
                                    end;
-                               MCP_OP_RESETS :
+                               MCP_OP_RESET :
                                    begin
+                                     SendAckReply(LccMessage, False, 0);
                                    end;
                              end // case
                            end

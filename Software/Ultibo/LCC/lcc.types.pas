@@ -243,7 +243,7 @@ const
 
   MCP_OP_FREEZE                      = $A0;                                     // MemoryConfigurationProtocol Operation - Freeze Node
   MCP_OP_INDICATE                    = $A4;                                     // MemoryConfigurationProtocol Operation - Indicate
-  MCP_OP_RESETS                      = $A8;                                     // MemoryConfigurationProtocol Operation - Resets
+  MCP_OP_RESET                       = $A8;                                     // MemoryConfigurationProtocol Operation - Reset
 
   // Memory Space Identifiers
   MSI_CDI                            = $FF;                                     // MemorySpaceIdentifier - Access the Configuration Definition Infomation (CDI)
