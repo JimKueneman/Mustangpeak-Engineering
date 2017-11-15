@@ -21,3 +21,14 @@ Firmware/MikroPascal/OpenMikroBootloader/mikroPascal/dsPIC30/openMikroBootloader
 Software/Delphi/LccThrottle/Win64
 Software/Delphi/LccThrottle/OSX32
 Software/Delphi/LccThrottle/Win32
+Software/Delphi/LccLayoutBuilder/iOSDevice64
+Software/Delphi/LccLayoutBuilder/__recovery
+Software/Delphi/LccLayoutBuilder/iOSDevice32
+Software/Delphi/LccLayoutBuilder/iOSSimulator
+Software/Delphi/LccLayoutBuilder/Android
+Software/Delphi/LccLayoutBuilder/OSX32
+Software/Delphi/LccThrottle/Android
+Software/Delphi/LccThrottle/iOSDevice32
+Software/Delphi/Throttle/Win32
+Software/Delphi/Throttle/OSX32
+/Automotive/FuelPumpDrive/dsPIC24FV08KM101/Sparky.X/nbproject/private/
