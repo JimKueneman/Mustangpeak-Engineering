@@ -1,0 +1,234 @@
+program Sparky;
+
+{ Declarations section }
+
+const
+  // Engine Parameters
+  CYLINDERS = 8;
+  CAMSHAFT_RATIO = 1;      // NEEDS TO BE 2 BUT EASIER TO THINK ABOUT FOR DEBUG AT 1
+  STALL_RPM = 50;
+  
+  // Coil Parameters
+  COIL_MAG_L                     = 0.008;      // Henries
+  COIL_R                         = 1.5;        // Ohms
+  COIL_DESIRED_I                 = 4.5;        // Amps
+  COIL_PRIMIARY_V                = 14;         // Volts
+  CHANGE_NOTIFICATION_CALC_TIME  = 0.000300;   // The imperical calculation time before launching the Timer to start the DWELL
+  RPM_LIMIT                      = 7000;       // Shuts off the IGBT above this RPM
+  RPM_STALL                      = 70;         // Shuts off the IGBT below the RPM
+  MAX_DWELL_PERIOD               = 0.010;      // Never have the IGBT on for more than 10ms
+  
+  // MCU Setup Parameters
+  OSCILLATORFREQ = 32e6;
+  CLOCKDIVIDER = 2;
+  RPM_TIMER_DIVIDER = 1;
+  STALL_TIMER_DIVIDER = 1;
+  DWELL_START_TIMER_DIVIDER = 1;
+  TIMER_DIVIDER = 256;
+  
+  // MCU Clock Calculated Parameters
+  CLOCKFREQ = real( OSCILLATORFREQ/CLOCKDIVIDER);
+  CLOCKPERIOD = real( 1/CLOCKFREQ);
+  
+  // Stall Watchdog Timer Calculated Parameters
+  STALL_TIMER_PERIOD = real( CLOCKPERIOD * STALL_TIMER_DIVIDER);
+  STALL_RPS = real( STALL_RPM/60);
+  STALL_PERIOD = real( 1/STALL_RPS);
+  STALL_COUNT = DWORD( STALL_PERIOD/STALL_TIMER_PERIOD * CAMSHAFT_RATIO);
+  
+  // Dwell Start Timer Calculated Parameters
+  DWELL_START_TIMER_PERIOD = ( CLOCKPERIOD * DWELL_START_TIMER_DIVIDER);
+  MAX_DWELL_COUNT = real(MAX_DWELL_PERIOD/CLOCKPERIOD/TIMER_DIVIDER);
+  
+  // RPM Timer Calculated Parameters
+  RPM_TIMER_PERIOD = real( CLOCKPERIOD * RPM_TIMER_DIVIDER);
+  
+  // Coil Calculated Parameters
+  COIL_CHARGE_TIME = COIL_DESIRED_I * COIL_MAG_L/COIL_PRIMIARY_V;
+  
+  
+
+var
+  RPM: real;
+  CylinderFiringPeriod, 
+  Dwell: dword;
+  Max_Dwell_Exceeded: Boolean;
+  
+procedure interrupt_CCT1_DwellStartTimer(); iv IVT_ADDR_CCT1INTERRUPT;    // Interrupt for the HiWord Compare 1 (16Bit mode/32Bit mode)
+begin
+  CCT1IF_bit := 0;
+  LATA0_bit := 1;
+  delay_us(10);
+  LATA0_bit := 0;
+  CCPON_CCP1CON1L_bit := 0;    // Turn this timer off again.
+end;
+
+
+procedure interrupt_CCT2_StallWatchdog(); iv IVT_ADDR_CCT2INTERRUPT;    // Interrupt for the HiWord Compare 2 (16Bit mode/32Bit mode)
+begin
+  CCT2IF_bit := 0;
+  LATA1_bit := not LATA1_bit;
+end;
+
+procedure interrupt_Timer1(); iv IVT_ADDR_T1INTERRUPT;
+begin
+  // Turn on the IGBT, the next  Pin Change will turn it off
+  if Max_Dwell_Exceeded then
+    LATB12_bit := 0
+  else
+    LATB12_bit := 1;
+
+  TMR1 := $0000;
+  PR1 := MAX_DWELL_COUNT;
+  Max_Dwell_Exceeded := True;   // Pin Change will clear this
+  
+  T1IF_bit := 0;             // clear T1IF
+end;
+
+procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
+var
+  PortCopy: Word;
+  LW: dword;
+  TimerCount, Dwell_Delay_Count: dword;
+  RPM_Period, Dwell_Delay_Period: real;
+  i: Integer;
+begin
+  PortCopy := PORTB;    // Clear all changes
+  
+  // Detect rising edges only
+  if PortCopy.B7 = 1 then
+  begin
+    LATB8_bit := 1;
+    
+    // Shutoff IGBT
+    LATB12_bit := 0;
+    
+    CCPON_CCP1CON1L_bit := 0;  // Stop the Timer
+    HiWord(TimerCount) := CCP1TMRH;
+    LoWord(TimerCount) := CCP1TMRL;
+
+    CCP1TMRH := $0000;
+    CCP1TMRL := $0000;
+    CCPON_CCP1CON1L_bit := 1;  // Start the Timer for the next Cylinder Cycle
+    
+    RPM_Period := TimerCount * CLOCKPERIOD*RPM_TIMER_DIVIDER*CAMSHAFT_RATIO;
+    
+    RPM := 0.0;
+    if RPM_Period > 0.0 then 
+      RPM := 60/RPM_Period/CYLINDERS;
+      
+    if (RPM < RPM_STALL) or (RPM > RPM_LIMIT) then
+      RPM := 0.0;
+      
+    if RPM > 0.0 then
+    begin
+      Dwell_Delay_Period := RPM_Period - COIL_CHARGE_TIME - CHANGE_NOTIFICATION_CALC_TIME;
+      if Dwell_Delay_Period <= 0 then
+        Dwell_Delay_Period := CHANGE_NOTIFICATION_CALC_TIME ;
+      Dwell_Delay_Count :=  Dwell_Delay_Period/DWELL_START_TIMER_PERIOD*CAMSHAFT_RATIO;
+
+      // Load up the timer and start it off
+       { CCP1PRL := LoWord(Dwell_Delay_Count);
+        CCP1PRH := HiWord(Dwell_Delay_Count);
+        CCPON_CCP1CON1L_bit := 1;  }
+        
+      // Temporary till I get another 32 bit timer
+      Max_Dwell_Exceeded := False;
+      TMR1 := $0000;
+      PR1 := Dwell_Delay_Count / TIMER_DIVIDER;
+      TON_bit := 1;
+    end;
+
+    LATB8_bit := 0;
+  end;
+  
+  // Some free debounce guarding by putting this many micro seconds past entry
+  CNIF_bit := 0;
+end;
+
+begin
+  { Main program }
+  ANSA := 0;        // Make them all Digital
+  ANSB := 0;
+  LATB12_bit := 0; // Keep the IGBT off
+  
+  TRISA0_bit := 0; // Output CPP1 timer Interrupt
+  TRISA1_bit := 0; // Output CPP2 timer Interrupt            [BLUE]
+  TRISB7_bit := 1; // Input (redundant but makes it clear)   [BROWN]
+  TRISB8_bit := 0; // CAM Sensor                             [RED]
+  TRISB12_bit := 0; // Output  Timer 1 Trigger               [ORANGE]
+  TRISB13_bit := 0; // Output  GP Debug
+  TRISB14_bit := 0; // Output  Heartbeat
+
+  // Clock Setup
+  CLKDIV := 0;                      // Set both dividers to 1:1 and don't use the DOZE to reset dividers (power saving feature)
+  
+  // Pin change Notification
+  CN23IE_bit := 1;  // Pin Change Notification Interrupt on B7
+  CNIP_0_bit := 1;  // Interrupt priority = 7
+  CNIP_1_bit := 1;
+  CNIP_2_bit := 1;
+  CNIF_bit := 0;    // Clear Pin Change Interrupt flag
+  CNIE_bit := 1;    // Enable all Pin Change Interrupts
+  
+
+  // Compare Module Setup as an Event Timer
+  TRIGEN_CCP1CON1H_bit := 0;
+  SYNC_0_CCP1CON1H_bit := 0;
+  SYNC_1_CCP1CON1H_bit := 0;
+  SYNC_2_CCP1CON1H_bit := 0;
+  SYNC_3_CCP1CON1H_bit := 0;
+  SYNC_4_CCP1CON1H_bit := 0;
+  TMR32_CCP1CON1L_bit := 1; // 32 Bit Timers
+  CLKSEL_0_CCP1CON1L_bit := 0;
+  CLKSEL_1_CCP1CON1L_bit := 0;
+  CLKSEL_2_CCP1CON1L_bit := 0;
+  TMRPS_0_CCP1CON1L_bit := 0;
+  TMRPS_1_CCP1CON1L_bit := 0;  // Divide by 1
+  CCP1PRL := $FFFF;
+  CCP1PRH := $FFFF;
+  CCT1IF_bit := 0;
+  CCT1IE_bit := 1;
+  CCPON_CCP1CON1L_bit := 0;
+  
+  // Compare Module Setup as an Event Timer
+  TRIGEN_CCP2CON1H_bit := 0;
+  SYNC_0_CCP2CON1H_bit := 0;
+  SYNC_1_CCP2CON1H_bit := 0;
+  SYNC_2_CCP2CON1H_bit := 0;
+  SYNC_3_CCP2CON1H_bit := 0;
+  SYNC_4_CCP2CON1H_bit := 0;
+  TMR32_CCP2CON1L_bit := 1; // 32 Bit Timers
+  CLKSEL_0_CCP2CON1L_bit := 0;
+  CLKSEL_1_CCP2CON1L_bit := 0;
+  CLKSEL_2_CCP2CON1L_bit := 0;
+  TMRPS_0_CCP2CON1L_bit := 0;
+  TMRPS_1_CCP2CON1L_bit := 0;  // Divide by 1
+  CCP2PRL := LoWord( STALL_COUNT);
+  CCP2PRH := HiWord( STALL_COUNT);
+  CCT2IF_bit := 0;       //  CCT for the High Word in 32 Bit
+  CCT2IE_bit := 1;       //  CCT for the High Word in 32 Bit
+  CCPON_CCP2CON1L_bit := 1;
+
+  // Timer Setup
+  TMR1 := 0;
+  TON_bit := 0;                // OFF
+  TCKPS_0_bit := 1;            // 00 = 1; 01 = 8; 10 = 64; 11 = 256
+  TCKPS_1_bit := 1;
+  IPC0 := IPC0 or 0x1000;      // interrupt priority level = 1
+  T1IF_bit := 0;               // clear T1IF
+  T1IE_bit := 1;               // enable Timer1 interrupts
+  
+
+
+  // Initializze Variables
+  RPM := 0.0;
+  CylinderFiringPeriod := 0.0;
+  Max_Dwell_Exceeded := True;               // Start Safe
+
+  while true do
+  begin
+     LATB14_bit := not LATB14_bit;  // Heartbeat
+    // Waitin for Pin Change Interrupt
+  end;
+end.

@@ -246,6 +246,8 @@ begin
 
   // Broken in OSX, won't show
   ScrollBoxSketchpad.AniCalculations.AutoShowing := False;
+  // Don't allow the scroll to "pull" past 0, it make dragging/selecting impossible
+  ScrollBoxSketchpad.AniCalculations.BoundsAnimation := False;
 
   TapDuration := TStopwatch.Create;
 
