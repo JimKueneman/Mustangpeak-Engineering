@@ -45,6 +45,7 @@ Count=0
 [PLDS]
 Count=0
 [Useses]
-Count=0
+Count=1
+File0=UART
 [EXPANDED_NODES]
 Count=0

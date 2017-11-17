@@ -1,53 +1,56 @@
 Forward Design Changes Report
 -----------------------------
 
-Report File:        W:\Mustangpeak Engineering\Automotive\Mopar EFI\Design1 (PCB - Forward Design Changes Report).txt
-Report Written:     Sunday, November 05, 2017
-Project Path:       W:\Mustangpeak Engineering\Automotive\Mopar EFI\SB Ignitor.prj
-Design Path:        W:\Mustangpeak Engineering\Automotive\Mopar EFI\Design1.pcb
+Report File:        W:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\Design1 (PCB - Forward Design Changes Report).txt
+Report Written:     Wednesday, November 15, 2017
+Project Path:       W:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
+Design Path:        W:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\Design1.pcb
 Design Title:       
 Created:            11/3/2017 7:06:57 PM
-Last Saved:         11/5/2017 7:36:13 PM
-Editing Time:       303 min
+Last Saved:         11/5/2017 7:43:16 PM
+Editing Time:       304 min
 Units:              mil (precision 0)
 
-Disconnected pin "IC1-10" from net "N0062".
-Disconnected pin "IC1-9" from net "N0061".
-Disconnected pin "IC1-6" from net "N0058".
-Disconnected pin "U1-8" from net "N0058".
-Disconnected pin "U1-9" from net "N0061".
-Disconnected pin "U1-10" from net "N0062".
-Disconnected pin "U1-14" from net "N0053".
+Disconnected pin "U1-1" from net "+5V".
+Disconnected pin "U1-4" from net "N0013".
+Disconnected pin "U1-9" from net "N0068".
+Disconnected pin "U1-10" from net "N0064".
+Disconnected pin "U1-14" from net "GND".
+Disconnected pin "U2-1" from net "12V".
+Disconnected pin "U2-3" from net "+5V".
+Disconnected pin "U2-2" from net "GND".
+Disconnected pin "R3-1" from net "N0068".
 
-Deleted net "N0053".
-Deleted net "N0058".
-Deleted net "N0061".
-Deleted net "N0062".
+Deleted component reference "U1".
 
-Added net "N0063".
-Added net "N0064".
-Added net "N0067".
-Added net "N0068".
+Deleted net "N0068".
 
-Added component reference "R2" of component "1.0k ohm 5%", package "SM1206".
-Added component reference "R3" of component "1.0k ohm 5%", package "SM1206".
-Added component reference "R4" of component "10k ohm 5%", package "SM1206".
-Added component reference "C1" of component "10nF 50V X7R", package "SM1206".
+Changed component reference "U2" from component "L7805 D2-Pak", package "SMS4" to component "PIC24FV32KA304", package "SM".
 
-Connected pin "IC1-6" to net "GND".
-Connected pin "IC1-9" to net "N0067".
-Connected pin "IC1-10" to net "N0063".
-Connected pin "U1-9" to net "N0068".
-Connected pin "U1-10" to net "N0064".
-Connected pin "U1-14" to net "GND".
-Connected pin "R2-1" to net "N0064".
-Connected pin "R2-2" to net "N0063".
-Connected pin "R3-1" to net "N0068".
-Connected pin "R3-2" to net "N0067".
-Connected pin "R4-1" to net "N0064".
-Connected pin "R4-2" to net "GND".
-Connected pin "C1-1" to net "N0064".
-Connected pin "C1-2" to net "GND".
+Added net "N0079".
+Added net "N0087".
+Added net "N0090".
+Added net "N0091".
+
+Added component reference "U3" of component "L7805 D2-Pak", package "SMS4".
+Added component reference "C4" of component "2.2uF 50V Y5V", package "SM1206".
+
+Connected pin "J1-4" to net "N0090".
+Connected pin "J1-5" to net "N0091".
+Connected pin "R3-1" to net "N0087".
+Connected pin "U3-1" to net "12V".
+Connected pin "U3-3" to net "+5V".
+Connected pin "U3-2" to net "N0079".
+Connected pin "U2-1" to net "N0013".
+Connected pin "U2-4" to net "N0090".
+Connected pin "U2-5" to net "N0091".
+Connected pin "U2-11" to net "+5V".
+Connected pin "U2-12" to net "GND".
+Connected pin "U2-14" to net "N0087".
+Connected pin "U2-15" to net "N0064".
+Connected pin "U2-17" to net "+5V".
+Connected pin "C4-1" to net "GND".
+Connected pin "C4-2" to net "+5V".
 
 
 End Of Report.

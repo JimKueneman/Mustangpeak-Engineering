@@ -87,7 +87,7 @@ begin
   PortCopy := PORTB;    // Clear all changes
 
   // Detect rising edges only
-  if PortCopy.B7 = 1 then
+  if PortCopy.B9 = 1 then
   begin
     LATB8_bit := 1;
     
@@ -146,11 +146,13 @@ begin
   
   TRISA0_bit := 0; // Output CPP1 timer Interrupt
   TRISA1_bit := 0; // Output CPP2 timer Interrupt - IGBT Gate [BLUE]
-  TRISB7_bit := 1; // Input (redundant but makes it clear)   [BROWN]
+  TRISB9_bit := 1; // Input (redundant but makes it clear)   [BROWN]
   TRISB8_bit := 0; // CAM Sensor                             [RED]
   TRISB12_bit := 0; // Output  Timer 1 Trigger               [ORANGE]
   TRISB13_bit := 0; // Output  GP Debug
   TRISB14_bit := 0; // Output  Heartbeat
+  
+  TRISB7_bit := 0;
 
   // Clock Setup
   CLKDIV := 0;                      // Set both dividers to 1:1 and don't use the DOZE to reset dividers (power saving feature)
@@ -158,7 +160,7 @@ begin
 
   
   // Pin change Notification
-  CN23IE_bit := 1;  // Pin Change Notification Interrupt on B7
+  CN21IE_bit := 1;  // Pin Change Notification Interrupt on B9
   CNIP_0_bit := 1;  // Interrupt priority = 7
   CNIP_1_bit := 1;
   CNIP_2_bit := 1;
@@ -223,7 +225,13 @@ begin
 
   while true do
   begin
-     LATB14_bit := not LATB14_bit;  // Heartbeat
+    UART1_Init(9600);
+    if UART_Data_Ready > 0 then
+    begin
+      UART_Read;
+    end;
+    LATB14_bit := not LATB14_bit;  // Heartbeat
+    LATB7_bit := not LATB7_bit;
     // Waitin for Pin Change Interrupt
   end;
 end.
