@@ -1,0 +1,83 @@
++3.3V||#=1=+V||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
++5V||#=1=+V||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
++12V||#=1=+V||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
++12V_Battery||#=1=+V||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
++24V_Accessory||#=1=+V||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
++24V_Booster_1||#=1=+V||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
++24V_Booster_2||#=1=+V||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
++24V_Booster_3||#=1=+V||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
++24V_Booster_4||#=1=+V||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
++24V_Programming||#=1=+V||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+1N4148WS||#SM=2=SOD323||@Manufacturer=Fairchild Semiconductor||@Manufacturer Part Number=1N4148WS||@Distributor=Digikey||@Distributor Part Number=1N4148WSFSCT-ND
+1N5903||#SM-SMA=2=SMA||@Manufacturer=Micro Commercial Co||@Manufacturer Part Number=3SMAJ5930B-TP||@Distributor=Digikey||@Distributor Part Number=3SMAJ5930B-TPMSCT-ND
+1N5917||#SM-SMB=2=SMB||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+1N5927||#SM-SMA=2=SMA||@Manufacturer=On Semiconductor||@Manufacturer Part Number=1SMA5927BT3G||@Distributor=Digikey||@Distributor Part Number=1SMA5927BT3GOSCT-ND
+6N137||#SM=8=SOIC8||@Manufacturer=Fairchild Optoelectrics||@Manufacturer Part Number=6N137SD||@Distributor=Digikey||@Distributor Part Number=6N137SDCT-ND||#DIL=8=DIP-8D11||@Manufacturer=Fairchild Optoelectrics||@Manufacturer Part Number=6N137||@Distributor=Digkey||@Distributor Part Number=160-1791-ND
+8Mhz Crystal||#SM=2=Crystal||@Manufacturer=ECS Inc||@Manufacturer Part Number=ECS-80-20-5PXDU-TR||@Distributor=Digikey||@Distributor Part Number=XC1526CT-ND||#DIL=2=HC18U||@Manufacturer=ECS Inc||@Manufacturer Part Number=ECS-80-20-4||@Distributor=Digikey||@Distributor Part Number=X165-ND
+8Mhz Kyocera Crystal||#SML=2=2-SMD||@Manufacturer=AVX/Kyocera Corp||@Manufacturer Part Number=CX5032GB08000H0HPQZ1||@Distributor=Digikey||@Distributor Part Number=1253-1373-1-ND||@RefDes=XTAL1
+10Mhz Crystal||#SM=2=Crystal||@Manufacturer=ECS Inc||@Manufacturer Part Number=ECS-100-20-5PXDU-TR||@Distributor=Digikey||@Distributor Part Number=XC1528CT-ND||#DIL=2=HC18U||@Manufacturer=ECS Inc||@Manufacturer Part Number=ECS-100-20-4VX||@Distributor=Digikey||@Distributor Part Number=XC1574-ND
+23K256||#DIL=8=DIP8_300||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+25AA1024||#SM=8=SOIJ8-M_MC||@Manufacturer=Microchip||@Manufacturer Part Number=25AA1024-I/SM||@Distributor=Digikey||@Distributor Part Number=25AA1024-I/SM-ND||#DIL=8=DIP8||@Manufacturer=Microchip||@Manufacturer Part Number=25AA1024-I/P||@Distributor=Digikey||@Distributor Part Number=25AA1024-I/P-ND
+25AAxx||#DIL=8=DIP8||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+ACS711||#SM=8=SOIC8-N_MC||@Manufacturer=Allegro||@Manufacturer Part Number=ACS711ELCTR-12AB-T||@Distributor=Digikey||@Distributor Part Number=620-1370-1-ND
+ADM2483||#SM=16=SOIC16-W_MC||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+B550C||#SM=2=SMC||@Manufacturer=Diodes Inc||@Manufacturer Part Number=B550C-13-F||@Distributor=Digikey||@Distributor Part Number=B550C-FDICT-ND
+BZX84C18||#SM=3=SOT23||@Manufacturer=On Semi||@Manufacturer Part Number=BZX84C18LT1G||@Distributor=Digikey||@Distributor Part Number=BZX84C18LT1GOSCT-ND
+C&K PTS645 6mm Tact Switch||#SM=4=C&E PTS645 6mm Tact Switch-SM||@Manufacturer=C&K||@Manufacturer Part Number=PTS645SK43SMTR92 LFS||@Distributor=Digikey||@Distributor Part Number=CKN9084CT-ND||@RefDes=SW1
+DMN6040SSD||#SM=8=SOIC8-N_MC||@Manufacturer=Diodes Inc||@Manufacturer Part Number=DMN6040SSD||@Distributor=Digikey||@Distributor Part Number=DMN6040SSD-13DICT-ND
+dsPIC30F1010-202X||#DIL=28=DIP28_300||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+dsPIC30F4013||#DIL=40=DIP40||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+dsPIC33EP32GP502||#SM=28=SOIC28-W_MC||@Manufacturer=Microchip||@Manufacturer Part Number=DSPIC33EP32GP502-I/SO||@Distributor=Digikey||@Distributor Part Number=DSPIC33EP32GP502-I/SO-ND||#DIL=28=DIP28_300||@Manufacturer=Microchip||@Manufacturer Part Number=DSPIC33EP32GP502-I/SP||@Distributor=Digikey||@Distributor Part Number=DSPIC33EP32GP502-I/SP-ND
+dsPIC33EP64GP502||#SM=28=SOIC28-W_MC||@Manufacturer=Microchip||@Manufacturer Part Number=DSPIC33EP64GP502-I/SO||@Distributor=Digikey||@Distributor Part Number=DSPIC33EP64GP502-I/SO-ND||#DIL=28=DIP28_300||@Manufacturer=Microchip||@Manufacturer Part Number=DSPIC33EP64GP502-I/SP||@Distributor=Digikey||@Distributor Part Number=DSPIC33EP64GP502-I/SP-ND
+dsPIC33EP64MC502||#SM=28=SOIC28-W_MC||@Manufacturer=Microchip||@Manufacturer Part Number=DSPIC33EP64MC502-I/SO||@Distributor=Digikey||@Distributor Part Number=DSPIC33EP64MC502-I/SO-ND||#DIL=28=DIP28_300||@Manufacturer=Microchip||@Manufacturer Part Number=DSPIC33EP64MC502-I/SP||@Distributor=Digikey||@Distributor Part Number=DSPIC33EP64MC502-I/SP-ND
+dsPIC33EP512GP806||#SM=64=TQFP64||@Manufacturer=Microchip||@Manufacturer Part Number=DSPIC33EP512GP806T-I/PT||@Distributor=Digikey||@Distributor Part Number=DSPIC33EP512GP806T-I/PT-ND
+ENC424J600||#SM=44=44-TQFP||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+EVUF2A Panasonic Pot||#DIL=5=EVUFA2 Panasonic Pot||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+FAN7385||#SM=14=SOP14||@Manufacturer=Fairchild Semiconductor||@Manufacturer Part Number=FAN7385MX||@Distributor=Digikey||@Distributor Part Number=FAN7385MXCT-ND
+FODM8061||#SM=6=FODM80x1||@Manufacturer=Fairchild||@Manufacturer Part Number=FODM8061||@Distributor=Digikey||@Distributor Part Number=FODM8061-ND
+FT232RL||#SM=28=SSOP28||@Manufacturer=FTDI||@Manufacturer Part Number=FT232RL-REEL||@Distributor=Digikey||@Distributor Part Number=768-1007-1-ND
+HCPL817||#SM=4=HCPL817||@Manufacturer=Avago||@Manufacturer Part Number=HCPL-817-50AE||@Distributor=Digikey||@Distributor Part Number=516-2226-1-ND
+HIP4082||#SM=16=SO16||@Manufacturer=Intersil||@Manufacturer Part Number=HIP4082IBZ||@Distributor=Digikey||@Distributor Part Number=HIP4082IBZ-ND||#DIL=16=DIP16_300||@Manufacturer=Intersil||@Manufacturer Part Number=HIP4082IPZ||@Distributor=Digikey||@Distributor Part Number=HIP4082IPZ-ND
+IR2110-13||#DIL=14=DIP14_300||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+IRFZ34NS||#SMS7=3=SMS7||@Manufacturer=International Recitifer||@Manufacturer Part Number=IRFZ34NSTRLPBF||@Distributor=Digikey||@Distributor Part Number=IRFZ34NSTRLPBFCT-ND
+ISO1050||#SM=8=8SOP||@Manufacturer=Texas Instruments||@Manufacturer Part Number=296-24818-1-ND||@Distributor=Digikey||@Distributor Part Number=296-24818-1-ND
+ISO7221C||#SM=8=SOIC8||@Manufacturer=Texas Instruments||@Manufacturer Part Number=ISO7221CDR||@Distributor=Digikey||@Distributor Part Number=296-21956-1-ND
+ISO7240CF||#SM=16=SOIC16||@Manufacturer=Texas Instruments||@Manufacturer Part Number=ISO7240CFDWR||@Distributor=Digikey||@Distributor Part Number=296-22617-1-ND
+Jumper Shunt||#=2=Jumper Shunt||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+Keystone 3008 CR245 Battery||#SM=3=CR2450 Battery Holder||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+L6206||#DIL=24=DIP24_300||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+LM324||#SM=14=SOIC14-N_MC||@Manufacturer=Texas Instruments||@Manufacturer Part Number=LM324ADR||@Distributor=Digikey||@Distributor Part Number=296-9540-1-ND||#DIL=14=DIP14_300||@Manufacturer=Texas Instruments||@Manufacturer Part Number=LM324N/PB||@Distributor=Digikey||@Distributor Part Number=LM324NNS-ND
+LM339||#SM=14=SOIC14||@Manufacturer=Texas Instruments||@Manufacturer Part Number=LM339DR||@Distributor=Digikey||@Distributor Part Number=296-1013-1-ND||#DIL=14=DIP14_300||@Manufacturer=Texas Instruments||@Manufacturer Part Number=LM339N||@Distributor=Digikey||@Distributor Part Number=296-1393-5-ND
+LM5109A||#SM=8=SOIC8||@Manufacturer=Texas Instruments||@Manufacturer Part Number=LM5109A||@Distributor=Digikey||@Distributor Part Number=LM5109AMAX/NOPBCT-ND
+MAX232||#DIL=16=DIP16_300||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+MAX3075E||#DIL=8=DIP-8D11||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+MAX13082E||#DIL=8=DIP-8D11||@Manufacturer=Maxim||@Manufacturer Part Number=MAX13082ECPA||@Distributor=Digikey||@Distributor Part Number=MAX13082ECPA+-ND
+MCP23S17||#DIL=28=DIP28_300||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+MCP616||#SM=8=SOIC8||@Manufacturer=Microchip||@Manufacturer Part Number=MCP616-I/MS||@Distributor=Digikey||@Distributor Part Number=MCP616-I/SN-ND
+MCP617||#SM=8=SOIC8||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=||#DIL=8=DIP8_300||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+MCP619||#SM=14=SOIC14||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=||#DIL=14=DIP14_300||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+MCP1541||#DIL=3=TO-205||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+MCP2551||#SM=8=SOIC8-N_MC||@Manufacturer=Microchip||@Manufacturer Part Number=MCP2551-I/SN||@Distributor=Digikey||@Distributor Part Number=MCP2551-I/SN-ND||#DIL=8=DIP8||@Manufacturer=Microchip||@Manufacturer Part Number=MCP2551-I/P||@Distributor=Digikey||@Distributor Part Number=MCP2551-I/P-ND
+MCP3208||#DIL=16=DIP16_300||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+MCP6544||#DIL=14=DIP14_300||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+MMBTA06||#SM=3=SOT23-3L||@Manufacturer=OnSemi||@Manufacturer Part Number=MMBTA06-7-F||@Distributor=Digikey||@Distributor Part Number=MMBTA06-FDICT-ND
+MMBTA56||#SM=3=SOT23||@Manufacturer=Fairchild Semiconductor||@Manufacturer Part Number=MMBTA56||@Distributor=Digikey||@Distributor Part Number=MMBTA56FSCT-ND
+MPC2200||#SM=20=SOIC20||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+PESD1CAN||#SM=3=SOT23||@Manufacturer=NXP Semiconductor||@Manufacturer Part Number=PESD1CAN,215||@Distributor=Digikey||@Distributor Part Number=568-4032-1-ND
+PIC24FV32KA304||#SM=20=SOIC20||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+SB560||#DIL=2=DO-201||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+Series 27L Encoder||#MISC=7=Series 27L Encoder||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+Si9956BDY||#SM=8=SOIC8-N_MC||@Manufacturer=Vishay||@Manufacturer Part Number=Si9956BDY||@Distributor=Digikey||@Distributor Part Number=SI9945BDY-T1-GE3CT-ND
+Si9986||#SM=8=SO8||@Manufacturer=Vishay||@Manufacturer Part Number=SI9986DY-T1-E3||@Distributor=Digikey||@Distributor Part Number=SI9986DY-T1-E3CT-ND
+SM712_RS485||#SM=3=SOT23||@Manufacturer=Bourns||@Manufacturer Part Number=CDSOT23-SM712CT-ND||@Distributor=Digikey||@Distributor Part Number=CDSOT23-SM712CT-ND
+SN65HVD32||#SM=8=SOIC8||@Manufacturer=Texas Instruments||@Manufacturer Part Number=SN65HVD32DR||@Distributor=Digikey||@Distributor Part Number=296-19627-1-ND
+SN65HVD230||#SM=8=SOIC8||@Manufacturer=Texas Instruments||@Manufacturer Part Number=SN65HVD230DR||@Distributor=Digikey||@Distributor Part Number=296-11654-1-ND
+SN74LS14||#DIL=14=DIP14||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+SN75LBC176A||#DIL=8=DIP-8D11||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+SP3078E||#SM=8=SOIC8||@Manufacturer=Exar||@Manufacturer Part Number=SP3078EMN-L||@Distributor=Digikey||@Distributor Part Number=1016-1052-5-ND
+ST485||#DIL=8=DIP-8D11||@Manufacturer=ST Microelectronics||@Manufacturer Part Number=ST485B/C||@Distributor=Digikey||@Distributor Part Number=497-6728-5-ND
+STB16NF06L||#SM=3=SMS4||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+STD46N6F7||#SM=3=DPAK-2 Pin; 1 Pad||@Manufacturer=ST Microelectronics||@Manufacturer Part Number=STD46N6F7||@Distributor=Digikey||@Distributor Part Number=497-16476-1-ND
+TestPoint 63 mil||#DIL=1=TestPoint 63mil||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+VB525SP-E||#SM=11=VB525SP-E||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+VOM452||#SM=6=VOM452||@Manufacturer=Vishay||@Manufacturer Part Number=VOM452T||@Distributor=Digikey||@Distributor Part Number=751-1492-1-ND
