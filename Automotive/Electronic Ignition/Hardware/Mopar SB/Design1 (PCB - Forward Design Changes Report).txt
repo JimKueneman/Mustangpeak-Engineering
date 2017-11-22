@@ -2,55 +2,59 @@ Forward Design Changes Report
 -----------------------------
 
 Report File:        W:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\Design1 (PCB - Forward Design Changes Report).txt
-Report Written:     Wednesday, November 15, 2017
+Report Written:     Wednesday, November 22, 2017
 Project Path:       W:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
 Design Path:        W:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\Design1.pcb
 Design Title:       
 Created:            11/3/2017 7:06:57 PM
-Last Saved:         11/5/2017 7:43:16 PM
-Editing Time:       304 min
+Last Saved:         11/22/2017 2:43:24 PM
+Editing Time:       783 min
 Units:              mil (precision 0)
 
-Disconnected pin "U1-1" from net "+5V".
-Disconnected pin "U1-4" from net "N0013".
-Disconnected pin "U1-9" from net "N0068".
-Disconnected pin "U1-10" from net "N0064".
-Disconnected pin "U1-14" from net "GND".
-Disconnected pin "U2-1" from net "12V".
-Disconnected pin "U2-3" from net "+5V".
-Disconnected pin "U2-2" from net "GND".
-Disconnected pin "R3-1" from net "N0068".
+Disconnected pin "J1-4" from net "UART_RX".
+Disconnected pin "J1-5" from net "UART_TX".
+Disconnected pin "U2-6" from net "UART_RX".
+Disconnected pin "U2-20" from net "UART_TX".
 
-Deleted component reference "U1".
+Added value "Value=12pF" to component reference "C2".
 
-Deleted net "N0068".
+Added value "Value=12pF" to component reference "C5".
 
-Changed component reference "U2" from component "L7805 D2-Pak", package "SMS4" to component "PIC24FV32KA304", package "SM".
+Added value "Value=1k" to component reference "R5".
 
-Added net "N0079".
-Added net "N0087".
-Added net "N0090".
-Added net "N0091".
+Added value "Value=0.1uF" to component reference "C6".
 
-Added component reference "U3" of component "L7805 D2-Pak", package "SMS4".
-Added component reference "C4" of component "2.2uF 50V Y5V", package "SM1206".
+Added value "Value=1uF" to component reference "C9".
 
-Connected pin "J1-4" to net "N0090".
-Connected pin "J1-5" to net "N0091".
-Connected pin "R3-1" to net "N0087".
-Connected pin "U3-1" to net "12V".
-Connected pin "U3-3" to net "+5V".
-Connected pin "U3-2" to net "N0079".
-Connected pin "U2-1" to net "N0013".
-Connected pin "U2-4" to net "N0090".
-Connected pin "U2-5" to net "N0091".
-Connected pin "U2-11" to net "+5V".
-Connected pin "U2-12" to net "GND".
-Connected pin "U2-14" to net "N0087".
-Connected pin "U2-15" to net "N0064".
-Connected pin "U2-17" to net "+5V".
-Connected pin "C4-1" to net "GND".
-Connected pin "C4-2" to net "+5V".
+Added value "Value=0.1uF" to component reference "C10".
+
+Added value "Value=1k" to component reference "R6".
+
+Added value "Value=1k" to component reference "R7".
+
+Added value "Value=1k" to component reference "R8".
+
+Added value "Value=1uF" to component reference "C11".
+
+Added value "Value=1uF" to component reference "C12".
+
+Added value "Value=1uF" to component reference "C13".
+
+Added value "Value=100" to component reference "R1".
+
+Added value "Value=1k" to component reference "R2".
+
+Added value "Value=100" to component reference "R3".
+
+Added value "Value=1k" to component reference "R4".
+
+Added value "Value=1k" to component reference "R9".
+
+Added value "Value=100" to component reference "R10".
+
+
+Connected pin "J1-4" to net "PGC".
+Connected pin "J1-5" to net "PGD".
 
 
 End Of Report.

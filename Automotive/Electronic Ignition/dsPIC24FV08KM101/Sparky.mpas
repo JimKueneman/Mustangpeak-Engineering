@@ -4,8 +4,8 @@ program Sparky;
 
 const
   // Engine Parameters
+  ENGINE_CYCLE = 4;
   CYLINDERS = 8;
-  CAMSHAFT_RATIO = 1;      // NEEDS TO BE 2 BUT EASIER TO THINK ABOUT FOR DEBUG AT 1
   STALL_RPM = 50;
   
   // Coil Parameters
@@ -15,7 +15,7 @@ const
   COIL_PRIMIARY_V                = 14;         // Volts
   CHANGE_NOTIFICATION_CALC_TIME  = 0.000300;   // The imperical calculation time before launching the Timer to start the DWELL
   RPM_LIMIT                      = 7000;       // Shuts off the IGBT above this RPM
-  RPM_STALL                      = 20;         // Shuts off the IGBT below the RPM
+  RPM_STALL                      = 70;         // Shuts off the IGBT below the RPM
   MAX_DWELL_PERIOD               = 0.010;      // Never have the IGBT on for more than 10ms
   
   // MCU Setup Parameters
@@ -33,6 +33,9 @@ const
   // Coil Calculated Parameters
   COIL_CHARGE_TIME = COIL_DESIRED_I * COIL_MAG_L/COIL_PRIMIARY_V;
   
+  // Revolutions per Cycle
+  REV_PER_CYCLE = ENGINE_CYCLE/2;
+  
   
 
 var
@@ -41,12 +44,14 @@ var
   Dwell: dword;
   Max_Dwell_Exceeded: Boolean;
   
+ // IGBT_Pin: sbit at LATA1_bit;
+ // IGBT_TRIS: sbit at TRISA1_bit;
+
+  
 procedure interrupt_CCT1_RPM_Measurment_Timer(); iv IVT_ADDR_CCT1INTERRUPT;    // Interrupt for the HiWord Compare 1 (16Bit mode/32Bit mode)
 begin
   CCT1IF_bit := 0;
-  LATA0_bit := 1;
-  delay_us(10);
-  LATA0_bit := 0;
+  LATA0_bit := not LATA0_bit;
   CCPON_CCP1CON1L_bit := 0;    // Turn this timer off again.
 end;
 
@@ -81,7 +86,7 @@ var
   PortCopy: Word;
   LW: dword;
   TimerCount, Dwell_Delay_Count: dword;
-  RPM_Period, Dwell_Delay_Period: real;
+  Distributor_Period, Dwell_Delay_Period: real;
   i: Integer;
 begin
   PortCopy := PORTB;    // Clear all changes
@@ -105,21 +110,21 @@ begin
     // Start the RPM Timer for the next Cylinder Cycle
     CCPON_CCP1CON1L_bit := 1;
     
-    RPM_Period := TimerCount*CLOCK_PERIOD*CAMSHAFT_RATIO;
+    Distributor_Period := TimerCount*CLOCK_PERIOD;
     
     RPM := 0.0;
-    if RPM_Period > 0.0 then 
-      RPM := 60/RPM_Period/CYLINDERS;
+    if Distributor_Period > 0.0 then
+      RPM := 60/Distributor_Period/CYLINDERS*REV_PER_CYCLE;
       
     if (RPM < RPM_STALL) or (RPM > RPM_LIMIT) then
       RPM := 0.0;
       
     if RPM > 0.0 then
     begin
-      Dwell_Delay_Period := RPM_Period - COIL_CHARGE_TIME - CHANGE_NOTIFICATION_CALC_TIME;
+      Dwell_Delay_Period := Distributor_Period - COIL_CHARGE_TIME - CHANGE_NOTIFICATION_CALC_TIME;
       if Dwell_Delay_Period <= 0 then
         Dwell_Delay_Period := CHANGE_NOTIFICATION_CALC_TIME ;
-      Dwell_Delay_Count :=  Dwell_Delay_Period/(CLOCK_PERIOD*CAMSHAFT_RATIO);
+      Dwell_Delay_Count :=  Dwell_Delay_Period/(CLOCK_PERIOD);
 
       // Load up the Dwell timer and start it off
       Max_Dwell_Exceeded := False;
