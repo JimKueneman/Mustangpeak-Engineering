@@ -24,7 +24,9 @@ Count=0
 Count=0
 ActiveImageIndex=-1
 [OPENED_FILES]
-Count=0
+Count=2
+File0=Sparky.mpas
+File1=..\dsPIC24FV08KM101\Sparky.mpas
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]
@@ -43,6 +45,9 @@ Count=0
 [PLDS]
 Count=0
 [Useses]
-Count=0
+Count=3
+File0=UART
+File1=Conversions
+File2=String
 [EXPANDED_NODES]
 Count=0
