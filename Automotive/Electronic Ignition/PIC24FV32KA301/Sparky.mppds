@@ -34,10 +34,11 @@ Count=0
 [OTHER_FILES]
 Count=0
 [SEARCH_PATH]
-Count=3
+Count=4
 Path0=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
 Path1=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
 Path2=Z:\Automotive\Electronic Ignition\PIC24FV32KA301\
+Path3=Z:\Automotive\Electronic Ignition\dsPIC24FV08KM101\
 [HEADER_PATH]
 Count=0
 [HEADERS]
@@ -45,9 +46,10 @@ Count=0
 [PLDS]
 Count=0
 [Useses]
-Count=3
+Count=4
 File0=UART
 File1=Conversions
 File2=String
+File3=EEPROM
 [EXPANDED_NODES]
 Count=0

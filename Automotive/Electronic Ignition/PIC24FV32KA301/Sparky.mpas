@@ -13,10 +13,11 @@ const
   COIL_R                         = 1.5;        // Ohms
   COIL_DESIRED_I                 = 4.5;        // Amps
   COIL_PRIMIARY_V                = 14;         // Volts
-  CHANGE_NOTIFICATION_CALC_TIME  = 0.000300;   // The imperical calculation time before launching the Timer to start the DWELL
+  COIL_CHARGE_TIME_MULTIPLIER    = 5;          // To deal with accell and decell and predicting when the next pulse will come need to extent the pulse to ensure no dropouts
   RPM_LIMIT                      = 7000;       // Shuts off the IGBT above this RPM
   RPM_STALL                      = 70;         // Shuts off the IGBT below the RPM
-  MAX_DWELL_PERIOD               = 0.010;      // Never have the IGBT on for more than 10ms
+  FIRING_CRANKSHAFT_DEGREES      = 15;         // Number of Degrees to wait for the cycle to finish firing
+  DWELL_CRANKSHAFT_DEGREES       = 30;         // Number of Degrees the cycle is not firing
 
   // MCU Setup Parameters
   OSCILLATORFREQ = 32e6;
@@ -27,16 +28,18 @@ const
   CLOCK_FREQ = real( OSCILLATORFREQ/CLOCKDIVIDER);
   CLOCK_PERIOD = real( 1/CLOCK_FREQ);
 
-  // Dwell Start Timer Calculated Parameters
-  MAX_DWELL_COUNT = dWord(MAX_DWELL_PERIOD/CLOCK_PERIOD);
-
   // Coil Calculated Parameters
   COIL_CHARGE_TIME = COIL_DESIRED_I * COIL_MAG_L/COIL_PRIMIARY_V;
+  
+  // Dwell Start Timer Calculated Parameters
+  MAX_DWELL_PERIOD = COIL_CHARGE_TIME * COIL_CHARGE_TIME_MULTIPLIER * 2;      // Never have the IGBT on for more than 2x of the Charge time
+  MAX_DWELL_COUNT = dWord(MAX_DWELL_PERIOD/CLOCK_PERIOD);
 
   // Revolutions per Cycle
   REV_PER_CYCLE = ENGINE_CYCLE/2;
 
-
+  FIRING_DISTRIBUTOR_DEGREES = FIRING_CRANKSHAFT_DEGREES * REV_PER_CYCLE;
+  DWELL_DISTRIBUTOR_DEGREES = DWELL_CRANKSHAFT_DEGREES * REV_PER_CYCLE;
 
 var
   RPM: real;
@@ -56,7 +59,7 @@ begin
 end;
 
 procedure interrupt_Timer5_Dwell_Delay(); iv IVT_ADDR_T5INTERRUPT;
-begin
+begin 
   // The time to wait until the IGBT is turned on just before the next distributor trigger
   // was loaded in the last distributor trigger and we should not turn on the IGBT
   
@@ -74,6 +77,7 @@ begin
   PR5 := HiWord(MAX_DWELL_COUNT);
   TMR5HLD := $0000;
   TMR4 := $0000;
+  
   TON_T4CON_bit := 1;                // ON
 
   Max_Dwell_Exceeded := True;   // Pin Change will clear this or if this interrupt is entered before that something is wrong and we will shut off the IGBT
@@ -92,8 +96,7 @@ var
   PortCopy: Word;
   LW: dword;
   TimerCount, Dwell_Delay_Count: dword;
-  Distributor_Period, Dwell_Delay_Period: real;
-  i: Integer;
+  Distributor_Period, Dwell_Delay_Period, Dynamic_Dwell_Delay_Period, SecondsPerDegree: real;
 begin
   PortCopy := PORTB;    // Clear all changes
 
@@ -123,17 +126,31 @@ begin
 
     if RPM > 0.0 then
     begin
-      // Calculate when to turn the IGBT on to start charging before the next trigger comes
-      // This assumes a fixed RPM and Distributor_Period.  IF the rate of change is fast enough
-      // This will fail spectacularly with either the trigger comes before the IGBT is turned on
-      // (acceleration) or the IGBT comes on way too early and the trigger is delayed (deceleration)
-      Dwell_Delay_Period := Distributor_Period - COIL_CHARGE_TIME - CHANGE_NOTIFICATION_CALC_TIME;
+                                                               // RevolutionsPerSec := RPM/60;
+                                                               // DegreesPerSecond := 360*RevolutionsPerSec;  360_Degrees/Revolution  *  Revolution/Sec = Degrees/Sec
+      SecondsPerDegree := 1/(6*RPM);                           // 1/DegreesPerSecond  = 1/(360*RevolutionsPerSec) = 1/(360*RPM/60) = 1/(360/60*RPM) = 1/(6*RPM)
+    
+      // Calculate when to turn the IGBT on to start charging
       
-      // See if there is not enough time because the RPM is high, if so then just get it
-      // turned on as fast as possible
-      if Dwell_Delay_Period <= 0 then
-        Dwell_Delay_Period := CHANGE_NOTIFICATION_CALC_TIME ;
-        
+      // Dynamically change the amount of time we let the cyclinder combustion to complete
+      // Note there is NO assumption on when the next trigger will come other than
+      // using the last period to calcuate the RPM to get the Seconds Per Degree
+      Dwell_Delay_Period := (FIRING_DISTRIBUTOR_DEGREES * SecondsPerDegree) { - Time_it_took_to_get_from_the_entry_of_this_function_to_here:};  // TODO
+      
+      if Distributor_Period - Dwell_Delay_Period > COIL_CHARGE_TIME then
+      begin
+        LATB13_bit := not LATB13_bit;
+         // This assumes a fixed RPM and Distributor_Period.  If the rate of change is fast enough
+        // This will fail spectacularly with either the trigger comes before the IGBT is turned on
+        // (acceleration) or the IGBT comes on way too early and the trigger is delayed (deceleration)
+        // The charge time is way to much do something to shorten it to a reasonable value.
+        Dynamic_Dwell_Delay_Period := Distributor_Period - (COIL_CHARGE_TIME_MULTIPLIER*COIL_CHARGE_TIME);
+        if Dynamic_Dwell_Delay_Period > Dwell_Delay_Period then
+          Dwell_Delay_Period := Dynamic_Dwell_Delay_Period;
+      end;
+      
+   //   Dwell_Delay_Period := Distributor_Period - (DWELL_DISTRIBUTOR_DEGREES * SecondsPerDegree);
+    
       // Convert the Period (seconds) into counts based on the clock frequency)
       Dwell_Delay_Count :=  Dwell_Delay_Period/(CLOCK_PERIOD);
 
@@ -153,6 +170,9 @@ begin
   // Some free debounce guarding by putting this many micro seconds past entry
   CNIF_bit := 0;
 end;
+
+var
+  i: Integer;
 
 begin
   { Main program }
@@ -174,6 +194,10 @@ begin
   CLKDIV := 0;                      // Set both dividers to 1:1 and don't use the DOZE to reset dividers (power saving feature)
 
 
+  // Initializze Variables
+  RPM := 0.0;
+  CylinderFiringPeriod := 0.0;
+  Max_Dwell_Exceeded := True;               // Start Safe
 
   // Pin change Notification
   CN21IE_bit := 1;  // Pin Change Notification Interrupt on B9
@@ -187,7 +211,7 @@ begin
   // Timer Setup
   TMR1 := 0;
   TON_T1CON_bit := 0;             // OFF
-  TCKPS_0_bit := 1;            // 00 = 1; 01 = 8; 10 = 64; 11 = 256
+  TCKPS_0_bit := 0;            // 00 = 1; 01 = 8; 10 = 64; 11 = 256
   TCKPS_1_bit := 0;
   IPC0 := IPC0 or 0x1000;      // interrupt priority level = 1
   T1IF_bit := 0;               // clear T1IF
@@ -195,24 +219,33 @@ begin
   TON_T1CON_bit := 1;                // ON
   
   // Lower Timer controls the setup Setup
-  T32_T2CON_bit := 1;                // 32 Bit mode
   TON_T2CON_bit := 0;                // OFF
+  TON_T3CON_bit := 0;                // OFF
+  T32_T2CON_bit := 1;                // 32 Bit mode
+  TCS_T2CON_bit := 0;                // Internal source
+  TGATE_T2CON_bit := 0;              // Disabled Gated Timer Mode
   TCKPS_0_T2CON_bit := 0;            // 00 = 1; 01 = 8; 10 = 64; 11 = 256
   TCKPS_1_T2CON_bit := 0;
   IPC2 := IPC2 or 0x1000;            // interrupt priority level = 1
-  PR2 := 0;
-  PR3 := 0;
+  PR2 := $FFFF;
+  PR3 := $FFFF;
   TMR3HLD := 0;
   TMR2 := 0;
   // Upper Timer fires the interrupts
+  T3IP_0_bit := 1;                   // priority
+  T3IP_1_bit := 0;
+  T3IP_2_bit := 0;
   T3IF_bit := 0;                     // clear T1IF
   T3IE_bit := 1;                     // enable Timer1 interrupts
   // Lower Timer controls the setup Setup
   TON_T2CON_bit := 1;                // ON
   
   // Lower Timer controls the setup Setup
-  T32_T4CON_bit := 1;                // 32 Bit mode
   TON_T4CON_bit := 0;                // OFF
+  TON_T5CON_bit := 0;                // OFF
+  T32_T4CON_bit := 1;                // 32 Bit mode
+  TCS_T4CON_bit := 0;                // Internal source
+  TGATE_T4CON_bit := 0;              // Disabled Gated Timer Mode
   TCKPS_0_T4CON_bit := 0;            // 00 = 1; 01 = 8; 10 = 64; 11 = 256
   TCKPS_1_T4CON_bit := 0;
   IPC7 := IPC7 or 0x1000;            // interrupt priority level = 1
@@ -221,15 +254,13 @@ begin
   TMR5HLD := 0;
   TMR4 := 0;
   // Upper Timer fires the interrupts
+  T5IP_0_bit := 1;                   // priority
+  T5IP_1_bit := 0;
+  T5IP_2_bit := 0;
   T5IF_bit := 0;                     // clear T1IF
   T5IE_bit := 1;                     // enable Timer1 interrupts
   // Lower Timer controls the setup Setup
   TON_T4CON_bit := 1;                // ON
-
-  // Initializze Variables
-  RPM := 0.0;
-  CylinderFiringPeriod := 0.0;
-  Max_Dwell_Exceeded := True;               // Start Safe
 
   while true do
   begin
