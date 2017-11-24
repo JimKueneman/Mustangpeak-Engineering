@@ -2,6 +2,8 @@ program Sparky;
 
 { Declarations section }
 
+{$DEFINE DEBUG_UART}
+
 const
   // Engine Parameters
   ENGINE_CYCLE = 4;
@@ -47,12 +49,12 @@ const
 
 var
   RPM: real;
-  CylinderFiringPeriod,
   Dwell: dword;
   Max_Dwell_Exceeded: Boolean;
   
   TimingCurveRPM    : array[NUMBER_OF_ADVANCE_POINTS] of real;
   TimingCurveDegrees: array[NUMBER_OF_ADVANCE_POINTS] of real;
+  LastTimingAdvanceDegrees: real;
 
  // IGBT_Pin: sbit at LATA1_bit;
  // IGBT_TRIS: sbit at TRISA1_bit;
@@ -101,10 +103,11 @@ end;
 procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
 var
   PortCopy: Word;
-  LW: dword;
-  TimerCount, Dwell_Delay_Count: dword;
-  Distributor_Period, Dwell_Delay_Period, Dynamic_Dwell_Delay_Period, SecondsPerDegree, TimingAdvance, Slope: real;
+  TimerCount, Dwell_Delay_Count, TimingAdvanceCount: dword;
+  Distributor_Period, Dwell_Delay_Period, Dynamic_Dwell_Delay_Period, SecondsPerDegree, TimingAdvanceDegrees, Slope: real;
   i, TimingCurveIndex: Integer;
+  
+  s: string[128];
 begin
   PortCopy := PORTB;    // Clear all changes
 
@@ -123,7 +126,7 @@ begin
     TMR3HLD := $0000;
     TMR2 := $0000;
     
-    Distributor_Period := TimerCount*CLOCK_PERIOD;
+    Distributor_Period := real( TimerCount) * CLOCK_PERIOD;
 
     RPM := 0.0;
     if Distributor_Period > 0.0 then
@@ -153,10 +156,24 @@ begin
       // If we are below the max advance need to calculate it
       if TimingCurveIndex < NUMBER_OF_ADVANCE_POINTS then
       begin
-        Slope := (TimingCurveDegrees[TimingCurveIndex] - TimingCurveDegrees[TimingCurveIndex-1])/(TimingCurveRPM[TimingCurveIndex] - TimingCurveRPM[TimingCurveIndex-1]);
-        TimingAdvance := -(Slope * (TimingCurveRPM[TimingCurveIndex-1] - RPM) - TimingCurveRPM[TimingCurveIndex-1]);                           // y1 = -(m(x-x1)-y)
+        // Guard against a zero denominator.  If this happens the array has of the same RPM in 2 positions which is an error
+        if TimingCurveRPM[TimingCurveIndex] - TimingCurveRPM[TimingCurveIndex-1] <> 0 then
+        begin
+          Slope := (TimingCurveDegrees[TimingCurveIndex] - TimingCurveDegrees[TimingCurveIndex-1])/(TimingCurveRPM[TimingCurveIndex] - TimingCurveRPM[TimingCurveIndex-1]);
+          TimingAdvanceDegrees := -(Slope * (TimingCurveRPM[TimingCurveIndex-1] - RPM) - TimingCurveRPM[TimingCurveIndex-1]);  // y1 = -(m(x-x1)-y)
+        end else
+          TimingAdvanceDegrees := TimingCurveDegrees[TimingCurveIndex];
       end else
-        TimingAdvance := TimingCurveDegrees[NUMBER_OF_ADVANCE_POINTS-1];
+        TimingAdvanceDegrees := TimingCurveDegrees[NUMBER_OF_ADVANCE_POINTS-1];
+        
+      {$IFDEF DEBUG_UART}
+      if TimingAdvanceDegrees <> LastTimingAdvanceDegrees then
+      begin
+        FloatToStr(TimingAdvanceDegrees, s);
+        UART2_Write_Text(s);
+      end;
+      {$ENDIF}
+      LastTimingAdvanceDegrees := TimingAdvanceDegrees;
 
       LATB13_bit := 0;
     
@@ -165,6 +182,10 @@ begin
                                                                // DegreesPerSecond := 360*RevolutionsPerSec;  360_Degrees/Revolution  *  Revolution/Sec = Degrees/Sec
       SecondsPerDegree := 1/(6*RPM);                           // 1/DegreesPerSecond  = 1/(360*RevolutionsPerSec) = 1/(360*RPM/60) = 1/(360/60*RPM) = 1/(6*RPM)
     
+      // How far to shift the trigger for advance
+      TimingAdvanceCount := DWORD( TimingAdvanceDegrees*SecondsPerDegree/CLOCK_PERIOD);
+  
+  
       // Calculate when to turn the IGBT on to start charging
       
       // Dynamically change the amount of time we let the cyclinder combustion to complete
@@ -184,7 +205,7 @@ begin
       end;
       
       // Convert the Period (seconds) into counts based on the clock frequency)
-      Dwell_Delay_Count :=  Dwell_Delay_Period/(CLOCK_PERIOD);
+      Dwell_Delay_Count :=  DWORD( Dwell_Delay_Period/(CLOCK_PERIOD));
 
       // Load up the Dwell timer and start it off
       Max_Dwell_Exceeded := False;
@@ -214,13 +235,13 @@ begin
 
   TRISA0_bit := 0; // Output CPP1 timer Interrupt
   TRISA1_bit := 0; // Output CPP2 timer Interrupt - IGBT Gate [BLUE]
+  TRISB0_bit := 0; // Output for UART 2 TX
+  TRISB1_bit := 1; // Input for UART 2 RX
   TRISB9_bit := 1; // Input (redundant but makes it clear)   [BROWN]
   TRISB8_bit := 0; // CAM Sensor                             [RED]
   TRISB12_bit := 0; // Output  Timer 1 Trigger               [ORANGE]
   TRISB13_bit := 0; // Output  GP Debug
   TRISB14_bit := 0; // Output  Heartbeat
-
-  TRISB7_bit := 0;
 
   // Clock Setup
   CLKDIV := 0;                      // Set both dividers to 1:1 and don't use the DOZE to reset dividers (power saving feature)
@@ -228,14 +249,14 @@ begin
 
   // Initializze Variables
   RPM := 0.0;
-  CylinderFiringPeriod := 0.0;
   Max_Dwell_Exceeded := True;               // Start Safe
+  LastTimingAdvanceDegrees := 0.0;
 
   // Build my Advance table
-  TimingCurveRPM[0] := 0;     TimingCurveDegrees[0] := 0;
-  TimingCurveRPM[1] := 1200;  TimingCurveDegrees[1] := 6;
-  TimingCurveRPM[2] := 2000;  TimingCurveDegrees[2] := 10;
-  TimingCurveRPM[3] := 2500;  TimingCurveDegrees[3] := 12;
+  TimingCurveRPM[0] := 0.0;     TimingCurveDegrees[0] := 0.0;
+  TimingCurveRPM[1] := 1200.0;  TimingCurveDegrees[1] := 6.0;
+  TimingCurveRPM[2] := 2000.0;  TimingCurveDegrees[2] := 10.0;
+  TimingCurveRPM[3] := 2500.0;  TimingCurveDegrees[3] := 12.0;
 
   // Pin change Notification
   CN21IE_bit := 1;  // Pin Change Notification Interrupt on B9
@@ -299,16 +320,17 @@ begin
   T5IE_bit := 1;                     // enable Timer1 interrupts
   // Lower Timer controls the setup Setup
   TON_T4CON_bit := 1;                // ON
-
+  
+  // Setup the UART
+  UART2_Init(230400);
+  Delay_ms(100);
+  
   while true do
-  begin
-    UART1_Init(9600);
-    if UART_Data_Ready > 0 then
+  begin        // Waitin for Pin Change Interrupt
+    if UART2_Data_Ready > 0 then
     begin
-      UART_Read;
+      UART2_Read;
     end;
     LATB14_bit := not LATB14_bit;  // Heartbeat
-    LATB7_bit := not LATB7_bit;
-    // Waitin for Pin Change Interrupt
   end;
 end.

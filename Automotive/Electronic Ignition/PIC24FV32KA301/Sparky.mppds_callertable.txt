@@ -1,36 +1,35 @@
 main
-	UART1_Init
+	UART2_Init
 		Get_Fosc_kHz
 		Get_Fosc_Per_Cyc
 		Delay_10ms
 		_Multiply_32x32
 		_Modulus_32x32
 		_Divide_32x32
-	UART_Data_Ready
-		UART1_Read
-		UART1_Data_Ready
-		UART1_TX_Idle
-		UART2_Read
-		UART2_Data_Ready
-		UART2_TX_Idle
-	UART_Read
-		UART1_Read
-		UART1_Data_Ready
-		UART1_TX_Idle
-		UART2_Read
-		UART2_Data_Ready
-		UART2_TX_Idle
+	UART2_Data_Ready
+	UART2_Read
 interrupt_Timer5_Dwell_Delay
 interrupt_PinChangeNotification
+	FloatToStr
+		LongIntToStr
+			_Modulus_32x32
+			_Divide_32x32
+		_Float2Longint
+		_Compare_Le_Fp
+			_Compare_Fp
+		_Long2Float
+		_Sub_FP
+			_AddSub_FP
+		_Mul_FP
+	UART2_Write_Text
+		UART2_Write
 	_Long2Float
 	_Mul_FP
 	_Compare_Ge_Fp
 		_Compare_Fp
 	_Div_FP
 	_Compare_Le_Fp
-		_Compare_Fp
 	_Sub_FP
-		_AddSub_FP
 	_Float2Longword
 interrupt_Timer3_RPM_Measurement
 interrupt_Timer1
