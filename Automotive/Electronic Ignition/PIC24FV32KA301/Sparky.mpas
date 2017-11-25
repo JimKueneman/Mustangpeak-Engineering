@@ -8,7 +8,7 @@ const
   // Engine Parameters
   ENGINE_CYCLE = 4;
   CYLINDERS = 8;
-  STALL_RPM = 50;
+  STALL_RPM = 50;                 // This and the Max Advance Delay need to be thought about together so we don't run out of the 16bit Timer.  50RPM and 60 Degrees of advance is about 50,000 tick as 1:64 which is still 0.2 degrees at 7000 RPM  A good balance
 
   // Coil Parameters
   COIL_MAG_L                     = 0.008;      // Henries
@@ -48,17 +48,15 @@ const
   NUMBER_OF_ADVANCE_POINTS = 4;
 
 var
-  RPM: real;
-  Dwell: dword;
-  Max_Dwell_Exceeded: Boolean;
-  
+  RPM_Global, SecondsPerDegree_Global, Distributor_Period_Global, AdvancePeriod_Global: real;
+  Max_Dwell_Exceeded_Global: Boolean;
+  s1: string[128];
+
   TimingCurveRPM    : array[NUMBER_OF_ADVANCE_POINTS] of real;
   TimingCurveDegrees: array[NUMBER_OF_ADVANCE_POINTS] of real;
-  LastTimingAdvanceDegrees: real;
 
  // IGBT_Pin: sbit at LATA1_bit;
  // IGBT_TRIS: sbit at TRISA1_bit;
-
 
 procedure interrupt_Timer3_RPM_Measurement(); iv IVT_ADDR_T3INTERRUPT;
 begin
@@ -67,47 +65,12 @@ begin
   TON_T2CON_bit := 0;            // Turn this timer off again.
 end;
 
-procedure interrupt_Timer5_Dwell_Delay(); iv IVT_ADDR_T5INTERRUPT;
-begin 
-  // The time to wait until the IGBT is turned on just before the next distributor trigger
-  // was loaded in the last distributor trigger and we should not turn on the IGBT
-  
-  // Turn on the IGBT, the next Pin Change will turn it off, unless we detect that the
-  // IGBT has been on way to long then turn it back off and reset for a new try
-  if Max_Dwell_Exceeded then
-    LATA1_bit := 0
-  else
-    LATA1_bit := 1;
-
-  // Load up the Dwell timer with a time that the longest the IGBT should ever be on and start it off
-  // This is a safety trap to ensure we don't stick the IGBT on
-  TON_T4CON_bit := 0;                // OFF
-  PR4 := LoWord(MAX_DWELL_COUNT);
-  PR5 := HiWord(MAX_DWELL_COUNT);
-  TMR5HLD := $0000;
-  TMR4 := $0000;
-  
-  TON_T4CON_bit := 1;                // ON
-
-  Max_Dwell_Exceeded := True;   // Pin Change will clear this or if this interrupt is entered before that something is wrong and we will shut off the IGBT
-
-  T5IF_bit := 0;  // Reset the interrupt Flag
-end;
-
-procedure interrupt_Timer1(); iv IVT_ADDR_T1INTERRUPT;
-begin
-  T1IF_bit := 0;             // clear T1IF
-  LATB12_bit := not LATB12_bit;
-end;
-
 procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
 var
   PortCopy: Word;
   TimerCount, Dwell_Delay_Count, TimingAdvanceCount: dword;
-  Distributor_Period, Dwell_Delay_Period, Dynamic_Dwell_Delay_Period, SecondsPerDegree, TimingAdvanceDegrees, Slope: real;
+  TimingAdvanceDegrees, Slope : real;
   i, TimingCurveIndex: Integer;
-  
-  s: string[128];
 begin
   PortCopy := PORTB;    // Clear all changes
 
@@ -116,36 +79,32 @@ begin
   begin
     LATB8_bit := 1;
 
-    // Shutoff IGBT
-    LATA1_bit := 0;
-
     // Capture it contents
     LoWord(TimerCount) := TMR2;
     HiWord(TimerCount) := TMR3HLD;
     // Reset the RPM Timer
     TMR3HLD := $0000;
     TMR2 := $0000;
-    
-    Distributor_Period := real( TimerCount) * CLOCK_PERIOD;
 
-    RPM := 0.0;
-    if Distributor_Period > 0.0 then
-      RPM := 60/Distributor_Period/CYLINDERS*REV_PER_CYCLE;
+    Distributor_Period_Global := real( TimerCount) * CLOCK_PERIOD;
 
-    if (RPM < RPM_STALL) or (RPM > RPM_LIMIT) then
-      RPM := 0.0;
+    // Calcuate the RPM based on the last sensor signal
+    RPM_Global := 0.0;
+    if Distributor_Period_Global > 0.0 then
+      RPM_Global := 60/Distributor_Period_Global/CYLINDERS*REV_PER_CYCLE;
 
-    if RPM > 0.0 then
+    // Are we too low or too high?
+    if (RPM_Global < RPM_STALL) or (RPM_Global > RPM_LIMIT) then
+      RPM_Global := 0.0;
+
+    if RPM_Global > 0.0 then
     begin
-    
-      LATB13_bit := 1;
-      
- 
+      // Now figure out where we are on the Advance Curve based on the RPM
       TimingCurveIndex := NUMBER_OF_ADVANCE_POINTS;  // Assume above highest RPM; Note this is OUTSIDE of the range for the array
       i := 1;
       while i < NUMBER_OF_ADVANCE_POINTS do
       begin
-        if RPM < TimingCurveRPM[i] then
+        if RPM_Global < TimingCurveRPM[i] then
         begin
           TimingCurveIndex := i;
           Break;
@@ -153,68 +112,38 @@ begin
         Inc(i);
       end;
 
-      // If we are below the max advance need to calculate it
+      // If we are below the max advance need to calculate it from the Timing Curve Map
       if TimingCurveIndex < NUMBER_OF_ADVANCE_POINTS then
       begin
         // Guard against a zero denominator.  If this happens the array has of the same RPM in 2 positions which is an error
         if TimingCurveRPM[TimingCurveIndex] - TimingCurveRPM[TimingCurveIndex-1] <> 0 then
         begin
           Slope := (TimingCurveDegrees[TimingCurveIndex] - TimingCurveDegrees[TimingCurveIndex-1])/(TimingCurveRPM[TimingCurveIndex] - TimingCurveRPM[TimingCurveIndex-1]);
-          TimingAdvanceDegrees := -(Slope * (TimingCurveRPM[TimingCurveIndex-1] - RPM) - TimingCurveRPM[TimingCurveIndex-1]);  // y1 = -(m(x-x1)-y)
+          TimingAdvanceDegrees := -(Slope * (TimingCurveRPM[TimingCurveIndex-1] - RPM_Global) - TimingCurveDegrees[TimingCurveIndex-1]);  // y1 = -(m(x-x1)-y)
         end else
           TimingAdvanceDegrees := TimingCurveDegrees[TimingCurveIndex];
       end else
         TimingAdvanceDegrees := TimingCurveDegrees[NUMBER_OF_ADVANCE_POINTS-1];
-        
-      {$IFDEF DEBUG_UART}
-      if TimingAdvanceDegrees <> LastTimingAdvanceDegrees then
-      begin
-        FloatToStr(TimingAdvanceDegrees, s);
-        UART2_Write_Text(s);
-      end;
-      {$ENDIF}
-      LastTimingAdvanceDegrees := TimingAdvanceDegrees;
+                                                     // RevolutionsPerSec := RPM/60;
+                                                     // DegreesPerSecond := 360*RevolutionsPerSec;  360_Degrees/Revolution  *  Revolution/Sec = Degrees/Sec
+      SecondsPerDegree_Global := 1/(6*RPM_Global);   // 1/DegreesPerSecond  = 1/(360*RevolutionsPerSec) = 1/(360*RPM/60) = 1/(360/60*RPM) = 1/(6*RPM)
 
-      LATB13_bit := 0;
-    
-    
-                                                               // RevolutionsPerSec := RPM/60;
-                                                               // DegreesPerSecond := 360*RevolutionsPerSec;  360_Degrees/Revolution  *  Revolution/Sec = Degrees/Sec
-      SecondsPerDegree := 1/(6*RPM);                           // 1/DegreesPerSecond  = 1/(360*RevolutionsPerSec) = 1/(360*RPM/60) = 1/(360/60*RPM) = 1/(6*RPM)
-    
+      // Get the timing shift for this particular RPM and convert it to a time for this pulse
+      AdvancePeriod_Global := SecondsPerDegree_Global * (TimingCurveDegrees[NUMBER_OF_ADVANCE_POINTS-1] - TimingAdvanceDegrees);
       // How far to shift the trigger for advance
-      TimingAdvanceCount := DWORD( TimingAdvanceDegrees*SecondsPerDegree/CLOCK_PERIOD);
-  
-  
-      // Calculate when to turn the IGBT on to start charging
+      // Note that the dynamic way we are doing this that when we are full advanced we have a 0 count shift
+      TimingAdvanceCount := DWORD( AdvancePeriod_Global / CLOCK_PERIOD);
+      // Timer Setup
+      TON_T1CON_bit := 0;          // OFF
+      TMR1 := 0;
+      T1IF_bit := 0;               // clear T1IF
+      PR1 := TimingAdvanceCount div 64;
+      if PR1 = 0 then
+        PR1 := 1;
+      TON_T1CON_bit := 1;          // ON
       
-      // Dynamically change the amount of time we let the cyclinder combustion to complete
-      // Note there is NO assumption on when the next trigger will come other than
-      // using the last period to calcuate the RPM to get the Seconds Per Degree
-      Dwell_Delay_Period := (FIRING_DISTRIBUTOR_DEGREES * SecondsPerDegree) { - Time_it_took_to_get_from_the_entry_of_this_function_to_here:};  // TODO
-      
-      if Distributor_Period - Dwell_Delay_Period > COIL_CHARGE_TIME then
-      begin
-        // This assumes a fixed RPM and Distributor_Period.  If the rate of change is fast enough
-        // This will fail spectacularly with either the trigger comes before the IGBT is turned on
-        // (acceleration) or the IGBT comes on way too early and the trigger is delayed (deceleration)
-        // The charge time is way to much do something to shorten it to a reasonable value.
-        Dynamic_Dwell_Delay_Period := Distributor_Period - (COIL_CHARGE_TIME_MULTIPLIER * COIL_CHARGE_TIME);
-        if Dynamic_Dwell_Delay_Period > Dwell_Delay_Period then
-          Dwell_Delay_Period := Dynamic_Dwell_Delay_Period;
-      end;
-      
-      // Convert the Period (seconds) into counts based on the clock frequency)
-      Dwell_Delay_Count :=  DWORD( Dwell_Delay_Period/(CLOCK_PERIOD));
+LATB12_bit := 1;
 
-      // Load up the Dwell timer and start it off
-      Max_Dwell_Exceeded := False;
-      TON_T4CON_bit := 0;                // OFF
-      PR4 := LoWord(Dwell_Delay_Count);
-      PR5 := HiWord(Dwell_Delay_Count);
-      TMR5HLD := $0000;
-      TMR4 := $0000;
-      TON_T4CON_bit := 1;                // ON
     end;
 
     LATB8_bit := 0;
@@ -222,6 +151,83 @@ begin
 
   // Some free debounce guarding by putting this many micro seconds past entry
   CNIF_bit := 0;
+end;
+
+procedure interrupt_Advance_Timer1(); iv IVT_ADDR_T1INTERRUPT;
+var
+  Dwell_Delay_Period, Dynamic_Dwell_Delay_Period: real;
+  Dwell_Delay_Count: DWORD;
+begin
+  LATB12_bit := 0;
+
+  // Shutoff IGBT
+  LATA1_bit := 0;
+
+  // Calculate when to turn the IGBT on to start charging
+  // Dynamically change the amount of time we let the cyclinder combustion to complete
+  // Note there is NO assumption on when the next trigger will come other than
+  // using the last period to calcuate the RPM to get the Seconds Per Degree
+  // This was save from the Pin Change Notification Interrupt
+  Dwell_Delay_Period := (FIRING_DISTRIBUTOR_DEGREES * SecondsPerDegree_Global); { - Time_it_took_to_get_from_the_entry_of_this_function_to_here:} // TODO
+  
+  Dwell_Delay_Period := Dwell_Delay_Period - AdvancePeriod_Global;
+
+  if Distributor_Period_Global - Dwell_Delay_Period > COIL_CHARGE_TIME then
+  begin
+    // This assumes a fixed RPM and Distributor_Period.  If the rate of change is fast enough
+    // This will fail spectacularly with either the trigger comes before the IGBT is turned on
+    // (acceleration) or the IGBT comes on way too early and the trigger is delayed (deceleration)
+    // The charge time is way to much do something to shorten it to a reasonable value.
+    Dynamic_Dwell_Delay_Period := Distributor_Period_Global - (COIL_CHARGE_TIME_MULTIPLIER * COIL_CHARGE_TIME);
+    if Dynamic_Dwell_Delay_Period > Dwell_Delay_Period then
+      Dwell_Delay_Period := Dynamic_Dwell_Delay_Period;
+  end;
+
+  // Convert the Period (seconds) into counts based on the clock frequency)
+  Dwell_Delay_Count :=  DWORD( Dwell_Delay_Period/(CLOCK_PERIOD));
+
+  // Load up the Dwell timer and start it off
+  Max_Dwell_Exceeded_Global := False;
+  TON_T4CON_bit := 0;                // OFF
+  PR4 := LoWord(Dwell_Delay_Count);
+  PR5 := HiWord(Dwell_Delay_Count);
+  TMR5HLD := $0000;
+  TMR4 := $0000;
+  T5IF_bit := 0;                     // Reset Interrupt Flag
+  TON_T4CON_bit := 1;                // ON
+ 
+  TON_T1CON_bit := 0;        // OFF
+  T1IF_bit := 0;             // clear T1IF
+end;
+
+
+procedure interrupt_Timer5_Dwell_Delay(); iv IVT_ADDR_T5INTERRUPT;
+begin 
+
+    // The time to wait until the IGBT is turned on just before the next distributor trigger
+    // was loaded in the last distributor trigger and we should not turn on the IGBT
+
+    // Turn on the IGBT, the next Pin Change will turn it off, unless we detect that the
+    // IGBT has been on way to long then turn it back off and reset for a new try
+    if Max_Dwell_Exceeded_Global then
+      LATA1_bit := 0
+    else
+      LATA1_bit := 1;
+
+      
+    // Load up the Dwell timer with a time that the longest the IGBT should ever be on and start it off
+    // This is a safety trap to ensure we don't stick the IGBT on
+    TON_T4CON_bit := 0;                // OFF
+    PR4 := LoWord(MAX_DWELL_COUNT);
+    PR5 := HiWord(MAX_DWELL_COUNT);
+    TMR5HLD := $0000;
+    TMR4 := $0000;
+    TON_T4CON_bit := 1;                // ON
+
+    Max_Dwell_Exceeded_Global := True;   // Pin Change will clear this or if this interrupt is entered before that something is wrong and we will shut off the IGBT
+
+  T5IF_bit := 0;  // Reset the interrupt Flag
+  
 end;
 
 var
@@ -246,14 +252,12 @@ begin
   // Clock Setup
   CLKDIV := 0;                      // Set both dividers to 1:1 and don't use the DOZE to reset dividers (power saving feature)
 
-
   // Initializze Variables
-  RPM := 0.0;
-  Max_Dwell_Exceeded := True;               // Start Safe
-  LastTimingAdvanceDegrees := 0.0;
+  RPM_Global := 0.0;
+  Max_Dwell_Exceeded_Global := True;               // Start Safe
 
   // Build my Advance table
-  TimingCurveRPM[0] := 0.0;     TimingCurveDegrees[0] := 0.0;
+  TimingCurveRPM[0] := 70.0;     TimingCurveDegrees[0] := 0.0;
   TimingCurveRPM[1] := 1200.0;  TimingCurveDegrees[1] := 6.0;
   TimingCurveRPM[2] := 2000.0;  TimingCurveDegrees[2] := 10.0;
   TimingCurveRPM[3] := 2500.0;  TimingCurveDegrees[3] := 12.0;
@@ -269,13 +273,13 @@ begin
 
   // Timer Setup
   TMR1 := 0;
-  TON_T1CON_bit := 0;             // OFF
+  TON_T1CON_bit := 0;          // OFF
   TCKPS_0_bit := 0;            // 00 = 1; 01 = 8; 10 = 64; 11 = 256
-  TCKPS_1_bit := 0;
+  TCKPS_1_bit := 1;
   IPC0 := IPC0 or 0x1000;      // interrupt priority level = 1
   T1IF_bit := 0;               // clear T1IF
   T1IE_bit := 1;               // enable Timer1 interrupts
-  TON_T1CON_bit := 1;                // ON
+  TON_T1CON_bit := 1;          // ON
   
   // Lower Timer controls the setup Setup
   TON_T2CON_bit := 0;                // OFF
@@ -318,12 +322,11 @@ begin
   T5IP_2_bit := 0;
   T5IF_bit := 0;                     // clear T1IF
   T5IE_bit := 1;                     // enable Timer1 interrupts
-  // Lower Timer controls the setup Setup
-  TON_T4CON_bit := 1;                // ON
-  
+
   // Setup the UART
   UART2_Init(230400);
   Delay_ms(100);
+  UART2_Write_Text('Starting');
   
   while true do
   begin        // Waitin for Pin Change Interrupt
