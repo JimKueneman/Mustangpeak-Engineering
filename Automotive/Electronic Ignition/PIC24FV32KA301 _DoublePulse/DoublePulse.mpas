@@ -61,19 +61,16 @@ begin
       RPM_Global := 60/Distributor_Period_Global/CYLINDERS*REV_PER_CYCLE;
 
     // Are we too low or too high?
-    if (RPM_Global < MIN_RPM) or (RPM_Global > MAX_RPM) then
-      RPM_Global := 0.0;
-
-    if RPM_Global > 0.0 then
-    begin
-      if MAX_RPM-MIN_RPM <> 0.0 then
-      begin
-        Slope := (MAX_RPM_BLANK_TIME-MIN_RPM_BLANK_TIME)/(MAX_RPM-MIN_RPM);
-        BlankTime := -(Slope * (MAX_RPM - RPM_Global) - MAX_RPM_BLANK_TIME);  // y1 = -(m(x-x1)-y)
-      end else
-        BlankTime := 1e-3;
+    if (RPM_Global < MIN_RPM) then
+      BlankTime := MIN_RPM_BLANK_TIME
+    else
+    if (RPM_Global > MAX_RPM) then
+      BlankTime := MAX_RPM_BLANK_TIME
+    else begin         // Just right so extrapolate
+      Slope := (MAX_RPM_BLANK_TIME-MIN_RPM_BLANK_TIME)/(MAX_RPM-MIN_RPM);
+      BlankTime := -(Slope * (MAX_RPM - RPM_Global) - MAX_RPM_BLANK_TIME);  // y1 = -(m(x-x1)-y)
     end;
-    
+
     LATB0_bit := 0;
     Delay_Cyc_Long( DWORD( BlankTime/CLOCK_PERIOD));
     LATB0_bit := 1;
