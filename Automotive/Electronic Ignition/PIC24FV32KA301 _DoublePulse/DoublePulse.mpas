@@ -37,9 +37,9 @@ end;
 procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
 var
   PortCopy: Word;
-  TimerCount, Dwell_Delay_Count, TimingAdvanceCount: dword;
-  Slope: real;
-  BlankTime: DWORD;
+  TimerCount: dword;
+  Slope, BlankTime: real;
+
 begin
   PortCopy := PORTB;    // Clear all changes
   // Detect rising edges only
@@ -75,10 +75,8 @@ begin
     end;
     
     LATB0_bit := 0;
-    Delay_Cyc_Long(BlankTime/CLOCK_PERIOD);
-  //  Delay_us(1500);
+    Delay_Cyc_Long( DWORD( BlankTime/CLOCK_PERIOD));
     LATB0_bit := 1;
-   // Delay_us(500);
   end;
 
   // Some free debounce guarding by putting this many micro seconds past entry
