@@ -1,0 +1,145 @@
+program DoublePulse;
+
+{ Declarations section }
+
+const
+  MIN_RPM_BLANK_TIME = 5e-3;      MIN_RPM = 70;
+  MAX_RPM_BLANK_TIME = 500e-6;    MAX_RPM = 7000;
+  
+  
+  ENGINE_CYCLE = 4;
+  CYLINDERS = 8;
+  
+  // MCU Setup Parameters
+  OSCILLATORFREQ = 32e6;
+  CLOCKDIVIDER = 2;
+  TIMER_DIVIDER = 256;
+
+  // MCU Clock Calculated Parameters
+  CLOCK_FREQ = real( OSCILLATORFREQ/CLOCKDIVIDER);
+  CLOCK_PERIOD = real( 1/CLOCK_FREQ);
+
+  
+  // Revolutions per Cycle
+  REV_PER_CYCLE = ENGINE_CYCLE/2;
+  
+
+var
+  Distributor_Period_Global, RPM_Global: real;
+
+procedure interrupt_Timer3_RPM_Measurement(); iv IVT_ADDR_T3INTERRUPT;
+begin
+  T3IF_bit := 0;                 // Reset Interrupt Flag
+  LATA0_bit := not LATA0_bit;
+  TON_T2CON_bit := 0;            // Turn this timer off again.
+end;
+
+procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
+var
+  PortCopy: Word;
+  TimerCount, Dwell_Delay_Count, TimingAdvanceCount: dword;
+  Slope: real;
+  BlankTime: DWORD;
+begin
+  PortCopy := PORTB;    // Clear all changes
+  // Detect rising edges only
+  if PortCopy.B1 = 1 then
+  begin
+    // Capture RPM Timer contents
+    LoWord(TimerCount) := TMR2;
+    HiWord(TimerCount) := TMR3HLD;
+    // Reset the RPM Timer
+    TMR3HLD := $0000;
+    TMR2 := $0000;
+    
+    
+    Distributor_Period_Global := real( TimerCount) * CLOCK_PERIOD;
+
+    // Calcuate the RPM based on the last sensor signal
+    RPM_Global := 0.0;
+    if Distributor_Period_Global > 0.0 then
+      RPM_Global := 60/Distributor_Period_Global/CYLINDERS*REV_PER_CYCLE;
+
+    // Are we too low or too high?
+    if (RPM_Global < MIN_RPM) or (RPM_Global > MAX_RPM) then
+      RPM_Global := 0.0;
+
+    if RPM_Global > 0.0 then
+    begin
+      if MAX_RPM-MIN_RPM <> 0.0 then
+      begin
+        Slope := (MAX_RPM_BLANK_TIME-MIN_RPM_BLANK_TIME)/(MAX_RPM-MIN_RPM);
+        BlankTime := -(Slope * (MAX_RPM - RPM_Global) - MAX_RPM_BLANK_TIME);  // y1 = -(m(x-x1)-y)
+      end else
+        BlankTime := 1e-3;
+    end;
+    
+    LATB0_bit := 0;
+    Delay_Cyc_Long(BlankTime/CLOCK_PERIOD);
+  //  Delay_us(1500);
+    LATB0_bit := 1;
+   // Delay_us(500);
+  end;
+
+  // Some free debounce guarding by putting this many micro seconds past entry
+  CNIF_bit := 0;
+end;
+
+begin
+  { Main program }
+  Distributor_Period_Global := 0.0;
+  RPM_Global := 0.0;
+  
+  ANSA := 0;        // Make them all Digital
+  ANSB := 0;
+
+  TRISB0_bit := 0; // Output for EFI
+  TRISB1_bit := 1; // Input from Distributor
+  TRISB13_bit := 0;
+  TRISA4_bit := 0;
+  
+  TRISA := 0;
+  
+  LATB0_bit := 1;
+
+  // Clock Setup
+  CLKDIV := 0;                      // Set both dividers to 1:1 and don't use the DOZE to reset dividers (power saving feature)
+
+  // Pin change Notification
+  CN5IE_bit := 1;  // Pin Change Notification Interrupt on B1
+  CNIP_0_bit := 1;  // Interrupt priority = 7
+  CNIP_1_bit := 1;
+  CNIP_2_bit := 1;
+  CNIF_bit := 0;    // Clear Pin Change Interrupt flag
+  CNIE_bit := 1;    // Enable all Pin Change Interrupts
+  
+  // RPM Timer
+  // Lower Timer controls the setup Setup
+  TON_T2CON_bit := 0;                // OFF
+  TON_T3CON_bit := 0;                // OFF
+  T32_T2CON_bit := 1;                // 32 Bit mode
+  TCS_T2CON_bit := 0;                // Internal source
+  TGATE_T2CON_bit := 0;              // Disabled Gated Timer Mode
+  TCKPS_0_T2CON_bit := 0;            // 00 = 1; 01 = 8; 10 = 64; 11 = 256
+  TCKPS_1_T2CON_bit := 0;
+  IPC2 := IPC2 or 0x1000;            // interrupt priority level = 1
+  PR2 := $FFFF;
+  PR3 := $FFFF;
+  TMR3HLD := 0;
+  TMR2 := 0;
+  // Upper Timer fires the interrupts
+  T3IP_0_bit := 1;                   // priority
+  T3IP_1_bit := 0;
+  T3IP_2_bit := 0;
+  T3IF_bit := 0;                     // clear T1IF
+  T3IE_bit := 1;                     // enable Timer1 interrupts
+  // Lower Timer controls the setup Setup
+  TON_T2CON_bit := 1;                // ON
+
+
+  while true do
+  begin        // Waitin for Pin Change Interrupt
+    LATA := not LATA;
+    Delay_us(100);
+  end;
+end.

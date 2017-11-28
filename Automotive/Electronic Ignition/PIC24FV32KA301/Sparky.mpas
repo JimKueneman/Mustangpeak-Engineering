@@ -8,7 +8,7 @@ const
   // Engine Parameters
   ENGINE_CYCLE = 4;
   CYLINDERS = 8;
-  STALL_RPM = 50;                 // This and the Max Advance Delay need to be thought about together so we don't run out of the 16bit Timer.  50RPM and 60 Degrees of advance is about 50,000 tick as 1:64 which is still 0.2 degrees at 7000 RPM  A good balance
+//  STALL_RPM = 50;                 // This and the Max Advance Delay need to be thought about together so we don't run out of the 16bit Timer.  50RPM and 60 Degrees of advance is about 50,000 tick as 1:64 which is still 0.2 degrees at 7000 RPM  A good balance
 
   // Coil Parameters
   COIL_MAG_L                     = 0.008;      // Henries
@@ -258,9 +258,9 @@ begin
 
   // Build my Advance table
   TimingCurveRPM[0] := 70.0;     TimingCurveDegrees[0] := 0.0;
-  TimingCurveRPM[1] := 1200.0;  TimingCurveDegrees[1] := 6.0;
-  TimingCurveRPM[2] := 2000.0;  TimingCurveDegrees[2] := 10.0;
-  TimingCurveRPM[3] := 2500.0;  TimingCurveDegrees[3] := 12.0;
+  TimingCurveRPM[1] := 1200.0;  TimingCurveDegrees[1] := 0.0;
+  TimingCurveRPM[2] := 2000.0;  TimingCurveDegrees[2] := 0.0;
+  TimingCurveRPM[3] := 2500.0;  TimingCurveDegrees[3] := 60.0;
 
   // Pin change Notification
   CN21IE_bit := 1;  // Pin Change Notification Interrupt on B9

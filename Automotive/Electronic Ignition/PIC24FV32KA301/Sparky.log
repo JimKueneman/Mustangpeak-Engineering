@@ -9,11 +9,11 @@ hint: 71	1001	Hint: Variable "Dwell_Delay_Count" has been declared, but not used
 hint: 71	1011	Hint: Variable "TimingAdvanceCount" has been eliminated by optimizer	Sparky.mpas
 hint: 339	1010	Hint: Unit "Sparky.mpas" has been recompiled	Sparky.mpas
 diagnostics: 0	134	Compiled Successfully	Z:\Automotive\Electronic Ignition\PIC24FV32KA301\Sparky.mpas
-diagnostics: 0	139	All files Compiled in 30 ms	 
+diagnostics: 0	139	All files Compiled in 40 ms	 
 hint: 0	1144	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)
 hint: 0	1144	Static RAM (bytes): 58   Dynamic RAM (bytes): 1990	Static RAM (bytes): 58   Dynamic RAM (bytes): 1990
 hint: 0	1144	Used ROM (bytes): 3544 (16%)  Free ROM (bytes): 18984 (84%)	Used ROM (bytes): 3544 (16%)  Free ROM (bytes): 18984 (84%)
 diagnostics: 0	145	Project Linked Successfully	Sparky.mppds
 diagnostics: 0	140	Linked in 80 ms	 
-diagnostics: 0	141	Project 'Sparky.mppds' completed: 150 ms	 
-diagnostics: 0	103	Finished successfully: 24 Nov 2017, 21:11:57	Sparky.mppds
+diagnostics: 0	141	Project 'Sparky.mppds' completed: 160 ms	 
+diagnostics: 0	103	Finished successfully: 25 Nov 2017, 04:33:51	Sparky.mppds
