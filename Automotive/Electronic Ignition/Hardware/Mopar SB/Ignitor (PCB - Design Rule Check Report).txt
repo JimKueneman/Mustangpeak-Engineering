@@ -1,0 +1,62 @@
+Design Rule Check Report
+------------------------
+
+Report File:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor (PCB - Design Rule Check Report).txt
+Report Written:     Sunday, December 03, 2017
+Project Path:       Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
+Design Path:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor.pcb
+Design Title:       
+Created:            11/3/2017 7:06:57 PM
+Last Saved:         12/3/2017 12:18:54 PM
+Editing Time:       10075 min
+Units:              mil (precision 0)
+
+
+Results
+=======
+
+
+No errors found
+
+
+Settings
+========
+
+
+Spacings
+
+=========
+
+Tracks        Yes
+Pads and Vias Yes
+Shapes        Yes
+Text          Yes
+Board         Yes
+Drills        Yes
+Components    No
+
+
+Manufacturing
+
+==============
+
+Min Drill Hole Size  Yes
+Min Track Width      Yes
+Min Annular Ring     Yes
+Copper Text In Board Yes
+Mirrored Text        Yes
+Routing Areas        Yes
+Drill Breakout       Yes
+
+
+Nets
+
+=====
+
+Net Completion               Yes
+Dangling Tracks              Yes
+Net Track Length Differences No
+
+
+
+End Of Report.

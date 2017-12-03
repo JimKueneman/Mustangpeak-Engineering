@@ -1,0 +1,27 @@
+Forward Design Changes Report
+-----------------------------
+
+Report File:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor (PCB - Forward Design Changes Report).txt
+Report Written:     Sunday, December 03, 2017
+Project Path:       Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
+Design Path:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor.pcb
+Design Title:       
+Created:            11/3/2017 7:06:57 PM
+Last Saved:         12/3/2017 1:08:08 PM
+Editing Time:       11085 min
+Units:              mil (precision 0)
+
+Disconnected pin "U2-10" from net "N0012".
+Disconnected pin "U2-11" from net "N0013".
+Disconnected pin "U4-7" from net "N0017".
+Disconnected pin "U4-8" from net "N0018".
+
+Deleted net "N0012".
+Deleted net "N0013".
+Deleted net "N0017".
+Deleted net "N0018".
+
+Connected pin "TP11-1" to net "GND".
+
+
+End Of Report.
