@@ -5,8 +5,7 @@ program DoublePulse;
 const
   MIN_RPM_BLANK_TIME = 5e-3;      MIN_RPM = 70;
   MAX_RPM_BLANK_TIME = 500e-6;    MAX_RPM = 7000;
-  
-  
+
   ENGINE_CYCLE = 4;
   CYLINDERS = 8;
   
@@ -19,10 +18,8 @@ const
   CLOCK_FREQ = real( OSCILLATORFREQ/CLOCKDIVIDER);
   CLOCK_PERIOD = real( 1/CLOCK_FREQ);
 
-  
   // Revolutions per Cycle
   REV_PER_CYCLE = ENGINE_CYCLE/2;
-  
 
 var
   Distributor_Period_Global, RPM_Global: real;
@@ -130,7 +127,6 @@ begin
   T3IE_bit := 1;                     // enable Timer1 interrupts
   // Lower Timer controls the setup Setup
   TON_T2CON_bit := 1;                // ON
-
 
   while true do
   begin        // Waitin for Pin Change Interrupt
