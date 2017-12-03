@@ -64,7 +64,7 @@ MMBTA06||#SM=3=SOT23-3L||@Manufacturer=OnSemi||@Manufacturer Part Number=MMBTA06
 MMBTA56||#SM=3=SOT23||@Manufacturer=Fairchild Semiconductor||@Manufacturer Part Number=MMBTA56||@Distributor=Digikey||@Distributor Part Number=MMBTA56FSCT-ND
 MPC2200||#SM=20=SOIC20||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 PESD1CAN||#SM=3=SOT23||@Manufacturer=NXP Semiconductor||@Manufacturer Part Number=PESD1CAN,215||@Distributor=Digikey||@Distributor Part Number=568-4032-1-ND
-PIC24FV32KA304||#SM=20=SOIC20||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+PIC24FV32KA304||#SM=20=SSOP-20||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 SB560||#DIL=2=DO-201||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 Series 27L Encoder||#MISC=7=Series 27L Encoder||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 Si9956BDY||#SM=8=SOIC8-N_MC||@Manufacturer=Vishay||@Manufacturer Part Number=Si9956BDY||@Distributor=Digikey||@Distributor Part Number=SI9945BDY-T1-GE3CT-ND

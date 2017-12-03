@@ -1,60 +1,17 @@
 Forward Design Changes Report
 -----------------------------
 
-Report File:        W:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\Design1 (PCB - Forward Design Changes Report).txt
-Report Written:     Wednesday, November 22, 2017
-Project Path:       W:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
-Design Path:        W:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\Design1.pcb
+Report File:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Design1 (PCB - Forward Design Changes Report).txt
+Report Written:     Saturday, December 02, 2017
+Project Path:       Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
+Design Path:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Design1.pcb
 Design Title:       
 Created:            11/3/2017 7:06:57 PM
-Last Saved:         11/22/2017 2:43:24 PM
-Editing Time:       783 min
+Last Saved:         12/2/2017 7:09:01 PM
+Editing Time:       9250 min
 Units:              mil (precision 0)
 
-Disconnected pin "J1-4" from net "UART_RX".
-Disconnected pin "J1-5" from net "UART_TX".
-Disconnected pin "U2-6" from net "UART_RX".
-Disconnected pin "U2-20" from net "UART_TX".
-
-Added value "Value=12pF" to component reference "C2".
-
-Added value "Value=12pF" to component reference "C5".
-
-Added value "Value=1k" to component reference "R5".
-
-Added value "Value=0.1uF" to component reference "C6".
-
-Added value "Value=1uF" to component reference "C9".
-
-Added value "Value=0.1uF" to component reference "C10".
-
-Added value "Value=1k" to component reference "R6".
-
-Added value "Value=1k" to component reference "R7".
-
-Added value "Value=1k" to component reference "R8".
-
-Added value "Value=1uF" to component reference "C11".
-
-Added value "Value=1uF" to component reference "C12".
-
-Added value "Value=1uF" to component reference "C13".
-
-Added value "Value=100" to component reference "R1".
-
-Added value "Value=1k" to component reference "R2".
-
-Added value "Value=100" to component reference "R3".
-
-Added value "Value=1k" to component reference "R4".
-
-Added value "Value=1k" to component reference "R9".
-
-Added value "Value=100" to component reference "R10".
-
-
-Connected pin "J1-4" to net "PGC".
-Connected pin "J1-5" to net "PGD".
+The designs are the same, so no design changes to forward.
 
 
 End Of Report.
