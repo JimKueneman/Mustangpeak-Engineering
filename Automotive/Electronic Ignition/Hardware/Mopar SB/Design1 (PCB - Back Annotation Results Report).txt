@@ -1,0 +1,23 @@
+Back Annotation Results Report
+------------------------------
+
+Report File:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Design1 (PCB - Back Annotation Results Report).txt
+Report Written:     Saturday, December 02, 2017
+Project Path:       Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
+Design Path:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Design1.pcb
+Design Title:       
+Created:            11/3/2017 7:06:57 PM
+Last Saved:         12/2/2017 3:46:44 PM
+Editing Time:       9042 min
+Units:              mil (precision 0)
+
+Back Annotate renames from the PCB design to all Schematic designs in project "SB Ignitor".
+
+Renamed Component from "TP6" to "Coil" in design "Design1.sch".
+Renamed Component from "TP1" to "Vin" in design "Design1.sch".
+Renamed Component from "R1" to "Trig" in design "Design1.sch".
+Renamed Component from "TP2" to "GND" in design "Design1.sch".
+Renamed Component from "TP3" to "Points" in design "Design1.sch".
+
+
+End Of Report.

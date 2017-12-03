@@ -1,0 +1,25 @@
+Back Annotation Renames Report
+------------------------------
+
+Report File:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Design1 (PCB - Back Annotation Renames Report).txt
+Report Written:     Saturday, December 02, 2017
+Project Path:       Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
+Design Path:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Design1.pcb
+Design Title:       
+Created:            11/3/2017 7:06:57 PM
+Last Saved:         12/2/2017 3:46:44 PM
+Editing Time:       9041 min
+Units:              mil (precision 0)
+
+Outstanding PCB renames awaiting back annotation to the Schematics design.
+
+Rename Component from "TP6" to "CoilNeg".
+Rename Component from "TP1" to "Vin".
+Rename Component from "R1" to "FiTech".
+Rename Component from "TP2" to "GND".
+Rename Component from "TP3" to "Points".
+Rename Component from "FiTech" to "Trigg".
+Rename Component from "Trigg" to "Trig".
+Rename Component from "CoilNeg" to "Coil".
+
+End Of Report.
