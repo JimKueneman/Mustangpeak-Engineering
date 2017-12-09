@@ -1,0 +1,260 @@
+program DoublePulse;
+
+{ Declarations section }
+
+const
+{
+  MIN_RPM_BLANK_TIME = 107e-3;    // Blank for 50% of the pulse at the given RPM
+  MIN_RPM = 70;
+  MAX_RPM_BLANK_TIME = 107e-6;
+  MAX_RPM = 70000;
+}
+  // Engine Parameters
+  ENGINE_CYCLE = 4;
+  CYLINDERS = 8;
+  STALL_RPM = 50;
+  
+  // Coil Parameters
+  COIL_MAG_L                     = 0.008;      // Henries
+  COIL_R                         = 1.5;        // Ohms
+  COIL_DESIRED_I                 = 4.5;        // Amps
+  COIL_PRIMIARY_V                = 14;         // Volts
+  CHANGE_NOTIFICATION_CALC_TIME  = 0.000300;   // The imperical calculation time before launching the Timer to start the DWELL
+  RPM_LIMIT                      = 7000;       // Shuts off the IGBT above this RPM
+  RPM_STALL                      = 70;         // Shuts off the IGBT below the RPM
+  MAX_DWELL_PERIOD               = 0.010;      // Never have the IGBT on for more than 10ms
+  
+  // MCU Setup Parameters
+  OSCILLATORFREQ = 32e6;
+  CLOCKDIVIDER = 2;
+  TIMER_DIVIDER = 256;
+  
+  // MCU Clock Calculated Parameters
+  CLOCK_FREQ = real( OSCILLATORFREQ/CLOCKDIVIDER);
+  CLOCK_PERIOD = real( 1/CLOCK_FREQ);
+  
+  // Dwell Start Timer Calculated Parameters
+  MAX_DWELL_COUNT = dWord(MAX_DWELL_PERIOD/CLOCK_PERIOD);
+  
+  // Coil Calculated Parameters
+  COIL_CHARGE_TIME = COIL_DESIRED_I * COIL_MAG_L/COIL_PRIMIARY_V;
+  
+  // Revolutions per Cycle
+  REV_PER_CYCLE = ENGINE_CYCLE/2;
+  
+  TACH_LO = 1;
+  TACH_HI = 0;
+  
+  
+  COILNEG = B0;    // Bit 0
+  TACHOUT = B9;    // Bit 9
+var
+  CoilNeg_Port: Word at PORTA;
+  CoilNeg_Pin: sbit at LATA0_bit;
+  CoilNeg_TRIS: sbit at TRISA0_bit;
+  
+  TachPort: Word at PORTB;
+  TachOut_Pin: sbit at LATB9_bit;
+  TachOut_TRIS: sbit at TRISB9_bit;
+  
+  HeartBeat_Port: Word at PORTA;
+  HeartBeat_Pin: sbit at LATA3_bit;
+  HeartBeat_TRIS: sbit at TRISA3_bit;
+  
+  Debug_Port: Word at PORTA;
+  Debug_Pin: sbit at LATA2_bit;
+  Debug_TRIS: sbit at TRISA2_bit;
+  
+  Distributor_Period_Global, RPM_Global: real;
+  
+  Distributor_Period_Array: array[8] of real;
+  PeriodCounter: Integer;
+
+  
+procedure interrupt_CCT1_RPM_Measurment_Timer(); iv IVT_ADDR_CCT1INTERRUPT;    // Interrupt for the HiWord Compare 1 (16Bit mode/32Bit mode)
+begin
+  CCT1IF_bit := 0;
+  LATA0_bit := not LATA0_bit;
+  CCPON_CCP1CON1L_bit := 0;    // Turn this timer off again.
+end;
+
+{
+procedure interrupt_CCT2_(); iv IVT_ADDR_CCT2INTERRUPT;    // Interrupt for the HiWord Compare 2 (16Bit mode/32Bit mode)
+begin
+  CCT2IF_bit := 0;
+end;
+
+procedure interrupt_Timer1(); iv IVT_ADDR_T1INTERRUPT;
+begin
+  T1IF_bit := 0;             // clear T1IF
+end;
+ }
+ 
+procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
+var
+  PortCopy: Word;
+  i: Integer;
+  BlankTime, Slope: real;
+  TimerCount: DWord;
+begin
+  PortCopy := CoilNeg_Port;    // Clear all changes
+  // Detect rising edges only
+  if PortCopy.COILNEG = 1 then
+  begin
+
+    // Stop the RPM Timer
+    CCPON_CCP1CON1L_bit := 0;
+    // Capture it contents
+    HiWord(TimerCount) := CCP1TMRH;
+    LoWord(TimerCount) := CCP1TMRL;
+    // Reset the RPM Timer
+    CCP1TMRH := $0000;
+    CCP1TMRL := $0000;       
+    // Start the RPM Timer for the next Cylinder Cycle
+    CCPON_CCP1CON1L_bit := 1;
+    
+    
+    Distributor_Period_Global := real( TimerCount) * CLOCK_PERIOD;
+
+    // Calcuate the RPM based on the last sensor signal
+    RPM_Global := 0.0;
+    if Distributor_Period_Global > 0.0 then
+      RPM_Global := 60/Distributor_Period_Global/CYLINDERS*REV_PER_CYCLE;
+      
+    Distributor_Period_Array[PeriodCounter] := Distributor_Period_Global;
+    Inc(PeriodCounter);
+    if PeriodCounter > 7 then PeriodCounter := 0;
+  {
+    // Are we too low or too high?
+    if (RPM_Global < MIN_RPM) then
+      BlankTime := MIN_RPM_BLANK_TIME
+    else
+    if (RPM_Global > MAX_RPM) then
+      BlankTime := MAX_RPM_BLANK_TIME
+    else begin         // Just right so extrapolate
+      Slope := (MAX_RPM_BLANK_TIME-MIN_RPM_BLANK_TIME)/(MAX_RPM-MIN_RPM);
+      BlankTime := -(Slope * (MAX_RPM - RPM_Global) - MAX_RPM_BLANK_TIME);  // y1 = -(m(x-x1)-y)
+    end;
+      }
+      
+    // Average over the last 8 firings
+    BlankTime := 0.0;
+    for i := 0 to 7 do
+      BlankTime := BlankTime + Distributor_Period_Array[i];
+    BlankTime := BlankTime/8*0.20;    // Just a bit more than 15 degrees dwell (out of 45)
+      
+ //   BlankTime := Distributor_Period_Global/2;
+    
+    TachOut_Pin := 0;
+    Delay_Cyc_Long( DWORD( BlankTime/CLOCK_PERIOD));
+    TachOut_Pin := 1;
+    
+  end;
+  
+  // Some free debounce guarding by putting this many micro seconds past entry
+  CNIF_bit := 0;
+end;
+
+var
+  StrBuffer: array[23] of Char;
+begin
+  { Main program }
+  ANSA := 0;        // Make them all Digital
+  ANSB := 0;
+  
+  Distributor_Period_Array[0] := 0.0;
+  Distributor_Period_Array[1] := 0.0;
+  Distributor_Period_Array[2] := 0.0;
+  Distributor_Period_Array[3] := 0.0;
+  Distributor_Period_Array[4] := 0.0;
+  Distributor_Period_Array[5] := 0.0;
+  Distributor_Period_Array[6] := 0.0;
+  Distributor_Period_Array[7] := 0.0;
+  PeriodCounter := 0;
+
+  TachOut_Pin := TACH_LO;   // Set it low
+  HeartBeat_Pin := 0;
+  Debug_Pin := 0;
+  
+  CoilNeg_TRIS := 1;   // Input
+  TachOut_TRIS := 0;   // Tach Output
+  HeartBeat_TRIS := 0; // Output
+  Debug_TRIS := 0;
+  
+  // Clock Setup
+  CLKDIV := 0;                      // Set both dividers to 1:1 and don't use the DOZE to reset dividers (power saving feature)
+
+  // Pin change Notification
+  CN2IE_bit := 1;  // Pin Change Notification Interrupt on RA0
+  CNIP_0_bit := 1;  // Interrupt priority = 7
+  CNIP_1_bit := 1;
+  CNIP_2_bit := 1;
+  CNIF_bit := 0;    // Clear Pin Change Interrupt flag
+  CNIE_bit := 1;    // Enable all Pin Change Interrupts
+  
+
+  // Compare Module Setup as an Event Timer
+  TRIGEN_CCP1CON1H_bit := 0;
+  SYNC_0_CCP1CON1H_bit := 0;
+  SYNC_1_CCP1CON1H_bit := 0;
+  SYNC_2_CCP1CON1H_bit := 0;
+  SYNC_3_CCP1CON1H_bit := 0;
+  SYNC_4_CCP1CON1H_bit := 0;
+  TMR32_CCP1CON1L_bit := 1; // 32 Bit Timers
+  CLKSEL_0_CCP1CON1L_bit := 0;
+  CLKSEL_1_CCP1CON1L_bit := 0;
+  CLKSEL_2_CCP1CON1L_bit := 0;
+  TMRPS_0_CCP1CON1L_bit := 0;
+  TMRPS_1_CCP1CON1L_bit := 0;  // Divide by 1
+  CCP1PRL := $FFFF;
+  CCP1PRH := $FFFF;
+  CCT1IF_bit := 0;
+  CCT1IE_bit := 1;
+  CCPON_CCP1CON1L_bit := 0;
+  {
+  // Compare Module Setup as an Event Timer
+  TRIGEN_CCP2CON1H_bit := 0;
+  SYNC_0_CCP2CON1H_bit := 0;
+  SYNC_1_CCP2CON1H_bit := 0;
+  SYNC_2_CCP2CON1H_bit := 0;
+  SYNC_3_CCP2CON1H_bit := 0;
+  SYNC_4_CCP2CON1H_bit := 0;
+  TMR32_CCP2CON1L_bit := 1; // 32 Bit Timers
+  CLKSEL_0_CCP2CON1L_bit := 0;
+  CLKSEL_1_CCP2CON1L_bit := 0;
+  CLKSEL_2_CCP2CON1L_bit := 0;
+  TMRPS_0_CCP2CON1L_bit := 0;
+  TMRPS_1_CCP2CON1L_bit := 0;  // Divide by 1
+  CCP2PRL := $FFFF;
+  CCP2PRH := $FFFF;
+  CCT2IF_bit := 0;       //  CCT for the High Word in 32 Bit
+  CCT2IE_bit := 1;       //  CCT for the High Word in 32 Bit
+  CCPON_CCP2CON1L_bit := 1;
+
+  // Timer Setup
+  TMR1 := 0;
+  TON_bit := 0;                // OFF
+  TCKPS_0_bit := 1;            // 00 = 1; 01 = 8; 10 = 64; 11 = 256
+  TCKPS_1_bit := 0;
+  IPC0 := IPC0 or 0x1000;      // interrupt priority level = 1
+  T1IF_bit := 0;               // clear T1IF
+  T1IE_bit := 1;               // enable Timer1 interrupts
+  TON_bit := 1;                // ON
+   }
+
+
+  UART1_Init(115200);
+  while true do
+  begin
+    Delay_ms(100);
+    UART1_Write_Text('RPM=');
+    FloatToStr(RPM_Global, StrBuffer);
+    UART1_Write_Text(StrBuffer);
+    UART1_Write(#13);
+    // Waitin for Pin Change Interrupt
+    HeartBeat_Pin := not HeartBeat_Pin;
+
+    Debug_Pin := not Debug_Pin;
+    Delay_us(100);
+  end;
+end.
