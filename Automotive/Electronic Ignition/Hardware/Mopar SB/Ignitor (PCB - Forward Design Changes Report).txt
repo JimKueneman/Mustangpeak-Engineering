@@ -1,27 +1,39 @@
 Forward Design Changes Report
 -----------------------------
 
-Report File:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor (PCB - Forward Design Changes Report).txt
-Report Written:     Sunday, December 03, 2017
-Project Path:       Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
-Design Path:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor.pcb
+Report File:        Y:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor (PCB - Forward Design Changes Report).txt
+Report Written:     Saturday, December 09, 2017
+Project Path:       Y:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
+Design Path:        Y:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor.pcb
 Design Title:       
-Created:            11/3/2017 7:06:57 PM
-Last Saved:         12/3/2017 1:08:08 PM
-Editing Time:       11085 min
+Created:            11/3/2017 6:06:57 PM
+Last Saved:         12/9/2017 4:56:15 AM
+Editing Time:       11311 min
 Units:              mil (precision 0)
 
-Disconnected pin "U2-10" from net "N0012".
-Disconnected pin "U2-11" from net "N0013".
-Disconnected pin "U4-7" from net "N0017".
-Disconnected pin "U4-8" from net "N0018".
+Disconnected pin "U1-1" from net "12V".
+Disconnected pin "U1-2" from net "GND".
+Disconnected pin "U1-3" from net "+5V".
+Disconnected pin "U1-4" from net "GND".
+Disconnected pin "U3-1" from net "12V_DF".
+Disconnected pin "U3-2" from net "GND".
+Disconnected pin "U3-3" from net "+5V_DF".
+Disconnected pin "U3-4" from net "GND".
 
-Deleted net "N0012".
-Deleted net "N0013".
-Deleted net "N0017".
-Deleted net "N0018".
+Deleted component reference "U1".
+Deleted component reference "U3".
 
-Connected pin "TP11-1" to net "GND".
+Added component reference "U6" of component "NCV8664", package "SM".
+Added component reference "U5" of component "NCV8664", package "SM".
+
+Connected pin "U6-1" to net "12V".
+Connected pin "U6-2" to net "GND".
+Connected pin "U6-4" to net "GND".
+Connected pin "U6-3" to net "+5V".
+Connected pin "U5-1" to net "12V_DF".
+Connected pin "U5-2" to net "GND".
+Connected pin "U5-4" to net "GND".
+Connected pin "U5-3" to net "+5V_DF".
 
 
 End Of Report.

@@ -1,22 +1,26 @@
 Design Rule Check Report
 ------------------------
 
-Report File:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor (PCB - Design Rule Check Report).txt
-Report Written:     Sunday, December 03, 2017
-Project Path:       Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
-Design Path:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor.pcb
+Report File:        Y:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor (PCB - Design Rule Check Report).txt
+Report Written:     Friday, December 08, 2017
+Project Path:       Y:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
+Design Path:        Y:\Mustangpeak-Engineering\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor.pcb
 Design Title:       
-Created:            11/3/2017 7:06:57 PM
-Last Saved:         12/3/2017 12:18:54 PM
-Editing Time:       10075 min
+Created:            11/3/2017 6:06:57 PM
+Last Saved:         12/8/2017 7:34:36 PM
+Editing Time:       10752 min
 Units:              mil (precision 0)
 
 
 Results
 =======
 
+Single pin net N0012 on Pad at 6540,3270
+Single pin net N0013 on Pad at 6905,3310
+Single pin net N0017 on Pad at 4745,3305
+Single pin net N0018 on Pad at 4745,3195
 
-No errors found
+Number of errors found : 4
 
 
 Settings
