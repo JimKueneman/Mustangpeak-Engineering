@@ -1,0 +1,38 @@
+main
+	UART1_Init
+		Get_Fosc_kHz
+		Get_Fosc_Per_Cyc
+		Delay_10ms
+		_Multiply_32x32
+		_Modulus_32x32
+		_Divide_32x32
+	UART1_Write_Text
+		UART1_Write
+	FloatToStr
+		LongIntToStr
+			_Modulus_32x32
+			_Divide_32x32
+		_Float2Longint
+		_Compare_Le_Fp
+			_Compare_Fp
+		_Long2Float
+		_Sub_FP
+			_AddSub_FP
+		_Mul_FP
+	UART_Write_Text
+		UART_Write
+			UART1_Write
+	IntToStr
+	UART1_Write
+interrupt_PinChangeNotification
+	Delay_Cyc_Long
+	_Long2Float
+	_Mul_FP
+	_Compare_Ge_Fp
+		_Compare_Fp
+	_Div_FP
+	_Compare_Le_Fp
+	_AddSub_FP
+	_Float2Longword
+interrupt_CCT2_Stall_Timer
+interrupt_CCT1_RPM_Measurment_Timer

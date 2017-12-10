@@ -3,26 +3,15 @@ program DoublePulse;
 { Declarations section }
 
 const
-{
-  MIN_RPM_BLANK_TIME = 107e-3;    // Blank for 50% of the pulse at the given RPM
-  MIN_RPM = 70;
-  MAX_RPM_BLANK_TIME = 107e-6;
-  MAX_RPM = 70000;
-}
+  // Smoothing RPM Filter Length
+  RPM_FILTER_LEN = 8;
+  
   // Engine Parameters
   ENGINE_CYCLE = 4;
   CYLINDERS = 8;
   STALL_RPM = 50;
   
-  // Coil Parameters
-  COIL_MAG_L                     = 0.008;      // Henries
-  COIL_R                         = 1.5;        // Ohms
-  COIL_DESIRED_I                 = 4.5;        // Amps
-  COIL_PRIMIARY_V                = 14;         // Volts
-  CHANGE_NOTIFICATION_CALC_TIME  = 0.000300;   // The imperical calculation time before launching the Timer to start the DWELL
-  RPM_LIMIT                      = 7000;       // Shuts off the IGBT above this RPM
-  RPM_STALL                      = 70;         // Shuts off the IGBT below the RPM
-  MAX_DWELL_PERIOD               = 0.010;      // Never have the IGBT on for more than 10ms
+  BLANK_PERCENT = 0.35;
   
   // MCU Setup Parameters
   OSCILLATORFREQ = 32e6;
@@ -33,19 +22,20 @@ const
   CLOCK_FREQ = real( OSCILLATORFREQ/CLOCKDIVIDER);
   CLOCK_PERIOD = real( 1/CLOCK_FREQ);
   
-  // Dwell Start Timer Calculated Parameters
-  MAX_DWELL_COUNT = dWord(MAX_DWELL_PERIOD/CLOCK_PERIOD);
-  
-  // Coil Calculated Parameters
-  COIL_CHARGE_TIME = COIL_DESIRED_I * COIL_MAG_L/COIL_PRIMIARY_V;
-  
   // Revolutions per Cycle
   REV_PER_CYCLE = ENGINE_CYCLE/2;
   
+  STALL_PERIOD = 60/(STALL_RPM*CYLINDERS*REV_PER_CYCLE)*4;
+  
+  
+  // State
+  STATE_STALLED = 0;
+  STATE_CRANKING = 1;
+  STATE_RUNNING = 2;
+  
   TACH_LO = 1;
   TACH_HI = 0;
-  
-  
+
   COILNEG = B0;    // Bit 0
   TACHOUT = B9;    // Bit 9
 var
@@ -67,8 +57,10 @@ var
   
   Distributor_Period_Global, RPM_Global: real;
   
-  Distributor_Period_Array: array[8] of real;
+  Distributor_Period_Array: array[RPM_FILTER_LEN] of real;
   PeriodCounter: Integer;
+  
+  State: Integer;
 
   
 procedure interrupt_CCT1_RPM_Measurment_Timer(); iv IVT_ADDR_CCT1INTERRUPT;    // Interrupt for the HiWord Compare 1 (16Bit mode/32Bit mode)
@@ -78,12 +70,15 @@ begin
   CCPON_CCP1CON1L_bit := 0;    // Turn this timer off again.
 end;
 
-{
-procedure interrupt_CCT2_(); iv IVT_ADDR_CCT2INTERRUPT;    // Interrupt for the HiWord Compare 2 (16Bit mode/32Bit mode)
+
+procedure interrupt_CCT2_Stall_Timer(); iv IVT_ADDR_CCT2INTERRUPT;    // Interrupt for the HiWord Compare 2 (16Bit mode/32Bit mode)
 begin
+  // Called if the CN interrupt is not called fast enough
+  State := STATE_STALLED;
   CCT2IF_bit := 0;
 end;
 
+{
 procedure interrupt_Timer1(); iv IVT_ADDR_T1INTERRUPT;
 begin
   T1IF_bit := 0;             // clear T1IF
@@ -113,42 +108,61 @@ begin
     // Start the RPM Timer for the next Cylinder Cycle
     CCPON_CCP1CON1L_bit := 1;
     
+    // Stop the Stall Timer
+    CCPON_CCP2CON1L_bit := 0;
+    // Reset the Stall Timer
+    CCP2TMRH := $0000;
+    CCP2TMRL := $0000;
+    // Start the RPM Timer for the next Cylinder Cycle
+    CCPON_CCP2CON1L_bit := 1;
+    
     
     Distributor_Period_Global := real( TimerCount) * CLOCK_PERIOD;
-
+    
     // Calcuate the RPM based on the last sensor signal
     RPM_Global := 0.0;
     if Distributor_Period_Global > 0.0 then
       RPM_Global := 60/Distributor_Period_Global/CYLINDERS*REV_PER_CYCLE;
       
-    Distributor_Period_Array[PeriodCounter] := Distributor_Period_Global;
-    Inc(PeriodCounter);
-    if PeriodCounter > 7 then PeriodCounter := 0;
-  {
-    // Are we too low or too high?
-    if (RPM_Global < MIN_RPM) then
-      BlankTime := MIN_RPM_BLANK_TIME
-    else
-    if (RPM_Global > MAX_RPM) then
-      BlankTime := MAX_RPM_BLANK_TIME
-    else begin         // Just right so extrapolate
-      Slope := (MAX_RPM_BLANK_TIME-MIN_RPM_BLANK_TIME)/(MAX_RPM-MIN_RPM);
-      BlankTime := -(Slope * (MAX_RPM - RPM_Global) - MAX_RPM_BLANK_TIME);  // y1 = -(m(x-x1)-y)
-    end;
-      }
+    case State of
+      STATE_STALLED :
+        begin
+          if RPM_Global > STALL_RPM then
+            State := STATE_CRANKING;
+        end;
+      STATE_CRANKING :
+        begin
+          Distributor_Period_Array[PeriodCounter] := Distributor_Period_Global;
+          Inc(PeriodCounter);
+          if PeriodCounter > 7 then PeriodCounter := 0;
+          
+          BlankTime := Distributor_Period_Global*BLANK_PERCENT;
+          
+          if PeriodCounter = 7 then
+            State := STATE_RUNNING;
+            
+          if RPM_Global < STALL_RPM then
+            State := STATE_STALLED;
+        end;
+      STATE_RUNNING :
+        begin
+          Distributor_Period_Array[PeriodCounter] := Distributor_Period_Global;
+          Inc(PeriodCounter);
+          if PeriodCounter > 7 then PeriodCounter := 0;
       
-    // Average over the last 8 firings
-    BlankTime := 0.0;
-    for i := 0 to 7 do
-      BlankTime := BlankTime + Distributor_Period_Array[i];
-    BlankTime := BlankTime/8*0.20;    // Just a bit more than 15 degrees dwell (out of 45)
+          // Average over the last RPM_FILTER_LEN firings
+          BlankTime := 0.0;
+          for i := 0 to RPM_FILTER_LEN-1 do
+            BlankTime := BlankTime + Distributor_Period_Array[i];
+          BlankTime := (BlankTime/RPM_FILTER_LEN)*BLANK_PERCENT;    // Just a bit more than 15 degrees dwell (out of 45)
+      end else
+        State := STATE_STALLED;
+    end;    // Case
       
- //   BlankTime := Distributor_Period_Global/2;
     
     TachOut_Pin := 0;
     Delay_Cyc_Long( DWORD( BlankTime/CLOCK_PERIOD));
     TachOut_Pin := 1;
-    
   end;
   
   // Some free debounce guarding by putting this many micro seconds past entry
@@ -171,6 +185,7 @@ begin
   Distributor_Period_Array[6] := 0.0;
   Distributor_Period_Array[7] := 0.0;
   PeriodCounter := 0;
+  State := STATE_STALLED;
 
   TachOut_Pin := TACH_LO;   // Set it low
   HeartBeat_Pin := 0;
@@ -211,7 +226,7 @@ begin
   CCT1IF_bit := 0;
   CCT1IE_bit := 1;
   CCPON_CCP1CON1L_bit := 0;
-  {
+
   // Compare Module Setup as an Event Timer
   TRIGEN_CCP2CON1H_bit := 0;
   SYNC_0_CCP2CON1H_bit := 0;
@@ -225,11 +240,13 @@ begin
   CLKSEL_2_CCP2CON1L_bit := 0;
   TMRPS_0_CCP2CON1L_bit := 0;
   TMRPS_1_CCP2CON1L_bit := 0;  // Divide by 1
-  CCP2PRL := $FFFF;
-  CCP2PRH := $FFFF;
+  CCP2PRL := LoWord( DWORD(STALL_PERIOD/CLOCK_PERIOD*REV_PER_CYCLE));
+  CCP2PRH := HiWord( DWORD(STALL_PERIOD/CLOCK_PERIOD*REV_PER_CYCLE));
   CCT2IF_bit := 0;       //  CCT for the High Word in 32 Bit
   CCT2IE_bit := 1;       //  CCT for the High Word in 32 Bit
   CCPON_CCP2CON1L_bit := 1;
+
+{
 
   // Timer Setup
   TMR1 := 0;
@@ -240,7 +257,7 @@ begin
   T1IF_bit := 0;               // clear T1IF
   T1IE_bit := 1;               // enable Timer1 interrupts
   TON_bit := 1;                // ON
-   }
+  }
 
 
   UART1_Init(115200);
@@ -250,6 +267,9 @@ begin
     UART1_Write_Text('RPM=');
     FloatToStr(RPM_Global, StrBuffer);
     UART1_Write_Text(StrBuffer);
+    UART_Write_Text('  State=');
+    IntToStr(State, StrBuffer);
+    UART_Write_Text(StrBuffer);
     UART1_Write(#13);
     // Waitin for Pin Change Interrupt
     HeartBeat_Pin := not HeartBeat_Pin;
