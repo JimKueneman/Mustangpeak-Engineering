@@ -25,7 +25,7 @@ const
   // Revolutions per Cycle
   REV_PER_CYCLE = ENGINE_CYCLE/2;
   
-  STALL_PERIOD = 60/(STALL_RPM*CYLINDERS*REV_PER_CYCLE)*4;
+  STALL_DISTRIBUTOR_PERIOD = real( 60/(STALL_RPM*CYLINDERS*REV_PER_CYCLE)*2);
   
   
   // State
@@ -57,28 +57,32 @@ var
   
   Distributor_Period_Global, RPM_Global: real;
   
-  Distributor_Period_Array: array[RPM_FILTER_LEN] of real;
-  PeriodCounter: Integer;
+  Distributor_Period_Array: array[RPM_FILTER_LEN+1] of real;
+  Distributor_Period_Counter: Integer;
   
   State: Integer;
 
   
-procedure interrupt_CCT1_RPM_Measurment_Timer(); iv IVT_ADDR_CCT1INTERRUPT;    // Interrupt for the HiWord Compare 1 (16Bit mode/32Bit mode)
+procedure interrupt_CCT1_RPM_Measurment_And_Stall_Timer(); iv IVT_ADDR_CCT1INTERRUPT;    // Interrupt for the HiWord Compare 1 (16Bit mode/32Bit mode)
 begin
+  // Reset the RPM/Stall Timer; Keep looking for stalls as that is the only way to enter this
+  CCP1TMRH := $0000;
+  CCP1TMRL := $0000;
   CCT1IF_bit := 0;
-  LATA0_bit := not LATA0_bit;
-  CCPON_CCP1CON1L_bit := 0;    // Turn this timer off again.
+  State := STATE_STALLED;
+  Debug_Pin := not Debug_Pin;
+  UART1_Write_Text('Stall Detected');
 end;
 
-
+     {
 procedure interrupt_CCT2_Stall_Timer(); iv IVT_ADDR_CCT2INTERRUPT;    // Interrupt for the HiWord Compare 2 (16Bit mode/32Bit mode)
 begin
   // Called if the CN interrupt is not called fast enough
   State := STATE_STALLED;
+  Debug_Pin := not Debug_Pin;
   CCT2IF_bit := 0;
 end;
 
-{
 procedure interrupt_Timer1(); iv IVT_ADDR_T1INTERRUPT;
 begin
   T1IF_bit := 0;             // clear T1IF
@@ -89,33 +93,26 @@ procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
 var
   PortCopy: Word;
   i: Integer;
-  BlankTime, Slope: real;
+  BlankTime: real;
   TimerCount: DWord;
+  LocalStrBuffer: array[23] of Char;
 begin
   PortCopy := CoilNeg_Port;    // Clear all changes
   // Detect rising edges only
   if PortCopy.COILNEG = 1 then
   begin
-
     // Stop the RPM Timer
     CCPON_CCP1CON1L_bit := 0;
     // Capture it contents
     HiWord(TimerCount) := CCP1TMRH;
     LoWord(TimerCount) := CCP1TMRL;
-    // Reset the RPM Timer
+    // Reset the RPM/Stall Timer
     CCP1TMRH := $0000;
     CCP1TMRL := $0000;       
     // Start the RPM Timer for the next Cylinder Cycle
     CCPON_CCP1CON1L_bit := 1;
-    
-    // Stop the Stall Timer
-    CCPON_CCP2CON1L_bit := 0;
-    // Reset the Stall Timer
-    CCP2TMRH := $0000;
-    CCP2TMRL := $0000;
-    // Start the RPM Timer for the next Cylinder Cycle
-    CCPON_CCP2CON1L_bit := 1;
-    
+    // Makes sure it can't jump to the stall interrupt
+    CCT1IF_bit := 0;
     
     Distributor_Period_Global := real( TimerCount) * CLOCK_PERIOD;
     
@@ -127,28 +124,35 @@ begin
     case State of
       STATE_STALLED :
         begin
-          if RPM_Global > STALL_RPM then
-            State := STATE_CRANKING;
+          Distributor_Period_Counter := 0;
+          if RPM_Global > STALL_RPM then            // Are we cranking fast enough yet?
+            State := STATE_CRANKING;                // Yes move on the Cranking
         end;
       STATE_CRANKING :
         begin
-          Distributor_Period_Array[PeriodCounter] := Distributor_Period_Global;
-          Inc(PeriodCounter);
-          if PeriodCounter > 7 then PeriodCounter := 0;
+          // Start filling in the Filter Buffer
+          Distributor_Period_Array[Distributor_Period_Counter] := Distributor_Period_Global;
+          Inc(Distributor_Period_Counter);
+          if Distributor_Period_Counter >= RPM_FILTER_LEN then
+          begin
+            Distributor_Period_Counter := 0;
+            State := STATE_RUNNING;    // All items are recent items in the buffer.  Start running
+          end;
           
+          // Just use the intantanious time until we get the historical times out of the buffer
           BlankTime := Distributor_Period_Global*BLANK_PERCENT;
-          
-          if PeriodCounter = 7 then
-            State := STATE_RUNNING;
             
+          // Oops, stalled start over
           if RPM_Global < STALL_RPM then
             State := STATE_STALLED;
         end;
       STATE_RUNNING :
         begin
-          Distributor_Period_Array[PeriodCounter] := Distributor_Period_Global;
-          Inc(PeriodCounter);
-          if PeriodCounter > 7 then PeriodCounter := 0;
+          // Insert the lastest item in the array
+          Distributor_Period_Array[Distributor_Period_Counter] := Distributor_Period_Global;
+          Inc(Distributor_Period_Counter);
+          // Update the array counter
+          if Distributor_Period_Counter >= RPM_FILTER_LEN then Distributor_Period_Counter := 0;
       
           // Average over the last RPM_FILTER_LEN firings
           BlankTime := 0.0;
@@ -156,13 +160,13 @@ begin
             BlankTime := BlankTime + Distributor_Period_Array[i];
           BlankTime := (BlankTime/RPM_FILTER_LEN)*BLANK_PERCENT;    // Just a bit more than 15 degrees dwell (out of 45)
       end else
-        State := STATE_STALLED;
+        State := STATE_STALLED;     // State is messed up, start over
     end;    // Case
       
     
-    TachOut_Pin := 0;
+    TachOut_Pin := TACH_Hi;
     Delay_Cyc_Long( DWORD( BlankTime/CLOCK_PERIOD));
-    TachOut_Pin := 1;
+    TachOut_Pin := TACH_LO;
   end;
   
   // Some free debounce guarding by putting this many micro seconds past entry
@@ -184,7 +188,7 @@ begin
   Distributor_Period_Array[5] := 0.0;
   Distributor_Period_Array[6] := 0.0;
   Distributor_Period_Array[7] := 0.0;
-  PeriodCounter := 0;
+  Distributor_Period_Counter := 0;
   State := STATE_STALLED;
 
   TachOut_Pin := TACH_LO;   // Set it low
@@ -199,16 +203,8 @@ begin
   // Clock Setup
   CLKDIV := 0;                      // Set both dividers to 1:1 and don't use the DOZE to reset dividers (power saving feature)
 
-  // Pin change Notification
-  CN2IE_bit := 1;  // Pin Change Notification Interrupt on RA0
-  CNIP_0_bit := 1;  // Interrupt priority = 7
-  CNIP_1_bit := 1;
-  CNIP_2_bit := 1;
-  CNIF_bit := 0;    // Clear Pin Change Interrupt flag
-  CNIE_bit := 1;    // Enable all Pin Change Interrupts
-  
-
   // Compare Module Setup as an Event Timer
+  CCPON_CCP1CON1L_bit := 0;  // Off
   TRIGEN_CCP1CON1H_bit := 0;
   SYNC_0_CCP1CON1H_bit := 0;
   SYNC_1_CCP1CON1H_bit := 0;
@@ -221,12 +217,18 @@ begin
   CLKSEL_2_CCP1CON1L_bit := 0;
   TMRPS_0_CCP1CON1L_bit := 0;
   TMRPS_1_CCP1CON1L_bit := 0;  // Divide by 1
-  CCP1PRL := $FFFF;
-  CCP1PRH := $FFFF;
+  CCP1TMRH := $0000;
+  CCP1TMRL := $0000;
+  CCP1PRL := LoWord( DWORD(STALL_DISTRIBUTOR_PERIOD/CLOCK_PERIOD));
+  CCP1PRH := HiWord( DWORD(STALL_DISTRIBUTOR_PERIOD/CLOCK_PERIOD));
+  CCT1IP_0_bit := 1;
+  CCT1IP_1_bit := 1;
+  CCT2IP_2_bit := 0;
   CCT1IF_bit := 0;
   CCT1IE_bit := 1;
-  CCPON_CCP1CON1L_bit := 0;
+  CCPON_CCP1CON1L_bit := 1; // ON, start looking for a stall
 
+{
   // Compare Module Setup as an Event Timer
   TRIGEN_CCP2CON1H_bit := 0;
   SYNC_0_CCP2CON1H_bit := 0;
@@ -244,9 +246,10 @@ begin
   CCP2PRH := HiWord( DWORD(STALL_PERIOD/CLOCK_PERIOD*REV_PER_CYCLE));
   CCT2IF_bit := 0;       //  CCT for the High Word in 32 Bit
   CCT2IE_bit := 1;       //  CCT for the High Word in 32 Bit
+  CCT2IP_1_bit := 1;     // Low Priority, at least lower than the CN
+  CCT2IP_2_bit := 0;
+  CCT2IP_2_bit := 0;
   CCPON_CCP2CON1L_bit := 1;
-
-{
 
   // Timer Setup
   TMR1 := 0;
@@ -261,6 +264,35 @@ begin
 
 
   UART1_Init(115200);
+  Delay_ms(100);
+  
+  UART1_Write_Text('STALL_DISTRIBUTOR_PERIOD=');
+  FloatToStr(STALL_DISTRIBUTOR_PERIOD, StrBuffer);
+  UART1_Write_Text(StrBuffer);
+  
+  UART1_Write_Text('DWORD(STALL_DISTRIBUTOR_PERIOD/CLOCK_PERIOD)=');
+  LongWordToStr(DWORD(STALL_DISTRIBUTOR_PERIOD/CLOCK_PERIOD), StrBuffer);
+  UART1_Write_Text(StrBuffer);
+  
+  UART1_Write_Text('PRL=');
+  WordToStr(CCP1PRL, StrBuffer);
+  UART1_Write_Text(StrBuffer);
+  UART_Write_Text('  PRH=');
+  WordToStr(CCP1PRH, StrBuffer);
+  UART_Write_Text(StrBuffer);
+  UART1_Write(#13);
+
+  
+  // ALWAYS DO THIS LAST
+  // Pin change Notification
+  CN2IE_bit := 1;  // Pin Change Notification Interrupt on RA0
+  CNIP_0_bit := 1;  // Interrupt priority = 7
+  CNIP_1_bit := 1;
+  CNIP_2_bit := 1;
+  CNIF_bit := 0;    // Clear Pin Change Interrupt flag
+  CNIE_bit := 1;    // Enable all Pin Change Interrupts
+
+  
   while true do
   begin
     Delay_ms(100);
@@ -273,8 +305,6 @@ begin
     UART1_Write(#13);
     // Waitin for Pin Change Interrupt
     HeartBeat_Pin := not HeartBeat_Pin;
-
-    Debug_Pin := not Debug_Pin;
     Delay_us(100);
   end;
 end.

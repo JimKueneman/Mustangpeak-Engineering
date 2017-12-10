@@ -19,11 +19,15 @@ main
 		_Sub_FP
 			_AddSub_FP
 		_Mul_FP
+	LongWordToStr
+		_Modulus_32x32
+		_Divide_32x32
+	WordToStr
 	UART_Write_Text
 		UART_Write
 			UART1_Write
-	IntToStr
 	UART1_Write
+	IntToStr
 interrupt_PinChangeNotification
 	Delay_Cyc_Long
 	_Long2Float
@@ -34,5 +38,5 @@ interrupt_PinChangeNotification
 	_Compare_Le_Fp
 	_AddSub_FP
 	_Float2Longword
-interrupt_CCT2_Stall_Timer
-interrupt_CCT1_RPM_Measurment_Timer
+interrupt_CCT1_RPM_Measurment_And_Stall_Timer
+	UART1_Write_Text
