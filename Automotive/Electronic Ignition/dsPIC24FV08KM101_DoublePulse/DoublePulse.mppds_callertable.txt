@@ -29,6 +29,9 @@ main
 	UART1_Write
 	IntToStr
 interrupt_PinChangeNotification
+	RPM_To_Distributor_Period
+		_Mul_FP
+		_Div_FP
 	Delay_Cyc_Long
 	_Long2Float
 	_Mul_FP

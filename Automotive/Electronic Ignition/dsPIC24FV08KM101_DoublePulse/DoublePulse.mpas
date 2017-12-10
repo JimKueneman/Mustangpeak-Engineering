@@ -10,6 +10,7 @@ const
   ENGINE_CYCLE = 4;
   CYLINDERS = 8;
   STALL_RPM = 50;
+  MAX_CRANKING_RPM = 200;
   
   BLANK_PERCENT = 0.35;
   
@@ -61,6 +62,11 @@ var
   Distributor_Period_Counter: Integer;
   
   State: Integer;
+  
+function RPM_To_Distributor_Period(RPM: real): real;
+begin
+  Result := real( 60/(RPM*CYLINDERS*REV_PER_CYCLE)*2);
+end;
 
   
 procedure interrupt_CCT1_RPM_Measurment_And_Stall_Timer(); iv IVT_ADDR_CCT1INTERRUPT;    // Interrupt for the HiWord Compare 1 (16Bit mode/32Bit mode)
@@ -70,7 +76,6 @@ begin
   CCP1TMRL := $0000;
   CCT1IF_bit := 0;
   State := STATE_STALLED;
-  Debug_Pin := not Debug_Pin;
   UART1_Write_Text('Stall Detected');
 end;
 
@@ -120,16 +125,25 @@ begin
     RPM_Global := 0.0;
     if Distributor_Period_Global > 0.0 then
       RPM_Global := 60/Distributor_Period_Global/CYLINDERS*REV_PER_CYCLE;
-      
+
+    
     case State of
       STATE_STALLED :
         begin
           Distributor_Period_Counter := 0;
+          BlankTime := 0;
           if RPM_Global > STALL_RPM then            // Are we cranking fast enough yet?
             State := STATE_CRANKING;                // Yes move on the Cranking
         end;
       STATE_CRANKING :
         begin
+          // If the RPM is crazy force a constant value while cranding
+          if RPM_Global > MAX_CRANKING_RPM then
+          begin
+            Distributor_Period_Global := RPM_To_Distributor_Period(MAX_CRANKING_RPM);
+            RPM_Global := MAX_CRANKING_RPM;
+          end;
+          
           // Start filling in the Filter Buffer
           Distributor_Period_Array[Distributor_Period_Counter] := Distributor_Period_Global;
           Inc(Distributor_Period_Counter);
@@ -305,6 +319,5 @@ begin
     UART1_Write(#13);
     // Waitin for Pin Change Interrupt
     HeartBeat_Pin := not HeartBeat_Pin;
-    Delay_us(100);
   end;
 end.
