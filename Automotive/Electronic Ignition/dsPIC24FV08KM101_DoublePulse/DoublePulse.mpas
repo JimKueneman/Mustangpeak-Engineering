@@ -65,10 +65,18 @@ var
   
 function RPM_To_Distributor_Period(RPM: real): real;
 begin
-  Result := real( 60/(RPM*CYLINDERS*REV_PER_CYCLE)*2);
+  Result := 0.0;
+  if RPM > 0 then
+    Result := real( 60/(RPM*CYLINDERS*REV_PER_CYCLE)*REV_PER_CYCLE);
 end;
 
-  
+function Distributor_Period_To_RPM(Distributor_Period: real): real;
+begin
+  Result := 0.0;
+  if Distributor_Period_Global > 0.0 then
+    Result := real( 60/Distributor_Period_Global/CYLINDERS*REV_PER_CYCLE)
+end;
+
 procedure interrupt_CCT1_RPM_Measurment_And_Stall_Timer(); iv IVT_ADDR_CCT1INTERRUPT;    // Interrupt for the HiWord Compare 1 (16Bit mode/32Bit mode)
 begin
   // Reset the RPM/Stall Timer; Keep looking for stalls as that is the only way to enter this
@@ -120,12 +128,7 @@ begin
     CCT1IF_bit := 0;
     
     Distributor_Period_Global := real( TimerCount) * CLOCK_PERIOD;
-    
-    // Calcuate the RPM based on the last sensor signal
-    RPM_Global := 0.0;
-    if Distributor_Period_Global > 0.0 then
-      RPM_Global := 60/Distributor_Period_Global/CYLINDERS*REV_PER_CYCLE;
-
+    RPM_Global := Distributor_Period_To_RPM(Distributor_Period);
     
     case State of
       STATE_STALLED :
