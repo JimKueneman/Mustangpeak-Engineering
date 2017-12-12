@@ -7,13 +7,14 @@ Project Path:       Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignit
 Design Path:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor.pcb
 Design Title:       
 Created:            11/3/2017 7:06:57 PM
-Last Saved:         12/11/2017 3:19:00 PM
-Editing Time:       11927 min
+Last Saved:         12/11/2017 9:27:52 PM
+Editing Time:       11938 min
 Units:              mil (precision 0)
 
-Disconnected pin "Points2-1" from net "N0251!Passive_Filter!".
-
-Deleted component reference "Points2".
+Changed component reference "C7" from component "C_0805", package "SM" to component "1.0k ohm 5%", package "SM (0805)".
+Changed component reference "R1" from component "470 ohm 5%", package "SM1206" to component "20k ohm 5%", package "SM1206".
+Changed component reference "R12" from component "470 ohm 5%", package "SM1206" to component "10k ohm 5%", package "SM1206".
+Changed component reference "R16" from component "470 ohm 5%", package "SM1206" to component "20k ohm 5%", package "SM1206".
 
 
 End Of Report.

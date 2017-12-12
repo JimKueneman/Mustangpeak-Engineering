@@ -17,8 +17,8 @@ GLCD Header||#DIL=20=1x20 GLCD Header||@Manufacturer=||@Manufacturer Part Number
 LDC Header||#DIL=16=1x16 LCD Header||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 mikroBUS||#DIL=16=mikroBUS||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 Molex microSD||#SM=10=Molex microSD||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
-Molex MiniFit Jr 4 Pin||#DIL=4=Molex 4 Pin MiniFit Jr||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
-Molex MiniFit Jr 6 Pin||#DIL=6=Molex 6 Pin MiniFit Jr||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+Molex MiniFit Jr 4 Pin||#DIL=4=Molex 4 Pin MiniFit Jr||@Manufacturer=Molex||@Manufacturer Part Number=0039291048||@Distributor=Digikey||@Distributor Part Number=WM3901-ND
+Molex MiniFit Jr 6 Pin||#DIL=6=Molex 6 Pin MiniFit Jr||@Manufacturer=Molex||@Manufacturer Part Number=0039291068||@Distributor=Digikey||@Distributor Part Number=WM3902-ND
 PicKit 3 Header 1x6||#DIL=6=1x6 Header||@Manufacturer=3M||@Manufacturer Part Number=929400-01-36-RK||@Distributor=Digikey||@Distributor Part Number=929400E-01-36-ND
 Power Jack 2.1mm x 5.5mm||#SM=6=Power Barrel 2.1mmX5.5mm||@Manufacturer=CUI Inc||@Manufacturer Part Number=PJ-002AH-SMT||@Distributor=Digikey||@Distributor Part Number=CP-002AHPJCT-ND
 Power Jack 2.5mm x 5.5mm||#SM=6=Power Barrel 2.1mmX5.5mm||@Manufacturer=CUI Inc||@Manufacturer Part Number=PJ-002BH-SMT||@Distributor=Digikey||@Distributor Part Number=CP-002BHPJCT-ND
