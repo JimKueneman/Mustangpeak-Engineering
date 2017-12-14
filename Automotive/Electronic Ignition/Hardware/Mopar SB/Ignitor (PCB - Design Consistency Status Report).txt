@@ -2,21 +2,18 @@ Design Consistency Status Report
 --------------------------------
 
 Report File:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor (PCB - Design Consistency Status Report).txt
-Report Written:     Monday, December 11, 2017
+Report Written:     Wednesday, December 13, 2017
 Project Path:       Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
 Design Path:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor.pcb
 Design Title:       
 Created:            11/3/2017 7:06:57 PM
-Last Saved:         12/11/2017 9:27:52 PM
-Editing Time:       11938 min
+Last Saved:         12/13/2017 6:21:44 AM
+Editing Time:       13007 min
 Units:              mil (precision 0)
 
 
 Checking integrity of Schematic and Pcb designs in project "SB Ignitor"
 =======================================================================
-
-
-Warning: Project has more than one version of Component "Molex MiniFit Jr 6 Pin" ("Passive_Filter.sch" & "Digital_Blank.sch"). At least one should be reloaded otherwise results may be incorrect.
 
 
 End Of Report.

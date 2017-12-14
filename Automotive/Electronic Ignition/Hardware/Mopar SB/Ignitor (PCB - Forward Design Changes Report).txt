@@ -2,19 +2,16 @@ Forward Design Changes Report
 -----------------------------
 
 Report File:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor (PCB - Forward Design Changes Report).txt
-Report Written:     Monday, December 11, 2017
+Report Written:     Wednesday, December 13, 2017
 Project Path:       Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\SB Ignitor.prj
 Design Path:        Z:\Automotive\Electronic Ignition\Hardware\Mopar SB\Ignitor.pcb
 Design Title:       
 Created:            11/3/2017 7:06:57 PM
-Last Saved:         12/11/2017 9:27:52 PM
-Editing Time:       11938 min
+Last Saved:         12/13/2017 6:21:44 AM
+Editing Time:       13007 min
 Units:              mil (precision 0)
 
-Changed component reference "C7" from component "C_0805", package "SM" to component "1.0k ohm 5%", package "SM (0805)".
-Changed component reference "R1" from component "470 ohm 5%", package "SM1206" to component "20k ohm 5%", package "SM1206".
-Changed component reference "R12" from component "470 ohm 5%", package "SM1206" to component "10k ohm 5%", package "SM1206".
-Changed component reference "R16" from component "470 ohm 5%", package "SM1206" to component "20k ohm 5%", package "SM1206".
+Changed component reference "C7" from component "1.0k ohm 5%", package "SM (0805)" to component "3.0k ohm 5%", package "SM (0805)".
 
 
 End Of Report.

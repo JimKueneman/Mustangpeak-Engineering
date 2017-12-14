@@ -29,17 +29,31 @@ main
 	UART1_Write
 	IntToStr
 interrupt_PinChangeNotification
+	TimerCounts_To_Time
+		_Long2Float
+		_Mul_FP
+	Distributor_Period_To_RPM
+		_Compare_Ge_Fp
+			_Compare_Fp
+		_Div_FP
+		_Mul_FP
 	RPM_To_Distributor_Period
+		_Compare_Ge_Fp
 		_Mul_FP
 		_Div_FP
-	Delay_Cyc_Long
-	_Long2Float
-	_Mul_FP
+	TriggerOutput
+		Time_To_TimerCounts
+			_Long2Float
+			_Mul_FP
+			_Div_FP
+			_Float2Longword
+		Delay_Cyc_Long
+		_Mul_FP
+	UpdateDistributorArray
+	AverageDistributorPeriod
+		_AddSub_FP
+		_Div_FP
 	_Compare_Ge_Fp
-		_Compare_Fp
-	_Div_FP
 	_Compare_Le_Fp
-	_AddSub_FP
-	_Float2Longword
 interrupt_CCT1_RPM_Measurment_And_Stall_Timer
 	UART1_Write_Text

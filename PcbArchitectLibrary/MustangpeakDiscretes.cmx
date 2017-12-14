@@ -3,8 +3,8 @@
 1uF 50V X7R||#SM1206=2=SM1206||@Manufacturer=TDK||@Manufacturer Part Number=C3216X7R1H105K||@Distributor=Digikey||@Distributor Part Number=445-1423-1-ND||#SM (0805)=2=SM0805||@Manufacturer=Taiyo Yuden||@Manufacturer Part Number=UMK212B7105KG-T||@Distributor=Digikey||@Distributor Part Number=587-2910-1-ND
 2.2uF 50V Y5V||#SM1206=2=SM1206||@Manufacturer=TDK||@Manufacturer Part Number=C3216Y5V1H225Z/0.85||@Distributor=Digikey||@Distributor Part Number=445-4585-1-ND||#SM (0805)=2=SM0805||@Manufacturer=Taiyo Yuden||@Manufacturer Part Number=UMK212BB7225KG-T||@Distributor=Digikey||@Distributor Part Number=587-3169-1-ND
 2.2uH-MPLC1040L2R2||#SM=2=MPLC1040||@Manufacturer=Kemit||@Manufacturer Part Number=MPLC1040L2R2||@Distributor=Digikey||@Distributor Part Number=399-10984-1-ND
-3.0k ohm 5%||#SM1206=2=SM1206||@Manufacturer=Panasonic||@Manufacturer Part Number=ERJ-8GEYJ302V||@Distributor=Digikey||@Distributor Part Number=P3.0KECT-ND
-5.1k ohm 5%||#SM (0805)=2=SM0805||@Manufacturer=Stackpole Electronics Inc||@Manufacturer Part Number=RPC0805JT5K10||@Distributor=Digikey||@Distributor Part Number=RPC0805JT5K10-ND
+3.0k ohm 5%||#SM (0805)=2=SM0805||@Manufacturer=Stackpole Electronics Inc||@Manufacturer Part Number=RPC0805JT3K00||@Distributor=Digikey||@Distributor Part Number=RPC0805JT3K00CT-ND
+5.1k ohm 5%||#SM (0805)=2=SM0805||@Manufacturer=Stackpole Electronics Inc||@Manufacturer Part Number=RMCF0805FT5K10||@Distributor=Digikey||@Distributor Part Number=RMCF0805FT5K10CT-ND
 8.2k ohm 5%||#SM1206=2=SM1206||@Manufacturer=Panasonic||@Manufacturer Part Number=ERJ-8GEYJ822V||@Distributor=Digikey||@Distributor Part Number=P8.2KECT-ND
 10 ohm 5%||#SM1206=2=SM1206||@Manufacturer=Panasonic||@Manufacturer Part Number=ERJ-8GEYJ100V||@Distributor=Digikey||@Distributor Part Number=P10ECT-ND
 10k ohm 5%||#SM1206=2=SM1206||@Manufacturer=Panasonic||@Manufacturer Part Number=ERJ-8GEYJ103V||@Distributor=Digikey||@Distributor Part Number=P10KECT-ND||#SM (0805)=2=SM0805||@Manufacturer=Stackpole Electronics Inc||@Manufacturer Part Number=RPC0805JT10K0||@Distributor=Digikey||@Distributor Part Number=RPC0805JT10K0CT-ND
@@ -27,6 +27,7 @@
 470 ohm 5%||#SM1206=2=SM1206||@Manufacturer=Panasonic||@Manufacturer Part Number=ERJ-8GEYJ471V||@Distributor=Digikey||@Distributor Part Number=P470ECT-ND
 C_0805||#SM=2=C0805||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 C_1206||#SM1206=2=SM1206||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+Panasonic 100u PolyTantalum||#SM=2=Panasonic Poly-Tantalum F-G||@Manufacturer=Panasonic||@Manufacturer Part Number=EEH-ZC1H101P||@Distributor=Digikey||@Distributor Part Number=P15462CT-ND
 PTC 290mA Trip-125mA Hold||#SM1206=2=SM1206||@Manufacturer=Littelfuse Inc||@Manufacturer Part Number=1206L012WR||@Distributor=Digikey||@Distributor Part Number=F2864CT-ND
 PTC 1000mA Trip-500mA Hold||#SM1206=2=SM1206||@Manufacturer=Littelfuse Inc||@Manufacturer Part Number=1206L050/15YR||@Distributor=Digikey||@Distributor Part Number=F3733CT-ND
 R_0805||#SM=2=SM0805||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
