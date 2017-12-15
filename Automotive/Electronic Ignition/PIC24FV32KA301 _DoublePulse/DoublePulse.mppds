@@ -24,9 +24,8 @@ Count=0
 Count=0
 ActiveImageIndex=-1
 [OPENED_FILES]
-Count=2
+Count=1
 File0=DoublePulse.mpas
-File1=..\PIC24FV32KA301\Sparky.mpas
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]
@@ -35,10 +34,9 @@ Count=0
 Count=0
 [SEARCH_PATH]
 Count=7
-Path0=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
-Path1=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
-Path2=\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\
-Path6=\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\PIC24FV32KA301\
+Path0=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
+Path1=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
+Path2=Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\
 [HEADER_PATH]
 Count=0
 [HEADERS]
@@ -46,7 +44,10 @@ Count=0
 [PLDS]
 Count=0
 [Useses]
-Count=0
+Count=3
+File0=Conversions
+File1=String
+File2=UART
 [EXPANDED_NODES]
 Node0=Sources
 Count=1

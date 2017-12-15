@@ -1,19 +1,57 @@
 main
-interrupt_Timer5_EFI_Output
-	_AddSub_FP
-	_Div_FP
-	_Float2Longword
-	_Compare_Le_Fp
-		_Compare_Fp
+	UART2_Init
+		Get_Fosc_kHz
+		Get_Fosc_Per_Cyc
+		Delay_10ms
+		_Multiply_32x32
+		_Modulus_32x32
+		_Divide_32x32
+	UART2_Write_Text
+		UART2_Write
+	FloatToStr
+		LongIntToStr
+			_Modulus_32x32
+			_Divide_32x32
+		_Float2Longint
+		_Compare_Le_Fp
+			_Compare_Fp
+		_Long2Float
+		_Sub_FP
+			_AddSub_FP
+		_Mul_FP
+	LongWordToStr
+		_Modulus_32x32
+		_Divide_32x32
+	WordToStr
+	UART_Write_Text
+		UART_Write
+			UART1_Write
+			UART2_Write
+	UART2_Write
+	IntToStr
 interrupt_PinChangeNotification
-	Delay_Cyc_Long
-	_Long2Float
-	_Mul_FP
-	_Div_FP
+	TimerCounts_To_Time
+		_Long2Float
+		_Mul_FP
+	Distributor_Period_To_RPM
+		_Compare_Ge_Fp
+			_Compare_Fp
+		_Div_FP
+		_Mul_FP
+	UpdateDistributorArray
+	RPM_To_Distributor_Period
+		_Compare_Ge_Fp
+		_Mul_FP
+		_Div_FP
+	TriggerOutput_With_Wait
+		Time_To_TimerCounts
+			_Long2Float
+			_Mul_FP
+			_Div_FP
+			_Float2Longword
+		Delay_Cyc_Long
+		_Mul_FP
 	_Compare_Ge_Fp
-		_Compare_Fp
 	_Compare_Le_Fp
-	_Sub_FP
-		_AddSub_FP
-	_Float2Longword
-interrupt_Timer3_RPM_Measurement
+interrupt_TMR3_RPM_Measurment_And_Stall_Timer
+	UART2_Write_Text

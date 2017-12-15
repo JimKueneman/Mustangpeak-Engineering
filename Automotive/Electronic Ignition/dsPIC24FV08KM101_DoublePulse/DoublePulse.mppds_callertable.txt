@@ -37,11 +37,12 @@ interrupt_PinChangeNotification
 			_Compare_Fp
 		_Div_FP
 		_Mul_FP
+	UpdateDistributorArray
 	RPM_To_Distributor_Period
 		_Compare_Ge_Fp
 		_Mul_FP
 		_Div_FP
-	TriggerOutput
+	TriggerOutput_With_Wait
 		Time_To_TimerCounts
 			_Long2Float
 			_Mul_FP
@@ -49,10 +50,6 @@ interrupt_PinChangeNotification
 			_Float2Longword
 		Delay_Cyc_Long
 		_Mul_FP
-	UpdateDistributorArray
-	AverageDistributorPeriod
-		_AddSub_FP
-		_Div_FP
 	_Compare_Ge_Fp
 	_Compare_Le_Fp
 interrupt_CCT1_RPM_Measurment_And_Stall_Timer

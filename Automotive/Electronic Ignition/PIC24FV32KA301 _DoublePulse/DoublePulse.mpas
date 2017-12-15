@@ -2,108 +2,243 @@ program DoublePulse;
 
 { Declarations section }
 
+{$DEFINE UART}
+
 const
-  MIN_RPM_BLANK_TIME = 5e-3;      MIN_RPM = 70;
-  MAX_RPM_BLANK_TIME = 500e-6;    MAX_RPM = 7000;
-
-  ENGINE_CYCLE = 4;
-  CYLINDERS = 8;
-  
-  // MCU Setup Parameters
+  {****** MCU Setup Parameters ******}
+  // Frequency the CPU is running
   OSCILLATORFREQ = 32e6;
+  // How many cycles of the Oscillator for each master timer cycle
   CLOCKDIVIDER = 2;
-  TIMER_DIVIDER = 256;
-
-  // MCU Clock Calculated Parameters
+  // Frequency of the master timer cloc
   CLOCK_FREQ = real( OSCILLATORFREQ/CLOCKDIVIDER);
+  // The period of a single clock timer tick (in seconds)
   CLOCK_PERIOD = real( 1/CLOCK_FREQ);
 
+  {****** Engine Parameters *******}
+  // Engine cycles
+  ENGINE_CYCLE = 4;
+  // Number of Cylinders (assuming not a dual point distributor)
+  CYLINDERS = 8;
   // Revolutions per Cycle
   REV_PER_CYCLE = ENGINE_CYCLE/2;
 
-var
-  Distributor_Period_Global, RPM_Global: real;
+  { ****** Sofer parameters to define limits for decision logic in the program ******}
+  // Below this and we say we stalled and restart the Statemachine
+  STALL_RPM = 50;
+  // Above this and it is a bad measurement of RPM
+  MAX_RPM = 7000;
+  // Above this and we move to the Running State
+  MIN_RUNNING_RPM = 400;
+  // How many fake RPM triggers to give the FiTech on startup
+  FAKE_RPM_COUNT = 0;
+  // What RPM to use for the Fake RPM signal
+  FAKE_RPM = real( 2000);
+  // Smoothing RPM Filter Depth and How many valid RPM spark pulses detected in the pin change notification to
+  // move on in the Stat machine before moving out of Cranking
+  RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN = 8;
+  // How much of a distributor spark period to blank out before looking for the next pin change notification
+  BLANK_PERCENT = 0.35;
+  // How long between pin change notification before we claim the engine has stalled
+  STALL_DISTRIBUTOR_PERIOD = real( 60/(STALL_RPM*CYLINDERS*REV_PER_CYCLE)*2);
 
-procedure interrupt_Timer3_RPM_Measurement(); iv IVT_ADDR_T3INTERRUPT;
+  // Statemachine states
+  STATE_STALLED = 0;               // Engine is not running
+  STATE_STABLIZE_CRANKING = 1;     // Engine is cranking but waiting for the a stable set of pin change notification to occur
+  STATE_FAKE_RPM = 2;              // Send the FiTech some fake higher RPM signals to get it to shoot fuel sooner
+  STATE_CRANKING = 3;              // Cranking normally but not averaging the pin change notifications yet
+  STATE_RUNNING = 4;               // RPM indicates we started so start averaging the pin change notification for the FiTech Output
+
+  TACH_LO = 1;                     // Pin output for a Tach Lo output (common collector amplifier)
+  TACH_HI = 0;                     // Pin output for a Tach Hi output (common collector amplifier)
+
+  COILNEG = B0;    // Bit 0        // The Pin index in the associated Port for the Coil Negative Input
+  TACHOUT = B9;    // Bit 9        // The Pin index in the associated Port for the Tach Output
+
+var
+  CoilNeg_Port: Word at PORTA;
+  CoilNeg_Pin: sbit at LATA0_bit;
+  CoilNeg_TRIS: sbit at TRISA0_bit;
+
+  TachPort: Word at PORTB;
+  TachOut_Pin: sbit at LATB9_bit;
+  TachOut_TRIS: sbit at TRISB9_bit;
+
+  HeartBeat_Port: Word at PORTA;
+  HeartBeat_Pin: sbit at LATA3_bit;
+  HeartBeat_TRIS: sbit at TRISA3_bit;
+
+  Debug_Port: Word at PORTA;
+  Debug_Pin: sbit at LATA2_bit;
+  Debug_TRIS: sbit at TRISA2_bit;
+
+  // RPM Averaging array and index counter
+  Distributor_Period_Filter_Array: array[RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN] of real;
+  Distributor_Period_Filter_Counter: Integer;
+
+  State,
+  Stable_Cranking_RPM_Count_Global: Integer;
+  Last_RPM_Global: real;
+
+// Converts an RPM into a Period Time between each cyclinder firing in Seconds
+function RPM_To_Distributor_Period(RPM: real): real;
 begin
+  Result := 0.0;
+  if RPM > 0 then
+    Result := real( 60 / (RPM * CYLINDERS * REV_PER_CYCLE) * REV_PER_CYCLE);
+end;
+
+// Converts a Period of Time between cylinder firings into RPM
+function Distributor_Period_To_RPM(Distributor_Period: real): real;
+begin
+  Result := 0.0;
+  if Distributor_Period > 0.0 then
+    Result := real( 60 / Distributor_Period / CYLINDERS * REV_PER_CYCLE)
+end;
+
+// Converts a DWORD Timer Count to actual elapsed time (seconds) scaled by the Timer Divider (used 1, 8, 32, 64, etc)
+function TimerCounts_To_Time(TimerCounts: DWORD; Divider: Word): real;
+begin
+  Result := real( TimerCounts) * CLOCK_PERIOD * real( Divider);
+end;
+
+// Converts time (seconds) to a DWORD Timer Count using the passed Timer Divider (1, 8, 32, 64, etc)
+function Time_To_TimerCounts(Time: real; Divider: Word): DWORD;
+begin
+  Result := DWORD( Time / (CLOCK_PERIOD * real( Divider)))
+end;
+
+procedure UpdateDistributorArray(NewDistributorTime: real);
+begin
+  // Insert the lastest item in the array
+  Distributor_Period_Filter_Array[Distributor_Period_Filter_Counter] := NewDistributorTime;
+  Inc(Distributor_Period_Filter_Counter);
+  // Update the array counter
+  if Distributor_Period_Filter_Counter >= RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN then
+    Distributor_Period_Filter_Counter := 0;
+end;
+
+// Sends the delayed blanking pulse to the FiTech and stalls the CN Interrupt for the blanking
+procedure TriggerOutput_With_Wait(BlankingTime: real);
+begin
+  TachOut_Pin := TACH_Hi;
+  Delay_Cyc_Long( Time_To_TimerCounts(BlankingTime * BLANK_PERCENT, 1));  // Just a bit more than 15 degrees dwell (out of 45)
+  TachOut_Pin := TACH_LO;
+end;
+
+// Calculates the average of the items in the Distributor Period Array
+function AverageDistributorPeriod: real;
+var
+  i: Integer;
+begin
+  Result := 0.0;
+  for i := 0 to RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN - 1 do
+    Result := Result + Distributor_Period_Filter_Array[i];
+  Result := Result / RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN
+end;
+
+procedure interrupt_TMR3_RPM_Measurment_And_Stall_Timer(); iv IVT_ADDR_T3INTERRUPT;
+begin
+  // Reset the RPM/Stall Timer; Keep looking for stalls as that is the only way to enter this
+  TMR3HLD := $0000;
+  TMR2 := $0000;
+  State := STATE_STALLED;
+  {$IFDEF UART}
+  UART2_Write_Text('Stall Detected');
+  {$ENDIF}
   T3IF_bit := 0;                 // Reset Interrupt Flag
-  LATA0_bit := not LATA0_bit;
-  TON_T2CON_bit := 0;            // Turn this timer off again.
 end;
 
 procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
 var
   PortCopy: Word;
-  TimerCount: dword;
-  Slope, BlankTime: real;
-
+  i: Integer;
+  LastDistributorPeriod: real;
+  DistributorPeriodTimerCount: DWord;
 begin
-  PortCopy := PORTB;    // Clear all changes
+  PortCopy := CoilNeg_Port;    // Clear all changes
   // Detect rising edges only
-  if PortCopy.B1 = 1 then
+  if PortCopy.COILNEG = 1 then
   begin
-    // Capture RPM Timer contents
-    LoWord(TimerCount) := TMR2;
-    HiWord(TimerCount) := TMR3HLD;
-    // Reset the RPM Timer
+    // Capture it contents
+    HiWord(DistributorPeriodTimerCount) := TMR2;
+    LoWord(DistributorPeriodTimerCount) := TMR3HLD;
+    // Reset the RPM/Stall Timer
     TMR3HLD := $0000;
     TMR2 := $0000;
-    
-    
-    Distributor_Period_Global := real( TimerCount) * CLOCK_PERIOD;
+    // Makes sure it can't jump to the stall interrupt
+    T3IF_bit := 0;
 
-    // Calcuate the RPM based on the last sensor signal
-    RPM_Global := 0.0;
-    if Distributor_Period_Global > 0.0 then
-      RPM_Global := 60/Distributor_Period_Global/CYLINDERS*REV_PER_CYCLE;
+    LastDistributorPeriod := TimerCounts_To_Time(DistributorPeriodTimerCount, 1);
+    Last_RPM_Global := Distributor_Period_To_RPM(LastDistributorPeriod);
 
-    // Are we too low or too high?
-    if (RPM_Global < MIN_RPM) then
-      BlankTime := MIN_RPM_BLANK_TIME
-    else
-    if (RPM_Global > MAX_RPM) then
-      BlankTime := MAX_RPM_BLANK_TIME
-    else begin         // Just right so extrapolate
-      Slope := (MAX_RPM_BLANK_TIME-MIN_RPM_BLANK_TIME)/(MAX_RPM-MIN_RPM);
-      BlankTime := -(Slope * (MAX_RPM - RPM_Global) - MAX_RPM_BLANK_TIME);  // y1 = -(m(x-x1)-y)
-    end;
-
-    LATB0_bit := 0;
-    Delay_Cyc_Long( DWORD( BlankTime/CLOCK_PERIOD));
-    LATB0_bit := 1;
+    case State of
+      STATE_STALLED :
+        begin
+          Stable_Cranking_RPM_Count_Global := 0;
+          Distributor_Period_Filter_Counter := 0;
+          State := STATE_STABLIZE_CRANKING;
+        end;
+      STATE_STABLIZE_CRANKING :
+        begin
+          // The filter will be up to date automtically when the stable cranking pulses are satisfied
+          UpdateDistributorArray(LastDistributorPeriod);
+          // Decision point for if this was a valid signal
+          if (Last_RPM_Global > STALL_RPM) and (Last_RPM_Global < MAX_RPM) then  // Are we cranking in a stable place yet?
+            Inc(Stable_Cranking_RPM_Count_Global)
+          else
+            Dec(Stable_Cranking_RPM_Count_Global);
+          // Did we reach the correct number of stable pulses to move on?
+          if Stable_Cranking_RPM_Count_Global >= RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN then
+            State := STATE_FAKE_RPM;
+        end;
+      STATE_FAKE_RPM :
+        begin
+          for i := 0 to FAKE_RPM_COUNT -1 do
+            TriggerOutput_With_Wait(RPM_To_Distributor_Period(FAKE_RPM));
+          State := STATE_CRANKING;
+        end;
+      STATE_CRANKING :
+        begin
+          UpdateDistributorArray(LastDistributorPeriod);
+          TriggerOutput_With_Wait(LastDistributorPeriod);
+          if Last_RPM_Global > MIN_RUNNING_RPM then
+            State := STATE_RUNNING;
+        end;
+      STATE_RUNNING :
+        begin
+          UpdateDistributorArray(LastDistributorPeriod);
+          TriggerOutput_With_Wait(LastDistributorPeriod);
+      end else
+        State := STATE_STALLED;     // State is messed up, start over
+    end;    // Case
   end;
 
-  // Some free debounce guarding by putting this many micro seconds past entry
+  // Some free debounce guarding by putting this at the end
   CNIF_bit := 0;
 end;
 
+
+var
+  StrBuffer: array[23] of Char;
 begin
   { Main program }
-  Distributor_Period_Global := 0.0;
-  RPM_Global := 0.0;
-  
   ANSA := 0;        // Make them all Digital
   ANSB := 0;
 
-  TRISB0_bit := 0; // Output for EFI
-  TRISB1_bit := 1; // Input from Distributor
-  TRISB13_bit := 0;
-  TRISA4_bit := 0;
-  
-  TRISA := 0;
-  
-  LATB0_bit := 1;
+  State := STATE_STALLED;
+
+  TachOut_Pin := TACH_LO;   // Set it low
+  HeartBeat_Pin := 0;
+  Debug_Pin := 0;
+
+  CoilNeg_TRIS := 1;   // Input
+  TachOut_TRIS := 0;   // Tach Output
+  HeartBeat_TRIS := 0; // Output
+  Debug_TRIS := 0;
 
   // Clock Setup
   CLKDIV := 0;                      // Set both dividers to 1:1 and don't use the DOZE to reset dividers (power saving feature)
-
-  // Pin change Notification
-  CN5IE_bit := 1;  // Pin Change Notification Interrupt on B1
-  CNIP_0_bit := 1;  // Interrupt priority = 7
-  CNIP_1_bit := 1;
-  CNIP_2_bit := 1;
-  CNIF_bit := 0;    // Clear Pin Change Interrupt flag
-  CNIE_bit := 1;    // Enable all Pin Change Interrupts
   
   // RPM Timer
   // Lower Timer controls the setup Setup
@@ -115,8 +250,8 @@ begin
   TCKPS_0_T2CON_bit := 0;            // 00 = 1; 01 = 8; 10 = 64; 11 = 256
   TCKPS_1_T2CON_bit := 0;
   IPC2 := IPC2 or 0x1000;            // interrupt priority level = 1
-  PR2 := $FFFF;
-  PR3 := $FFFF;
+  PR2 := LoWord( DWORD(STALL_DISTRIBUTOR_PERIOD/CLOCK_PERIOD));
+  PR3 := HiWord( DWORD(STALL_DISTRIBUTOR_PERIOD/CLOCK_PERIOD));
   TMR3HLD := 0;
   TMR2 := 0;
   // Upper Timer fires the interrupts
@@ -128,9 +263,50 @@ begin
   // Lower Timer controls the setup Setup
   TON_T2CON_bit := 1;                // ON
 
+  {$IFDEF UART}
+  UART2_Init(115200);
+  Delay_ms(100);
+
+  UART2_Write_Text('STALL_DISTRIBUTOR_PERIOD=');
+  FloatToStr(STALL_DISTRIBUTOR_PERIOD, StrBuffer);
+  UART2_Write_Text(StrBuffer);
+
+  UART2_Write_Text('DWORD(STALL_DISTRIBUTOR_PERIOD/CLOCK_PERIOD)=');
+  LongWordToStr(DWORD(STALL_DISTRIBUTOR_PERIOD/CLOCK_PERIOD), StrBuffer);
+  UART2_Write_Text(StrBuffer);
+
+  UART2_Write_Text('PRL=');
+  WordToStr(TMR2, StrBuffer);
+  UART2_Write_Text(StrBuffer);
+  UART_Write_Text('  PRH=');
+  WordToStr(TMR3HLD, StrBuffer);
+  UART_Write_Text(StrBuffer);
+  UART2_Write(#13);
+  {$ENDIF}
+
+  // ALWAYS DO THIS LAST
+  // Pin change Notification
+  CN2IE_bit := 1;  // Pin Change Notification Interrupt on RA0
+  CNIP_0_bit := 1;  // Interrupt priority = 7
+  CNIP_1_bit := 1;
+  CNIP_2_bit := 1;
+  CNIF_bit := 0;    // Clear Pin Change Interrupt flag
+  CNIE_bit := 1;    // Enable all Pin Change Interrupts
+
+
   while true do
-  begin        // Waitin for Pin Change Interrupt
-    LATA := not LATA;
-    Delay_us(100);
+  begin
+    Delay_ms(100);
+    {$IFDEF UART}
+    UART2_Write_Text('RPM=');
+    FloatToStr(Last_RPM_Global, StrBuffer);
+    UART2_Write_Text(StrBuffer);
+    UART_Write_Text('  State=');
+    IntToStr(State, StrBuffer);
+    UART_Write_Text(StrBuffer);
+    UART2_Write(#13);
+    {$ENDIF}
+    // Waitin for Pin Change Interrupt
+    HeartBeat_Pin := not HeartBeat_Pin;
   end;
 end.
