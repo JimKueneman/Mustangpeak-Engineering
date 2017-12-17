@@ -24,8 +24,9 @@ Count=0
 Count=0
 ActiveImageIndex=-1
 [OPENED_FILES]
-Count=1
+Count=2
 File0=DoublePulse.mpas
+File1=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\__Lib_Delays.mpas
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]

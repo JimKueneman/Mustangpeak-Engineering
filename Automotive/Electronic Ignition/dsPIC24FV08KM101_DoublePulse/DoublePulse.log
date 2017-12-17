@@ -11,13 +11,13 @@ warning: 231	1509	Warning: Implicit typecast performed from "byte" to "real"	Dou
 hint: 113	1001	Hint: Variable "Divider" has been declared, but not used	DoublePulse.mpas
 hint: 191	1001	Hint: Variable "StrBuffer" has been declared, but not used	DoublePulse.mpas
 hint: 188	1011	Hint: Variable "i" has been eliminated by optimizer	DoublePulse.mpas
-hint: 413	1010	Hint: Unit "DoublePulse.mpas" has been recompiled	DoublePulse.mpas
+hint: 418	1010	Hint: Unit "DoublePulse.mpas" has been recompiled	DoublePulse.mpas
 diagnostics: 0	134	Compiled Successfully	\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\DoublePulse.mpas
-diagnostics: 0	139	All files Compiled in 78 ms	 
+diagnostics: 0	139	All files Compiled in 204 ms	 
 hint: 0	1144	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)
 hint: 0	1144	Static RAM (bytes): 74   Dynamic RAM (bytes): 950	Static RAM (bytes): 74   Dynamic RAM (bytes): 950
 hint: 0	1144	Used ROM (bytes): 4994 (89%)  Free ROM (bytes): 638 (11%)	Used ROM (bytes): 4994 (89%)  Free ROM (bytes): 638 (11%)
 diagnostics: 0	145	Project Linked Successfully	DoublePulse.mppds
-diagnostics: 0	140	Linked in 187 ms	 
-diagnostics: 0	141	Project 'DoublePulse.mppds' completed: 312 ms	 
-diagnostics: 0	103	Finished successfully: 17 Dec 2017, 13:31:01	DoublePulse.mppds
+diagnostics: 0	140	Linked in 296 ms	 
+diagnostics: 0	141	Project 'DoublePulse.mppds' completed: 546 ms	 
+diagnostics: 0	103	Finished successfully: 17 Dec 2017, 13:56:21	DoublePulse.mppds

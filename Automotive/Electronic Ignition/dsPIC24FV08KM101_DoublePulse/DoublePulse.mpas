@@ -33,7 +33,7 @@ const
   // How many fake RPM triggers to give the FiTech on startup
   FAKE_RPM_COUNT = 0;
   // What RPM to use for the Fake RPM signal
-  FAKE_RPM = real( 2000);
+  FAKE_RPM = real( 7000);
   // Smoothing RPM Filter Depth and How many valid RPM spark pulses detected in the pin change notification to
   // move on in the Stat machine before moving out of Cranking
   RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN = 8;
@@ -256,7 +256,12 @@ begin
       STATE_FAKE_RPM :
         begin
           for i := 0 to FAKE_RPM_COUNT -1 do
-            TriggerOutput_With_Wait(RPM_To_Distributor_Period(FAKE_RPM));
+          begin
+            TachOut_Pin := TACH_Hi;
+            Delay_Cyc_Long( Time_To_TimerCounts(RPM_To_Distributor_Period(FAKE_RPM*BLANK_PERCENT), 1));
+            TachOut_Pin := TACH_Lo;
+            Delay_Cyc_Long( Time_To_TimerCounts(RPM_To_Distributor_Period(FAKE_RPM*(1-BLANK_PERCENT)), 1));
+          end;
           State := STATE_CRANKING;
           {$IFDEF UART}PrintState;{$ENDIF}
         end;
