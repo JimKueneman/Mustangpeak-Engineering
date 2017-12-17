@@ -41,6 +41,9 @@ const
   BLANK_PERCENT = 0.35;
   // How long between pin change notification before we claim the engine has stalled
   STALL_DISTRIBUTOR_PERIOD = real( 60/(STALL_RPM*CYLINDERS*REV_PER_CYCLE)*2);
+  // Time to blank if the RPM made no sense at all during cranking
+  DEFAULT_CRANKING_RPM = 200;
+  DEFAULT_CRANKING_BLANK_PERIOD = real( 60/(DEFAULT_CRANKING_RPM*CYLINDERS*REV_PER_CYCLE)*2);
   
   // Statemachine states
   STATE_STALLED = 0;               // Engine is not running
@@ -80,6 +83,16 @@ var
   Stable_Cranking_RPM_Count_Global: Integer;
   Last_RPM_Global: real;
   
+{$IFDEF UART}
+procedure PrintState;
+var
+  Buffer: array[6] of char;
+begin
+  IntToStr(State, Buffer);
+  UART_Write_Text(Buffer);
+  UART1_Write(#13);
+end;         
+{$ENDIF}
 // Converts an RPM into a Period Time between each cyclinder firing in Seconds
 function RPM_To_Distributor_Period(RPM: real): real;
 begin
@@ -122,7 +135,7 @@ end;
 procedure TriggerOutput_With_Wait(BlankingTime: real);
 begin
   TachOut_Pin := TACH_Hi;
-  Delay_Cyc_Long( Time_To_TimerCounts(BlankingTime * BLANK_PERCENT, 1));  // Just a bit more than 15 degrees dwell (out of 45)
+  Delay_Cyc_Long( Time_To_TimerCounts(BlankingTime * BLANK_PERCENT, 1));  // Just a bit more than 15 degrees dwell (out of 45
   TachOut_Pin := TACH_LO;
 end;
 
@@ -146,6 +159,7 @@ begin
   State := STATE_STALLED;
   {$IFDEF UART}
   UART1_Write_Text('Stall Detected');
+  UART1_Write(#13);
   {$ENDIF}
 end;
 
@@ -170,6 +184,7 @@ var
   i: Integer;
   LastDistributorPeriod: real;
   DistributorPeriodTimerCount: DWord;
+  StrBuffer: array[23] of char;
 begin
   PortCopy := CoilNeg_Port;    // Clear all changes
   // Detect rising edges only
@@ -192,38 +207,56 @@ begin
     LastDistributorPeriod := TimerCounts_To_Time(DistributorPeriodTimerCount, 1);
     Last_RPM_Global := Distributor_Period_To_RPM(LastDistributorPeriod);
     
+ {   UART1_Write_Text('T=');
+    FloatToStr(LastDistributorPeriod, StrBuffer);
+    UART1_Write_Text(StrBuffer);
+    UART1_Write(#13);
+  }
     case State of
       STATE_STALLED :
         begin
           Stable_Cranking_RPM_Count_Global := 0;
-          Distributor_Period_Filter_Counter := 0;
+          Distributor_Period_Filter_Counter := 0; 
+          {$IFDEF UART}PrintState;{$ENDIF}
           State := STATE_STABLIZE_CRANKING;
+          {$IFDEF UART}PrintState;{$ENDIF}
         end;
       STATE_STABLIZE_CRANKING :
         begin
-          // The filter will be up to date automtically when the stable cranking pulses are satisfied
-          UpdateDistributorArray(LastDistributorPeriod);
           // Decision point for if this was a valid signal
           if (Last_RPM_Global > STALL_RPM) and (Last_RPM_Global < MAX_RPM) then  // Are we cranking in a stable place yet?
+          begin
+            UpdateDistributorArray(LastDistributorPeriod);
+            Delay_Cyc_Long( Time_To_TimerCounts(LastDistributorPeriod, 1));
             Inc(Stable_Cranking_RPM_Count_Global)
-          else
+          end else
+          begin
+            Delay_Cyc_Long( Time_To_TimerCounts(DEFAULT_CRANKING_BLANK_PERIOD, 1));
             Dec(Stable_Cranking_RPM_Count_Global);
+          end;
           // Did we reach the correct number of stable pulses to move on?
           if Stable_Cranking_RPM_Count_Global >= RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN then
+          begin        
             State := STATE_FAKE_RPM;
+            {$IFDEF UART}PrintState;{$ENDIF}
+          end;
         end;
       STATE_FAKE_RPM :
         begin
           for i := 0 to FAKE_RPM_COUNT -1 do
             TriggerOutput_With_Wait(RPM_To_Distributor_Period(FAKE_RPM));
           State := STATE_CRANKING;
+          {$IFDEF UART}PrintState;{$ENDIF}
         end;
       STATE_CRANKING :
         begin
           UpdateDistributorArray(LastDistributorPeriod);
           TriggerOutput_With_Wait(LastDistributorPeriod);
           if Last_RPM_Global > MIN_RUNNING_RPM then
+          begin
             State := STATE_RUNNING;
+            {$IFDEF UART}PrintState;{$ENDIF}
+          end;
         end;
       STATE_RUNNING :
         begin
