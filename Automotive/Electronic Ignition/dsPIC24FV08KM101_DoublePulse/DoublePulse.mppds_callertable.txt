@@ -58,6 +58,7 @@ interrupt_PinChangeNotification
 		_Mul_FP
 	_Compare_Ge_Fp
 	_Compare_Le_Fp
+	_Mul_FP
 interrupt_CCT1_RPM_Measurment_And_Stall_Timer
 	UART1_Write_Text
 	UART1_Write

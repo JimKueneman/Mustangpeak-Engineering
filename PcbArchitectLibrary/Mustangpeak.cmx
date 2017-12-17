@@ -10,7 +10,7 @@
 +24V_Programming||#=1=+V||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 1N4148WS||#SM=2=SOD323||@Manufacturer=Fairchild Semiconductor||@Manufacturer Part Number=1N4148WS||@Distributor=Digikey||@Distributor Part Number=1N4148WSFSCT-ND
 1N5903||#SM-SMA=2=SMA||@Manufacturer=Micro Commercial Co||@Manufacturer Part Number=3SMAJ5930B-TP||@Distributor=Digikey||@Distributor Part Number=3SMAJ5930B-TPMSCT-ND
-1N5917||#SM=2=SMA||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+1N5917||#SM=2=SMA||@Manufacturer=On Semi||@Manufacturer Part Number=1SMA5917BT3G||@Distributor=Digikey||@Distributor Part Number=1SMA5917BT3GOSCT-ND
 1N5927||#SM-SMA=2=SMA||@Manufacturer=On Semiconductor||@Manufacturer Part Number=1SMA5927BT3G||@Distributor=Digikey||@Distributor Part Number=1SMA5927BT3GOSCT-ND
 6N137||#SM=8=SOIC8||@Manufacturer=Fairchild Optoelectrics||@Manufacturer Part Number=6N137SD||@Distributor=Digikey||@Distributor Part Number=6N137SDCT-ND||#DIL=8=DIP-8D11||@Manufacturer=Fairchild Optoelectrics||@Manufacturer Part Number=6N137||@Distributor=Digkey||@Distributor Part Number=160-1791-ND
 8Mhz Crystal||#SM=2=Crystal||@Manufacturer=ECS Inc||@Manufacturer Part Number=ECS-80-20-5PXDU-TR||@Distributor=Digikey||@Distributor Part Number=XC1526CT-ND||#DIL=2=HC18U||@Manufacturer=ECS Inc||@Manufacturer Part Number=ECS-80-20-4||@Distributor=Digikey||@Distributor Part Number=X165-ND

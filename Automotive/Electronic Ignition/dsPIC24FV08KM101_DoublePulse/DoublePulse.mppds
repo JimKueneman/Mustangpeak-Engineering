@@ -24,9 +24,8 @@ Count=0
 Count=0
 ActiveImageIndex=-1
 [OPENED_FILES]
-Count=2
+Count=1
 File0=DoublePulse.mpas
-File1=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\P24FV08KM101.mpas
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]
@@ -34,11 +33,10 @@ Count=0
 [OTHER_FILES]
 Count=0
 [SEARCH_PATH]
-Count=4
-Path0=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
-Path1=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
-Path2=Z:\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\
-Path3=Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\
+Count=7
+Path0=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
+Path1=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
+Path2=\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\
 [HEADER_PATH]
 Count=0
 [HEADERS]

@@ -1,17 +1,23 @@
-0	1	mPDsPic.exe -MSF -DBG -pP24FV08KM101 -Y -DL -SSA -O11111104 -fo32 -N"Z:\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\DoublePulse.mppds" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\" -SP"Z:\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\" -SP"Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\" "__Lib_Math.mcl" "__Lib_MathDouble.mcl" "__Lib_System.mcl" "__Lib_Delays.mcl" "__Lib_String.mcl" "__Lib_Conversions.mcl" "__Lib_UART_1_p24_p33.mcl" "DoublePulse.mpas"	 
-diagnostics: 0	133	Compilation Started	Z:\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\DoublePulse.mpas
-hint: 1	1015	Hint: Compiling unit "Z:\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\DoublePulse.mpas"	DoublePulse.mpas
+0	1	mPDsPic.exe -MSF -DBG -pP24FV08KM101 -Y -DL -SSA -O11111104 -fo32 -N"\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\DoublePulse.mppds" -SP"C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\" -SP"C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\" -SP"\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\" -SP"Z:\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\" -SP"Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\" "__Lib_Math.mcl" "__Lib_MathDouble.mcl" "__Lib_System.mcl" "__Lib_Delays.mcl" "__Lib_String.mcl" "__Lib_Conversions.mcl" "__Lib_UART_1_p24_p33.mcl" "DoublePulse.mpas"	 
+warning: 0	1501	Specified search path does not exist: 'C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs'	 
+warning: 0	1501	Specified search path does not exist: 'C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses'	 
+warning: 0	1501	Specified search path does not exist: 'Z:\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse'	 
+warning: 0	1501	Specified search path does not exist: 'Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse'	 
+diagnostics: 0	133	Compilation Started	\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\DoublePulse.mpas
+hint: 1	1015	Hint: Compiling unit "\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\DoublePulse.mpas"	DoublePulse.mpas
 hint: 153	1021	Hint: interrupt handler (interrupt_CCT1_RPM_Measurment_And_Stall_Timer at 0x0022)	DoublePulse.mpas
-hint: 181	1021	Hint: interrupt handler (interrupt_PinChangeNotification at 0x003A)	DoublePulse.mpas
-hint: 187	1001	Hint: Variable "StrBuffer" has been declared, but not used	DoublePulse.mpas
-hint: 184	1011	Hint: Variable "i" has been eliminated by optimizer	DoublePulse.mpas
-hint: 401	1010	Hint: Unit "DoublePulse.mpas" has been recompiled	DoublePulse.mpas
-diagnostics: 0	134	Compiled Successfully	Z:\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\DoublePulse.mpas
-diagnostics: 0	139	All files Compiled in 40 ms	 
+hint: 185	1021	Hint: interrupt handler (interrupt_PinChangeNotification at 0x003A)	DoublePulse.mpas
+warning: 231	1509	Warning: Implicit typecast performed from "byte" to "real"	DoublePulse.mpas
+hint: 113	1001	Hint: Variable "Divider" has been declared, but not used	DoublePulse.mpas
+hint: 191	1001	Hint: Variable "StrBuffer" has been declared, but not used	DoublePulse.mpas
+hint: 188	1011	Hint: Variable "i" has been eliminated by optimizer	DoublePulse.mpas
+hint: 413	1010	Hint: Unit "DoublePulse.mpas" has been recompiled	DoublePulse.mpas
+diagnostics: 0	134	Compiled Successfully	\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\DoublePulse.mpas
+diagnostics: 0	139	All files Compiled in 78 ms	 
 hint: 0	1144	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)
 hint: 0	1144	Static RAM (bytes): 74   Dynamic RAM (bytes): 950	Static RAM (bytes): 74   Dynamic RAM (bytes): 950
-hint: 0	1144	Used ROM (bytes): 4976 (88%)  Free ROM (bytes): 656 (12%)	Used ROM (bytes): 4976 (88%)  Free ROM (bytes): 656 (12%)
+hint: 0	1144	Used ROM (bytes): 4994 (89%)  Free ROM (bytes): 638 (11%)	Used ROM (bytes): 4994 (89%)  Free ROM (bytes): 638 (11%)
 diagnostics: 0	145	Project Linked Successfully	DoublePulse.mppds
-diagnostics: 0	140	Linked in 90 ms	 
-diagnostics: 0	141	Project 'DoublePulse.mppds' completed: 171 ms	 
-diagnostics: 0	103	Finished successfully: 17 Dec 2017, 12:22:03	DoublePulse.mppds
+diagnostics: 0	140	Linked in 187 ms	 
+diagnostics: 0	141	Project 'DoublePulse.mppds' completed: 312 ms	 
+diagnostics: 0	103	Finished successfully: 17 Dec 2017, 13:31:01	DoublePulse.mppds

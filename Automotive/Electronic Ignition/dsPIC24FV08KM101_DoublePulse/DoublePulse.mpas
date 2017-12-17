@@ -40,10 +40,10 @@ const
   // How much of a distributor spark period to blank out before looking for the next pin change notification
   BLANK_PERCENT = 0.35;
   // How long between pin change notification before we claim the engine has stalled
-  STALL_DISTRIBUTOR_PERIOD = real( 60/(STALL_RPM*CYLINDERS*REV_PER_CYCLE)*2);
+  STALL_DISTRIBUTOR_PERIOD = real( 60 * REV_PER_CYCLE /(STALL_RPM*CYLINDERS));
   // Time to blank if the RPM made no sense at all during cranking
   DEFAULT_CRANKING_RPM = 200;
-  DEFAULT_CRANKING_BLANK_PERIOD = real( 60/(DEFAULT_CRANKING_RPM*CYLINDERS*REV_PER_CYCLE)*2);
+  DEFAULT_CRANKING_BLANK_PERIOD = real( 60 * REV_PER_CYCLE/(DEFAULT_CRANKING_RPM*CYLINDERS));
   
   // Statemachine states
   STATE_STALLED = 0;               // Engine is not running
@@ -98,7 +98,7 @@ function RPM_To_Distributor_Period(RPM: real): real;
 begin
   Result := 0.0;
   if RPM > 0 then
-    Result := real( 60 / (RPM * CYLINDERS * REV_PER_CYCLE) * REV_PER_CYCLE);
+    Result := real( 60 * REV_PER_CYCLE / (RPM * CYLINDERS ));
 end;
 
 // Converts a Period of Time between cylinder firings into RPM
@@ -112,7 +112,7 @@ end;
 // Converts a DWORD Timer Count to actual elapsed time (seconds) scaled by the Timer Divider (used 1, 8, 32, 64, etc)
 function TimerCounts_To_Time(TimerCounts: DWORD; Divider: Word): real;
 begin
-  Result := real( TimerCounts) * CLOCK_PERIOD * real( Divider);
+  Result := real( TimerCounts) * CLOCK_PERIOD ///* real( Divider);
 end;
 
 // Converts time (seconds) to a DWORD Timer Count using the passed Timer Divider (1, 8, 32, 64, etc)
@@ -152,13 +152,17 @@ end;
 
 procedure interrupt_CCT1_RPM_Measurment_And_Stall_Timer(); iv IVT_ADDR_CCT1INTERRUPT;    // Interrupt for the HiWord Compare 1 (16Bit mode/32Bit mode)
 begin
+  // Stop the RPM Timer
+  CCPON_CCP1CON1L_bit := 0;
   // Reset the RPM/Stall Timer; Keep looking for stalls as that is the only way to enter this
   CCP1TMRH := $0000;
   CCP1TMRL := $0000;
   CCT1IF_bit := 0;
+  // Start the RPM Timer
+  CCPON_CCP1CON1L_bit := 1;
   State := STATE_STALLED;
   {$IFDEF UART}
-  UART1_Write_Text('Stall Detected');
+  UART1_Write_Text('Stall Detected IRQ');
   UART1_Write(#13);
   {$ENDIF}
 end;
@@ -203,20 +207,28 @@ begin
     // Start the RPM Timer for the next Cylinder Cycle
     CCPON_CCP1CON1L_bit := 1;
     
-    
-    LastDistributorPeriod := TimerCounts_To_Time(DistributorPeriodTimerCount, 1);
-    Last_RPM_Global := Distributor_Period_To_RPM(LastDistributorPeriod);
-    
- {   UART1_Write_Text('T=');
-    FloatToStr(LastDistributorPeriod, StrBuffer);
+    if State = STATE_STALLED then
+    begin
+      Last_RPM_Global := 0.0;
+      LastDistributorPeriod := 0.0;
+    end else
+    begin
+      LastDistributorPeriod := TimerCounts_To_Time(DistributorPeriodTimerCount, 1);
+      Last_RPM_Global := Distributor_Period_To_RPM(LastDistributorPeriod);
+    end;
+
+    {
+    FloatToStr(Last_RPM_Global, StrBuffer);
     UART1_Write_Text(StrBuffer);
     UART1_Write(#13);
-  }
+    }
+    
     case State of
       STATE_STALLED :
         begin
           Stable_Cranking_RPM_Count_Global := 0;
           Distributor_Period_Filter_Counter := 0; 
+          Last_RPM_Global := 0;
           {$IFDEF UART}PrintState;{$ENDIF}
           State := STATE_STABLIZE_CRANKING;
           {$IFDEF UART}PrintState;{$ENDIF}
@@ -227,11 +239,11 @@ begin
           if (Last_RPM_Global > STALL_RPM) and (Last_RPM_Global < MAX_RPM) then  // Are we cranking in a stable place yet?
           begin
             UpdateDistributorArray(LastDistributorPeriod);
-            Delay_Cyc_Long( Time_To_TimerCounts(LastDistributorPeriod, 1));
+            Delay_Cyc_Long( Time_To_TimerCounts(LastDistributorPeriod*BLANK_PERCENT, 1));
             Inc(Stable_Cranking_RPM_Count_Global)
           end else
           begin
-            Delay_Cyc_Long( Time_To_TimerCounts(DEFAULT_CRANKING_BLANK_PERIOD, 1));
+            Delay_Cyc_Long( Time_To_TimerCounts(DEFAULT_CRANKING_BLANK_PERIOD*BLANK_PERCENT, 1));
             Dec(Stable_Cranking_RPM_Count_Global);
           end;
           // Did we reach the correct number of stable pulses to move on?
@@ -387,7 +399,7 @@ begin
   begin
     Delay_ms(100);
     {$IFDEF UART}
-    UART1_Write_Text('RPM=');
+   UART1_Write_Text('RPM=');
     FloatToStr(Last_RPM_Global, StrBuffer);
     UART1_Write_Text(StrBuffer);
     UART_Write_Text('  State=');
