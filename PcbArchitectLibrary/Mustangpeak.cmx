@@ -79,6 +79,6 @@ SSA210||#SM=2=SMA||@Manufacturer=OnSemi||@Manufacturer Part Number=SSA210||@Dist
 ST485||#DIL=8=DIP-8D11||@Manufacturer=ST Microelectronics||@Manufacturer Part Number=ST485B/C||@Distributor=Digikey||@Distributor Part Number=497-6728-5-ND
 STB16NF06L||#SM=3=SMS4||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 STD46N6F7||#SM=3=DPAK-2 Pin; 1 Pad||@Manufacturer=ST Microelectronics||@Manufacturer Part Number=STD46N6F7||@Distributor=Digikey||@Distributor Part Number=497-16476-1-ND
-TestPoint||#SM=1=WireLaunch_SMT||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=||#DIL=1=TestPoint 63mil||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+TestPoint||#SM=1=WireLaunch_SMT||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=||#DIL=1=TestPoint 63mil||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=||#DIL (Small)=1=WireLaunchSmall||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 VB525SP-E||#SM=11=VB525SP-E||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
 VOM452||#SM=6=VOM452||@Manufacturer=Vishay||@Manufacturer Part Number=VOM452T||@Distributor=Digikey||@Distributor Part Number=751-1492-1-ND
