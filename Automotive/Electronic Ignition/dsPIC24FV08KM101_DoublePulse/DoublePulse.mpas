@@ -36,7 +36,7 @@ const
   FAKE_RPM = real( 7000);
   // Smoothing RPM Filter Depth and How many valid RPM spark pulses detected in the pin change notification to
   // move on in the Stat machine before moving out of Cranking
-  RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN = 8;
+  RPM_FILTER_LEN = 4;
   // How much of a distributor spark period to blank out before looking for the next pin change notification
   BLANK_PERCENT = 0.35;
   // How long between pin change notification before we claim the engine has stalled
@@ -76,7 +76,7 @@ var
   Debug_TRIS: sbit at TRISA2_bit;
   
   // RPM Averaging array and index counter
-  Distributor_Period_Filter_Array: array[RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN] of real;
+  Distributor_Period_Filter_Array: array[RPM_FILTER_LEN] of real;
   Distributor_Period_Filter_Counter: Integer;
   
   State,
@@ -127,7 +127,7 @@ begin
   Distributor_Period_Filter_Array[Distributor_Period_Filter_Counter] := NewDistributorTime;
   Inc(Distributor_Period_Filter_Counter);
   // Update the array counter
-  if Distributor_Period_Filter_Counter >= RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN then
+  if Distributor_Period_Filter_Counter >= RPM_FILTER_LEN then
     Distributor_Period_Filter_Counter := 0;
 end;
 
@@ -145,9 +145,9 @@ var
   i: Integer;
 begin
   Result := 0.0;
-  for i := 0 to RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN - 1 do
+  for i := 0 to RPM_FILTER_LEN - 1 do
     Result := Result + Distributor_Period_Filter_Array[i];
-  Result := Result / RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN
+  Result := Result / RPM_FILTER_LEN
 end;
 
 procedure interrupt_CCT1_RPM_Measurment_And_Stall_Timer(); iv IVT_ADDR_CCT1INTERRUPT;    // Interrupt for the HiWord Compare 1 (16Bit mode/32Bit mode)
@@ -247,7 +247,7 @@ begin
             Dec(Stable_Cranking_RPM_Count_Global);
           end;
           // Did we reach the correct number of stable pulses to move on?
-          if Stable_Cranking_RPM_Count_Global >= RPM_FILTER_AND_STABLE_CRANK_PULSE_LEN then
+          if Stable_Cranking_RPM_Count_Global >= RPM_FILTER_LEN then
           begin        
             State := STATE_FAKE_RPM;
             {$IFDEF UART}PrintState;{$ENDIF}
@@ -278,7 +278,7 @@ begin
       STATE_RUNNING :
         begin
           UpdateDistributorArray(LastDistributorPeriod);
-          TriggerOutput_With_Wait(LastDistributorPeriod);
+          TriggerOutput_With_Wait(AverageDistributorPeriod);
       end else
         State := STATE_STALLED;     // State is messed up, start over
     end;    // Case
