@@ -6,6 +6,8 @@ main
 		_Multiply_32x32
 		_Modulus_32x32
 		_Divide_32x32
+	UART1_Data_Ready
+	UART1_Read
 	UART1_Write_Text
 		UART1_Write
 	FloatToStr
@@ -37,6 +39,10 @@ interrupt_PinChangeNotification
 			_Compare_Fp
 		_Div_FP
 		_Mul_FP
+	PrintRPM
+		FloatToStr
+		UART_Write_Text
+		UART1_Write
 	PrintState
 		IntToStr
 		UART_Write_Text

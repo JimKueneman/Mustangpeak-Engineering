@@ -3,6 +3,7 @@ program DoublePulse;
 { Declarations section }
 
 {$DEFINE UART}
+{$DEFINE SKIP_STABLIZE_CRANKING}
 
 const
   {****** MCU Setup Parameters ******}
@@ -36,7 +37,7 @@ const
   FAKE_RPM = real( 7000);
   // Smoothing RPM Filter Depth and How many valid RPM spark pulses detected in the pin change notification to
   // move on in the Stat machine before moving out of Cranking
-  RPM_FILTER_LEN = 4;
+  RPM_FILTER_LEN = 8;
   // How much of a distributor spark period to blank out before looking for the next pin change notification
   BLANK_PERCENT = 0.35;
   // How long between pin change notification before we claim the engine has stalled
@@ -82,6 +83,7 @@ var
   State,
   Stable_Cranking_RPM_Count_Global: Integer;
   Last_RPM_Global: real;
+  DetailedLogging: Boolean;
   
 {$IFDEF UART}
 procedure PrintState;
@@ -91,7 +93,16 @@ begin
   IntToStr(State, Buffer);
   UART_Write_Text(Buffer);
   UART1_Write(#13);
-end;         
+end; 
+
+procedure PrintRPM;
+var
+  Buffer: array[23] of char;
+begin
+  FloatToStr(Last_RPM_Global, Buffer);
+  UART_Write_Text(Buffer);
+  UART1_Write(#13);
+end;
 {$ENDIF}
 // Converts an RPM into a Period Time between each cyclinder firing in Seconds
 function RPM_To_Distributor_Period(RPM: real): real;
@@ -216,6 +227,11 @@ begin
       LastDistributorPeriod := TimerCounts_To_Time(DistributorPeriodTimerCount, 1);
       Last_RPM_Global := Distributor_Period_To_RPM(LastDistributorPeriod);
     end;
+    
+    {$IFDEF UART}
+    if DetailedLogging then
+      PrintRPM;
+    {$ENDIF}
 
     {
     FloatToStr(Last_RPM_Global, StrBuffer);
@@ -230,11 +246,17 @@ begin
           Distributor_Period_Filter_Counter := 0; 
           Last_RPM_Global := 0;
           {$IFDEF UART}PrintState;{$ENDIF}
+          {$IFDEF SKIP_STABLIZE_CRANKING}
+          State := STATE_CRANKING;{$ELSE}
           State := STATE_STABLIZE_CRANKING;
-          {$IFDEF UART}PrintState;{$ENDIF}
+          {$ENDIF}
         end;
       STATE_STABLIZE_CRANKING :
         begin
+          {$IFDEF SKIP_STABLIZE_CRANKING}
+          State := STATE_CRANKING;
+          {$ENDIF}
+          
           // Decision point for if this was a valid signal
           if (Last_RPM_Global > STALL_RPM) and (Last_RPM_Global < MAX_RPM) then  // Are we cranking in a stable place yet?
           begin
@@ -296,6 +318,7 @@ begin
   ANSB := 0;
 
   State := STATE_STALLED;
+  DetailedLogging := False;
 
   TachOut_Pin := TACH_LO;   // Set it low
   HeartBeat_Pin := 0;
@@ -373,6 +396,16 @@ begin
   UART1_Init(115200);
   Delay_ms(100);
   
+  if UART1_Data_Ready then
+  begin
+    case UART1_Read of
+      'd', 'D' :
+        begin
+          DetailedLogging := not DetailedLogging;
+        end;
+    end;
+  end;
+  
   UART1_Write_Text('STALL_DISTRIBUTOR_PERIOD=');
   FloatToStr(STALL_DISTRIBUTOR_PERIOD, StrBuffer);
   UART1_Write_Text(StrBuffer);
@@ -404,7 +437,7 @@ begin
   begin
     Delay_ms(100);
     {$IFDEF UART}
-   UART1_Write_Text('RPM=');
+    UART1_Write_Text('RPM=');
     FloatToStr(Last_RPM_Global, StrBuffer);
     UART1_Write_Text(StrBuffer);
     UART_Write_Text('  State=');
