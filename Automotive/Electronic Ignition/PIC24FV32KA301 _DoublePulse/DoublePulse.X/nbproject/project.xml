@@ -3,8 +3,8 @@
     <type>com.microchip.mplab.nbide.embedded.makeproject</type>
     <configuration>
         <data xmlns="http://www.netbeans.org/ns/make-project/1">
-            <name>DoublePulse_PIC24FV32KA301</name>
-            <creation-uuid>c0e39635-19eb-4884-9487-45faf7ac1bf4</creation-uuid>
+            <name>DoublePulse</name>
+            <creation-uuid>7d4e02c7-d9ac-4cb9-8e04-688ba8c083fc</creation-uuid>
             <make-project-type>0</make-project-type>
             <c-extensions/>
             <cpp-extensions/>

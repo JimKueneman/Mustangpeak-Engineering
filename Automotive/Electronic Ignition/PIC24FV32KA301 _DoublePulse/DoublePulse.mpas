@@ -38,7 +38,7 @@ const
   // move on in the Stat machine before moving out of Cranking
   RPM_FILTER_LEN = 4;
   // How much of a distributor spark period to blank out before looking for the next pin change notification
-  BLANK_PERCENT = 0.35;
+  BLANK_PERCENT = 0.40;
   // How long between pin change notification before we claim the engine has stalled
   STALL_DISTRIBUTOR_PERIOD = real( 60 * REV_PER_CYCLE /(STALL_RPM*CYLINDERS));
   // Time to blank if the RPM made no sense at all during cranking
@@ -82,6 +82,7 @@ var
   State,
   Stable_Cranking_RPM_Count_Global: Integer;
   Last_RPM_Global: real;
+  DetailedLogging: Boolean;
 
 {$IFDEF UART}
 procedure PrintState;
@@ -91,6 +92,15 @@ begin
   IntToStr(State, Buffer);
   UART_Write_Text(Buffer);
   UART2_Write(#13);
+end;
+
+procedure PrintRPM;
+var
+  Buffer: array[23] of char;
+begin
+  FloatToStr(Last_RPM_Global, Buffer);
+  UART_Write_Text(Buffer);
+  UART1_Write(#13);
 end;
 {$ENDIF}
 // Converts an RPM into a Period Time between each cyclinder firing in Seconds
@@ -193,6 +203,11 @@ begin
       LastDistributorPeriod := TimerCounts_To_Time(DistributorPeriodTimerCount, 1);
       Last_RPM_Global := Distributor_Period_To_RPM(LastDistributorPeriod);
     end;
+    
+    {$IFDEF UART}
+    if DetailedLogging then
+      PrintRPM;
+    {$ENDIF}
 
     case State of
       STATE_STALLED :
@@ -268,6 +283,7 @@ begin
   ANSB := 0;
 
   State := STATE_STALLED;
+  DetailedLogging := False;
 
   TachOut_Pin := TACH_LO;   // Set it low
   HeartBeat_Pin := 0;
@@ -339,13 +355,23 @@ begin
   begin
     Delay_ms(100);
     {$IFDEF UART}
-    UART2_Write_Text('RPM=');
-    FloatToStr(Last_RPM_Global, StrBuffer);
-    UART2_Write_Text(StrBuffer);
-    UART_Write_Text('  State=');
-    IntToStr(State, StrBuffer);
-    UART_Write_Text(StrBuffer);
-    UART2_Write(#13);
+    if UART2_Data_Ready then
+    begin
+      case UART2_Read of
+        'd', 'D' : DetailedLogging := not DetailedLogging;
+      end;
+    end;
+    
+    if not DetailedLogging then
+    begin
+      UART2_Write_Text('RPM=');
+      FloatToStr(Last_RPM_Global, StrBuffer);
+      UART2_Write_Text(StrBuffer);
+      UART_Write_Text('  State=');
+      IntToStr(State, StrBuffer);
+      UART_Write_Text(StrBuffer);
+      UART2_Write(#13);
+    end;
     {$ENDIF}
     // Waitin for Pin Change Interrupt
     HeartBeat_Pin := not HeartBeat_Pin;

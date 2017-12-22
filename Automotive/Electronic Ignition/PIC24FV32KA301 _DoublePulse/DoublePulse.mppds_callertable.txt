@@ -28,6 +28,8 @@ main
 			UART1_Write
 			UART2_Write
 	UART2_Write
+	UART2_Data_Ready
+	UART2_Read
 	IntToStr
 interrupt_PinChangeNotification
 	TimerCounts_To_Time
@@ -38,6 +40,10 @@ interrupt_PinChangeNotification
 			_Compare_Fp
 		_Div_FP
 		_Mul_FP
+	PrintRPM
+		FloatToStr
+		UART_Write_Text
+		UART1_Write
 	PrintState
 		IntToStr
 		UART_Write_Text
