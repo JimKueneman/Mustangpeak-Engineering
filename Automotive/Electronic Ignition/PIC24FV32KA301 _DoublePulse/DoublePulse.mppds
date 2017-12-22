@@ -33,10 +33,11 @@ Count=0
 [OTHER_FILES]
 Count=0
 [SEARCH_PATH]
-Count=7
-Path0=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
-Path1=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
-Path2=Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\
+Count=4
+Path0=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
+Path1=C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
+Path2=\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\
+Path3=\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\
 [HEADER_PATH]
 Count=0
 [HEADERS]
