@@ -38,20 +38,31 @@ interrupt_PinChangeNotification
 			_Compare_Fp
 		_Div_FP
 		_Mul_FP
+	PrintState
+		IntToStr
+		UART_Write_Text
+		UART2_Write
 	UpdateDistributorArray
+	Time_To_TimerCounts
+		_Long2Float
+		_Mul_FP
+		_Div_FP
+		_Float2Longword
+	Delay_Cyc_Long
 	RPM_To_Distributor_Period
 		_Compare_Ge_Fp
 		_Mul_FP
 		_Div_FP
 	TriggerOutput_With_Wait
 		Time_To_TimerCounts
-			_Long2Float
-			_Mul_FP
-			_Div_FP
-			_Float2Longword
 		Delay_Cyc_Long
 		_Mul_FP
+	AverageDistributorPeriod
+		_AddSub_FP
+		_Div_FP
 	_Compare_Ge_Fp
 	_Compare_Le_Fp
+	_Mul_FP
 interrupt_TMR3_RPM_Measurment_And_Stall_Timer
 	UART2_Write_Text
+	UART2_Write
