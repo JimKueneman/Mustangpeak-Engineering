@@ -23,6 +23,8 @@ interrupt_PinChangeNotification
 		_AddSub_FP
 	_Float2Longword
 interrupt_Timer3_RPM_Measurement
+	UART2_Write_Text
+	UART2_Write
 interrupt_Advance_Timer1
 	_Mul_FP
 	_Sub_FP

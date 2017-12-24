@@ -55,13 +55,41 @@ var
   TimingCurveRPM    : array[NUMBER_OF_ADVANCE_POINTS] of real;
   TimingCurveDegrees: array[NUMBER_OF_ADVANCE_POINTS] of real;
 
- // IGBT_Pin: sbit at LATA1_bit;
- // IGBT_TRIS: sbit at TRISA1_bit;
+   HeartbeatPort: word at PORTB;
+   HeartbeatLatch: word at LATB;
+   HeartbeatTRIS: word at TRISB;
+   HeartbeatTRIS_bit: sbit at TRISB7_bit;
+   HeartbeatLatch_Bit: sbit at LATB7_bit;
+   
+   FiTechTachPort: word at PORTB;
+   FiTechTachLatch: word at LATB;
+   FiTechTachTRIS: word at TRISB;
+   FiTechTachTRIS_bit: sbit at TRISB9_bit;
+   FiTechTachLatch_Bit: sbit at LATB9_bit;
+   
+   IGBTPort: word at PORTB;
+   IGBTLatch: word at LATB;
+   IGBTTRIS: word at TRISB;
+   IGBTTRIS_bit: sbit at TRISB12_bit;
+   IGBTLatch_bit: sbit at LATB12_bit;
+   
+   TriggerPort: word at PORTA;
+   TriggerLatch: word at LATA;
+   TriggerTRIS: word at TRISA;
+   TriggerTRIS_bit: sbit at TRISA0_bit;
+   TriggerLatch_bit: sbit at LATA0_bit;
+   
+const
+  FITECH_TACH_ON = 0;
+  FITECH_TACH_OFF = 1;
+  
+  TRIGGER_PIN_OFFSET = 0;
 
 procedure interrupt_Timer3_RPM_Measurement(); iv IVT_ADDR_T3INTERRUPT;
 begin
   T3IF_bit := 0;                 // Reset Interrupt Flag
-  LATA0_bit := not LATA0_bit;
+  UART2_Write_Text('Stall: IRQ');
+  UART2_Write(#13);
   TON_T2CON_bit := 0;            // Turn this timer off again.
 end;
 
@@ -72,12 +100,13 @@ var
   TimingAdvanceDegrees, Slope : real;
   i, TimingCurveIndex: Integer;
 begin
-  PortCopy := PORTB;    // Clear all changes
-
+   PortCopy := TriggerPort;    // Clear all changes
+  
   // Detect rising edges only
-  if PortCopy.B9 = 1 then
+  if PortCopy.TRIGGER_PIN_OFFSET = 1 then
   begin
-    LATB8_bit := 1;
+  
+     HeartbeatLatch_Bit := not HeartbeatLatch_Bit;
 
     // Capture it contents
     LoWord(TimerCount) := TMR2;
@@ -141,12 +170,7 @@ begin
       if PR1 = 0 then
         PR1 := 1;
       TON_T1CON_bit := 1;          // ON
-      
-LATB12_bit := 1;
-
     end;
-
-    LATB8_bit := 0;
   end;
 
   // Some free debounce guarding by putting this many micro seconds past entry
@@ -158,10 +182,9 @@ var
   Dwell_Delay_Period, Dynamic_Dwell_Delay_Period: real;
   Dwell_Delay_Count: DWORD;
 begin
-  LATB12_bit := 0;
 
   // Shutoff IGBT
-  LATA1_bit := 0;
+  IGBTLatch_bit := 0;
 
   // Calculate when to turn the IGBT on to start charging
   // Dynamically change the amount of time we let the cyclinder combustion to complete
@@ -210,9 +233,9 @@ begin
     // Turn on the IGBT, the next Pin Change will turn it off, unless we detect that the
     // IGBT has been on way to long then turn it back off and reset for a new try
     if Max_Dwell_Exceeded_Global then
-      LATA1_bit := 0
+      IGBTLatch_bit := 0
     else
-      LATA1_bit := 1;
+      IGBTLatch_bit := 1;
 
       
     // Load up the Dwell timer with a time that the longest the IGBT should ever be on and start it off
@@ -237,17 +260,18 @@ begin
   { Main program }
   ANSA := 0;        // Make them all Digital
   ANSB := 0;
-  LATA1_bit := 0; // Keep the IGBT off
+  
+  HeartbeatLatch_bit := 0;
+  HeartbeatTRIS_bit := 0; // Output
+  
+  IGBTLatch_bit := 0; // Keep the IGBT off
+  IGBTTRIS_bit := 0; // Output
+  
+  FiTechTachLatch_Bit := FITECH_TACH_OFF; // Keep the Tach off
+  FiTechTachTRIS_bit := 0; // Output
+  
+  TriggerTRIS_bit := 1; // Input
 
-  TRISA0_bit := 0; // Output CPP1 timer Interrupt
-  TRISA1_bit := 0; // Output CPP2 timer Interrupt - IGBT Gate [BLUE]
-  TRISB0_bit := 0; // Output for UART 2 TX
-  TRISB1_bit := 1; // Input for UART 2 RX
-  TRISB9_bit := 1; // Input (redundant but makes it clear)   [BROWN]
-  TRISB8_bit := 0; // CAM Sensor                             [RED]
-  TRISB12_bit := 0; // Output  Timer 1 Trigger               [ORANGE]
-  TRISB13_bit := 0; // Output  GP Debug
-  TRISB14_bit := 0; // Output  Heartbeat
 
   // Clock Setup
   CLKDIV := 0;                      // Set both dividers to 1:1 and don't use the DOZE to reset dividers (power saving feature)
@@ -261,14 +285,6 @@ begin
   TimingCurveRPM[1] := 1200.0;  TimingCurveDegrees[1] := 0.0;
   TimingCurveRPM[2] := 2000.0;  TimingCurveDegrees[2] := 0.0;
   TimingCurveRPM[3] := 2500.0;  TimingCurveDegrees[3] := 60.0;
-
-  // Pin change Notification
-  CN21IE_bit := 1;  // Pin Change Notification Interrupt on B9
-  CNIP_0_bit := 1;  // Interrupt priority = 7
-  CNIP_1_bit := 1;
-  CNIP_2_bit := 1;
-  CNIF_bit := 0;    // Clear Pin Change Interrupt flag
-  CNIE_bit := 1;    // Enable all Pin Change Interrupts
 
 
   // Timer Setup
@@ -324,9 +340,17 @@ begin
   T5IE_bit := 1;                     // enable Timer1 interrupts
 
   // Setup the UART
-  UART2_Init(230400);
+  UART2_Init(115200);
   Delay_ms(100);
   UART2_Write_Text('Starting');
+  
+  // Pin change Notification  DO THIS LAST
+  CN2IE_bit := 1;   // Pin Change Notification Interrupt on A0
+  CNIP_0_bit := 1;  // Interrupt priority = 7
+  CNIP_1_bit := 1;
+  CNIP_2_bit := 1;
+  CNIF_bit := 0;    // Clear Pin Change Interrupt flag
+  CNIE_bit := 1;    // Enable all Pin Change Interrupts
   
   while true do
   begin        // Waitin for Pin Change Interrupt
@@ -334,6 +358,9 @@ begin
     begin
       UART2_Read;
     end;
-    LATB14_bit := not LATB14_bit;  // Heartbeat
+    UART2_Write_Text('.');
+    Delay_ms(100);
+  //  IGBTLatch_bit := not IGBTLatch_bit;
+  //  FiTechTachLatch_Bit := not FiTechTachLatch_Bit;
   end;
 end.
