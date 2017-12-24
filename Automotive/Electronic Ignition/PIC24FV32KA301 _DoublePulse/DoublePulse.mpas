@@ -36,7 +36,7 @@ const
   FAKE_RPM = real( 7000);
   // Smoothing RPM Filter Depth and How many valid RPM spark pulses detected in the pin change notification to
   // move on in the Stat machine before moving out of Cranking
-  RPM_FILTER_LEN = 4;
+  RPM_FILTER_LEN = 8;
   // How much of a distributor spark period to blank out before looking for the next pin change notification
   BLANK_PERCENT = 0.40;
   // How long between pin change notification before we claim the engine has stalled
@@ -58,6 +58,14 @@ const
   COILNEG = B0;    // Bit 0        // The Pin index in the associated Port for the Coil Negative Input
   TACHOUT = B9;    // Bit 9        // The Pin index in the associated Port for the Tach Output
 
+type
+  FilterInfoRec = record
+    // RPM Averaging array and index counter
+    Distributor_Period_Filter_Array: array[RPM_FILTER_LEN] of real;
+    Distributor_Period_Filter_Counter: Integer;
+    CurrentAverage: real;
+  end;
+  
 var
   CoilNeg_Port: Word at PORTA;
   CoilNeg_Pin: sbit at LATA0_bit;
@@ -75,14 +83,12 @@ var
   Debug_Pin: sbit at LATA2_bit;
   Debug_TRIS: sbit at TRISA2_bit;
 
-  // RPM Averaging array and index counter
-  Distributor_Period_Filter_Array: array[RPM_FILTER_LEN] of real;
-  Distributor_Period_Filter_Counter: Integer;
-
   State,
   Stable_Cranking_RPM_Count_Global: Integer;
   Last_RPM_Global: real;
   DetailedLogging: Boolean;
+  
+  FilterInfo: FilterInfoRec;
 
 {$IFDEF UART}
 procedure PrintState;
@@ -131,14 +137,26 @@ begin
   Result := DWORD( Time / (CLOCK_PERIOD * real( Divider)))
 end;
 
-procedure UpdateDistributorArray(NewDistributorTime: real);
+// Calculates the average of the items in the Distributor Period Array
+function AverageDistributorPeriod: real;
+var
+  i: Integer;
+begin
+  Result := 0.0;
+  for i := 0 to RPM_FILTER_LEN - 1 do
+    Result := Result + FilterInfo.Distributor_Period_Filter_Array[i];
+  Result := Result / RPM_FILTER_LEN
+end;
+
+procedure UpdateDistributorArrayAndAverage(NewDistributorTime: real);
 begin
   // Insert the lastest item in the array
-  Distributor_Period_Filter_Array[Distributor_Period_Filter_Counter] := NewDistributorTime;
-  Inc(Distributor_Period_Filter_Counter);
+  FilterInfo.Distributor_Period_Filter_Array[FilterInfo.Distributor_Period_Filter_Counter] := NewDistributorTime;
+  Inc(FilterInfo.Distributor_Period_Filter_Counter);
   // Update the array counter
-  if Distributor_Period_Filter_Counter >= RPM_FILTER_LEN then
-    Distributor_Period_Filter_Counter := 0;
+  if FilterInfo.Distributor_Period_Filter_Counter >= RPM_FILTER_LEN then
+    FilterInfo.Distributor_Period_Filter_Counter := 0;
+  FilterInfo.CurrentAverage := AverageDistributorPeriod;
 end;
 
 // Sends the delayed blanking pulse to the FiTech and stalls the CN Interrupt for the blanking
@@ -147,17 +165,6 @@ begin
   TachOut_Pin := TACH_Hi;
   Delay_Cyc_Long( Time_To_TimerCounts(BlankingTime * BLANK_PERCENT, 1));  // Just a bit more than 15 degrees dwell (out of 45
   TachOut_Pin := TACH_LO;
-end;
-
-// Calculates the average of the items in the Distributor Period Array
-function AverageDistributorPeriod: real;
-var
-  i: Integer;
-begin
-  Result := 0.0;
-  for i := 0 to RPM_FILTER_LEN - 1 do
-    Result := Result + Distributor_Period_Filter_Array[i];
-  Result := Result / RPM_FILTER_LEN
 end;
 
 procedure interrupt_TMR3_RPM_Measurment_And_Stall_Timer(); iv IVT_ADDR_T3INTERRUPT;
@@ -213,7 +220,7 @@ begin
       STATE_STALLED :
         begin
           Stable_Cranking_RPM_Count_Global := 0;
-          Distributor_Period_Filter_Counter := 0;
+          FilterInfo.Distributor_Period_Filter_Counter := 0;
           Last_RPM_Global := 0;
           {$IFDEF UART}PrintState;{$ENDIF}
           State := STATE_STABLIZE_CRANKING;
@@ -224,7 +231,7 @@ begin
           // Decision point for if this was a valid signal
           if (Last_RPM_Global > STALL_RPM) and (Last_RPM_Global < MAX_RPM) then  // Are we cranking in a stable place yet?
           begin
-            UpdateDistributorArray(LastDistributorPeriod);
+            UpdateDistributorArrayAndAverage(LastDistributorPeriod);
             Delay_Cyc_Long( Time_To_TimerCounts(LastDistributorPeriod*BLANK_PERCENT, 1));
             Inc(Stable_Cranking_RPM_Count_Global)
           end else
@@ -253,7 +260,7 @@ begin
         end;
       STATE_CRANKING :
         begin
-          UpdateDistributorArray(LastDistributorPeriod);
+          UpdateDistributorArrayAndAverage(LastDistributorPeriod);
           TriggerOutput_With_Wait(LastDistributorPeriod);
           if Last_RPM_Global > MIN_RUNNING_RPM then
           begin
@@ -263,8 +270,8 @@ begin
         end;
       STATE_RUNNING :
         begin
-          UpdateDistributorArray(LastDistributorPeriod);
-          TriggerOutput_With_Wait(AverageDistributorPeriod);
+          UpdateDistributorArrayAndAverage(LastDistributorPeriod);
+          TriggerOutput_With_Wait(FilterInfo.CurrentAverage);
       end else
         State := STATE_STALLED;     // State is messed up, start over
     end;    // Case
@@ -284,6 +291,8 @@ begin
 
   State := STATE_STALLED;
   DetailedLogging := False;
+  FilterInfo.Distributor_Period_Filter_Counter := 0;
+  FilterInfo.CurrentAverage := 0.0;
 
   TachOut_Pin := TACH_LO;   // Set it low
   HeartBeat_Pin := 0;
