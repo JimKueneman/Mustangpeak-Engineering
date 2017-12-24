@@ -48,7 +48,10 @@ interrupt_PinChangeNotification
 		IntToStr
 		UART_Write_Text
 		UART2_Write
-	UpdateDistributorArray
+	UpdateDistributorArrayAndAverage
+		AverageDistributorPeriod
+			_AddSub_FP
+			_Div_FP
 	Time_To_TimerCounts
 		_Long2Float
 		_Mul_FP
@@ -63,9 +66,6 @@ interrupt_PinChangeNotification
 		Time_To_TimerCounts
 		Delay_Cyc_Long
 		_Mul_FP
-	AverageDistributorPeriod
-		_AddSub_FP
-		_Div_FP
 	_Compare_Ge_Fp
 	_Compare_Le_Fp
 	_Mul_FP
