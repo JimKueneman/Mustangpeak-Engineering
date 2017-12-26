@@ -3,10 +3,6 @@ program DoublePulse;
 { Declarations section }
 
 {$DEFINE UART}
-{$IFDEF UART}
-  {.$DEFINE PRINT_EVERY_RPM}
-  {$DEFINE PRINT_OUT_OF_RANGE_PERIOD}
-{$ENDIF}
 
 const
   {****** MCU Setup Parameters ******}
@@ -96,7 +92,7 @@ var
   State,
   Stable_Cranking_RPM_Count_Global: Integer;
   Last_RPM_Global: real;
-  DetailedLogging: Boolean;
+  PeriodErrorLogging, RPMLogging, StateLogging, RealtimeRPMLogging, StallIRQLogging: Boolean;
   
   FilterInfo: TFilterInfoRec;
   Parameters: TParameters;
@@ -105,7 +101,7 @@ var
 procedure PrintLine(var Buffer: array[128] of char);
 begin
   UART_Write_Text(Buffer);
-  UART1_Write(#13);
+  UART2_Write(#13);
 end;
 
 procedure PrintState;
@@ -134,6 +130,17 @@ begin
   LongWordToStr(FilterInfo.Distrbutor_Period_LongError, Buffer);
   UART2_Write_Text('Long T: ');
   PrintLine(Buffer);
+end;
+
+procedure PrintHelp;
+begin
+  PrintLine('0 : Disables all Logging');
+  PrintLine('s,S : State Logging');
+  PrintLine('r,R : Toggle RPM Logging');
+  PrintLine('t,T : Toggle Realtime RPM Logging (can cause interrupt timing overrun issues)');
+  PrintLine('p,P : Toggle Peroid Error Logging');
+  PrintLine('c,C : Clear Distrbutor_Period_Errors counter');
+  PrintLine('b,B : Set Blanking Percent send as 10 (10%), 50 (50%) etc');
 end;
 
 {$ENDIF}
@@ -201,11 +208,8 @@ begin
   TMR3HLD := $0000;
   TMR2 := $0000;
   State := STATE_STALLED;
-  Last_RPM_Global := 0.0;
-  {$IFDEF UART}
-  UART2_Write_Text('Stall Detected - IRQ');
-  UART2_Write(#13);
-  {$ENDIF}
+  Last_RPM_Global := 0.0;          
+  {$IFDEF UART}if StallIRQLogging then PrintLine('Stall Detected - IRQ');{$ENDIF}
   T3IF_bit := 0;                 // Reset Interrupt Flag
 end;
 
@@ -244,7 +248,7 @@ begin
     if (FilterInfo.Previous_Distributor_Period > (LastDistributorPeriod * 1.10)) then
       Inc(FilterInfo.Distrbutor_Period_LongError);
     
-    {$IFDEF PRINT_EVERY_RPM}PrintRPM;{$ENDIF}
+    {$IFDEF UART}if RealtimeRPMLogging then PrintRPM;{$ENDIF}
 
     case State of
       STATE_STALLED :
@@ -252,9 +256,9 @@ begin
           Stable_Cranking_RPM_Count_Global := 0;
           FilterInfo.Distributor_Period_Filter_Counter := 0;
           Last_RPM_Global := 0.0;
-          {$IFDEF UART}if DetailedLogging then PrintState;{$ENDIF}
+          {$IFDEF UART}if StateLogging then PrintState;{$ENDIF}
           State := STATE_STABLIZE_CRANKING;
-          {$IFDEF UART}if DetailedLogging then PrintState;{$ENDIF}
+          {$IFDEF UART}if StateLogging then PrintState;{$ENDIF}
         end;
       STATE_STABLIZE_CRANKING :
         begin
@@ -273,7 +277,7 @@ begin
           if Stable_Cranking_RPM_Count_Global >= RPM_FILTER_LEN then
           begin
             State := STATE_FAKE_RPM;
-            {$IFDEF UART}if DetailedLogging then PrintState;{$ENDIF}
+            {$IFDEF UART}if StateLogging then PrintState;{$ENDIF}
           end;
         end;
       STATE_FAKE_RPM :
@@ -286,7 +290,7 @@ begin
             Delay_Cyc_Long( Time_To_TimerCounts(RPM_To_Distributor_Period(FAKE_RPM * (1-Parameters.BlankingPercent)), 1));
           end;
           State := STATE_CRANKING;
-          {$IFDEF UART}if DetailedLogging then PrintState;{$ENDIF}
+          {$IFDEF UART}if StateLogging then PrintState;{$ENDIF}
         end;
       STATE_CRANKING :
         begin
@@ -295,7 +299,7 @@ begin
           if Last_RPM_Global > MIN_RUNNING_RPM then
           begin
             State := STATE_RUNNING;
-            {$IFDEF UART}if DetailedLogging then PrintState;{$ENDIF}
+            {$IFDEF UART}if StateLogging then PrintState;{$ENDIF}
           end;
         end;
       STATE_RUNNING :
@@ -315,13 +319,18 @@ end;
 var
   StrBuffer: array[128] of Char;
   DelimiterStr: string[1];
+  TempR: real;
 begin
   { Main program }
   ANSA := 0;        // Make them all Digital
   ANSB := 0;
 
   State := STATE_STALLED;
-  DetailedLogging := False;
+  StateLogging := False;
+  RPMLogging := False;
+  PeriodErrorLogging := False;
+  RealtimeRPMLogging := False;
+  StallIRQLogging := FAlse;
   FilterInfo.Distributor_Period_Filter_Counter := 0;
   FilterInfo.CurrentAverage := 0.0;
   FilterInfo.Distrbutor_Period_ShortError := 0;
@@ -383,6 +392,8 @@ begin
   WordToStr(TMR3HLD, StrBuffer);
   UART_Write_Text(StrBuffer);
   UART2_Write(#13);
+  
+  PrintHelp;
   {$ENDIF}
 
   // ALWAYS DO THIS LAST
@@ -402,41 +413,87 @@ begin
     if UART2_Data_Ready then
     begin
       case UART2_Read of
-        'd', 'D' : DetailedLogging := not DetailedLogging;
+        '0' :
+          begin
+            StateLogging := False;
+            PeriodErrorLogging := False;
+            RealtimeRPMLogging := False;
+            StallIRQLogging := False;
+            RPMLogging := False;
+          end;
+        's', 'S' :
+          begin
+            StateLogging := not StateLogging;
+            if StateLogging then PrintLine('State Logging ON') else
+              PrintLine('State Logging OFF');
+          end;
         'c', 'C' : 
           begin
             FilterInfo.Distrbutor_Period_ShortError := 0;
             FilterInfo.Distrbutor_Period_LongError := 0;
+            PrintLine('Counts Cleared');
           end;
         'b', 'B' :
           begin
             DelimiterStr[0] := #13;
             DelimiterStr[1] := $00;
-            UART2_Read_Text(StrBuffer, DelimiterStr, 255);
-            Parameters.BlankingPercent := StrToInt(StrBuffer) * 0.01;
+            PrintLine('Reading Blanking Value');
+            UART2_Read_Text(StrBuffer, DelimiterStr, 2);
+            UART2_Write_Text('Read: ');
+            PrintLine(StrBuffer);
+            TempR := StrToInt(StrBuffer) * 0.01;
+            if TempR > 0.05 then
+            begin
+              Parameters.BlankingPercent := TempR;  // This could cause a burp if the interrupt uses it
+              UART2_Write_Text('New Blanking Value ');
+              FloatToStr(Parameters.BlankingPercent * 100, StrBuffer);
+              UART2_Write_Text(StrBuffer);
+              PrintLine('%');
+            end else
+            begin
+              PrintLine('Value Read was too small must be greater than 5%');
+              FloatToStr(Parameters.BlankingPercent * 100, StrBuffer);
+              UART2_Write_Text(StrBuffer);
+              PrintLine('%');
+            end;
+          end;
+        'p', 'P' :
+          begin
+            PeriodErrorLogging := not PeriodErrorLogging;
+            if PeriodErrorLogging then PrintLine('Period Error Logging ON') else
+              PrintLine('Period Error Logging OFF');
+          end;
+        'r', 'R' :
+          begin
+            RPMLogging := not RPMLogging;
+            if RPMLogging then PrintLine('RPM Logging ON') else
+              PrintLine('RPM Logging OFF');
+          end;
+        't', 'T' :
+          begin
+            RealtimeRPMLogging := not RealtimeRPMLogging;
+            if RealtimeRPMLogging then PrintLine('RealTime RPM Logging ON') else
+              PrintLine('RealTime RPM Logging OFF');
+          end;
+        'i', 'I' :
+          begin
+            StallIRQLogging := not StallIRQLogging;
+            if StallIRQLogging then PrintLine('RealTime RPM Logging ON') else
+              PrintLine('RealTime RPM Logging OFF');
           end;
         '?', 'h', 'H' : 
           begin
-            PrintLine('d,D : Detailed Logging');
-            PrintLine('c,C : Clear Distrbutor_Period_Errors counter');
-            PrintLine('b,B : Set Blanking Percent send as 10 (10%), 50 (50%) etc');
+            PrintHelp;
           end;
       end;
     end;
     
-    if not DetailedLogging then
-    begin
-      UART2_Write_Text('RPM=');
-      FloatToStr(Last_RPM_Global, StrBuffer);
-      UART2_Write_Text(StrBuffer);
-      UART_Write_Text('  State=');
-      IntToStr(State, StrBuffer);
-      UART_Write_Text(StrBuffer);
-      UART2_Write(#13);
-    end;      
-      {$IFDEF PRINT_OUT_OF_RANGE_PERIOD}
+    If RPMLogging then
+      PrintRPM;
+    if StateLogging then
+      PrintState;
+    if PeriodErrorLogging then
       PrintDistributorPeriodErrors;
-      {$ENDIF}
     {$ENDIF}
     // Waitin for Pin Change Interrupt
     HeartBeat_Pin := not HeartBeat_Pin;
