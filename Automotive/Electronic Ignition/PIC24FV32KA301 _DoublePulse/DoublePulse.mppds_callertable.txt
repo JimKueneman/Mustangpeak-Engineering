@@ -30,7 +30,22 @@ main
 	UART2_Write
 	UART2_Data_Ready
 	UART2_Read
+	UART2_Read_Text
+		UART2_Data_Ready
+		UART2_Read
+	StrToInt
+		_Multiply_32x32
+		_Divide_32x32
+	PrintLine
+		UART_Write_Text
+		UART1_Write
 	IntToStr
+	PrintDistributorPeriodErrors
+		LongWordToStr
+		UART2_Write_Text
+		PrintLine
+	_Long2Float
+	_Mul_FP
 interrupt_PinChangeNotification
 	TimerCounts_To_Time
 		_Long2Float
@@ -40,14 +55,9 @@ interrupt_PinChangeNotification
 			_Compare_Fp
 		_Div_FP
 		_Mul_FP
-	PrintRPM
-		FloatToStr
-		UART_Write_Text
-		UART1_Write
 	PrintState
 		IntToStr
-		UART_Write_Text
-		UART2_Write
+		PrintLine
 	UpdateDistributorArrayAndAverage
 		AverageDistributorPeriod
 			_AddSub_FP
@@ -66,9 +76,10 @@ interrupt_PinChangeNotification
 		Time_To_TimerCounts
 		Delay_Cyc_Long
 		_Mul_FP
-	_Compare_Ge_Fp
-	_Compare_Le_Fp
 	_Mul_FP
+	_Compare_Le_Fp
+	_Compare_Ge_Fp
+	_Sub_FP
 interrupt_TMR3_RPM_Measurment_And_Stall_Timer
 	UART2_Write_Text
 	UART2_Write

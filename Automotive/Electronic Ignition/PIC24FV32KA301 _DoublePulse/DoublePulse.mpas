@@ -3,6 +3,10 @@ program DoublePulse;
 { Declarations section }
 
 {$DEFINE UART}
+{$IFDEF UART}
+  {.$DEFINE PRINT_EVERY_RPM}
+  {$DEFINE PRINT_OUT_OF_RANGE_PERIOD}
+{$ENDIF}
 
 const
   {****** MCU Setup Parameters ******}
@@ -59,11 +63,17 @@ const
   TACHOUT = B9;    // Bit 9        // The Pin index in the associated Port for the Tach Output
 
 type
-  FilterInfoRec = record
+  TFilterInfoRec = record
     // RPM Averaging array and index counter
     Distributor_Period_Filter_Array: array[RPM_FILTER_LEN] of real;
     Distributor_Period_Filter_Counter: Integer;
     CurrentAverage: real;
+    Previous_Distributor_Period: real;
+    Distrbutor_Period_ShortError, Distrbutor_Period_LongError: LongInt;
+  end;
+  
+  TParameters = record
+    BlankingPercent: real;
   end;
   
 var
@@ -88,16 +98,22 @@ var
   Last_RPM_Global: real;
   DetailedLogging: Boolean;
   
-  FilterInfo: FilterInfoRec;
+  FilterInfo: TFilterInfoRec;
+  Parameters: TParameters;
 
 {$IFDEF UART}
+procedure PrintLine(var Buffer: array[128] of char);
+begin
+  UART_Write_Text(Buffer);
+  UART1_Write(#13);
+end;
+
 procedure PrintState;
 var
   Buffer: array[6] of char;
 begin
   IntToStr(State, Buffer);
-  UART_Write_Text(Buffer);
-  UART2_Write(#13);
+  PrintLine(Buffer);
 end;
 
 procedure PrintRPM;
@@ -105,9 +121,21 @@ var
   Buffer: array[23] of char;
 begin
   FloatToStr(Last_RPM_Global, Buffer);
-  UART_Write_Text(Buffer);
-  UART1_Write(#13);
+  PrintLine(Buffer);
 end;
+
+procedure PrintDistributorPeriodErrors;
+var
+  Buffer: array[10] of char;
+begin
+  LongWordToStr(FilterInfo.Distrbutor_Period_ShortError, Buffer);
+  UART2_Write_Text('Short T: ');
+  PrintLine(Buffer);
+  LongWordToStr(FilterInfo.Distrbutor_Period_LongError, Buffer);
+  UART2_Write_Text('Long T: ');
+  PrintLine(Buffer);
+end;
+
 {$ENDIF}
 // Converts an RPM into a Period Time between each cyclinder firing in Seconds
 function RPM_To_Distributor_Period(RPM: real): real;
@@ -128,7 +156,7 @@ end;
 // Converts a DWORD Timer Count to actual elapsed time (seconds) scaled by the Timer Divider (used 1, 8, 32, 64, etc)
 function TimerCounts_To_Time(TimerCounts: DWORD; Divider: Word): real;
 begin
-  Result := real( TimerCounts) * CLOCK_PERIOD ///* real( Divider);
+  Result := real( TimerCounts) * CLOCK_PERIOD * real( Divider);
 end;
 
 // Converts time (seconds) to a DWORD Timer Count using the passed Timer Divider (1, 8, 32, 64, etc)
@@ -163,7 +191,7 @@ end;
 procedure TriggerOutput_With_Wait(BlankingTime: real);
 begin
   TachOut_Pin := TACH_Hi;
-  Delay_Cyc_Long( Time_To_TimerCounts(BlankingTime * BLANK_PERCENT, 1));  // Just a bit more than 15 degrees dwell (out of 45
+  Delay_Cyc_Long( Time_To_TimerCounts(BlankingTime * Parameters.BlankingPercent, 1));  // Just a bit more than 15 degrees dwell (out of 45
   TachOut_Pin := TACH_LO;
 end;
 
@@ -211,20 +239,22 @@ begin
       Last_RPM_Global := Distributor_Period_To_RPM(LastDistributorPeriod);
     end;
     
-    {$IFDEF UART}
-    if DetailedLogging then
-      PrintRPM;
-    {$ENDIF}
+    if (FilterInfo.Previous_Distributor_Period < (LastDistributorPeriod * 0.90)) then
+      Inc(FilterInfo.Distrbutor_Period_ShortError);
+    if (FilterInfo.Previous_Distributor_Period > (LastDistributorPeriod * 1.10)) then
+      Inc(FilterInfo.Distrbutor_Period_LongError);
+    
+    {$IFDEF PRINT_EVERY_RPM}PrintRPM;{$ENDIF}
 
     case State of
       STATE_STALLED :
         begin
           Stable_Cranking_RPM_Count_Global := 0;
           FilterInfo.Distributor_Period_Filter_Counter := 0;
-          Last_RPM_Global := 0;
-          {$IFDEF UART}PrintState;{$ENDIF}
+          Last_RPM_Global := 0.0;
+          {$IFDEF UART}if DetailedLogging then PrintState;{$ENDIF}
           State := STATE_STABLIZE_CRANKING;
-          {$IFDEF UART}PrintState;{$ENDIF}
+          {$IFDEF UART}if DetailedLogging then PrintState;{$ENDIF}
         end;
       STATE_STABLIZE_CRANKING :
         begin
@@ -232,18 +262,18 @@ begin
           if (Last_RPM_Global > STALL_RPM) and (Last_RPM_Global < MAX_RPM) then  // Are we cranking in a stable place yet?
           begin
             UpdateDistributorArrayAndAverage(LastDistributorPeriod);
-            Delay_Cyc_Long( Time_To_TimerCounts(LastDistributorPeriod*BLANK_PERCENT, 1));
+            Delay_Cyc_Long( Time_To_TimerCounts(LastDistributorPeriod * Parameters.BlankingPercent, 1));
             Inc(Stable_Cranking_RPM_Count_Global)
           end else
           begin
-            Delay_Cyc_Long( Time_To_TimerCounts(DEFAULT_CRANKING_BLANK_PERIOD*BLANK_PERCENT, 1));
+            Delay_Cyc_Long( Time_To_TimerCounts(DEFAULT_CRANKING_BLANK_PERIOD * Parameters.BlankingPercent, 1));
             Dec(Stable_Cranking_RPM_Count_Global);
           end;
           // Did we reach the correct number of stable pulses to move on?
           if Stable_Cranking_RPM_Count_Global >= RPM_FILTER_LEN then
           begin
             State := STATE_FAKE_RPM;
-            {$IFDEF UART}PrintState;{$ENDIF}
+            {$IFDEF UART}if DetailedLogging then PrintState;{$ENDIF}
           end;
         end;
       STATE_FAKE_RPM :
@@ -251,12 +281,12 @@ begin
           for i := 0 to FAKE_RPM_COUNT -1 do
           begin
             TachOut_Pin := TACH_Hi;
-            Delay_Cyc_Long( Time_To_TimerCounts(RPM_To_Distributor_Period(FAKE_RPM*BLANK_PERCENT), 1));
+            Delay_Cyc_Long( Time_To_TimerCounts(RPM_To_Distributor_Period(FAKE_RPM * Parameters.BlankingPercent), 1));
             TachOut_Pin := TACH_Lo;
-            Delay_Cyc_Long( Time_To_TimerCounts(RPM_To_Distributor_Period(FAKE_RPM*(1-BLANK_PERCENT)), 1));
+            Delay_Cyc_Long( Time_To_TimerCounts(RPM_To_Distributor_Period(FAKE_RPM * (1-Parameters.BlankingPercent)), 1));
           end;
           State := STATE_CRANKING;
-          {$IFDEF UART}PrintState;{$ENDIF}
+          {$IFDEF UART}if DetailedLogging then PrintState;{$ENDIF}
         end;
       STATE_CRANKING :
         begin
@@ -265,7 +295,7 @@ begin
           if Last_RPM_Global > MIN_RUNNING_RPM then
           begin
             State := STATE_RUNNING;
-            {$IFDEF UART}PrintState;{$ENDIF}
+            {$IFDEF UART}if DetailedLogging then PrintState;{$ENDIF}
           end;
         end;
       STATE_RUNNING :
@@ -276,14 +306,15 @@ begin
         State := STATE_STALLED;     // State is messed up, start over
     end;    // Case
   end;
-
+  FilterInfo.Previous_Distributor_Period := LastDistributorPeriod;
   // Some free debounce guarding by putting this at the end
   CNIF_bit := 0;
 end;
 
 
 var
-  StrBuffer: array[23] of Char;
+  StrBuffer: array[128] of Char;
+  DelimiterStr: string[1];
 begin
   { Main program }
   ANSA := 0;        // Make them all Digital
@@ -293,6 +324,10 @@ begin
   DetailedLogging := False;
   FilterInfo.Distributor_Period_Filter_Counter := 0;
   FilterInfo.CurrentAverage := 0.0;
+  FilterInfo.Distrbutor_Period_ShortError := 0;
+  FilterInfo.Distrbutor_Period_LongError := 0;
+  
+  Parameters.BlankingPercent := BLANK_PERCENT;
 
   TachOut_Pin := TACH_LO;   // Set it low
   HeartBeat_Pin := 0;
@@ -368,6 +403,24 @@ begin
     begin
       case UART2_Read of
         'd', 'D' : DetailedLogging := not DetailedLogging;
+        'c', 'C' : 
+          begin
+            FilterInfo.Distrbutor_Period_ShortError := 0;
+            FilterInfo.Distrbutor_Period_LongError := 0;
+          end;
+        'b', 'B' :
+          begin
+            DelimiterStr[0] := #13;
+            DelimiterStr[1] := $00;
+            UART2_Read_Text(StrBuffer, DelimiterStr, 255);
+            Parameters.BlankingPercent := StrToInt(StrBuffer) * 0.01;
+          end;
+        '?', 'h', 'H' : 
+          begin
+            PrintLine('d,D : Detailed Logging');
+            PrintLine('c,C : Clear Distrbutor_Period_Errors counter');
+            PrintLine('b,B : Set Blanking Percent send as 10 (10%), 50 (50%) etc');
+          end;
       end;
     end;
     
@@ -380,7 +433,10 @@ begin
       IntToStr(State, StrBuffer);
       UART_Write_Text(StrBuffer);
       UART2_Write(#13);
-    end;
+    end;      
+      {$IFDEF PRINT_OUT_OF_RANGE_PERIOD}
+      PrintDistributorPeriodErrors;
+      {$ENDIF}
     {$ENDIF}
     // Waitin for Pin Change Interrupt
     HeartBeat_Pin := not HeartBeat_Pin;
