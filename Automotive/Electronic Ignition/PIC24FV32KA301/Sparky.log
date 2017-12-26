@@ -5,19 +5,31 @@ warning: 0	1501	Specified search path does not exist: 'Z:\Automotive\Electronic 
 warning: 0	1501	Specified search path does not exist: 'Z:\Automotive\Electronic Ignition\dsPIC24FV08KM101'	 
 diagnostics: 0	133	Compilation Started	\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\PIC24FV32KA301\Sparky.mpas
 hint: 1	1015	Hint: Compiling unit "\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\PIC24FV32KA301\Sparky.mpas"	Sparky.mpas
-hint: 88	1021	Hint: interrupt handler (interrupt_Timer3_RPM_Measurement at 0x0024)	Sparky.mpas
-hint: 96	1021	Hint: interrupt handler (interrupt_PinChangeNotification at 0x003A)	Sparky.mpas
-hint: 180	1021	Hint: interrupt handler (interrupt_Advance_Timer1 at 0x001A)	Sparky.mpas
-hint: 227	1021	Hint: interrupt handler (interrupt_Timer5_Dwell_Delay at 0x004C)	Sparky.mpas
-hint: 99	1001	Hint: Variable "Dwell_Delay_Count" has been declared, but not used	Sparky.mpas
-hint: 99	1011	Hint: Variable "TimingAdvanceCount" has been eliminated by optimizer	Sparky.mpas
-hint: 366	1010	Hint: Unit "Sparky.mpas" has been recompiled	Sparky.mpas
+hint: 231	1021	Hint: interrupt handler (interrupt_Timer3_RPM_Measurement at 0x0024)	Sparky.mpas
+hint: 243	1021	Hint: interrupt handler (interrupt_PinChangeNotification at 0x003A)	Sparky.mpas
+hint: 342	1021	Hint: interrupt handler (interrupt_Advance_Timer1 at 0x001A)	Sparky.mpas
+hint: 389	1021	Hint: interrupt handler (interrupt_Timer5_Dwell_Delay at 0x004C)	Sparky.mpas
+hint: 162	1001	Hint: Variable "Divider" has been declared, but not used	Sparky.mpas
+hint: 203	1001	Hint: Variable "SecondsPerDegree_Local" has been declared, but not used	Sparky.mpas
+hint: 212	1001	Hint: Variable "SecondsPerDegree_Local" has been declared, but not used	Sparky.mpas
+hint: 246	1001	Hint: Variable "Dwell_Delay_Count" has been declared, but not used	Sparky.mpas
+hint: 246	1001	Hint: Variable "TimingAdvanceCount" has been declared, but not used	Sparky.mpas
+hint: 247	1001	Hint: Variable "TimingAdvanceDegrees" has been declared, but not used	Sparky.mpas
+hint: 247	1001	Hint: Variable "Slope" has been declared, but not used	Sparky.mpas
+hint: 248	1001	Hint: Variable "i" has been declared, but not used	Sparky.mpas
+hint: 248	1001	Hint: Variable "TimingCurveIndex" has been declared, but not used	Sparky.mpas
+hint: 344	1001	Hint: Variable "Dwell_Delay_Period" has been declared, but not used	Sparky.mpas
+hint: 344	1001	Hint: Variable "Dynamic_Dwell_Delay_Period" has been declared, but not used	Sparky.mpas
+hint: 345	1001	Hint: Variable "Dwell_Delay_Count" has been declared, but not used	Sparky.mpas
+hint: 247	1011	Hint: Variable "TimingAdvanceTime" has been eliminated by optimizer	Sparky.mpas
+hint: 247	1011	Hint: Variable "SecPerDegree" has been eliminated by optimizer	Sparky.mpas
+hint: 536	1010	Hint: Unit "Sparky.mpas" has been recompiled	Sparky.mpas
 diagnostics: 0	134	Compiled Successfully	\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\PIC24FV32KA301\Sparky.mpas
-diagnostics: 0	139	All files Compiled in 93 ms	 
+diagnostics: 0	139	All files Compiled in 79 ms	 
 hint: 0	1144	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)
-hint: 0	1144	Static RAM (bytes): 58   Dynamic RAM (bytes): 1990	Static RAM (bytes): 58   Dynamic RAM (bytes): 1990
-hint: 0	1144	Used ROM (bytes): 3620 (16%)  Free ROM (bytes): 18908 (84%)	Used ROM (bytes): 3620 (16%)  Free ROM (bytes): 18908 (84%)
+hint: 0	1144	Static RAM (bytes): 124   Dynamic RAM (bytes): 1924	Static RAM (bytes): 124   Dynamic RAM (bytes): 1924
+hint: 0	1144	Used ROM (bytes): 4256 (19%)  Free ROM (bytes): 18272 (81%)	Used ROM (bytes): 4256 (19%)  Free ROM (bytes): 18272 (81%)
 diagnostics: 0	145	Project Linked Successfully	Sparky.mppds
-diagnostics: 0	140	Linked in 250 ms	 
-diagnostics: 0	141	Project 'Sparky.mppds' completed: 406 ms	 
-diagnostics: 0	103	Finished successfully: 24 Dec 2017, 11:24:19	Sparky.mppds
+diagnostics: 0	140	Linked in 203 ms	 
+diagnostics: 0	141	Project 'Sparky.mppds' completed: 344 ms	 
+diagnostics: 0	103	Finished successfully: 25 Dec 2017, 07:58:28	Sparky.mppds

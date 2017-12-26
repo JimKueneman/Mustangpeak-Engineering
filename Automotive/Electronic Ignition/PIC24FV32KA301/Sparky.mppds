@@ -24,9 +24,10 @@ Count=0
 Count=0
 ActiveImageIndex=-1
 [OPENED_FILES]
-Count=2
+Count=3
 File0=Sparky.mpas
 File1=..\dsPIC24FV08KM101\Sparky.mpas
+File2=..\PIC24FV32KA301 _DoublePulse\DoublePulse.mpas
 [EEPROM]
 Count=0
 [ACTIVE_COMMENTS_FILES]

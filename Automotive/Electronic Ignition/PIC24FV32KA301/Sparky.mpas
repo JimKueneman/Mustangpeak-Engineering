@@ -2,14 +2,25 @@ program Sparky;
 
 { Declarations section }
 
-{$DEFINE DEBUG_UART}
+{$DEFINE UART}
 
 const
-  // Engine Parameters
+    {****** Engine Parameters *******}
+  // Engine cycles
   ENGINE_CYCLE = 4;
+  // Number of Cylinders (assuming not a dual point distributor)
   CYLINDERS = 8;
-//  STALL_RPM = 50;                 // This and the Max Advance Delay need to be thought about together so we don't run out of the 16bit Timer.  50RPM and 60 Degrees of advance is about 50,000 tick as 1:64 which is still 0.2 degrees at 7000 RPM  A good balance
-
+  // Revolutions per Cycle
+  REV_PER_CYCLE = ENGINE_CYCLE/2;
+  
+  { ****** Sofer parameters to define limits for decision logic in the program ******}
+  // Below this and we say we stalled and restart the Statemachine
+  STALL_RPM = 50;
+  // Above this and it is a bad measurement of RPM
+  MAX_RPM = 7000;
+  // Above this and we move to the Running State
+  
+  
   // Coil Parameters
   COIL_MAG_L                     = 0.008;      // Henries
   COIL_R                         = 1.5;        // Ohms
@@ -21,13 +32,14 @@ const
   FIRING_CRANKSHAFT_DEGREES      = 15;         // Number of Degrees to wait for the cycle to finish firing
   DWELL_CRANKSHAFT_DEGREES       = 30;         // Number of Degrees the cycle is not firing
 
-  // MCU Setup Parameters
+  {****** MCU Setup Parameters ******}
+  // Frequency the CPU is running
   OSCILLATORFREQ = 32e6;
+  // How many cycles of the Oscillator for each master timer cycle
   CLOCKDIVIDER = 2;
-  TIMER_DIVIDER = 256;
-
-  // MCU Clock Calculated Parameters
+  // Frequency of the master timer cloc
   CLOCK_FREQ = real( OSCILLATORFREQ/CLOCKDIVIDER);
+  // The period of a single clock timer tick (in seconds)
   CLOCK_PERIOD = real( 1/CLOCK_FREQ);
 
   // Coil Calculated Parameters
@@ -37,20 +49,41 @@ const
   MAX_DWELL_PERIOD = COIL_CHARGE_TIME * COIL_CHARGE_TIME_MULTIPLIER * 2;      // Never have the IGBT on for more than 2x of the Charge time
   MAX_DWELL_COUNT = dWord(MAX_DWELL_PERIOD/CLOCK_PERIOD);
 
-  // Revolutions per Cycle
-  REV_PER_CYCLE = ENGINE_CYCLE/2;
-
   // DWELL numbers
   FIRING_DISTRIBUTOR_DEGREES = FIRING_CRANKSHAFT_DEGREES * REV_PER_CYCLE;
   DWELL_DISTRIBUTOR_DEGREES = DWELL_CRANKSHAFT_DEGREES * REV_PER_CYCLE;
   
+    // How long between pin change notification before we claim the engine has stalled
+  STALL_DISTRIBUTOR_PERIOD = real( 60 * REV_PER_CYCLE /(STALL_RPM*CYLINDERS));
+  // Time to blank if the RPM made no sense at all during cranking
+  DEFAULT_CRANKING_RPM = 200;
+  DEFAULT_CRANKING_BLANK_PERIOD = real( 60 * REV_PER_CYCLE/(DEFAULT_CRANKING_RPM*CYLINDERS));
+  
   // Advance numbers
   NUMBER_OF_ADVANCE_POINTS = 4;
+  
+  // Smoothing RPM Filter Depth and How many valid RPM spark pulses detected in the pin change notification to
+  // move on in the Stat machine before moving out of Cranking
+  RPM_FILTER_LEN = 8;
+  
+  TACH_HI = 0;
+  TACH_LO = 1;
 
+type
+  FilterInfoRec = record
+    // RPM Averaging array and index counter
+    Distributor_Period_Filter_Array: array[RPM_FILTER_LEN] of real;
+    Distributor_Period_Filter_Counter: Integer;
+    PeriodAverage: real;
+    RPM_Filter_Array: array[RPM_FILTER_LEN] of real;
+    RPMAverage: real;
+  end;
+  
 var
-  RPM_Global, SecondsPerDegree_Global, Distributor_Period_Global, AdvancePeriod_Global: real;
+  RPM_Global, SecondsPerDegree_Global, AdvancePeriod_Global, Distributor_Period_Global: real;
   Max_Dwell_Exceeded_Global: Boolean;
   s1: string[128];
+  FilterInfo: FilterInfoRec;
 
   TimingCurveRPM    : array[NUMBER_OF_ADVANCE_POINTS] of real;
   TimingCurveDegrees: array[NUMBER_OF_ADVANCE_POINTS] of real;
@@ -60,44 +93,158 @@ var
    HeartbeatTRIS: word at TRISB;
    HeartbeatTRIS_bit: sbit at TRISB7_bit;
    HeartbeatLatch_Bit: sbit at LATB7_bit;
-   
+
    FiTechTachPort: word at PORTB;
-   FiTechTachLatch: word at LATB;
-   FiTechTachTRIS: word at TRISB;
-   FiTechTachTRIS_bit: sbit at TRISB9_bit;
-   FiTechTachLatch_Bit: sbit at LATB9_bit;
-   
+   TachOutLatch: word at LATB;
+   TachOutTRIS: word at TRISB;
+   TachOutTRIS_bit: sbit at TRISB9_bit;
+   TachOutLatch_Bit: sbit at LATB9_bit;
+
    IGBTPort: word at PORTB;
    IGBTLatch: word at LATB;
    IGBTTRIS: word at TRISB;
    IGBTTRIS_bit: sbit at TRISB12_bit;
    IGBTLatch_bit: sbit at LATB12_bit;
-   
+
    TriggerPort: word at PORTA;
    TriggerLatch: word at LATA;
    TriggerTRIS: word at TRISA;
    TriggerTRIS_bit: sbit at TRISA0_bit;
    TriggerLatch_bit: sbit at LATA0_bit;
-   
 const
-  FITECH_TACH_ON = 0;
-  FITECH_TACH_OFF = 1;
-  
-  TRIGGER_PIN_OFFSET = 0;
+  TRIGGER_PIN_OFFSET = B0;
+   
+{$IFDEF UART}
+{
+procedure PrintState;
+var
+  Buffer: array[6] of char;
+begin
+  IntToStr(State, Buffer);
+  UART_Write_Text(Buffer);
+  UART2_Write(#13);
+end;
+ }
+ 
+ procedure PrintReal(Value: real);
+var
+  Buffer: array[23] of char;
+begin
+  FloatToStr(Value, Buffer);
+  UART2_Write_Text(Buffer);
+end;
 
+procedure PrintRealLine(Value: real);
+begin
+  PrintReal(Value);
+  UART2_Write(#13);
+end;
+
+{$ENDIF}
+
+// Converts an RPM into a Period Time between each cyclinder firing in Seconds
+function RPM_To_Distributor_Period(RPM: real): real;
+begin
+  Result := 0.0;
+  if RPM > 0 then
+    Result := real( 60 * REV_PER_CYCLE / (RPM * CYLINDERS ));
+end;
+
+// Converts a Period of Time between cylinder firings into RPM
+function Distributor_Period_To_RPM(Distributor_Period: real): real;
+begin
+  Result := 0.0;
+  if Distributor_Period > 0.0 then
+    Result := real( 60 / Distributor_Period / CYLINDERS * REV_PER_CYCLE)
+end;
+
+// Converts a DWORD Timer Count to actual elapsed time (seconds) scaled by the Timer Divider (used 1, 8, 32, 64, etc)
+function TimerCounts_To_Time(TimerCounts: DWORD; Divider: Word): real;
+begin
+  Result := real( TimerCounts) * CLOCK_PERIOD ///* real( Divider);
+end;
+
+// Converts time (seconds) to a DWORD Timer Count using the passed Timer Divider (1, 8, 32, 64, etc)
+function Time_To_TimerCounts(Time: real; Divider: Word): DWORD;
+begin
+  Result := DWORD( Time / (CLOCK_PERIOD * real( Divider)))
+end;
+
+// Calculates the average of the items in the Distributor Period Array
+procedure CalculateFilterAverages;
+var
+  i: Integer;
+begin
+  FilterInfo.PeriodAverage := 0.0;
+  FilterInfo.RPMAverage := 0.0;
+  for i := 0 to RPM_FILTER_LEN - 1 do
+  begin
+    FilterInfo.PeriodAverage := FilterInfo.PeriodAverage + FilterInfo.Distributor_Period_Filter_Array[i];
+    FilterInfo.RPMAverage := FilterInfo.RPMAverage + FilterInfo.RPM_Filter_Array[i];
+  end;
+  FilterInfo.PeriodAverage := FilterInfo.PeriodAverage / RPM_FILTER_LEN;
+  FilterInfo.RPMAverage := FilterInfo.RPMAverage / RPM_FILTER_LEN
+end;
+
+procedure UpdateDistributorArrayAndAverage(NewDistributorTime, NewRPM: real);
+begin
+  // Insert the lastest item in the array
+  FilterInfo.Distributor_Period_Filter_Array[FilterInfo.Distributor_Period_Filter_Counter] := NewDistributorTime;
+  FilterInfo.RPM_Filter_Array[FilterInfo.Distributor_Period_Filter_Counter] := NewRPM;
+  Inc(FilterInfo.Distributor_Period_Filter_Counter);
+  // Update the array counter
+  if FilterInfo.Distributor_Period_Filter_Counter >= RPM_FILTER_LEN then
+    FilterInfo.Distributor_Period_Filter_Counter := 0;
+  CalculateFilterAverages;
+end;
+
+function DistributorTime_For_Degree(CurrentRPM: real): real;   //  sec/degree
+var
+  SecondsPerDegree_Local: real;
+begin
+   Result := 0.0;                                // RevolutionsPerSec := RPM/60;
+  if CurrentRPM > 0.0 then                       // DegreesPerSecond := 360*RevolutionsPerSec;  360_Degrees/Revolution  *  Revolution/Sec = Degrees/Sec
+    Result := REV_PER_CYCLE / (6 * CurrentRPM);  // 1/DegreesPerSecond  = 1/(360*RevolutionsPerSec) = 1/(360*RPM/60) = 1/(360/60*RPM) = 1/(6*RPM)
+end;
+
+function CrankshaftTime_For_Degree(CurrentRPM: real): real;   //  sec/degree
+var
+  SecondsPerDegree_Local: real;
+begin
+   Result := 0.0;                    // RevolutionsPerSec := RPM/60;
+  if CurrentRPM > 0.0 then           // DegreesPerSecond := 360*RevolutionsPerSec;  360_Degrees/Revolution  *  Revolution/Sec = Degrees/Sec
+    Result := 1 / (6 * CurrentRPM);  // 1/DegreesPerSecond  = 1/(360*RevolutionsPerSec) = 1/(360*RPM/60) = 1/(360/60*RPM) = 1/(6*RPM)
+end;
+
+function DistributorTime_For_Degrees(CurrentRPM, Degrees: real): real;  // sec/degree * Degrees
+begin
+  Result := DistributorTime_For_Degree(CurrentRPM) * Degrees
+end;
+
+function CrankshaftTime_For_Degrees(CurrentRPM, Degrees: real): real;
+begin
+  Result := CrankshaftTime_For_Degree(CurrentRPM) * Degrees
+end;
+
+// If we get here we did not detect an edge for longer than the minimum RPM so we
+// flag it as a stall and shut off.
 procedure interrupt_Timer3_RPM_Measurement(); iv IVT_ADDR_T3INTERRUPT;
 begin
   T3IF_bit := 0;                 // Reset Interrupt Flag
+  RPM_Global := 0.0;
+  // Shutoff IGBT
+  IGBTLatch_bit := 0;
+  // Turn off the Advance Timer
+  TON_T4CON_bit := 0;
   UART2_Write_Text('Stall: IRQ');
   UART2_Write(#13);
-  TON_T2CON_bit := 0;            // Turn this timer off again.
 end;
 
 procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
 var
   PortCopy: Word;
-  TimerCount, Dwell_Delay_Count, TimingAdvanceCount: dword;
-  TimingAdvanceDegrees, Slope : real;
+  TimerCount, Dwell_Delay_Count, TimingAdvanceCount, BaseTimingCounts: dword;
+  TimingAdvanceTime, TimingAdvanceDegrees, Slope, SecPerDegree: real;
   i, TimingCurveIndex: Integer;
 begin
    PortCopy := TriggerPort;    // Clear all changes
@@ -106,7 +253,7 @@ begin
   if PortCopy.TRIGGER_PIN_OFFSET = 1 then
   begin
   
-     HeartbeatLatch_Bit := not HeartbeatLatch_Bit;
+    HeartbeatLatch_Bit := 1;
 
     // Capture it contents
     LoWord(TimerCount) := TMR2;
@@ -115,13 +262,28 @@ begin
     TMR3HLD := $0000;
     TMR2 := $0000;
 
-    Distributor_Period_Global := real( TimerCount) * CLOCK_PERIOD;
-
+    // Calculate the time between
+    Distributor_Period_Global := TimerCounts_To_Time(TimerCount, 1);
     // Calcuate the RPM based on the last sensor signal
-    RPM_Global := 0.0;
-    if Distributor_Period_Global > 0.0 then
-      RPM_Global := 60/Distributor_Period_Global/CYLINDERS*REV_PER_CYCLE;
+    RPM_Global := Distributor_Period_To_RPM(Distributor_Period_Global);
+    // Update the averaging buffer
+    UpdateDistributorArrayAndAverage(Distributor_Period_Global, RPM_Global);
 
+    SecPerDegree := DistributorTime_For_Degree(RPM_Global);
+    TimingAdvanceTime := SecPerDegree * 22.5;
+    BaseTimingCounts := Time_To_TimerCounts(FilterInfo.PeriodAverage - TimingAdvanceTime - 400e-6, 1);
+    
+    TON_T4CON_bit := 0;
+    PR4 := LoWord(BaseTimingCounts);
+    PR5 := HiWord(BaseTimingCounts);
+    TMR5HLD := $0000;
+    TMR4 := $0000;
+    TON_T4CON_bit := 1;
+    
+    HeartbeatLatch_Bit := 0;
+    
+
+    {
     // Are we too low or too high?
     if (RPM_Global < RPM_STALL) or (RPM_Global > RPM_LIMIT) then
       RPM_Global := 0.0;
@@ -170,7 +332,7 @@ begin
       if PR1 = 0 then
         PR1 := 1;
       TON_T1CON_bit := 1;          // ON
-    end;
+    end;  }
   end;
 
   // Some free debounce guarding by putting this many micro seconds past entry
@@ -182,7 +344,7 @@ var
   Dwell_Delay_Period, Dynamic_Dwell_Delay_Period: real;
   Dwell_Delay_Count: DWORD;
 begin
-
+        (*
   // Shutoff IGBT
   IGBTLatch_bit := 0;
 
@@ -219,13 +381,19 @@ begin
   T5IF_bit := 0;                     // Reset Interrupt Flag
   TON_T4CON_bit := 1;                // ON
  
-  TON_T1CON_bit := 0;        // OFF
+  TON_T1CON_bit := 0;        // OFF    *)
   T1IF_bit := 0;             // clear T1IF
 end;
 
 
 procedure interrupt_Timer5_Dwell_Delay(); iv IVT_ADDR_T5INTERRUPT;
 begin 
+  IGBTLatch_bit := 1;
+  Delay_us(100);
+  IGBTLatch_bit := 0;
+  TON_T4CON_bit := 0;                // OFF
+  
+  {
 
     // The time to wait until the IGBT is turned on just before the next distributor trigger
     // was loaded in the last distributor trigger and we should not turn on the IGBT
@@ -248,7 +416,7 @@ begin
     TON_T4CON_bit := 1;                // ON
 
     Max_Dwell_Exceeded_Global := True;   // Pin Change will clear this or if this interrupt is entered before that something is wrong and we will shut off the IGBT
-
+      }
   T5IF_bit := 0;  // Reset the interrupt Flag
   
 end;
@@ -267,8 +435,8 @@ begin
   IGBTLatch_bit := 0; // Keep the IGBT off
   IGBTTRIS_bit := 0; // Output
   
-  FiTechTachLatch_Bit := FITECH_TACH_OFF; // Keep the Tach off
-  FiTechTachTRIS_bit := 0; // Output
+  TachOutLatch_Bit := TACH_LO; // Keep the Tach off
+  TachOutTRIS_bit := 0; // Output
   
   TriggerTRIS_bit := 1; // Input
 
@@ -295,7 +463,7 @@ begin
   IPC0 := IPC0 or 0x1000;      // interrupt priority level = 1
   T1IF_bit := 0;               // clear T1IF
   T1IE_bit := 1;               // enable Timer1 interrupts
-  TON_T1CON_bit := 1;          // ON
+ // TON_T1CON_bit := 1;          // ON
   
   // Lower Timer controls the setup Setup
   TON_T2CON_bit := 0;                // OFF
@@ -306,8 +474,8 @@ begin
   TCKPS_0_T2CON_bit := 0;            // 00 = 1; 01 = 8; 10 = 64; 11 = 256
   TCKPS_1_T2CON_bit := 0;
   IPC2 := IPC2 or 0x1000;            // interrupt priority level = 1
-  PR2 := $FFFF;
-  PR3 := $FFFF;
+  PR2 := LoWord( DWORD(STALL_DISTRIBUTOR_PERIOD/CLOCK_PERIOD));
+  PR3 := HiWord( DWORD(STALL_DISTRIBUTOR_PERIOD/CLOCK_PERIOD));
   TMR3HLD := 0;
   TMR2 := 0;
   // Upper Timer fires the interrupts
@@ -358,9 +526,11 @@ begin
     begin
       UART2_Read;
     end;
-    UART2_Write_Text('.');
     Delay_ms(100);
+    PrintReal(RPM_Global);
+    UART2_Write_Text('; ');
+    PrintRealLine(FilterInfo.RPMAverage);
   //  IGBTLatch_bit := not IGBTLatch_bit;
-  //  FiTechTachLatch_Bit := not FiTechTachLatch_Bit;
+  //  TachOutLatch_Bit := not TachOutLatch_Bit;
   end;
 end.

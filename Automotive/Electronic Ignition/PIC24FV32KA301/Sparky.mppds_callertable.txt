@@ -10,24 +10,48 @@ main
 		UART2_Write
 	UART2_Data_Ready
 	UART2_Read
+	PrintReal
+		FloatToStr
+			LongIntToStr
+				_Modulus_32x32
+				_Divide_32x32
+			_Float2Longint
+			_Compare_Le_Fp
+				_Compare_Fp
+			_Long2Float
+			_Sub_FP
+				_AddSub_FP
+			_Mul_FP
+		UART2_Write_Text
+	PrintRealLine
+		PrintReal
+		UART2_Write
 interrupt_Timer5_Dwell_Delay
 interrupt_PinChangeNotification
-	_Long2Float
+	TimerCounts_To_Time
+		_Long2Float
+		_Mul_FP
+	Distributor_Period_To_RPM
+		_Compare_Ge_Fp
+			_Compare_Fp
+		_Div_FP
+		_Mul_FP
+	UpdateDistributorArrayAndAverage
+		CalculateFilterAverages
+			_AddSub_FP
+			_Div_FP
+	DistributorTime_For_Degree
+		_Compare_Ge_Fp
+		_Mul_FP
+		_Div_FP
+	Time_To_TimerCounts
+		_Long2Float
+		_Mul_FP
+		_Div_FP
+		_Float2Longword
 	_Mul_FP
-	_Compare_Ge_Fp
-		_Compare_Fp
-	_Div_FP
-	_Compare_Le_Fp
-		_Compare_Fp
 	_Sub_FP
-		_AddSub_FP
-	_Float2Longword
 interrupt_Timer3_RPM_Measurement
 	UART2_Write_Text
 	UART2_Write
 interrupt_Advance_Timer1
-	_Mul_FP
-	_Sub_FP
-	_Compare_Ge_Fp
-	_Div_FP
-	_Float2Longword
