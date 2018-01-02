@@ -24,34 +24,35 @@ const
   REV_PER_CYCLE = ENGINE_CYCLE/2;
 
   { ****** Sofer parameters to define limits for decision logic in the program ******}
-  // Below this and we say we stalled and restart the Statemachine
-  STALL_RPM = 50;
-  // Above this and it is a bad measurement of RPM
-  MAX_RPM = 7000;
-  // Above this and we move to the Running State
-  MIN_RUNNING_RPM = 400;
-  // How many fake RPM triggers to give the FiTech on startup
-  FAKE_RPM_COUNT = 0;
-  // What RPM to use for the Fake RPM signal
-  FAKE_RPM = real( 7000);
+  // How many change notifications (firings) before we claim the user is cranking the engine
+  MIN_FIRING_COUNT_TO_DETECT_CRANKING = 4;
   // Smoothing RPM Filter Depth and How many valid RPM spark pulses detected in the pin change notification to
   // move on in the Stat machine before moving out of Cranking
   RPM_FILTER_LEN = 8;
   // How much of a distributor spark period to blank out before looking for the next pin change notification
   BLANK_PERCENT = 0.40;
-  // How long between pin change notification before we claim the engine has stalled
-  STALL_DISTRIBUTOR_PERIOD = real( 60 * REV_PER_CYCLE /(STALL_RPM*CYLINDERS));
-  // Time to blank if the RPM made no sense at all during cranking
-  DEFAULT_CRANKING_RPM = 200;
-  DEFAULT_CRANKING_BLANK_PERIOD = real( 60 * REV_PER_CYCLE/(DEFAULT_CRANKING_RPM*CYLINDERS));
+  
+  // Below this and we say we stalled and restart the Statemachine
+  STALL_RPM = 50;
+  STALL_DISTRIBUTOR_PERIOD = real( 60 * REV_PER_CYCLE / (STALL_RPM * CYLINDERS));
+  
+  // Below this and we say we stalled and restart the Statemachine
+  MAX_RPM = 7000;
+  MAX_DISTRIBUTOR_PERIOD = real( 60 * REV_PER_CYCLE / (MAX_RPM * CYLINDERS));
+  
+  // Fixed RPM to send to the FiTech during cranking
+  DEFAULT_CRANKING_RPM = 100;
+  DEFAULT_CRANKING_DISTRIBUTOR_PERIOD = real( 60 * REV_PER_CYCLE/ (DEFAULT_CRANKING_RPM * CYLINDERS));
+  
+  // RPM where the Statemachine converts from Cranking to Running
+  DEFAULT_MIN_RUNNING_RPM = 400;
+  DEFAULT_MIN_RUNNING_DISTRIBUTOR_PERIOD = real( 60 * REV_PER_CYCLE / (DEFAULT_MIN_RUNNING_RPM * CYLINDERS));
 
   // Statemachine states
   STATE_STALLED = 0;               // Engine is not running
-  STATE_STABLIZE_CRANKING = 1;     // Engine is cranking but waiting for the a stable set of pin change notification to occur
-  STATE_FAKE_RPM = 2;              // Send the FiTech some fake higher RPM signals to get it to shoot fuel sooner
-  STATE_CRANKING = 3;              // Cranking normally but not averaging the pin change notifications yet
-  STATE_RUNNING = 4;               // RPM indicates we started so start averaging the pin change notification for the FiTech Output
-  STATE_DEBUG = 5;                 // Special Test State
+  STATE_DETECT_CRANKING = 1;       // Detect the owner has started to crank
+  STATE_CRANKING = 2;              // Detects that the engine has started
+  STATE_RUNNING = 3;               // RPM indicates we started so start averaging the pin change notification for the FiTech Output
   
   TACH_LO = 1;                     // Pin output for a Tach Lo output (common collector amplifier)
   TACH_HI = 0;                     // Pin output for a Tach Hi output (common collector amplifier)
@@ -67,7 +68,7 @@ type
     CurrentAverage: real;
     Previous_Distributor_Period: real;
     Distrbutor_Period_ShortError, Distrbutor_Period_LongError: LongInt;
-    StableCrankingError: LongInt;
+    DetectedFiringCount: Word;
   end;
   
   TParameters = record
@@ -98,10 +99,9 @@ var
   Debug_Pin: sbit at LATA2_bit;
   Debug_TRIS: sbit at TRISA2_bit;
 
-  State,
-  Stable_Cranking_RPM_Count_Global: Integer;
+  State: Byte;
   Last_RPM_Global: real;
-  PeriodErrorLogging, RPMLogging, StateLogging, RealtimeRPMLogging, StallIRQLogging: Boolean;
+  PeriodErrorLogging, RPMLogging, StateLogging, RealtimeRPMLogging, StallIRQLogging, AvgPeriodLogging: Boolean;
   
   FilterInfo: TFilterInfoRec;
   Parameters: TParameters;
@@ -122,12 +122,22 @@ begin
   PrintLine(Buffer);
 end;
 
-procedure PrintRPM;
+procedure PrintReal(AReal: real);
 var
   Buffer: array[23] of char;
 begin
-  FloatToStr(Last_RPM_Global, Buffer);
+  FloatToStr(AReal, Buffer);
   PrintLine(Buffer);
+end;
+
+procedure PrintRPM;
+begin
+  PrintReal(Last_RPM_Global);
+end;
+
+procedure PrintAveragePeriod;
+begin
+  PrintReal(FilterInfo.CurrentAverage);
 end;
 
 procedure PrintDistributorPeriodErrors;
@@ -140,9 +150,6 @@ begin
   LongWordToStr(FilterInfo.Distrbutor_Period_LongError, Buffer);
   UART2_Write_Text('Long T: ');
   PrintLine(Buffer);
-  LongWordToStr(FilterInfo.StableCrankingError, Buffer);
-  UART2_Write_Text('Stable Cranking Error: ');
-  PrintLine(Buffer);
 end;
 
 procedure PrintHelp;
@@ -154,9 +161,8 @@ begin
   PrintLine('p,P : Toggle Peroid Error Logging');
   PrintLine('c,C : Clear Distrbutor_Period_Errors counter');
   PrintLine('i,I : Stall Interrupt Logging');
+  PrintLine('a,A : Toggle Average Period Logging');
   PrintLine('b,B : Set Blanking Percent send as 10 (10%), 50 (50%) etc');
-  PrintLine('d   : Sets the RPM for a debug set of pulses to the FiTech, must use FOUR character i.e. "d4500" for 4500 RPM');
-  PrintLine('D   : Sets the number of RPM cycles to fire the FiTech THEN EXECUTES IT, must use four characters i.e. D0010 for 10 cycles');
 end;
 
 {$ENDIF}
@@ -199,15 +205,26 @@ begin
   Result := Result / RPM_FILTER_LEN
 end;
 
+function ValidPeriod(Period: real): Boolean;
+begin      // Result := True; Exit;
+  if State <> STATE_RUNNING then
+    Result := (Period < STALL_DISTRIBUTOR_PERIOD) and (Period > (DEFAULT_MIN_RUNNING_DISTRIBUTOR_PERIOD / 2)) // Arbitrary number though it can't be the Min Running RPM or it won't jump to the Running State
+  else
+    Result := (Period < STALL_DISTRIBUTOR_PERIOD) and (Period > MAX_DISTRIBUTOR_PERIOD)
+end;
+
 procedure UpdateDistributorArrayAndAverage(NewDistributorTime: real);
 begin
+  if ValidPeriod(NewDistributorTime) then
+  begin
   // Insert the lastest item in the array
-  FilterInfo.Distributor_Period_Filter_Array[FilterInfo.Distributor_Period_Filter_Counter] := NewDistributorTime;
-  Inc(FilterInfo.Distributor_Period_Filter_Counter);
-  // Update the array counter
-  if FilterInfo.Distributor_Period_Filter_Counter >= RPM_FILTER_LEN then
-    FilterInfo.Distributor_Period_Filter_Counter := 0;
-  FilterInfo.CurrentAverage := AverageDistributorPeriod;
+    FilterInfo.Distributor_Period_Filter_Array[FilterInfo.Distributor_Period_Filter_Counter] := NewDistributorTime;
+    Inc(FilterInfo.Distributor_Period_Filter_Counter);
+    // Update the array counter
+    if FilterInfo.Distributor_Period_Filter_Counter >= RPM_FILTER_LEN then
+      FilterInfo.Distributor_Period_Filter_Counter := 0;
+    FilterInfo.CurrentAverage := AverageDistributorPeriod;
+  end
 end;
 
 // Sends the delayed blanking pulse to the FiTech and stalls the CN Interrupt for the blanking
@@ -218,21 +235,43 @@ begin
   TachOut_Pin := TACH_LO;
 end;
 
+procedure InitializeStalledState;
+var
+  i: Integer;
+begin
+  // Shut off the Cranking Trigger Timer if we stalled
+  TachOut_Pin := TACH_LO;
+  TON_T4CON_bit := 0;
+  Last_RPM_Global := 0.0;
+  FilterInfo.Distributor_Period_Filter_Counter := 0;
+  FilterInfo.DetectedFiringCount := 0;
+  FilterInfo.CurrentAverage := 0.0;
+  for i := 0 to RPM_FILTER_LEN - 1 do
+    FilterInfo.Distributor_Period_Filter_Array[i] := 0.0;
+  FilterInfo.Distributor_Period_Filter_Counter := 0;
+end;
+
 procedure interrupt_TMR3_RPM_Measurment_And_Stall_Timer(); iv IVT_ADDR_T3INTERRUPT;
 begin
   // Reset the RPM/Stall Timer; Keep looking for stalls as that is the only way to enter this
   TMR3HLD := $0000;
   TMR2 := $0000;
+  InitializeStalledState;
   State := STATE_STALLED;
-  Last_RPM_Global := 0.0;          
   {$IFDEF UART}if StallIRQLogging then PrintLine('Stall Detected - IRQ');{$ENDIF}
   T3IF_bit := 0;                 // Reset Interrupt Flag
+end;
+
+procedure interrupt_TMR5_Cranking_FiTech_Triggger_Timer(); iv IVT_ADDR_T5INTERRUPT;
+begin
+  // Keep firing the FiTech at a predefined rate during cranking
+  TachOut_Pin := not(TachOut_Pin);
+  T5IF_bit := 0;                 // Reset Interrupt Flag
 end;
 
 procedure interrupt_PinChangeNotification(); iv IVT_ADDR_CNINTERRUPT;
 var
   PortCopy: Word;
-  i: Integer;
   LastDistributorPeriod: real;
   DistributorPeriodTimerCount: DWord;
 begin
@@ -240,7 +279,7 @@ begin
   // Detect rising edges only
   if PortCopy.COILNEG = 1 then
   begin
-    // Capture it contents
+    // Capture RPM/Stall Timer contents
     LoWord(DistributorPeriodTimerCount) := TMR2;
     HiWord(DistributorPeriodTimerCount) := TMR3HLD;
     // Reset the RPM/Stall Timer
@@ -259,63 +298,37 @@ begin
       Last_RPM_Global := Distributor_Period_To_RPM(LastDistributorPeriod);
     end;
     
-    if (FilterInfo.Previous_Distributor_Period < (LastDistributorPeriod * 0.90)) then
-      Inc(FilterInfo.Distrbutor_Period_ShortError);
-    if (FilterInfo.Previous_Distributor_Period > (LastDistributorPeriod * 1.10)) then
-      Inc(FilterInfo.Distrbutor_Period_LongError);
-    
     {$IFDEF UART}if RealtimeRPMLogging then PrintRPM;{$ENDIF}
 
     case State of
       STATE_STALLED :
         begin
-          Stable_Cranking_RPM_Count_Global := 0;
-          FilterInfo.Distributor_Period_Filter_Counter := 0;
-          Last_RPM_Global := 0.0;
-          FilterInfo.StableCrankingError := 0;
+          InitializeStalledState;
           {$IFDEF UART}if StateLogging then PrintState;{$ENDIF}
-          State := STATE_STABLIZE_CRANKING;
+          State := STATE_DETECT_CRANKING;
           {$IFDEF UART}if StateLogging then PrintState;{$ENDIF}
         end;
-      STATE_STABLIZE_CRANKING :
+      STATE_DETECT_CRANKING :
         begin
-          // Decision point for if this was a valid signal
-          if (Last_RPM_Global > STALL_RPM) and (Last_RPM_Global < MAX_RPM) then  // Are we cranking in a stable place yet?
-          begin
-            UpdateDistributorArrayAndAverage(LastDistributorPeriod);
-            Delay_Cyc_Long( Time_To_TimerCounts(LastDistributorPeriod * Parameters.BlankingPercent, 1));
-            Inc(Stable_Cranking_RPM_Count_Global)
-          end else
-          begin
-            Delay_Cyc_Long( Time_To_TimerCounts(DEFAULT_CRANKING_BLANK_PERIOD * Parameters.BlankingPercent, 1));
-            Dec(Stable_Cranking_RPM_Count_Global);
-            Inc(FilterInfo.StableCrankingError);
-          end;
+          Inc(FilterInfo.DetectedFiringCount);
+          
           // Did we reach the correct number of stable pulses to move on?
-          if Stable_Cranking_RPM_Count_Global >= RPM_FILTER_LEN then
+          if FilterInfo.DetectedFiringCount >= MIN_FIRING_COUNT_TO_DETECT_CRANKING then
           begin
-            State := STATE_FAKE_RPM;
+            State := STATE_CRANKING;
+            TON_T4CON_bit := 1;                // ON
             {$IFDEF UART}if StateLogging then PrintState;{$ENDIF}
           end;
         end;
-      STATE_FAKE_RPM :
-        begin
-          for i := 0 to FAKE_RPM_COUNT -1 do
-          begin
-            TachOut_Pin := TACH_Hi;
-            Delay_Cyc_Long( Time_To_TimerCounts(RPM_To_Distributor_Period(FAKE_RPM * Parameters.BlankingPercent), 1));
-            TachOut_Pin := TACH_Lo;
-            Delay_Cyc_Long( Time_To_TimerCounts(RPM_To_Distributor_Period(FAKE_RPM * (1-Parameters.BlankingPercent)), 1));
-          end;
-          State := STATE_CRANKING;
-          {$IFDEF UART}if StateLogging then PrintState;{$ENDIF}
-        end;
       STATE_CRANKING :
         begin
+          // Try to update the average will cranking
           UpdateDistributorArrayAndAverage(LastDistributorPeriod);
-          TriggerOutput_With_Wait(LastDistributorPeriod);
-          if Last_RPM_Global > MIN_RUNNING_RPM then
+          
+          // When the average looks like it is running then stop the fixed pulses
+          if FilterInfo.CurrentAverage < DEFAULT_MIN_RUNNING_DISTRIBUTOR_PERIOD then
           begin
+            TON_T4CON_bit := 0;                // OFF
             State := STATE_RUNNING;
             {$IFDEF UART}if StateLogging then PrintState;{$ENDIF}
           end;
@@ -323,11 +336,8 @@ begin
       STATE_RUNNING :
         begin
           UpdateDistributorArrayAndAverage(LastDistributorPeriod);
+          // FUTURE:  Maybe just update the timer with the FiTech timeout for the period?????
           TriggerOutput_With_Wait(FilterInfo.CurrentAverage);
-        end;
-      STATE_DEBUG :
-        begin
-          PrintLine('Cranking while in Debug Mode');
       end else
         State := STATE_STALLED;     // State is messed up, start over
     end;    // Case
@@ -355,11 +365,12 @@ begin
   PeriodErrorLogging := False;
   RealtimeRPMLogging := False;
   StallIRQLogging := FAlse;
+  AvgPeriodLogging := False;
   FilterInfo.Distributor_Period_Filter_Counter := 0;
   FilterInfo.CurrentAverage := 0.0;
   FilterInfo.Distrbutor_Period_ShortError := 0;
   FilterInfo.Distrbutor_Period_LongError := 0;
-  FilterInfo.StableCrankingError := 0;
+  FilterInfo.DetectedFiringCount := 0;
   
   Parameters.BlankingPercent := BLANK_PERCENT;
   
@@ -389,7 +400,6 @@ begin
   TGATE_T2CON_bit := 0;              // Disabled Gated Timer Mode
   TCKPS_0_T2CON_bit := 0;            // 00 = 1; 01 = 8; 10 = 64; 11 = 256
   TCKPS_1_T2CON_bit := 0;
-  IPC2 := IPC2 or 0x1000;            // interrupt priority level = 1
   PR2 := LoWord( DWORD(STALL_DISTRIBUTOR_PERIOD/CLOCK_PERIOD));
   PR3 := HiWord( DWORD(STALL_DISTRIBUTOR_PERIOD/CLOCK_PERIOD));
   TMR3HLD := 0;
@@ -402,11 +412,32 @@ begin
   T3IE_bit := 1;                     // enable Timer1 interrupts
   // Lower Timer controls the setup Setup
   TON_T2CON_bit := 1;                // ON
+  
+  // Fixed Cranking RPM Timer (fires at 1/2 the period)
+  // Lower Timer controls the setup Setup
+  TON_T4CON_bit := 0;                // OFF
+  TON_T5CON_bit := 0;                // OFF
+  T32_T4CON_bit := 1;                // 32 Bit mode
+  TCS_T4CON_bit := 0;                // Internal source
+  TGATE_T4CON_bit := 0;              // Disabled Gated Timer Mode
+  TCKPS_0_T4CON_bit := 0;            // 00 = 1; 01 = 8; 10 = 64; 11 = 256
+  TCKPS_1_T4CON_bit := 0;
+  PR4 := LoWord( DWORD(DEFAULT_CRANKING_DISTRIBUTOR_PERIOD/CLOCK_PERIOD/2));
+  PR5 := HiWord( DWORD(DEFAULT_CRANKING_DISTRIBUTOR_PERIOD/CLOCK_PERIOD/2));
+  TMR5HLD := 0;
+  TMR4 := 0;
+  // Upper Timer fires the interrupts
+  T5IP_0_bit := 1;                   // priority
+  T5IP_1_bit := 0;
+  T5IP_2_bit := 0;
+  T5IF_bit := 0;                     // clear T1IF
+  T5IE_bit := 1;                     // enable Timer1 interrupts
+
 
   {$IFDEF UART}
   UART2_Init(115200);
   Delay_ms(100);
-
+  
   UART2_Write_Text('STALL_DISTRIBUTOR_PERIOD=');
   FloatToStr(STALL_DISTRIBUTOR_PERIOD, StrBuffer);
   UART2_Write_Text(StrBuffer);
@@ -422,7 +453,7 @@ begin
   WordToStr(TMR3HLD, StrBuffer);
   UART_Write_Text(StrBuffer);
   UART2_Write(#13);
-  
+
   PrintHelp;
   {$ENDIF}
 
@@ -450,6 +481,7 @@ begin
             RealtimeRPMLogging := False;
             StallIRQLogging := False;
             RPMLogging := False;
+            AvgPeriodLogging := False;
           end;
         's', 'S' :
           begin
@@ -511,38 +543,11 @@ begin
             if StallIRQLogging then PrintLine('RealTime RPM Logging ON') else
               PrintLine('RealTime RPM Logging OFF');
           end;
-        'd' :
+          'a', 'A' :
           begin
-            DelimiterStr[0] := #13;
-            DelimiterStr[1] := $00;
-            PrintLine('Reading Debug RPM');
-            UART2_Read_Text(StrBuffer, DelimiterStr, 4);
-            UART2_Write_Text('Read: ');
-            PrintLine(StrBuffer);
-            Debug.RPM := StrToInt(StrBuffer);
-          end;
-        'D' :
-          begin
-            DelimiterStr[0] := #13;
-            DelimiterStr[1] := $00;
-            PrintLine('Reading Debug RPM Pulse Count');
-            UART2_Read_Text(StrBuffer, DelimiterStr, 4);
-            UART2_Write_Text('Read: ');
-            PrintLine(StrBuffer);
-            Debug.PulseCount := StrToInt(StrBuffer);
-            
-            if State = STATE_STALLED then
-            begin
-              PrintLine('Executing Debug Sequence');
-              DebugPeriod := RPM_To_Distributor_Period(real (Debug.RPM));
-              DebugBlankPeriod := DebugPeriod * Parameters.BlankingPercent;
-              for i := 0 to Debug.PulseCount - 1 do
-              begin
-                TriggerOutput_With_Wait(DebugBlankPeriod);
-                Delay_Cyc_Long( Time_To_TimerCounts(DebugPeriod-DebugBlankPeriod, 1));
-              end;
-            end else
-              PrintLine('Can''t run Debug with Engine Running');
+            AvgPeriodLogging := not AvgPeriodLogging;
+            if StallIRQLogging then PrintLine('Avg T Logging ON') else
+              PrintLine('Avg T Logging OFF');
           end;
         '?', 'h', 'H' : 
           begin
@@ -553,6 +558,8 @@ begin
     
     If RPMLogging then
       PrintRPM;
+    if AvgPeriodLogging then
+      PrintAveragePeriod;
     if StateLogging then
       PrintState;
     if PeriodErrorLogging then

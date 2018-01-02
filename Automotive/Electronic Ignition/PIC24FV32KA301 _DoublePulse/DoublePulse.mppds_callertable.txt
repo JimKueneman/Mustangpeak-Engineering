@@ -41,24 +41,12 @@ main
 	StrToInt
 		_Multiply_32x32
 		_Divide_32x32
-	RPM_To_Distributor_Period
-		_Compare_Ge_Fp
-			_Compare_Fp
-		_Mul_FP
-		_Div_FP
-	TriggerOutput_With_Wait
-		Time_To_TimerCounts
-			_Long2Float
-			_Mul_FP
-			_Div_FP
-			_Float2Longword
-		Delay_Cyc_Long
-		_Mul_FP
-	Time_To_TimerCounts
-	Delay_Cyc_Long
 	PrintRPM
-		FloatToStr
-		PrintLine
+		PrintReal
+			FloatToStr
+			PrintLine
+	PrintAveragePeriod
+		PrintReal
 	PrintState
 		IntToStr
 		PrintLine
@@ -69,7 +57,8 @@ main
 	_Long2Float
 	_Mul_FP
 	_Compare_Ge_Fp
-	_Sub_FP
+		_Compare_Fp
+interrupt_TMR5_Cranking_FiTech_Triggger_Timer
 interrupt_PinChangeNotification
 	TimerCounts_To_Time
 		_Long2Float
@@ -79,19 +68,24 @@ interrupt_PinChangeNotification
 		_Div_FP
 		_Mul_FP
 	PrintRPM
+	InitializeStalledState
 	PrintState
 	UpdateDistributorArrayAndAverage
+		ValidPeriod
+			_Compare_Le_Fp
+			_Compare_Ge_Fp
 		AverageDistributorPeriod
 			_AddSub_FP
 			_Div_FP
-	Time_To_TimerCounts
-	Delay_Cyc_Long
-	RPM_To_Distributor_Period
 	TriggerOutput_With_Wait
-	PrintLine
-	_Mul_FP
+		Time_To_TimerCounts
+			_Long2Float
+			_Mul_FP
+			_Div_FP
+			_Float2Longword
+		Delay_Cyc_Long
+		_Mul_FP
 	_Compare_Le_Fp
-	_Compare_Ge_Fp
-	_Sub_FP
 interrupt_TMR3_RPM_Measurment_And_Stall_Timer
+	InitializeStalledState
 	PrintLine
