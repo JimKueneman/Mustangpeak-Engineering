@@ -51,7 +51,8 @@ const
   STATE_FAKE_RPM = 2;              // Send the FiTech some fake higher RPM signals to get it to shoot fuel sooner
   STATE_CRANKING = 3;              // Cranking normally but not averaging the pin change notifications yet
   STATE_RUNNING = 4;               // RPM indicates we started so start averaging the pin change notification for the FiTech Output
-
+  STATE_DEBUG = 5;                 // Special Test State
+  
   TACH_LO = 1;                     // Pin output for a Tach Lo output (common collector amplifier)
   TACH_HI = 0;                     // Pin output for a Tach Hi output (common collector amplifier)
 
@@ -66,10 +67,18 @@ type
     CurrentAverage: real;
     Previous_Distributor_Period: real;
     Distrbutor_Period_ShortError, Distrbutor_Period_LongError: LongInt;
+    StableCrankingError: LongInt;
   end;
   
   TParameters = record
     BlankingPercent: real;
+  end;
+  
+  TDebug = record
+    Active: Boolean;
+    Trigger: Boolean;
+    PulseCount: Integer;
+    RPM: LongInt;
   end;
   
 var
@@ -96,6 +105,7 @@ var
   
   FilterInfo: TFilterInfoRec;
   Parameters: TParameters;
+  Debug: TDebug;
 
 {$IFDEF UART}
 procedure PrintLine(var Buffer: array[128] of char);
@@ -130,6 +140,9 @@ begin
   LongWordToStr(FilterInfo.Distrbutor_Period_LongError, Buffer);
   UART2_Write_Text('Long T: ');
   PrintLine(Buffer);
+  LongWordToStr(FilterInfo.StableCrankingError, Buffer);
+  UART2_Write_Text('Stable Cranking Error: ');
+  PrintLine(Buffer);
 end;
 
 procedure PrintHelp;
@@ -140,7 +153,10 @@ begin
   PrintLine('t,T : Toggle Realtime RPM Logging (can cause interrupt timing overrun issues)');
   PrintLine('p,P : Toggle Peroid Error Logging');
   PrintLine('c,C : Clear Distrbutor_Period_Errors counter');
+  PrintLine('i,I : Stall Interrupt Logging');
   PrintLine('b,B : Set Blanking Percent send as 10 (10%), 50 (50%) etc');
+  PrintLine('d   : Sets the RPM for a debug set of pulses to the FiTech, must use FOUR character i.e. "d4500" for 4500 RPM');
+  PrintLine('D   : Sets the number of RPM cycles to fire the FiTech THEN EXECUTES IT, must use four characters i.e. D0010 for 10 cycles');
 end;
 
 {$ENDIF}
@@ -256,6 +272,7 @@ begin
           Stable_Cranking_RPM_Count_Global := 0;
           FilterInfo.Distributor_Period_Filter_Counter := 0;
           Last_RPM_Global := 0.0;
+          FilterInfo.StableCrankingError := 0;
           {$IFDEF UART}if StateLogging then PrintState;{$ENDIF}
           State := STATE_STABLIZE_CRANKING;
           {$IFDEF UART}if StateLogging then PrintState;{$ENDIF}
@@ -272,6 +289,7 @@ begin
           begin
             Delay_Cyc_Long( Time_To_TimerCounts(DEFAULT_CRANKING_BLANK_PERIOD * Parameters.BlankingPercent, 1));
             Dec(Stable_Cranking_RPM_Count_Global);
+            Inc(FilterInfo.StableCrankingError);
           end;
           // Did we reach the correct number of stable pulses to move on?
           if Stable_Cranking_RPM_Count_Global >= RPM_FILTER_LEN then
@@ -306,6 +324,10 @@ begin
         begin
           UpdateDistributorArrayAndAverage(LastDistributorPeriod);
           TriggerOutput_With_Wait(FilterInfo.CurrentAverage);
+        end;
+      STATE_DEBUG :
+        begin
+          PrintLine('Cranking while in Debug Mode');
       end else
         State := STATE_STALLED;     // State is messed up, start over
     end;    // Case
@@ -320,6 +342,8 @@ var
   StrBuffer: array[128] of Char;
   DelimiterStr: string[1];
   TempR: real;
+  DebugPeriod, DebugBlankPeriod: real;
+  i: Integer;
 begin
   { Main program }
   ANSA := 0;        // Make them all Digital
@@ -335,8 +359,14 @@ begin
   FilterInfo.CurrentAverage := 0.0;
   FilterInfo.Distrbutor_Period_ShortError := 0;
   FilterInfo.Distrbutor_Period_LongError := 0;
+  FilterInfo.StableCrankingError := 0;
   
   Parameters.BlankingPercent := BLANK_PERCENT;
+  
+  Debug.Active := False;
+  Debug.Trigger := False;
+  Debug.PulseCount := 0;
+  Debug.RPM := 0;
 
   TachOut_Pin := TACH_LO;   // Set it low
   HeartBeat_Pin := 0;
@@ -441,7 +471,7 @@ begin
             UART2_Read_Text(StrBuffer, DelimiterStr, 2);
             UART2_Write_Text('Read: ');
             PrintLine(StrBuffer);
-            TempR := StrToInt(StrBuffer) * 0.01;
+            TempR := real( StrToInt(StrBuffer)) * 0.01;
             if TempR > 0.05 then
             begin
               Parameters.BlankingPercent := TempR;  // This could cause a burp if the interrupt uses it
@@ -480,6 +510,39 @@ begin
             StallIRQLogging := not StallIRQLogging;
             if StallIRQLogging then PrintLine('RealTime RPM Logging ON') else
               PrintLine('RealTime RPM Logging OFF');
+          end;
+        'd' :
+          begin
+            DelimiterStr[0] := #13;
+            DelimiterStr[1] := $00;
+            PrintLine('Reading Debug RPM');
+            UART2_Read_Text(StrBuffer, DelimiterStr, 4);
+            UART2_Write_Text('Read: ');
+            PrintLine(StrBuffer);
+            Debug.RPM := StrToInt(StrBuffer);
+          end;
+        'D' :
+          begin
+            DelimiterStr[0] := #13;
+            DelimiterStr[1] := $00;
+            PrintLine('Reading Debug RPM Pulse Count');
+            UART2_Read_Text(StrBuffer, DelimiterStr, 4);
+            UART2_Write_Text('Read: ');
+            PrintLine(StrBuffer);
+            Debug.PulseCount := StrToInt(StrBuffer);
+            
+            if State = STATE_STALLED then
+            begin
+              PrintLine('Executing Debug Sequence');
+              DebugPeriod := RPM_To_Distributor_Period(real (Debug.RPM));
+              DebugBlankPeriod := DebugPeriod * Parameters.BlankingPercent;
+              for i := 0 to Debug.PulseCount - 1 do
+              begin
+                TriggerOutput_With_Wait(DebugBlankPeriod);
+                Delay_Cyc_Long( Time_To_TimerCounts(DebugPeriod-DebugBlankPeriod, 1));
+              end;
+            end else
+              PrintLine('Can''t run Debug with Engine Running');
           end;
         '?', 'h', 'H' : 
           begin
