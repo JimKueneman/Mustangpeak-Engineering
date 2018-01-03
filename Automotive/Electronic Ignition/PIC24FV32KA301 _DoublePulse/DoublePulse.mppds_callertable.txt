@@ -1,5 +1,7 @@
 main
-	ResetDataLog
+	InitializeLogger
+	InitilizeDataLog
+	InitializeFilterInfo
 	UART2_Init
 		Get_Fosc_kHz
 		Get_Fosc_Per_Cyc
@@ -68,6 +70,7 @@ interrupt_PinChangeNotification
 		_Mul_FP
 	PrintRPM
 	InitializeStalledState
+		InitializeFilterInfo
 	ChangeState
 		PrintStateChange
 			IntToStr

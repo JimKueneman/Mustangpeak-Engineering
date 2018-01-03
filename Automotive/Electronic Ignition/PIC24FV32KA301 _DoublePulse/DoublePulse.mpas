@@ -41,7 +41,6 @@ const
   INITIAL_FILTER_RPM = 100;
   INITIAL_FILTER_PERIOD = real( 60 * REV_PER_CYCLE/ (INITIAL_FILTER_RPM * CYLINDERS));
   
-  
   // RPM where the Statemachine converts from Cranking to Running
   RUNNING_TRANSITION_RPM = 400;
   RUNNING_TRANSITION_DISTRIBUTOR_PERIOD = real( 60 * REV_PER_CYCLE / (RUNNING_TRANSITION_RPM * CYLINDERS));
@@ -69,19 +68,22 @@ type
     Distrbutor_Period_Error_Short,
     Distrbutor_Period_Error_Long: LongInt;
     DetectedFiringCount: Word;
+    CurrentRPM: real;
+  end;
+  
+  TLogger = record
+    PeriodError,
+    RPM,
+    State,
+    RealtimeRPM,
+    StallIRQ,
+    AvgPeriod: Boolean;
   end;
   
   TParameters = record
     BlankingPercent: real;
   end;
-  
-  TDebug = record
-    Active: Boolean;
-    Trigger: Boolean;
-    PulseCount: Integer;
-    RPM: LongInt;
-  end;
-  
+
 var
   CoilNeg_Port: Word at PORTA;
   CoilNeg_Pin: sbit at LATA0_bit;
@@ -100,18 +102,11 @@ var
   Debug_TRIS: sbit at TRISA2_bit;
 
   State: Byte;
-  Last_RPM_Global: real;
-  
-  PeriodErrorLogging, 
-  RPMLogging, 
-  StateLogging, 
-  RealtimeRPMLogging, 
-  StallIRQLogging, 
-  AvgPeriodLogging: Boolean;
-  
+
+  Logger: TLogger;
   FilterInfo: TFilterInfoRec;
   Parameters: TParameters;
-  Debug: TDebug;
+
   
   DataLogArray: array[DATA_LOG_DEPTH] of real;
   DataLogIndex: Word;
@@ -158,7 +153,7 @@ end;
 
 procedure PrintRPM;
 begin
-  PrintReal(Last_RPM_Global);
+  PrintReal(FilterInfo.CurrentRPM);
 end;
 
 procedure PrintAveragePeriod;
@@ -195,7 +190,7 @@ end;
 
 {$ENDIF}
 
-procedure ResetDataLog;
+procedure InitilizeDataLog;
 var
   i: Integer;
 begin
@@ -245,7 +240,7 @@ begin
   if NewState <> State then
   begin
     {$IFDEF UART}
-    if StateLogging then
+    if Logger.State then
       PrintStateChange(NewState, State);
     {$ENDIF}
     State := NewState;
@@ -284,6 +279,7 @@ begin
     if FilterInfo.Distributor_Period_Filter_Counter >= RPM_FILTER_LEN then
       FilterInfo.Distributor_Period_Filter_Counter := 0;
     FilterInfo.Distributor_Period_Filter_Average := AverageDistributorPeriod;
+    FilterInfo.CurrentRPM := 0.0;
   end
 end;
 
@@ -295,19 +291,35 @@ begin
   TachOut_Pin := TACH_LO;
 end;
 
-procedure InitializeStalledState;
+procedure InitializeFilterInfo;
 var
   i: Integer;
 begin
-  // Shut off the Cranking Trigger Timer if we stalled
-  TachOut_Pin := TACH_LO;
-  Last_RPM_Global := 0.0;
   FilterInfo.Distributor_Period_Filter_Counter := 0;
   FilterInfo.DetectedFiringCount := 0;
   FilterInfo.Distributor_Period_Filter_Average := INITIAL_FILTER_PERIOD;
   for i := 0 to RPM_FILTER_LEN - 1 do
     FilterInfo.Distributor_Period_Filter_Array[i] := INITIAL_FILTER_PERIOD;
   FilterInfo.Distributor_Period_Filter_Counter := 0;
+end;
+
+procedure InitializeLogger;
+begin
+  Logger.PeriodError := False;
+  Logger.RPM := False;
+  Logger.State := False;
+  Logger.RealtimeRPM := False;
+  Logger.StallIRQ := False;
+  Logger.AvgPeriod := False;
+end;
+
+procedure InitializeStalledState;
+var
+  i: Integer;
+begin
+  // Shut off the Cranking Trigger Timer if we stalled
+  TachOut_Pin := TACH_LO;
+  InitializeFilterInfo
 end;
 
 procedure interrupt_TMR3_RPM_Measurment_And_Stall_Timer(); iv IVT_ADDR_T3INTERRUPT;
@@ -317,7 +329,7 @@ begin
   TMR2 := $0000;
   InitializeStalledState;
   ChangeState(STATE_STALLED);
-  {$IFDEF UART}if StallIRQLogging then PrintLine('Stall Detected - IRQ');{$ENDIF}
+  {$IFDEF UART}if Logger.StallIRQ then PrintLine('Stall Detected - IRQ');{$ENDIF}
   T3IF_bit := 0;                 // Reset Interrupt Flag
 end;
 
@@ -340,23 +352,16 @@ begin
     // Makes sure it can't jump to the stall interrupt
     T3IF_bit := 0;
 
-    if State = STATE_STALLED then
-    begin
-      Last_RPM_Global := 0.0;
-      DistributorPeriod := 0.0;
-    end else
-    begin
-      DistributorPeriod := TimerCounts_To_Time(DistributorPeriodTimerCount, 1);
-      Last_RPM_Global := Distributor_Period_To_RPM(DistributorPeriod);
-    end;
-    
+    DistributorPeriod := TimerCounts_To_Time(DistributorPeriodTimerCount, 1);
+    FilterInfo.CurrentRPM := Distributor_Period_To_RPM(DistributorPeriod);
+
     if DataLogIndex < DATA_LOG_DEPTH then
     begin
-      DataLogArray[DataLogIndex] := Last_RPM_Global;
+      DataLogArray[DataLogIndex] := FilterInfo.CurrentRPM;
       Inc(DataLogIndex);
     end;
     
-    {$IFDEF UART}if RealtimeRPMLogging then PrintRPM;{$ENDIF}
+    {$IFDEF UART}if Logger.RealtimeRPM then PrintRPM;{$ENDIF}
 
     case State of
       STATE_STALLED :
@@ -371,8 +376,8 @@ begin
           // Assmme an RPM for the first few cranks, Average is preloaded with an assumed cranking RPM
           Delay_Cyc_Long( Time_To_TimerCounts(FilterInfo.Distributor_Period_Filter_Average * Parameters.BlankingPercent, 1));
           
-          // Just get a few stable pulses before moving on
-          if FilterInfo.DetectedFiringCount >= 2 then
+          // Just get a few stable pulses before moving on and starting to average
+          if FilterInfo.DetectedFiringCount > 1 then
             ChangeState(STATE_CRANKING);
         end;
       STATE_CRANKING :
@@ -410,26 +415,12 @@ begin
   ANSB := 0;
 
   State := STATE_STALLED;
-  StateLogging := False;
-  RPMLogging := False;
-  PeriodErrorLogging := False;
-  RealtimeRPMLogging := False;
-  StallIRQLogging := FAlse;
-  AvgPeriodLogging := False;
-  ResetDataLog;
-  FilterInfo.Distributor_Period_Filter_Counter := 0;
-  FilterInfo.Distributor_Period_Filter_Average := 0.0;
-  FilterInfo.Distrbutor_Period_Error_Short := 0;
-  FilterInfo.Distrbutor_Period_Error_Long := 0;
-  FilterInfo.DetectedFiringCount := 0;
+  InitializeLogger;
+  InitilizeDataLog;
+  InitializeFilterInfo;
   
   Parameters.BlankingPercent := BLANK_PERCENT;
   
-  Debug.Active := False;
-  Debug.Trigger := False;
-  Debug.PulseCount := 0;
-  Debug.RPM := 0;
-
   TachOut_Pin := TACH_LO;   // Set it low
   HeartBeat_Pin := 0;
   Debug_Pin := 0;
@@ -505,17 +496,12 @@ begin
       case UART2_Read of
         '0' :
           begin
-            StateLogging := False;
-            PeriodErrorLogging := False;
-            RealtimeRPMLogging := False;
-            StallIRQLogging := False;
-            RPMLogging := False;
-            AvgPeriodLogging := False;
+            InitializeLogger;
           end;
         's', 'S' :
           begin
-            StateLogging := not StateLogging;
-            if StateLogging then PrintLine('State Logging ON') else
+            Logger.State := not Logger.State;
+            if Logger.State then PrintLine('State Logging ON') else
               PrintLine('State Logging OFF');
           end;
         'c', 'C' : 
@@ -550,37 +536,37 @@ begin
           end;
         'p', 'P' :
           begin
-            PeriodErrorLogging := not PeriodErrorLogging;
-            if PeriodErrorLogging then PrintLine('Period Error Logging ON') else
+            Logger.PeriodError := not Logger.PeriodError;
+            if Logger.PeriodError then PrintLine('Period Error Logging ON') else
               PrintLine('Period Error Logging OFF');
           end;
         'r', 'R' :
           begin
-            RPMLogging := not RPMLogging;
-            if RPMLogging then PrintLine('RPM Logging ON') else
+            Logger.RPM := not Logger.RPM;
+            if Logger.RPM then PrintLine('RPM Logging ON') else
               PrintLine('RPM Logging OFF');
           end;
         't', 'T' :
           begin
-            RealtimeRPMLogging := not RealtimeRPMLogging;
-            if RealtimeRPMLogging then PrintLine('RealTime RPM Logging ON') else
+            Logger.RealtimeRPM := not Logger.RealtimeRPM;
+            if Logger.RealtimeRPM then PrintLine('RealTime RPM Logging ON') else
               PrintLine('RealTime RPM Logging OFF');
           end;
         'i', 'I' :
           begin
-            StallIRQLogging := not StallIRQLogging;
-            if StallIRQLogging then PrintLine('RealTime RPM Logging ON') else
+            Logger.StallIRQ := not Logger.StallIRQ;
+            if Logger.StallIRQ then PrintLine('RealTime RPM Logging ON') else
               PrintLine('RealTime RPM Logging OFF');
           end;
           'a', 'A' :
           begin
-            AvgPeriodLogging := not AvgPeriodLogging;
-            if StallIRQLogging then PrintLine('Avg T Logging ON') else
+            Logger.AvgPeriod := not Logger.AvgPeriod;
+            if Logger.AvgPeriod then PrintLine('Avg T Logging ON') else
               PrintLine('Avg T Logging OFF');
           end;
           'l', 'L' :
           begin
-            ResetDataLog;
+            InitilizeDataLog;
             PrintLine('DataLog Index reset');
           end;
           'd', 'D' :
@@ -594,13 +580,13 @@ begin
       end;
     end;
     
-    If RPMLogging then
+    If Logger.RPM then
       PrintRPM;
-    if AvgPeriodLogging then
+    if Logger.AvgPeriod then
       PrintAveragePeriod;
-    if StateLogging then
+    if Logger.State then
       PrintState;
-    if PeriodErrorLogging then
+    if Logger.PeriodError then
       PrintDistributorPeriodErrors;
     {$ENDIF}
     // Waitin for Pin Change Interrupt

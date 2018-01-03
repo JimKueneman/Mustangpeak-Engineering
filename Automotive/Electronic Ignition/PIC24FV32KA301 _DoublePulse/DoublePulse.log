@@ -1,58 +1,59 @@
-0	1	mPDsPic.exe -MSF -DBG -pP24FV32KA301 -Y -DL -SSA -O11111104 -fo32 -N"Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\DoublePulse.mppds" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\" -SP"Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\" -SP"Z:\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\" "__Lib_Math.mcl" "__Lib_MathDouble.mcl" "__Lib_System.mcl" "__Lib_Delays.mcl" "__Lib_String.mcl" "__Lib_Conversions.mcl" "__Lib_UART_12_p24_p33.mcl" "DoublePulse.mpas"	 
-diagnostics: 0	133	Compilation Started	Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\DoublePulse.mpas
-hint: 1	1015	Hint: Compiling unit "Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\DoublePulse.mpas"	DoublePulse.mpas
-warning: 137	1516	Warning: Source size (6) does not match destination size (128)	DoublePulse.mpas
-warning: 145	1516	Warning: Source size (6) does not match destination size (128)	DoublePulse.mpas
-warning: 146	1516	Warning: Source size (2) does not match destination size (128)	DoublePulse.mpas
-warning: 148	1516	Warning: Source size (6) does not match destination size (128)	DoublePulse.mpas
-warning: 156	1516	Warning: Source size (23) does not match destination size (128)	DoublePulse.mpas
-warning: 174	1516	Warning: Source size (9) does not match destination size (128)	DoublePulse.mpas
-warning: 175	1516	Warning: Source size (10) does not match destination size (128)	DoublePulse.mpas
-warning: 177	1516	Warning: Source size (8) does not match destination size (128)	DoublePulse.mpas
-warning: 178	1516	Warning: Source size (10) does not match destination size (128)	DoublePulse.mpas
-warning: 183	1516	Warning: Source size (24) does not match destination size (128)	DoublePulse.mpas
-warning: 184	1516	Warning: Source size (29) does not match destination size (128)	DoublePulse.mpas
-warning: 185	1516	Warning: Source size (26) does not match destination size (128)	DoublePulse.mpas
-warning: 186	1516	Warning: Source size (24) does not match destination size (128)	DoublePulse.mpas
-warning: 187	1516	Warning: Source size (77) does not match destination size (128)	DoublePulse.mpas
-warning: 188	1516	Warning: Source size (35) does not match destination size (128)	DoublePulse.mpas
-warning: 189	1516	Warning: Source size (33) does not match destination size (128)	DoublePulse.mpas
-warning: 190	1516	Warning: Source size (41) does not match destination size (128)	DoublePulse.mpas
-warning: 191	1516	Warning: Source size (56) does not match destination size (128)	DoublePulse.mpas
-warning: 192	1516	Warning: Source size (28) does not match destination size (128)	DoublePulse.mpas
-warning: 193	1516	Warning: Source size (57) does not match destination size (128)	DoublePulse.mpas
-hint: 313	1021	Hint: interrupt handler (interrupt_TMR3_RPM_Measurment_And_Stall_Timer at 0x0024)	DoublePulse.mpas
-warning: 320	1516	Warning: Source size (20) does not match destination size (128)	DoublePulse.mpas
-hint: 324	1021	Hint: interrupt handler (interrupt_PinChangeNotification at 0x003A)	DoublePulse.mpas
-warning: 471	1516	Warning: Source size (25) does not match destination size (128)	DoublePulse.mpas
-warning: 475	1516	Warning: Source size (45) does not match destination size (128)	DoublePulse.mpas
-warning: 479	1516	Warning: Source size (4) does not match destination size (128)	DoublePulse.mpas
-warning: 482	1516	Warning: Source size (6) does not match destination size (128)	DoublePulse.mpas
-warning: 518	1516	Warning: Source size (16) does not match destination size (128)	DoublePulse.mpas
-warning: 519	1516	Warning: Source size (17) does not match destination size (128)	DoublePulse.mpas
-warning: 525	1516	Warning: Source size (14) does not match destination size (128)	DoublePulse.mpas
-warning: 531	1516	Warning: Source size (22) does not match destination size (128)	DoublePulse.mpas
-warning: 542	1516	Warning: Source size (1) does not match destination size (128)	DoublePulse.mpas
-warning: 545	1516	Warning: Source size (48) does not match destination size (128)	DoublePulse.mpas
-warning: 548	1516	Warning: Source size (1) does not match destination size (128)	DoublePulse.mpas
-warning: 554	1516	Warning: Source size (23) does not match destination size (128)	DoublePulse.mpas
-warning: 555	1516	Warning: Source size (24) does not match destination size (128)	DoublePulse.mpas
-warning: 560	1516	Warning: Source size (14) does not match destination size (128)	DoublePulse.mpas
-warning: 561	1516	Warning: Source size (15) does not match destination size (128)	DoublePulse.mpas
-warning: 566	1516	Warning: Source size (23) does not match destination size (128)	DoublePulse.mpas
-warning: 567	1516	Warning: Source size (24) does not match destination size (128)	DoublePulse.mpas
-warning: 572	1516	Warning: Source size (23) does not match destination size (128)	DoublePulse.mpas
-warning: 573	1516	Warning: Source size (24) does not match destination size (128)	DoublePulse.mpas
-warning: 578	1516	Warning: Source size (16) does not match destination size (128)	DoublePulse.mpas
-warning: 579	1516	Warning: Source size (17) does not match destination size (128)	DoublePulse.mpas
-warning: 584	1516	Warning: Source size (19) does not match destination size (128)	DoublePulse.mpas
-hint: 609	1010	Hint: Unit "DoublePulse.mpas" has been recompiled	DoublePulse.mpas
-diagnostics: 0	134	Compiled Successfully	Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\DoublePulse.mpas
-diagnostics: 0	139	All files Compiled in 141 ms	 
+0	1	mPDsPic.exe -MSF -DBG -pP24FV32KA301 -Y -DL -SSA -O11111104 -fo32 -N"\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\DoublePulse.mppds" -SP"C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\" -SP"C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\" -SP"\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\" -SP"\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\" "__Lib_Math.mcl" "__Lib_MathDouble.mcl" "__Lib_System.mcl" "__Lib_Delays.mcl" "__Lib_String.mcl" "__Lib_Conversions.mcl" "__Lib_UART_12_p24_p33.mcl" "DoublePulse.mpas"	 
+diagnostics: 0	133	Compilation Started	\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\DoublePulse.mpas
+hint: 1	1015	Hint: Compiling unit "\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\DoublePulse.mpas"	DoublePulse.mpas
+warning: 132	1516	Warning: Source size (6) does not match destination size (128)	DoublePulse.mpas
+warning: 140	1516	Warning: Source size (6) does not match destination size (128)	DoublePulse.mpas
+warning: 141	1516	Warning: Source size (2) does not match destination size (128)	DoublePulse.mpas
+warning: 143	1516	Warning: Source size (6) does not match destination size (128)	DoublePulse.mpas
+warning: 151	1516	Warning: Source size (23) does not match destination size (128)	DoublePulse.mpas
+warning: 169	1516	Warning: Source size (9) does not match destination size (128)	DoublePulse.mpas
+warning: 170	1516	Warning: Source size (10) does not match destination size (128)	DoublePulse.mpas
+warning: 172	1516	Warning: Source size (8) does not match destination size (128)	DoublePulse.mpas
+warning: 173	1516	Warning: Source size (10) does not match destination size (128)	DoublePulse.mpas
+warning: 178	1516	Warning: Source size (24) does not match destination size (128)	DoublePulse.mpas
+warning: 179	1516	Warning: Source size (29) does not match destination size (128)	DoublePulse.mpas
+warning: 180	1516	Warning: Source size (26) does not match destination size (128)	DoublePulse.mpas
+warning: 181	1516	Warning: Source size (24) does not match destination size (128)	DoublePulse.mpas
+warning: 182	1516	Warning: Source size (77) does not match destination size (128)	DoublePulse.mpas
+warning: 183	1516	Warning: Source size (35) does not match destination size (128)	DoublePulse.mpas
+warning: 184	1516	Warning: Source size (33) does not match destination size (128)	DoublePulse.mpas
+warning: 185	1516	Warning: Source size (41) does not match destination size (128)	DoublePulse.mpas
+warning: 186	1516	Warning: Source size (56) does not match destination size (128)	DoublePulse.mpas
+warning: 187	1516	Warning: Source size (28) does not match destination size (128)	DoublePulse.mpas
+warning: 188	1516	Warning: Source size (57) does not match destination size (128)	DoublePulse.mpas
+hint: 325	1021	Hint: interrupt handler (interrupt_TMR3_RPM_Measurment_And_Stall_Timer at 0x0024)	DoublePulse.mpas
+warning: 332	1516	Warning: Source size (20) does not match destination size (128)	DoublePulse.mpas
+hint: 336	1021	Hint: interrupt handler (interrupt_PinChangeNotification at 0x003A)	DoublePulse.mpas
+warning: 462	1516	Warning: Source size (25) does not match destination size (128)	DoublePulse.mpas
+warning: 466	1516	Warning: Source size (45) does not match destination size (128)	DoublePulse.mpas
+warning: 470	1516	Warning: Source size (4) does not match destination size (128)	DoublePulse.mpas
+warning: 473	1516	Warning: Source size (6) does not match destination size (128)	DoublePulse.mpas
+warning: 504	1516	Warning: Source size (16) does not match destination size (128)	DoublePulse.mpas
+warning: 505	1516	Warning: Source size (17) does not match destination size (128)	DoublePulse.mpas
+warning: 511	1516	Warning: Source size (14) does not match destination size (128)	DoublePulse.mpas
+warning: 517	1516	Warning: Source size (22) does not match destination size (128)	DoublePulse.mpas
+warning: 528	1516	Warning: Source size (1) does not match destination size (128)	DoublePulse.mpas
+warning: 531	1516	Warning: Source size (48) does not match destination size (128)	DoublePulse.mpas
+warning: 534	1516	Warning: Source size (1) does not match destination size (128)	DoublePulse.mpas
+warning: 540	1516	Warning: Source size (23) does not match destination size (128)	DoublePulse.mpas
+warning: 541	1516	Warning: Source size (24) does not match destination size (128)	DoublePulse.mpas
+warning: 546	1516	Warning: Source size (14) does not match destination size (128)	DoublePulse.mpas
+warning: 547	1516	Warning: Source size (15) does not match destination size (128)	DoublePulse.mpas
+warning: 552	1516	Warning: Source size (23) does not match destination size (128)	DoublePulse.mpas
+warning: 553	1516	Warning: Source size (24) does not match destination size (128)	DoublePulse.mpas
+warning: 558	1516	Warning: Source size (23) does not match destination size (128)	DoublePulse.mpas
+warning: 559	1516	Warning: Source size (24) does not match destination size (128)	DoublePulse.mpas
+warning: 564	1516	Warning: Source size (16) does not match destination size (128)	DoublePulse.mpas
+warning: 565	1516	Warning: Source size (17) does not match destination size (128)	DoublePulse.mpas
+warning: 570	1516	Warning: Source size (19) does not match destination size (128)	DoublePulse.mpas
+hint: 318	1001	Hint: Variable "i" has been declared, but not used	DoublePulse.mpas
+hint: 595	1010	Hint: Unit "DoublePulse.mpas" has been recompiled	DoublePulse.mpas
+diagnostics: 0	134	Compiled Successfully	\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\DoublePulse.mpas
+diagnostics: 0	139	All files Compiled in 125 ms	 
 hint: 0	1144	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)
-hint: 0	1144	Static RAM (bytes): 1624   Dynamic RAM (bytes): 424	Static RAM (bytes): 1624   Dynamic RAM (bytes): 424
-hint: 0	1144	Used ROM (bytes): 9774 (43%)  Free ROM (bytes): 12754 (57%)	Used ROM (bytes): 9774 (43%)  Free ROM (bytes): 12754 (57%)
+hint: 0	1144	Static RAM (bytes): 1614   Dynamic RAM (bytes): 434	Static RAM (bytes): 1614   Dynamic RAM (bytes): 434
+hint: 0	1144	Used ROM (bytes): 9714 (43%)  Free ROM (bytes): 12814 (57%)	Used ROM (bytes): 9714 (43%)  Free ROM (bytes): 12814 (57%)
 diagnostics: 0	145	Project Linked Successfully	DoublePulse.mppds
-diagnostics: 0	140	Linked in 130 ms	 
-diagnostics: 0	141	Project 'DoublePulse.mppds' completed: 331 ms	 
-diagnostics: 0	103	Finished successfully: 02 Jan 2018, 22:43:38	DoublePulse.mppds
+diagnostics: 0	140	Linked in 203 ms	 
+diagnostics: 0	141	Project 'DoublePulse.mppds' completed: 375 ms	 
+diagnostics: 0	103	Finished successfully: 03 Jan 2018, 08:17:58	DoublePulse.mppds
