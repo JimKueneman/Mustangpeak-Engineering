@@ -1,4 +1,5 @@
 main
+	ResetDataLog
 	UART2_Init
 		Get_Fosc_kHz
 		Get_Fosc_Per_Cyc
@@ -6,8 +7,9 @@ main
 		_Multiply_32x32
 		_Modulus_32x32
 		_Divide_32x32
-	UART2_Write_Text
-		UART2_Write
+	Print
+		UART2_Write_Text
+			UART2_Write
 	FloatToStr
 		LongIntToStr
 			_Modulus_32x32
@@ -23,28 +25,26 @@ main
 		_Modulus_32x32
 		_Divide_32x32
 	WordToStr
-	UART_Write_Text
-		UART_Write
-			UART1_Write
-			UART2_Write
-	UART2_Write
+	PrintLine
+		Print
+		UART2_Write
 	PrintHelp
 		PrintLine
-			UART_Write_Text
-			UART2_Write
 	UART2_Data_Ready
 	UART2_Read
-	PrintLine
 	UART2_Read_Text
 		UART2_Data_Ready
 		UART2_Read
+	UART2_Write_Text
 	StrToInt
 		_Multiply_32x32
 		_Divide_32x32
-	PrintRPM
+	PrintDataLog
 		PrintReal
 			FloatToStr
 			PrintLine
+	PrintRPM
+		PrintReal
 	PrintAveragePeriod
 		PrintReal
 	PrintState
@@ -52,13 +52,12 @@ main
 		PrintLine
 	PrintDistributorPeriodErrors
 		LongWordToStr
-		UART2_Write_Text
+		Print
 		PrintLine
 	_Long2Float
 	_Mul_FP
 	_Compare_Ge_Fp
 		_Compare_Fp
-interrupt_TMR5_Cranking_FiTech_Triggger_Timer
 interrupt_PinChangeNotification
 	TimerCounts_To_Time
 		_Long2Float
@@ -69,7 +68,17 @@ interrupt_PinChangeNotification
 		_Mul_FP
 	PrintRPM
 	InitializeStalledState
-	PrintState
+	ChangeState
+		PrintStateChange
+			IntToStr
+			Print
+			PrintLine
+	Time_To_TimerCounts
+		_Long2Float
+		_Mul_FP
+		_Div_FP
+		_Float2Longword
+	Delay_Cyc_Long
 	UpdateDistributorArrayAndAverage
 		ValidPeriod
 			_Compare_Le_Fp
@@ -79,13 +88,11 @@ interrupt_PinChangeNotification
 			_Div_FP
 	TriggerOutput_With_Wait
 		Time_To_TimerCounts
-			_Long2Float
-			_Mul_FP
-			_Div_FP
-			_Float2Longword
 		Delay_Cyc_Long
 		_Mul_FP
+	_Mul_FP
 	_Compare_Le_Fp
 interrupt_TMR3_RPM_Measurment_And_Stall_Timer
 	InitializeStalledState
+	ChangeState
 	PrintLine
