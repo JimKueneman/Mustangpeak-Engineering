@@ -279,7 +279,6 @@ begin
     if FilterInfo.Distributor_Period_Filter_Counter >= RPM_FILTER_LEN then
       FilterInfo.Distributor_Period_Filter_Counter := 0;
     FilterInfo.Distributor_Period_Filter_Average := AverageDistributorPeriod;
-    FilterInfo.CurrentRPM := 0.0;
   end
 end;
 
@@ -301,6 +300,7 @@ begin
   for i := 0 to RPM_FILTER_LEN - 1 do
     FilterInfo.Distributor_Period_Filter_Array[i] := INITIAL_FILTER_PERIOD;
   FilterInfo.Distributor_Period_Filter_Counter := 0;
+  FilterInfo.CurrentRPM := 0.0;
 end;
 
 procedure InitializeLogger;
@@ -314,8 +314,6 @@ begin
 end;
 
 procedure InitializeStalledState;
-var
-  i: Integer;
 begin
   // Shut off the Cranking Trigger Timer if we stalled
   TachOut_Pin := TACH_LO;
