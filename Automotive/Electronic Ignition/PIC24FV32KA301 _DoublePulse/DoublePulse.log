@@ -1,8 +1,4 @@
-0	1	mPDsPic.exe -MSF -DBG -pP24FV32KA301 -Y -DL -SSA -O11111104 -fo32 -N"Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\DoublePulse.mppds" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\" -SP"Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\" -SP"C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\" -SP"C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\" -SP"\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\" -SP"\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\" -SP"Z:\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\" "__Lib_Math.mcl" "__Lib_MathDouble.mcl" "__Lib_System.mcl" "__Lib_Delays.mcl" "__Lib_String.mcl" "__Lib_Conversions.mcl" "__Lib_UART_12_p24_p33.mcl" "DoublePulse.mpas"	 
-warning: 0	1501	Specified search path does not exist: 'C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Defs'	 
-warning: 0	1501	Specified search path does not exist: 'C:\Users\Public\Documents\Mikroelektronika\mikroPascal PRO for dsPIC\Uses'	 
-warning: 0	1501	Specified search path does not exist: '\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse'	 
-warning: 0	1501	Specified search path does not exist: '\\vmware-host\Shared Folders\Documents\Mustangpeak-Engineering\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse'	 
+0	1	mPDsPic.exe -MSF -DBG -pP24FV32KA301 -Y -DL -SSA -O11111104 -fo32 -N"Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\DoublePulse.mppds" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\" -SP"C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\" -SP"Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\" -SP"Z:\Automotive\Electronic Ignition\dsPIC24FV08KM101_DoublePulse\" "__Lib_Math.mcl" "__Lib_MathDouble.mcl" "__Lib_System.mcl" "__Lib_Delays.mcl" "__Lib_String.mcl" "__Lib_Conversions.mcl" "__Lib_UART_12_p24_p33.mcl" "DoublePulse.mpas"	 
 diagnostics: 0	133	Compilation Started	Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\DoublePulse.mpas
 hint: 1	1015	Hint: Compiling unit "Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\DoublePulse.mpas"	DoublePulse.mpas
 warning: 122	1516	Warning: Source size (6) does not match destination size (128)	DoublePulse.mpas
@@ -46,11 +42,11 @@ warning: 545	1516	Warning: Source size (34) does not match destination size (128
 hint: 235	1011	Hint: Variable "i" has been eliminated by optimizer	DoublePulse.mpas
 hint: 564	1010	Hint: Unit "DoublePulse.mpas" has been recompiled	DoublePulse.mpas
 diagnostics: 0	134	Compiled Successfully	Z:\Automotive\Electronic Ignition\PIC24FV32KA301 _DoublePulse\DoublePulse.mpas
-diagnostics: 0	139	All files Compiled in 120 ms	 
+diagnostics: 0	139	All files Compiled in 631 ms	 
 hint: 0	1144	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)	Used RX (bytes): 32 (100%)   Free RX (bytes): 0 (0%)
-hint: 0	1144	Static RAM (bytes): 239   Dynamic RAM (bytes): 1808	Static RAM (bytes): 239   Dynamic RAM (bytes): 1808
+hint: 0	1144	Static RAM (bytes): 219   Dynamic RAM (bytes): 1828	Static RAM (bytes): 219   Dynamic RAM (bytes): 1828
 hint: 0	1144	Used ROM (bytes): 10828 (48%)  Free ROM (bytes): 11700 (52%)	Used ROM (bytes): 10828 (48%)  Free ROM (bytes): 11700 (52%)
 diagnostics: 0	145	Project Linked Successfully	DoublePulse.mppds
-diagnostics: 0	140	Linked in 90 ms	 
-diagnostics: 0	141	Project 'DoublePulse.mppds' completed: 260 ms	 
-diagnostics: 0	103	Finished successfully: 02 Jan 2018, 08:47:39	DoublePulse.mppds
+diagnostics: 0	140	Linked in 2814 ms	 
+diagnostics: 0	141	Project 'DoublePulse.mppds' completed: 4446 ms	 
+diagnostics: 0	103	Finished successfully: 04 Jan 2018, 16:56:32	DoublePulse.mppds

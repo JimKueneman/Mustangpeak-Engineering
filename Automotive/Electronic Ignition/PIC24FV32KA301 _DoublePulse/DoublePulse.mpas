@@ -36,7 +36,7 @@ const
   FAKE_RPM = real( 7000);
   // Smoothing RPM Filter Depth and How many valid RPM spark pulses detected in the pin change notification to
   // move on in the Stat machine before moving out of Cranking
-  RPM_FILTER_LEN = 8;
+  RPM_FILTER_LEN = 3;
   // How much of a distributor spark period to blank out before looking for the next pin change notification
   BLANK_PERCENT = 0.40;
   // How long between pin change notification before we claim the engine has stalled
