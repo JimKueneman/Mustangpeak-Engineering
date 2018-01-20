@@ -1,253 +1,45 @@
 object Form1: TForm1
   Left = 210
-  Height = 548
+  Height = 559
   Top = 164
-  Width = 958
+  Width = 885
   Caption = 'Form1'
-  ClientHeight = 548
-  ClientWidth = 958
+  ClientHeight = 559
+  ClientWidth = 885
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   LCLVersion = '1.8.0.6'
   object PageControl1: TPageControl
     Left = 0
-    Height = 462
+    Height = 473
     Top = 0
-    Width = 958
+    Width = 885
     ActivePage = TabSheet1
     Align = alClient
     TabIndex = 0
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'Transients'
-      ClientHeight = 423
-      ClientWidth = 952
-      object ScrollBox1: TScrollBox
+      ClientHeight = 434
+      ClientWidth = 879
+      object Panel2: TPanel
         Left = 0
-        Height = 423
+        Height = 434
         Top = 0
-        Width = 952
-        HorzScrollBar.Page = 883
-        VertScrollBar.Page = 423
+        Width = 879
         Align = alClient
-        ClientHeight = 408
-        ClientWidth = 937
+        ClientHeight = 434
+        ClientWidth = 879
         TabOrder = 0
         object StringGridTransientOverall: TStringGrid
-          Left = 24
-          Height = 224
-          Top = 32
-          Width = 336
+          Left = 1
+          Height = 432
+          Top = 1
+          Width = 877
+          Align = alClient
           RowCount = 9
-          ScrollBars = ssNone
           TabOrder = 0
           OnKeyPress = StringGridTransientOverallKeyPress
-        end
-        object Label1: TLabel
-          Left = 24
-          Height = 16
-          Top = 8
-          Width = 178
-          Caption = '3D OVERALL Transient Mult '
-          ParentColor = False
-        end
-        object Label2: TLabel
-          Left = 384
-          Height = 16
-          Top = 8
-          Width = 141
-          Caption = '2D Trans %Mult vs IAT'
-          ParentColor = False
-        end
-        object Label3: TLabel
-          Left = 584
-          Height = 16
-          Top = 8
-          Width = 86
-          Caption = '2D Accel Fuel'
-          ParentColor = False
-        end
-        object StringGridTransientMultVsIAT: TStringGrid
-          Left = 384
-          Height = 224
-          Top = 32
-          Width = 136
-          ColCount = 2
-          RowCount = 9
-          ScrollBars = ssNone
-          TabOrder = 1
-        end
-        object StringGridTransientAccelFuel: TStringGrid
-          Left = 584
-          Height = 224
-          Top = 32
-          Width = 136
-          ColCount = 2
-          RowCount = 9
-          ScrollBars = ssNone
-          TabOrder = 2
-        end
-        object Label4: TLabel
-          Left = 584
-          Height = 16
-          Top = 264
-          Width = 115
-          Caption = '2D Fast Accel Fuel'
-          ParentColor = False
-        end
-        object StringGridTransientFastAccelFuel: TStringGrid
-          Left = 584
-          Height = 224
-          Top = 288
-          Width = 136
-          ColCount = 2
-          RowCount = 9
-          ScrollBars = ssNone
-          TabOrder = 3
-        end
-        object Label5: TLabel
-          Left = 784
-          Height = 16
-          Top = 64
-          Width = 61
-          Caption = 'Accel 20F'
-          ParentColor = False
-        end
-        object EditAccel20F: TEdit
-          Left = 784
-          Height = 22
-          Top = 88
-          Width = 80
-          TabOrder = 4
-          Text = 'EditAccel20F'
-        end
-        object EditAccel65F: TEdit
-          Left = 784
-          Height = 22
-          Top = 144
-          Width = 80
-          TabOrder = 5
-          Text = 'EditAccel65F'
-        end
-        object Label6: TLabel
-          Left = 784
-          Height = 16
-          Top = 120
-          Width = 61
-          Caption = 'Accel 65F'
-          ParentColor = False
-        end
-        object EditAccel165F: TEdit
-          Left = 784
-          Height = 22
-          Top = 200
-          Width = 80
-          TabOrder = 6
-          Text = 'EditAccel165F'
-        end
-        object Label7: TLabel
-          Left = 784
-          Height = 16
-          Top = 176
-          Width = 69
-          Caption = 'Accel 175F'
-          ParentColor = False
-        end
-        object EditFastAccel165F: TEdit
-          Left = 784
-          Height = 22
-          Top = 456
-          Width = 80
-          TabOrder = 7
-          Text = 'EditFastAccel165F'
-        end
-        object Label8: TLabel
-          Left = 784
-          Height = 16
-          Top = 432
-          Width = 99
-          Caption = 'Fast Accel 175F'
-          ParentColor = False
-        end
-        object Label9: TLabel
-          Left = 784
-          Height = 16
-          Top = 376
-          Width = 91
-          Caption = 'Fast Accel 65F'
-          ParentColor = False
-        end
-        object EditFastAccel65F: TEdit
-          Left = 784
-          Height = 22
-          Top = 400
-          Width = 80
-          TabOrder = 8
-          Text = 'EditFastAccel65F'
-        end
-        object EditFastAccel20F: TEdit
-          Left = 784
-          Height = 22
-          Top = 344
-          Width = 80
-          TabOrder = 9
-          Text = 'EditFastAccel20F'
-        end
-        object Label10: TLabel
-          Left = 784
-          Height = 16
-          Top = 320
-          Width = 91
-          Caption = 'Fast Accel 20F'
-          ParentColor = False
-        end
-        object ScrollBar1: TScrollBar
-          Left = 36
-          Height = 15
-          Top = 288
-          Width = 440
-          PageSize = 0
-          TabOrder = 10
-        end
-        object Label11: TLabel
-          Left = 36
-          Height = 16
-          Top = 264
-          Width = 134
-          Caption = 'Coolant Temperature'
-          ParentColor = False
-        end
-        object Label12: TLabel
-          Left = 36
-          Height = 16
-          Top = 312
-          Width = 205
-          Caption = 'Intake Manifold Air Temperature'
-          ParentColor = False
-        end
-        object ScrollBar2: TScrollBar
-          Left = 36
-          Height = 15
-          Top = 336
-          Width = 440
-          PageSize = 0
-          TabOrder = 11
-        end
-        object Label13: TLabel
-          Left = 36
-          Height = 16
-          Top = 360
-          Width = 27
-          Caption = 'RPM'
-          ParentColor = False
-        end
-        object ScrollBar3: TScrollBar
-          Left = 36
-          Height = 15
-          Top = 384
-          Width = 440
-          PageSize = 0
-          TabOrder = 12
         end
       end
     end
@@ -261,12 +53,12 @@ object Form1: TForm1
   object Panel1: TPanel
     Left = 0
     Height = 86
-    Top = 462
-    Width = 958
+    Top = 473
+    Width = 885
     Align = alBottom
     Caption = 'Panel1'
     ClientHeight = 86
-    ClientWidth = 958
+    ClientWidth = 885
     TabOrder = 1
     object Button1: TButton
       Left = 680
