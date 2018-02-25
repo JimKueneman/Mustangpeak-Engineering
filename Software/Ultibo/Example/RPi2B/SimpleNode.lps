@@ -4,158 +4,158 @@
     <PathDelim Value="\"/>
     <Version Value="9"/>
     <BuildModes Active="Default"/>
-    <Units Count="46">
+    <Units Count="47">
       <Unit0>
         <Filename Value="SimpleNode.lpr"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
+        <TopLine Value="101"/>
         <CursorPos X="10" Y="5"/>
         <UsageCount Value="201"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
-        <Filename Value="..\..\Mustangpeak_Lib\mustangpeak_xmlutilities.pas"/>
-        <EditorIndex Value="-1"/>
-        <CursorPos X="25" Y="33"/>
-        <UsageCount Value="201"/>
-      </Unit1>
-      <Unit2>
-        <Filename Value="..\..\LCC\baseobjects.pas"/>
-        <EditorIndex Value="-1"/>
-        <CursorPos X="24" Y="9"/>
-        <UsageCount Value="201"/>
-      </Unit2>
-      <Unit3>
-        <Filename Value="..\..\LCC\basemessage.pas"/>
-        <EditorIndex Value="-1"/>
-        <CursorPos X="30" Y="16"/>
-        <UsageCount Value="224"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="..\..\LCC\basetypes.pas"/>
-        <EditorIndex Value="-1"/>
-        <CursorPos X="24" Y="9"/>
-        <UsageCount Value="223"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="..\..\Mustangpeak_Lib\mustangpeak_half_float.pas"/>
-        <EditorIndex Value="-1"/>
-        <CursorPos X="32" Y="6"/>
-        <UsageCount Value="223"/>
-      </Unit5>
-      <Unit6>
-        <Filename Value="..\..\LCC\baseutilities.pas"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="10"/>
-        <CursorPos X="19" Y="23"/>
-        <UsageCount Value="223"/>
-      </Unit6>
-      <Unit7>
         <Filename Value="..\..\LCC\protocol.snip.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="2"/>
         <UsageCount Value="223"/>
-      </Unit7>
-      <Unit8>
+      </Unit1>
+      <Unit2>
         <Filename Value="..\..\LCC\protocol.pip.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="24" Y="9"/>
         <UsageCount Value="223"/>
-      </Unit8>
-      <Unit9>
+      </Unit2>
+      <Unit3>
         <Filename Value="..\..\LCC\protocol.traction.stni.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="57" Y="12"/>
         <UsageCount Value="223"/>
-      </Unit9>
-      <Unit10>
+      </Unit3>
+      <Unit4>
         <Filename Value="..\..\LCC\protocol.traction.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="57" Y="12"/>
         <UsageCount Value="223"/>
-      </Unit10>
-      <Unit11>
+      </Unit4>
+      <Unit5>
         <Filename Value="..\..\LCC\protocol.events.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="70" Y="2"/>
         <UsageCount Value="223"/>
-      </Unit11>
-      <Unit12>
+      </Unit5>
+      <Unit6>
         <Filename Value="..\..\LCC\protocol.traction.fdi.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="57" Y="12"/>
         <UsageCount Value="222"/>
-      </Unit12>
-      <Unit13>
+      </Unit6>
+      <Unit7>
         <Filename Value="..\..\LCC\protocol.traction.fci.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="57" Y="12"/>
         <UsageCount Value="222"/>
-      </Unit13>
-      <Unit14>
+      </Unit7>
+      <Unit8>
         <Filename Value="..\..\LCC\protocol.datagram.cdi.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="57" Y="8"/>
         <UsageCount Value="222"/>
-      </Unit14>
-      <Unit15>
-        <Filename Value="..\..\LCC\protocol.acdi.mfg"/>
-        <EditorIndex Value="-1"/>
-        <CursorPos X="5"/>
-        <UsageCount Value="222"/>
-        <DefaultSyntaxHighlighter Value="None"/>
-      </Unit15>
-      <Unit16>
+      </Unit8>
+      <Unit9>
         <Filename Value="..\..\LCC\protocol.acdi.mfg.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="3"/>
         <CursorPos X="8" Y="13"/>
         <UsageCount Value="222"/>
-      </Unit16>
-      <Unit17>
+      </Unit9>
+      <Unit10>
         <Filename Value="..\..\LCC\protocol.acdi.user.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="38"/>
         <CursorPos X="3" Y="31"/>
         <UsageCount Value="222"/>
-      </Unit17>
-      <Unit18>
+      </Unit10>
+      <Unit11>
         <Filename Value="..\..\LCC\protocol.datagram.configuration.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="24" Y="9"/>
         <UsageCount Value="221"/>
-      </Unit18>
-      <Unit19>
+      </Unit11>
+      <Unit12>
         <Filename Value="..\..\LCC\protocol.datagram.configuration.memory.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="39" Y="3"/>
         <UsageCount Value="221"/>
-      </Unit19>
-      <Unit20>
+      </Unit12>
+      <Unit13>
         <Filename Value="..\..\LCC\protocol.datagram.configuration.memory.info.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="201"/>
         <UsageCount Value="220"/>
-      </Unit20>
-      <Unit21>
+      </Unit13>
+      <Unit14>
         <Filename Value="..\..\LCC\protocol.datagram.confguration.memory.options.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="24" Y="9"/>
         <UsageCount Value="220"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="..\..\Mustangpeak_Lib\mustangpeak_xmlutilities.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="25" Y="33"/>
+        <UsageCount Value="201"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="..\..\LCC\baseobjects.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="24" Y="9"/>
+        <UsageCount Value="201"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="..\..\LCC\basemessage.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="30" Y="16"/>
+        <UsageCount Value="224"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="..\..\LCC\basetypes.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="24" Y="9"/>
+        <UsageCount Value="223"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="..\..\Mustangpeak_Lib\mustangpeak_half_float.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="32" Y="6"/>
+        <UsageCount Value="223"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="..\..\LCC\baseutilities.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="10"/>
+        <CursorPos X="19" Y="23"/>
+        <UsageCount Value="223"/>
+      </Unit20>
+      <Unit21>
+        <Filename Value="..\..\LCC\protocol.acdi.mfg"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="5"/>
+        <UsageCount Value="222"/>
+        <DefaultSyntaxHighlighter Value="None"/>
       </Unit21>
       <Unit22>
         <Filename Value="..\..\LCC\basenode.pas"/>
@@ -180,7 +180,7 @@
       </Unit24>
       <Unit25>
         <Filename Value="..\..\LCC\lcc.node.pas"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="2"/>
         <TopLine Value="117"/>
         <CursorPos X="24" Y="127"/>
         <UsageCount Value="101"/>
@@ -208,7 +208,7 @@
       </Unit28>
       <Unit29>
         <Filename Value="..\..\Synapse\blcksock.pas"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="4"/>
         <TopLine Value="2756"/>
         <CursorPos X="18" Y="2773"/>
         <UsageCount Value="82"/>
@@ -224,7 +224,7 @@
       <Unit31>
         <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\ultibo\core\winsock2.pas"/>
         <UnitName Value="Winsock2"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="6"/>
         <TopLine Value="9424"/>
         <CursorPos X="31" Y="9436"/>
         <UsageCount Value="101"/>
@@ -256,7 +256,7 @@
       <Unit35>
         <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\ultibo\core\protocol.pas"/>
         <UnitName Value="Protocol"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="7"/>
         <TopLine Value="2737"/>
         <CursorPos X="15" Y="2762"/>
         <UsageCount Value="56"/>
@@ -271,7 +271,7 @@
       </Unit36>
       <Unit37>
         <Filename Value="..\..\Synapse\sswin32.inc"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="5"/>
         <TopLine Value="1267"/>
         <CursorPos X="32" Y="1280"/>
         <UsageCount Value="78"/>
@@ -293,7 +293,7 @@
       <Unit40>
         <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\ultibo\core\globalconfig.pas"/>
         <UnitName Value="GlobalConfig"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="9"/>
         <TopLine Value="1479"/>
         <CursorPos X="11" Y="1484"/>
         <UsageCount Value="78"/>
@@ -310,7 +310,7 @@
       <Unit42>
         <Filename Value="C:\Ultibo\Core\fpc\3.1.1\source\rtl\ultibo\core\tcp.pas"/>
         <UnitName Value="TCP"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="8"/>
         <TopLine Value="2962"/>
         <CursorPos X="7" Y="2973"/>
         <UsageCount Value="56"/>
@@ -326,7 +326,7 @@
       </Unit43>
       <Unit44>
         <Filename Value="..\..\Mustangpeak\mustangpeak.threadedcirculararray.pas"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="3"/>
         <TopLine Value="177"/>
         <CursorPos X="76" Y="307"/>
         <UsageCount Value="14"/>
@@ -340,11 +340,21 @@
         <CursorPos X="13" Y="144"/>
         <UsageCount Value="9"/>
       </Unit45>
+      <Unit46>
+        <Filename Value="..\..\Generics\src\generics.defaults.pas"/>
+        <UnitName Value="Generics.Defaults"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="71"/>
+        <CursorPos X="32" Y="97"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit46>
     </Units>
     <OtherDefines Count="1">
       <Define0 Value="SYNAPSE"/>
     </OtherDefines>
-    <JumpHistory Count="19" HistoryIndex="18">
+    <JumpHistory Count="20" HistoryIndex="19">
       <Position1>
         <Filename Value="..\..\Synapse\blcksock.pas"/>
         <Caret Line="2796" Column="18" TopLine="2785"/>
@@ -421,6 +431,9 @@
         <Filename Value="..\..\Synapse\sswin32.inc"/>
         <Caret Line="1742" Column="23" TopLine="1740"/>
       </Position19>
+      <Position20>
+        <Filename Value="..\..\Generics\src\generics.defaults.pas"/>
+      </Position20>
     </JumpHistory>
   </ProjectSession>
   <Debugging>

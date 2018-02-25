@@ -9,6 +9,10 @@ uses
   StdCtrls, Grids, ComCtrls, ExtCtrls, Menus, csvdocument, Clipbrd, LCLType,
   contnrs;
 
+const
+  SAMPLING_FREQ = 22;  // 20Hz
+  SAMPLING_RATE = 1/SAMPLING_FREQ;
+
 type
 
   { TVeExtratorData }
@@ -280,6 +284,7 @@ end;
 procedure TForm1.PlotDataList;
 var
   i: Integer;
+  s: string;
 begin
   StringGridTransientOverall.BeginUpdate;
   try
@@ -296,7 +301,8 @@ begin
     StringGridTransientOverall.Cells[7, 0] := 'Injector Duty';
     for i := 1 to EngineDataList.Count - 1 do
     begin
-      StringGridTransientOverall.Cells[0, i] := IntToStr(i);
+      s := '###0.00';
+      StringGridTransientOverall.Cells[0, i] := FormatFloat(s, i*SAMPLING_RATE)  + 's';
       StringGridTransientOverall.Cells[1, i] := FloatToStr(EngineDataList[i-1].RPM);
       StringGridTransientOverall.Cells[2, i] := FloatToStr(EngineDataList[i-1].AFR);
       StringGridTransientOverall.Cells[3, i] := FloatToStr(EngineDataList[i-1].AFRLearn);
