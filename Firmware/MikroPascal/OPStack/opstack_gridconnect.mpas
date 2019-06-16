@@ -1,13 +1,6 @@
 unit opstack_gridconnect;
 
-{$IFDEF FPC}
-interface
-{$ENDIF}
-
 uses
-  {$IFDEF FPC}
-  Classes, SysUtils,
-  {$ENDIF}
   HelperFunctions,
   opstack_defines;
 
@@ -160,21 +153,13 @@ end;
 procedure GridConnectStr_ToCanBuffer(GridConnectStr: PGridConnectString; GridConnectBuffer: POpenLCBCanBuffer);
 var
   ConvertStr: array[0..8] of char;
-  {$IFDEF FPC}
-  ConvertPasStr: ansistring;
-  {$ENDIF}
   i: Integer;
 begin
   // First convert part of the message to see what we have
   for i := 0 to 7 do
     ConvertStr[i] := GridConnectStr^[GRID_CONNECT_HEADER_OFFSET_HI+i];
   ConvertStr[8] := #0;
-  {$IFDEF FPC}
-  ConvertPasStr := ConvertStr;
-  GridConnectBuffer^.MTI := StrToInt('0x' + ConvertPasStr);
-  {$ELSE}
   GridConnectBuffer^.MTI := HexToLongWord(ConvertStr);
-  {$ENDIF}
   GridConnectBuffer^.PayloadCount := 0;
   if GridConnectStr^[GRID_CONNECT_DATA_OFFSET] <> ';' then
   begin
@@ -184,12 +169,7 @@ begin
       ConvertStr[0] := GridConnectStr^[GRID_CONNECT_DATA_OFFSET + i];
       ConvertStr[1] := GridConnectStr^[GRID_CONNECT_DATA_OFFSET + i + 1];
       ConvertStr[2] := #0;
-      {$IFDEF FPC}
-      ConvertPasStr := ConvertStr;
-      GridConnectBuffer^.Payload[GridConnectBuffer^.PayloadCount] := StrToInt('0x' + ConvertPasStr);
-      {$ELSE}
       GridConnectBuffer^.Payload[GridConnectBuffer^.PayloadCount] := HexToWord(ConvertStr);
-      {$ENDIF}
       Inc(GridConnectBuffer^.PayloadCount);
       i := i + 2;
     end;
@@ -209,11 +189,7 @@ var
 begin
   GridConnectStr[0] := ':';
   GridConnectStr[1] := 'X';
-  {$IFDEF FPC}
-  ConvertString := IntToHex(GridConnectBuffer.MTI, 8);
-  {$ELSE}
   LongWordToHex(GridConnectBuffer.MTI, ConvertString);
-  {$ENDIF}
   GridConnectStr[2] := ConvertString[0];
   GridConnectStr[3] := ConvertString[1];
   GridConnectStr[4] := ConvertString[2];
@@ -227,15 +203,9 @@ begin
 
   for i := 0 to GridConnectBuffer.PayloadCount - 1 do
   begin
-    {$IFDEF FPC}
-    ConvertString := IntToHex(GridConnectBuffer.Payload[i], 2);
-    GridConnectStr[Result] := ConvertString[0];
-    GridConnectStr[Result + 1] := ConvertString[1];
-    {$ELSE}
     WordToHex(GridConnectBuffer.Payload[i], ConvertString);
     GridConnectStr[Result] := ConvertString[2];
     GridConnectStr[Result + 1] := ConvertString[3];
-    {$ENDIF}
     Result := Result + 2;
   end;
 

@@ -1,0 +1,1075 @@
+object Screen1: TMeDiagram
+  LastSelControl = 'EveButtonConnect'
+  NettoExportOffset = 3
+  AutomaticNodes = False
+  AutoScroll = True
+  AutoPage = False
+  Background.Scroll = True
+  Background.Style = biTile
+  Background.Visible = False
+  Background.Gradient.Direction = grTopBottom
+  Background.Gradient.StartColor = clWhite
+  Background.Gradient.EndColor = clYellow
+  Background.Gradient.Visible = False
+  Background.PrintGradient = False
+  SnapGrid.Active = False
+  SnapGrid.Force = False
+  SnapGrid.Visible = False
+  SnapGrid.SizeX = 8.000000000000000000
+  SnapGrid.SizeY = 8.000000000000000000
+  SnapGrid.Style = gsLines
+  SnapGrid.SnapToRuler = False
+  ShowLinkPoints = False
+  LeftRuler.Visible = False
+  LeftRuler.Divisions = 10
+  LeftRuler.Font.Charset = DEFAULT_CHARSET
+  LeftRuler.Font.Color = clWindowText
+  LeftRuler.Font.Height = -9
+  LeftRuler.Font.Name = 'Arial'
+  LeftRuler.Font.Style = []
+  LeftRuler.Units = unPixel
+  LeftRuler.MinorTickLength = 4
+  LeftRuler.MajorTickLength = 6
+  LeftRuler.Color = clWhite
+  LeftRuler.TickColor = clBlack
+  LeftRuler.Size = 16
+  LeftRuler.AutoFactor = True
+  LeftRuler.GridColor = clBlack
+  TopRuler.Visible = False
+  TopRuler.Divisions = 10
+  TopRuler.Font.Charset = DEFAULT_CHARSET
+  TopRuler.Font.Color = clWindowText
+  TopRuler.Font.Height = -9
+  TopRuler.Font.Name = 'Arial'
+  TopRuler.Font.Style = []
+  TopRuler.Units = unPixel
+  TopRuler.MinorTickLength = 4
+  TopRuler.MajorTickLength = 6
+  TopRuler.Color = clWhite
+  TopRuler.TickColor = clBlack
+  TopRuler.Size = 16
+  TopRuler.AutoFactor = True
+  TopRuler.GridColor = clBlack
+  Zoom = 160
+  BorderColor = clGray
+  MouseWheelMode = mwOff
+  ActiveLayers = 1
+  Layers = <
+    item
+      LayerName = 'Layer0'
+    end>
+  LinkCursor = crHandPoint
+  PanCursor = crHandPoint
+  ZoomCursor = crDefault
+  IgnoreScreenDPI = False
+  ShowCrossIndicators = False
+  PageLines.Visible = False
+  PageLines.Pen.Style = psDot
+  KeyActions = [kaEscape, kaMove, kaPage, kaResize, kaSelect]
+  HandlesStyle = hsVisio
+  SmoothMode = smAntiAlias
+  TextRenderingMode = tmAntiAlias
+  SelectionMode = slmMultiple
+  CanMoveOutOfBounds = False
+  PageSettings.PaperName = '480x272'
+  PageSettings.PaperId = 32516
+  PageSettings.PaperWidth = 127.000000000000000000
+  PageSettings.PaperHeight = 71.966666666666660000
+  PageSettings.Orientation = dpoLandscape
+  PageSettings.LeftMarginStr = '25.4'
+  PageSettings.TopMarginStr = '25.4'
+  PageSettings.RightMarginStr = '25.4'
+  PageSettings.BottomMarginStr = '25.4'
+  RulerAutoUnit = False
+  MeasUnit = duCenti
+  WheelZoom = False
+  WheelZoomIncrement = 10
+  WheelZoomMin = 10
+  WheelZoomMax = 500
+  BorderStyle = bsSingle
+  Color = 6052956
+  ParentColor = False
+  Static_ = False
+  StartScreen = True
+  CurrLayer = 0
+  Active = True
+  SniffObjectEvents = False
+  ToneUp = 'XYLOPHONE'
+  ToneDown = 'XYLOPHONE'
+  TonePress = 'XYLOPHONE'
+  ToneTagChange = 'XYLOPHONE'
+  PitchUp = 'A5'
+  PitchDown = 'A5'
+  PitchTagChange = 'A5'
+  PitchPress = 'A5'
+  VolumeUp = 100
+  VolumeDown = 100
+  VolumeTagChange = 100
+  VolumePress = 100
+  SoundUp = 'None'
+  SoundDown = 'None'
+  SoundTagChange = 'None'
+  SoundPress = 'None'
+  ShowRuler = False
+  DControlNames.Strings = (
+    'LabelIP'
+    'LabelMAC'
+    'LabelMask'
+    'LabelGateway'
+    'LabelStatus'
+    'EveButtonDisconnect'
+    'EveButtonConnect'
+    'EveTextStatusBar')
+  StaticResourceSize = 0
+  Orientation = 1
+  object LabelIP: TDgrLabel
+    Tag = 255
+    Left = 9.000000000000000000
+    Top = 26.000000000000000000
+    Width = 71.433753967285160000
+    Height = 14.577148437500000000
+    Brush.Style = bsClear
+    SelBrush.Style = bsClear
+    Color = clWhite
+    SelColor = clWhite
+    Shape = bsNoShape
+    LinkPoints = <>
+    ClipText = False
+    TextCells = <
+      item
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'Roboto'
+        Font.Style = []
+        DControlAngle = True
+        Width = 100.000000000000000000
+        Height = 100.000000000000000000
+        Text = 'IP: ??:??:??:??'
+        Clip = False
+        WordWrap = False
+        DControlFont = False
+        Alignment = taCenter
+        VertAlign = vaCenter
+        RotateFont = True
+        CellFrame.Color = clWhite
+        CellFrame.Transparent = True
+        CellFrame.AutoFrame = False
+        CellFrame.AutoFrameMargin = 0
+        CellFrame.Visible = False
+        Visible = True
+        ReadOnly = False
+        Transparency = 0
+      end>
+    Restrictions = [crNoResize, crNoRotation]
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Roboto'
+    Font.Style = []
+    DiagramFont = False
+    MinWidth = 40
+    MinHeight = 40
+    Shadow.Visible = False
+    Shadow.Color = clGray
+    Shadow.HOffset = 2
+    Shadow.VOffset = 2
+    Shadow.Transparency = 0
+    ParentShowHint = True
+    Gradient.Direction = grTopBottom
+    Gradient.StartColor = clWhite
+    Gradient.EndColor = clYellow
+    Gradient.Visible = False
+    BitmapMode = bmStretch
+    BitmapTransparent = False
+    Metafile.Data = {04000000}
+    PictureMode = pmStretch
+    Transparent = False
+    Cursor = crDefault
+    Visible = True
+    Layer = 0
+    LayerName = 'Layer0'
+    Transparency = 0
+    ColorTo = clBlack
+    PressColor = 14869218
+    PressColorTo = clBlack
+    Static_ = False
+    StartChar = 0
+    EndChar = 127
+    TextAlign = _taNoAlignmentObject
+    VerticalText = False
+    SystemFont = True
+    ToneUp = 'XYLOPHONE'
+    ToneDown = 'XYLOPHONE'
+    TonePress = 'XYLOPHONE'
+    ToneClick = 'XYLOPHONE'
+    PitchUp = 'A5'
+    PitchDown = 'A5'
+    PitchClick = 'A5'
+    PitchPress = 'A5'
+    VolumeUp = 100
+    VolumeDown = 100
+    VolumeClick = 100
+    VolumePress = 100
+    SoundUp = 'None'
+    SoundDown = 'None'
+    SoundClick = 'None'
+    SoundPress = 'None'
+    Active = True
+    MaxLength = 32
+    Collapsed = False
+  end
+  object LabelMAC: TDgrLabel
+    Tag = 255
+    Left = 5.000000000000000000
+    Top = 10.000000000000000000
+    Width = 112.485023498535200000
+    Height = 14.577148437500000000
+    Brush.Style = bsClear
+    SelBrush.Style = bsClear
+    Color = clWhite
+    SelColor = clWhite
+    Shape = bsNoShape
+    LinkPoints = <>
+    ClipText = False
+    TextCells = <
+      item
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'Roboto'
+        Font.Style = []
+        DControlAngle = True
+        Width = 100.000000000000000000
+        Height = 100.000000000000000000
+        Text = 'MAC: ??:??:??:??:??:??'
+        Clip = False
+        WordWrap = False
+        DControlFont = False
+        Alignment = taCenter
+        VertAlign = vaCenter
+        RotateFont = True
+        CellFrame.Color = clWhite
+        CellFrame.Transparent = True
+        CellFrame.AutoFrame = False
+        CellFrame.AutoFrameMargin = 0
+        CellFrame.Visible = False
+        Visible = True
+        ReadOnly = False
+        Transparency = 0
+      end>
+    Restrictions = [crNoResize, crNoRotation]
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Roboto'
+    Font.Style = []
+    DiagramFont = False
+    MinWidth = 40
+    MinHeight = 40
+    Shadow.Visible = False
+    Shadow.Color = clGray
+    Shadow.HOffset = 2
+    Shadow.VOffset = 2
+    Shadow.Transparency = 0
+    ParentShowHint = True
+    Gradient.Direction = grTopBottom
+    Gradient.StartColor = clWhite
+    Gradient.EndColor = clYellow
+    Gradient.Visible = False
+    BitmapMode = bmStretch
+    BitmapTransparent = False
+    Metafile.Data = {04000000}
+    PictureMode = pmStretch
+    Transparent = False
+    Cursor = crDefault
+    Visible = True
+    Layer = 0
+    LayerName = 'Layer0'
+    Transparency = 0
+    ColorTo = clBlack
+    PressColor = 14869218
+    PressColorTo = clBlack
+    Static_ = False
+    StartChar = 0
+    EndChar = 127
+    TextAlign = _taNoAlignmentObject
+    VerticalText = False
+    SystemFont = True
+    ToneUp = 'XYLOPHONE'
+    ToneDown = 'XYLOPHONE'
+    TonePress = 'XYLOPHONE'
+    ToneClick = 'XYLOPHONE'
+    PitchUp = 'A5'
+    PitchDown = 'A5'
+    PitchClick = 'A5'
+    PitchPress = 'A5'
+    VolumeUp = 100
+    VolumeDown = 100
+    VolumeClick = 100
+    VolumePress = 100
+    SoundUp = 'None'
+    SoundDown = 'None'
+    SoundClick = 'None'
+    SoundPress = 'None'
+    Active = True
+    MaxLength = 32
+    Collapsed = False
+  end
+  object LabelMask: TDgrLabel
+    Tag = 255
+    Left = 8.000000000000000000
+    Top = 41.000000000000000000
+    Width = 88.830726623535160000
+    Height = 14.577148437500000000
+    Brush.Style = bsClear
+    SelBrush.Style = bsClear
+    Color = clWhite
+    SelColor = clWhite
+    Shape = bsNoShape
+    LinkPoints = <>
+    ClipText = False
+    TextCells = <
+      item
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'Roboto'
+        Font.Style = []
+        DControlAngle = True
+        Width = 100.000000000000000000
+        Height = 100.000000000000000000
+        Text = 'Mask: ??:??:??:??'
+        Clip = False
+        WordWrap = False
+        DControlFont = False
+        Alignment = taCenter
+        VertAlign = vaCenter
+        RotateFont = True
+        CellFrame.Color = clWhite
+        CellFrame.Transparent = True
+        CellFrame.AutoFrame = False
+        CellFrame.AutoFrameMargin = 0
+        CellFrame.Visible = False
+        Visible = True
+        ReadOnly = False
+        Transparency = 0
+      end>
+    Restrictions = [crNoResize, crNoRotation]
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Roboto'
+    Font.Style = []
+    DiagramFont = False
+    MinWidth = 40
+    MinHeight = 40
+    Shadow.Visible = False
+    Shadow.Color = clGray
+    Shadow.HOffset = 2
+    Shadow.VOffset = 2
+    Shadow.Transparency = 0
+    ParentShowHint = True
+    Gradient.Direction = grTopBottom
+    Gradient.StartColor = clWhite
+    Gradient.EndColor = clYellow
+    Gradient.Visible = False
+    BitmapMode = bmStretch
+    BitmapTransparent = False
+    Metafile.Data = {04000000}
+    PictureMode = pmStretch
+    Transparent = False
+    Cursor = crDefault
+    Visible = True
+    Layer = 0
+    LayerName = 'Layer0'
+    Transparency = 0
+    ColorTo = clBlack
+    PressColor = 14869218
+    PressColorTo = clBlack
+    Static_ = False
+    StartChar = 0
+    EndChar = 127
+    TextAlign = _taNoAlignmentObject
+    VerticalText = False
+    SystemFont = True
+    ToneUp = 'XYLOPHONE'
+    ToneDown = 'XYLOPHONE'
+    TonePress = 'XYLOPHONE'
+    ToneClick = 'XYLOPHONE'
+    PitchUp = 'A5'
+    PitchDown = 'A5'
+    PitchClick = 'A5'
+    PitchPress = 'A5'
+    VolumeUp = 100
+    VolumeDown = 100
+    VolumeClick = 100
+    VolumePress = 100
+    SoundUp = 'None'
+    SoundDown = 'None'
+    SoundClick = 'None'
+    SoundPress = 'None'
+    Active = True
+    MaxLength = 32
+    Collapsed = False
+  end
+  object LabelGateway: TDgrLabel
+    Tag = 255
+    Left = 6.555555555555556000
+    Top = 55.000000000000000000
+    Width = 105.185707092285200000
+    Height = 14.577148437500000000
+    Brush.Style = bsClear
+    SelBrush.Style = bsClear
+    Color = clWhite
+    SelColor = clWhite
+    Shape = bsNoShape
+    LinkPoints = <>
+    ClipText = False
+    TextCells = <
+      item
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'Roboto'
+        Font.Style = []
+        DControlAngle = True
+        Width = 100.000000000000000000
+        Height = 100.000000000000000000
+        Text = 'Gateway: ??:??:??:??'
+        Clip = False
+        WordWrap = False
+        DControlFont = False
+        Alignment = taCenter
+        VertAlign = vaCenter
+        RotateFont = True
+        CellFrame.Color = clWhite
+        CellFrame.Transparent = True
+        CellFrame.AutoFrame = False
+        CellFrame.AutoFrameMargin = 0
+        CellFrame.Visible = False
+        Visible = True
+        ReadOnly = False
+        Transparency = 0
+      end>
+    Restrictions = [crNoResize, crNoRotation]
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Roboto'
+    Font.Style = []
+    DiagramFont = False
+    MinWidth = 40
+    MinHeight = 40
+    Shadow.Visible = False
+    Shadow.Color = clGray
+    Shadow.HOffset = 2
+    Shadow.VOffset = 2
+    Shadow.Transparency = 0
+    ParentShowHint = True
+    Gradient.Direction = grTopBottom
+    Gradient.StartColor = clWhite
+    Gradient.EndColor = clYellow
+    Gradient.Visible = False
+    BitmapMode = bmStretch
+    BitmapTransparent = False
+    Metafile.Data = {04000000}
+    PictureMode = pmStretch
+    Transparent = False
+    Cursor = crDefault
+    Visible = True
+    Layer = 0
+    LayerName = 'Layer0'
+    Transparency = 0
+    ColorTo = clBlack
+    PressColor = 14869218
+    PressColorTo = clBlack
+    Static_ = False
+    StartChar = 0
+    EndChar = 127
+    TextAlign = _taNoAlignmentObject
+    VerticalText = False
+    SystemFont = True
+    ToneUp = 'XYLOPHONE'
+    ToneDown = 'XYLOPHONE'
+    TonePress = 'XYLOPHONE'
+    ToneClick = 'XYLOPHONE'
+    PitchUp = 'A5'
+    PitchDown = 'A5'
+    PitchClick = 'A5'
+    PitchPress = 'A5'
+    VolumeUp = 100
+    VolumeDown = 100
+    VolumeClick = 100
+    VolumePress = 100
+    SoundUp = 'None'
+    SoundDown = 'None'
+    SoundClick = 'None'
+    SoundPress = 'None'
+    Active = True
+    MaxLength = 32
+    Collapsed = False
+  end
+  object LabelStatus: TDgrLabel
+    Tag = 255
+    Left = 8.000000000000000000
+    Top = 72.000000000000000000
+    Width = 67.346351623535160000
+    Height = 14.577148437500000000
+    Brush.Style = bsClear
+    SelBrush.Style = bsClear
+    Color = clWhite
+    SelColor = clWhite
+    Shape = bsNoShape
+    LinkPoints = <>
+    ClipText = False
+    TextCells = <
+      item
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'Roboto'
+        Font.Style = []
+        DControlAngle = True
+        Width = 100.000000000000000000
+        Height = 100.000000000000000000
+        Text = 'Status: 0x00'
+        Clip = False
+        WordWrap = False
+        DControlFont = False
+        Alignment = taCenter
+        VertAlign = vaCenter
+        RotateFont = True
+        CellFrame.Color = clWhite
+        CellFrame.Transparent = True
+        CellFrame.AutoFrame = False
+        CellFrame.AutoFrameMargin = 0
+        CellFrame.Visible = False
+        Visible = True
+        ReadOnly = False
+        Transparency = 0
+      end>
+    Restrictions = [crNoResize, crNoRotation]
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Roboto'
+    Font.Style = []
+    DiagramFont = False
+    MinWidth = 40
+    MinHeight = 40
+    Shadow.Visible = False
+    Shadow.Color = clGray
+    Shadow.HOffset = 2
+    Shadow.VOffset = 2
+    Shadow.Transparency = 0
+    ParentShowHint = True
+    Gradient.Direction = grTopBottom
+    Gradient.StartColor = clWhite
+    Gradient.EndColor = clYellow
+    Gradient.Visible = False
+    BitmapMode = bmStretch
+    BitmapTransparent = False
+    Metafile.Data = {04000000}
+    PictureMode = pmStretch
+    Transparent = False
+    Cursor = crDefault
+    Visible = True
+    Layer = 0
+    LayerName = 'Layer0'
+    Transparency = 0
+    ColorTo = clBlack
+    PressColor = 14869218
+    PressColorTo = clBlack
+    Static_ = False
+    StartChar = 0
+    EndChar = 127
+    TextAlign = _taNoAlignmentObject
+    VerticalText = False
+    SystemFont = True
+    ToneUp = 'XYLOPHONE'
+    ToneDown = 'XYLOPHONE'
+    TonePress = 'XYLOPHONE'
+    ToneClick = 'XYLOPHONE'
+    PitchUp = 'A5'
+    PitchDown = 'A5'
+    PitchClick = 'A5'
+    PitchPress = 'A5'
+    VolumeUp = 100
+    VolumeDown = 100
+    VolumeClick = 100
+    VolumePress = 100
+    SoundUp = 'None'
+    SoundDown = 'None'
+    SoundClick = 'None'
+    SoundPress = 'None'
+    Active = True
+    MaxLength = 32
+    Collapsed = False
+  end
+  object EveButtonDisconnect: TDgrEveButton
+    Tag = 255
+    Left = 350.000000000000000000
+    Top = 65.000000000000000000
+    width = 101.000000000000000000
+    Height = 41.000000000000000000
+    SelBrush.Style = bsClear
+    Color = 13727746
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clBlack
+    Font.Height = -11
+    Font.Name = 'Roboto'
+    Font.Style = []
+    Pen.Color = clWhite
+    Restrictions = [crNoRotation]
+    MinWidth = 68
+    MinHeight = 17
+    Transparent = False
+    Shadow.Visible = False
+    Shadow.Color = clGray
+    Shadow.HOffset = 2
+    Shadow.VOffset = 2
+    Shadow.Transparency = 0
+    Cursor = crDefault
+    Visible = True
+    Layer = 0
+    LayerName = 'Layer0'
+    Transparency = 0
+    Hint = 'This is button'
+    Gradient.Direction = grBottomTop
+    Gradient.StartColor = clWhite
+    Gradient.EndColor = 16696954
+    Gradient.Visible = True
+    TextCells = <
+      item
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'Roboto'
+        Font.Style = []
+        DControlAngle = True
+        Width = 80.000000000000000000
+        Height = 40.000000000000000000
+        Text = 'Disconnect'
+        Clip = False
+        WordWrap = False
+        DControlFont = False
+        Alignment = taCenter
+        VertAlign = vaCenter
+        RotateFont = True
+        CellFrame.Color = clWhite
+        CellFrame.Transparent = True
+        CellFrame.AutoFrame = False
+        CellFrame.AutoFrameMargin = 0
+        CellFrame.Visible = False
+        Visible = True
+        ReadOnly = False
+        Transparency = 0
+      end>
+    OnClick = 'EveButtonDisconnectOnClick'
+    GradientBackup = False
+    ColorTo = 16696954
+    PressColor = 16696954
+    PressColorTo = 13727746
+    PressColorEnabled = False
+    Static_ = False
+    StartChar = 0
+    EndChar = 127
+    TextAlign = _taNoAlignmentObject
+    SystemFont = True
+    ToneUp = 'XYLOPHONE'
+    ToneDown = 'XYLOPHONE'
+    TonePress = 'XYLOPHONE'
+    ToneClick = 'XYLOPHONE'
+    PitchUp = 'A5'
+    PitchDown = 'A5'
+    PitchClick = 'A5'
+    PitchPress = 'A5'
+    VolumeUp = 100
+    VolumeDown = 100
+    VolumeClick = 100
+    VolumePress = 100
+    SoundUp = 'None'
+    SoundDown = 'None'
+    SoundClick = 'None'
+    SoundPress = 'None'
+    Caption = 'Disconnect'
+    Flat = False
+    Active = True
+    Opacity = 100
+    MaxLength = 0
+    FontType = 'System Font'
+    Collapsed = False
+  end
+  object EveButtonConnect: TDgrEveButton
+    Tag = 255
+    Left = 351.250000000000000000
+    Top = 13.750000000000000000
+    width = 100.000000000000000000
+    Height = 42.000000000000000000
+    SelBrush.Style = bsClear
+    Color = 13727746
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clBlack
+    Font.Height = -11
+    Font.Name = 'Roboto'
+    Font.Style = []
+    Pen.Color = clWhite
+    Restrictions = [crNoRotation]
+    MinWidth = 53
+    MinHeight = 17
+    Transparent = False
+    Shadow.Visible = False
+    Shadow.Color = clGray
+    Shadow.HOffset = 2
+    Shadow.VOffset = 2
+    Shadow.Transparency = 0
+    Cursor = crDefault
+    Visible = True
+    Layer = 0
+    LayerName = 'Layer0'
+    Transparency = 0
+    Hint = 'This is button'
+    Gradient.Direction = grBottomTop
+    Gradient.StartColor = clWhite
+    Gradient.EndColor = 16696954
+    Gradient.Visible = True
+    TextCells = <
+      item
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'Roboto'
+        Font.Style = []
+        DControlAngle = True
+        Width = 80.000000000000000000
+        Height = 40.000000000000000000
+        Text = 'Connect'
+        Clip = False
+        WordWrap = False
+        DControlFont = False
+        Alignment = taCenter
+        VertAlign = vaCenter
+        RotateFont = True
+        CellFrame.Color = clWhite
+        CellFrame.Transparent = True
+        CellFrame.AutoFrame = False
+        CellFrame.AutoFrameMargin = 0
+        CellFrame.Visible = False
+        Visible = True
+        ReadOnly = False
+        Transparency = 0
+      end>
+    OnClick = 'EveButtonConnectOnClick'
+    GradientBackup = False
+    ColorTo = 16696954
+    PressColor = 16696954
+    PressColorTo = 13727746
+    PressColorEnabled = False
+    Static_ = False
+    StartChar = 0
+    EndChar = 127
+    TextAlign = _taNoAlignmentObject
+    SystemFont = True
+    ToneUp = 'XYLOPHONE'
+    ToneDown = 'XYLOPHONE'
+    TonePress = 'XYLOPHONE'
+    ToneClick = 'XYLOPHONE'
+    PitchUp = 'A5'
+    PitchDown = 'A5'
+    PitchClick = 'A5'
+    PitchPress = 'A5'
+    VolumeUp = 100
+    VolumeDown = 100
+    VolumeClick = 100
+    VolumePress = 100
+    SoundUp = 'None'
+    SoundDown = 'None'
+    SoundClick = 'None'
+    SoundPress = 'None'
+    Caption = 'Connect'
+    Flat = False
+    Active = True
+    Opacity = 100
+    MaxLength = 0
+    FontType = 'System Font'
+    Collapsed = False
+  end
+  object EveTextStatusBar: TDgrEveText
+    Tag = 255
+    Left = 4.000000000000000000
+    Top = 253.000000000000000000
+    Width = 50.405921936035160000
+    Height = 14.577148437500000000
+    ClipText = False
+    TextCells = <
+      item
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'Roboto'
+        Font.Style = []
+        DControlAngle = True
+        Width = 100.000000000000000000
+        Height = 100.000000000000000000
+        Text = 'Welcome'
+        Clip = False
+        WordWrap = False
+        DControlFont = False
+        Alignment = taCenter
+        VertAlign = vaCenter
+        RotateFont = True
+        CellFrame.Color = clWhite
+        CellFrame.Transparent = True
+        CellFrame.AutoFrame = False
+        CellFrame.AutoFrameMargin = 0
+        CellFrame.Visible = False
+        Visible = True
+        ReadOnly = False
+        Transparency = 0
+      end>
+    Restrictions = [crNoResize, crNoRotation]
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = 4663553
+    Font.Height = -13
+    Font.Name = 'Roboto'
+    Font.Style = []
+    DiagramFont = False
+    MinWidth = 10
+    MinHeight = 10
+    Layer = 0
+    LayerName = 'Layer0'
+    Shadow.Visible = False
+    Shadow.Color = clGray
+    Shadow.HOffset = 2
+    Shadow.VOffset = 2
+    Shadow.Transparency = 0
+    Transparency = 0
+    Transparent = False
+    Hint = 'This is a Text'
+    Static_ = False
+    StartChar = 0
+    EndChar = 127
+    TextAlign = _taNone
+    SystemFont = True
+    ToneUp = 'XYLOPHONE'
+    ToneDown = 'XYLOPHONE'
+    TonePress = 'XYLOPHONE'
+    ToneClick = 'XYLOPHONE'
+    PitchUp = 'A5'
+    PitchDown = 'A5'
+    PitchClick = 'A5'
+    PitchPress = 'A5'
+    VolumeUp = 100
+    VolumeDown = 100
+    VolumeClick = 100
+    VolumePress = 100
+    SoundUp = 'None'
+    SoundDown = 'None'
+    SoundClick = 'None'
+    SoundPress = 'None'
+    Active = True
+    Visible = True
+    MaxLength = 254
+    Collapsed = False
+  end
+end
+ScreenCount=1
+ActiveScreen=Screen1
+
+PROJECT_INFO_START
+VERSION        = 8
+BOARD          = EasyPIC_Fusion_v7_dsPIC_FT800
+DEFAULT_SCHEME = VTFT_EasyPIC_Fusion_v7_FT800
+COMPILER       = mikroPascal PRO for dsPIC
+CONTROLLER     = FT800
+TPCONTROLLER   = FT80x
+CALIBRATION    = Manual
+TP_ENABLED     = True
+DIMENSIONS     = 480x272
+
+TFT_CONNECTION_START
+CS_DIRECTION=TRISD1_bit
+CS=LATD1_bit
+OSCILLATOR=EXTERNAL
+RST_DIRECTION=TRISD0_bit
+RST=LATD0_bit
+SHARED_SPI_LINES=False
+SPI_NO=3
+TFT_CONNECTION_END
+
+
+TFT_PARAMETERS_START
+VSYNCH0         = 0
+VSYNCH1         = 10
+VOFFSET         = 12
+VCYCLE          = 286
+HSYNCH0         = 0
+HSYNCH1         = 41
+HOFFSET         = 43
+HCYCLE          = 525
+RENDER          = NORMAL
+SCANLINE        = 0
+ROTATE          = 0
+CLOCK_FREQUENCY = 48000000
+CLOCK_PRESCALER = 5
+CLOCK_POLARITY  = FALL
+CLOCK_SPREAD    = DISABLED
+OUT_BITS_RED    = 6
+OUT_BITS_GREEN  = 6
+OUT_BITS_BLUE   = 6
+RGB_ORDER       = RGB
+BIT_ORDER       = NORMAL
+BACKLIGHT_FREQUENCY = 250
+BACKLIGHT_INTENSITY = 64
+TFT_PARAMETERS_END
+
+TOUCH_PANEL_START
+TOUCH_MODE       = CONTINUOUS
+TOUCH_ADC_MODE   = DIFFERENTIAL
+TOUCH_CHARGE     = 6000
+TOUCH_SETTLE     = 3
+TOUCH_OVERSAMPLE = 7
+TOUCH_THRESHOLD  = 2000
+TRANSFORM_A      = 0x00007EFA
+TRANSFORM_B      = 0xFFFFFF9D
+TRANSFORM_C      = 0xFFF2C8D8
+TRANSFORM_D      = 0xFFFFFFA8
+TRANSFORM_E      = 0xFFFFB43E
+TRANSFORM_F      = 0x011F3BfB
+TOUCH_PANEL_END
+
+INIT_MCU_CODE_START
+procedure Init_MCU(); begin
+  // 80 Mhz
+  PLLPRE_0_bit := 0;
+  PLLPRE_1_bit := 0;
+  PLLPRE_2_bit := 0;
+  PLLPRE_3_bit := 0;
+  PLLPRE_4_bit := 0;
+  PLLFBD := 38;
+
+  PLLPOST_0_bit := 0;
+  PLLPOST_1_bit := 0;
+
+  // Setup FT800 SPI interface
+  Unlock_IOLOCK();
+  PPS_Mapping_NoLock(69, _OUTPUT, _SDO3);     // Set pin RD5 to be Output, and map SD03 to it
+  PPS_Mapping_NoLock(67, _OUTPUT, _SCK3OUT);  // Set pin RD3 to be Output, and map SCK3 to it
+  PPS_Mapping_NoLock(68, _INPUT,  _SDI3);     // Set pin RD4 to be Input,  and map SDI3 to it
+  Lock_IOLOCK(); 
+
+  SPI3_Init_Advanced(_SPI_MASTER,             // Initialize SPI1 module
+                     _SPI_8_BIT,              // master_mode    = _SPI_MASTER
+                     _SPI_PRESCALE_SEC_1,     // data_mode      = _SPI_8_BIT
+                     _SPI_PRESCALE_PRI_4,     // sec. prescaler = _SPI_PRESCALE_SEC_1
+                     _SPI_SS_DISABLE,         // pri. prescaler = _SPI_PRESCALE_PRI_4
+                     _SPI_DATA_SAMPLE_MIDDLE, // slave_select   = _SPI_SS_DISABLE (Only for slave mod)
+                     _SPI_CLK_IDLE_LOW,       // data_sample    = _SPI_DATA_SAMPLE_END
+                     _SPI_IDLE_2_ACTIVE);     // clock_idle     = _SPI_CLK_IDLE_HIGH
+                                              // edge           = _SPI_ACTIVE_2_IDLE
+end;
+INIT_MCU_CODE_END
+
+EXT_MEM_TYPE=
+EXT_MEM_DECL_CODE_START
+// MMC/SD Connections
+var Mmc_Chip_Select_Direction: sbit at TRISD12_bit;
+var Mmc_Chip_Select:           sbit at LATD12_bit;
+// end of MMC/SD
+// VTFT Get Data globals
+var rfHandle:    short;
+var rfName:      string[14];
+var rfStartSect: dword;
+// end of VTFT Get Data
+EXT_MEM_DECL_CODE_END
+
+INIT_EXT_MEM_CODE_START
+procedure Init_Ext_Mem();
+begin
+  rfHandle    := -1;
+  rfName      := '%FILE_NAME';
+  rfStartSect := 0;
+
+  // ensure ft800 is not selected (because of shared SPI lines)
+  // adjust this code to suite hw configuration
+  FT800_CS_Direction := 0;
+  FT800_CS := 1;
+
+  // Setup MMC SPI interface
+  Unlock_IOLOCK();
+  PPS_Mapping_NoLock(104, _OUTPUT, _SDO1);     // Set pin RF8 to be Output, and map SD01 to it
+  PPS_Mapping_NoLock(79, _OUTPUT, _SCK1OUT);   // Set pin RD15 to be Output, and map SCK1 to it
+  PPS_Mapping_NoLock(98, _INPUT,  _SDI1);      // Set pin RF2 to be Input,  and map SDI1 to it
+  Lock_IOLOCK();
+
+  // Init MMC SPI interface at low speed - 5Mhz
+  SPI1_Init_Advanced(_SPI_MASTER,                   // Initialize SPI1 module
+                     _SPI_8_BIT,                    // master_mode    = _SPI_MASTER
+                     _SPI_PRESCALE_SEC_4,           // data_mode      = _SPI_8_BIT
+                     _SPI_PRESCALE_PRI_4,           // sec. prescaler = _SPI_PRESCALE_SEC_1
+                     _SPI_SS_DISABLE,               // pri. prescaler = _SPI_PRESCALE_PRI_4
+                     _SPI_DATA_SAMPLE_MIDDLE,       // slave_select   = _SPI_SS_DISABLE (Only for slave mod)
+                     _SPI_CLK_IDLE_LOW,             // data_sample    = _SPI_DATA_SAMPLE_END
+                     _SPI_IDLE_2_ACTIVE);           // clock_idle     = _SPI_CLK_IDLE_HIGH
+                                                    // edge           = _SPI_ACTIVE_2_IDLE
+
+  // Init FAT32 stack
+  if (FAT32_Init() = 0) then begin
+    // Reinitialize SPI at higher speed - 20Mhz
+    SPI1_Init_Advanced(_SPI_MASTER,                   // Initialize SPI1 module
+                       _SPI_8_BIT,                    // master_mode    = _SPI_MASTER
+                       _SPI_PRESCALE_SEC_1,           // data_mode      = _SPI_8_BIT
+                       _SPI_PRESCALE_PRI_4,           // sec. prescaler = _SPI_PRESCALE_SEC_1
+                       _SPI_SS_DISABLE,               // pri. prescaler = _SPI_PRESCALE_PRI_4
+                       _SPI_DATA_SAMPLE_MIDDLE,       // slave_select   = _SPI_SS_DISABLE (Only for slave mod)
+                       _SPI_CLK_IDLE_LOW,             // data_sample    = _SPI_DATA_SAMPLE_END
+                       _SPI_IDLE_2_ACTIVE);           // clock_idle     = _SPI_CLK_IDLE_HIGH
+                                                      // edge           = _SPI_ACTIVE_2_IDLE
+
+    // Open resource file for read
+    rfHandle    := FAT32_Open(@rfName, 0x01);
+    rfStartSect := FAT32_ClustToSect(fat32_fdesc[rfHandle]._1stClust);
+  end;
+end;
+INIT_EXT_MEM_CODE_END
+
+GET_DATA_CODE_START
+function VTFT_GetExtData(fPos : dword; bytesToGet : dword; pBytesGot : ^dword): ^byte;
+  var  scOffset : word;
+begin
+  pBytesGot^ := 0;
+  SPI_Set_Active(@SPI1_Read, @SPI1_Write);
+
+  if (rfHandle < 0) then begin
+    result := 0; // return with nil if handle was bad.
+    exit;
+  end;
+
+  // We will utilize some of the fat32 implied features
+  // (such as built in sector buffer) to reduce ram memory consumpiton.
+  // You can't use this approach if this buffer is going to be used
+  // from another thread (i.e. using fat32 routines in interrupt...)
+  // In that case or if you have plenty of ram memory use separate
+  // as large as possible data buffer.
+  f32_sector.fSectNum := rfStartSect + fPos div 512;
+  Mmc_Read_Sector(f32_sector.fSectNum, f32_sector.fSect);
+
+  // 512 bytes sector buffer implied.
+  scOffset := fPos mod 512;
+  if(bytesToGet > 512-scOffset) then
+    pBytesGot^ := 512-scOffset
+  else
+    pBytesGot^ := bytesToGet;
+
+  SPI_Set_Active(@SPI3_Read, @SPI3_Write);
+  result := @f32_sector.fSect + scOffset;
+end;
+GET_DATA_CODE_END
+
+RSRC_FORMAT   = BINARY
+RSRC_JPEG2BMP = True
+RSRC_FILESYS  = True
+EXT_RSRC      = True
+ONE_PIXEL_SPACE_WIDTH    = False
+PROJECT_INFO_END

@@ -4,21 +4,18 @@ unit opstackcore_stream;
 // TODO : Does not handle non-CAN IDs yet
 // TODO : Does not handle 6 byte Stream UIDs yet
 
-{$IFDEF FPC}
-interface
-{$ENDIF}
-
 {$I Options.inc}
 
 uses
   opstack_node,
   opstack_buffers,
-  OpenLCBdefines,
+ // OpenLCBdefines,
   opstack_defines,
   template_buffers,
-  OpenLCButilities,
-  opstackcore_basic,
-  opstacktypes;
+//  OpenLCButilities,
+  opstackcore_basic
+ // opstacktypes
+  ;
 
 {$IFDEF SUPPORT_STREAMS}
 procedure OPStackCoreStream_Initialize;

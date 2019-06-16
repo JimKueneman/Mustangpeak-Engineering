@@ -1,9 +1,5 @@
 unit opstack_node;
 
-{$IFDEF FPC}
-interface
-{$ENDIF}
-
 {$I Options.inc}
 
 uses
@@ -17,7 +13,7 @@ uses
   opstack_defines,
   template_node;
 
-{$I NodeID.inc}
+//{$I NodeID.inc}
 
 const
   FIND_BY_SOURCE = 0;
@@ -78,14 +74,11 @@ function OPStackNode_Equal(Message1, Message2: POPStackMessage): Boolean;
 
 function OPStackNode_FindNodeByNodeInfo(var NodeInfo: TNodeInfo): POpenLCBNode;
 
-{$IFNDEF FPC}
 procedure OPStackNode_PrintPool;
 procedure OPStackNode_PrintAliases;
-{$ENDIF}
 
 implementation
 
-{$IFNDEF FPC}
 procedure OPStackNode_PrintPool;
 var
   i: Integer;
@@ -145,7 +138,6 @@ begin
     DebugLine('Node OutgoingMessages: ' +s1);
   end;
 end;
-{$ENDIF}
 
 // *****************************************************************************
 //  procedure FindFreeNodeToAllocate;

@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <BorlandProject>
 	<ActiveMobileDevice>
-		<POSX iOSSimulator="_iossimulator_067E2586-7036-46D9-BE63-0CFF9CD8CC0E" iOSDevice32="_iosdevice_4b0cda8c26db4d0930538a5f7f6151424386083e" iOSDevice64="_iosdevice_4b0cda8c26db4d0930538a5f7f6151424386083e"/>
-		<NoProfile Android="0146914802014008"/>
+		<POSX iOSSimulator="iPhone5" iOSDevice32="" iOSDevice64=""/>
+		<NoProfile Android=""/>
 	</ActiveMobileDevice>
 	<BT_BuildType>Debug</BT_BuildType>
 	<Transactions>

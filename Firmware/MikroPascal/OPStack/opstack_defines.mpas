@@ -1,9 +1,5 @@
 unit opstack_defines;
 
-{$IFDEF FPC}
-interface
-{$ENDIF}
-
 {$I Options.inc}
 
 

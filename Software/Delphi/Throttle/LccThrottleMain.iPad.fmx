@@ -5,20 +5,41 @@ inherited TabbedwithNavigationForm_iPad: TTabbedwithNavigationForm_iPad
   inherited TabControl1: TTabControl
     Size.Width = 768.000000000000000000
     Size.Height = 1004.000000000000000000
+    Sizes = (
+      768s
+      955s
+      768s
+      955s
+      768s
+      955s
+      768s
+      955s)
     inherited TabItem1: TTabItem
       Size.Width = 192.000000000000000000
       ExplicitSize.cx = 101.000000000000000000
       ExplicitSize.cy = 49.000000000000000000
       inherited TabControl2: TTabControl
+        Size.Width = 768.000000000000000000
+        Size.Height = 955.000000000000000000
+        Sizes = (
+          768s
+          955s
+          768s
+          955s)
         inherited TabItem5: TTabItem
+          Size.Width = 11.000000000000000000
+          Size.Height = 11.000000000000000000
           ExplicitSize.cx = 8.000000000000000000
           ExplicitSize.cy = 8.000000000000000000
           inherited ToolBar1: TToolBar
+            Size.Width = 768.000000000000000000
             Size.Height = 44.000000000000000000
             inherited lblTitle1: TLabel
+              Size.Width = 768.000000000000000000
               Size.Height = 44.000000000000000000
             end
             inherited btnNext: TSpeedButton
+              Position.X = 703.000000000000000000
               Size.Height = 44.000000000000000000
             end
           end
@@ -29,8 +50,10 @@ inherited TabbedwithNavigationForm_iPad: TTabbedwithNavigationForm_iPad
           ExplicitSize.cx = 8.000000000000000000
           ExplicitSize.cy = 8.000000000000000000
           inherited ToolBar2: TToolBar
+            Size.Width = 768.000000000000000000
             Size.Height = 44.000000000000000000
             inherited lblTitle2: TLabel
+              Size.Width = 768.000000000000000000
               Size.Height = 44.000000000000000000
             end
             inherited btnBack: TSpeedButton
@@ -45,13 +68,16 @@ inherited TabbedwithNavigationForm_iPad: TTabbedwithNavigationForm_iPad
       ExplicitSize.cx = 102.000000000000000000
       ExplicitSize.cy = 49.000000000000000000
       inherited ToolBar3: TToolBar
+        Size.Width = 768.000000000000000000
         Size.Height = 44.000000000000000000
         inherited lblTitle3: TLabel
+          Size.Width = 768.000000000000000000
           Size.Height = 44.000000000000000000
         end
       end
       inherited FramedVertScrollBox1: TFramedVertScrollBox
-        Size.Height = 6.000000000000000000
+        Size.Width = 768.000000000000000000
+        Size.Height = 911.000000000000000000
         Viewport.Width = 768.000000000000000000
         Viewport.Height = 911.000000000000000000
         inherited Rectangle1: TRectangle
@@ -99,8 +125,10 @@ inherited TabbedwithNavigationForm_iPad: TTabbedwithNavigationForm_iPad
       ExplicitSize.cx = 101.000000000000000000
       ExplicitSize.cy = 49.000000000000000000
       inherited ToolBar4: TToolBar
+        Size.Width = 768.000000000000000000
         Size.Height = 44.000000000000000000
         inherited lblTitle4: TLabel
+          Size.Width = 768.000000000000000000
           Size.Height = 44.000000000000000000
         end
       end

@@ -2,10 +2,6 @@ unit opstackcore_pip;
 
 // TODO:  Extended Bits cause python scripts to complain
 
-{$IFDEF FPC}
-interface
-{$ENDIF}
-
 {$I Options.inc}
 
 uses

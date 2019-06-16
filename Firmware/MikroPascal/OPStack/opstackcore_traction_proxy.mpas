@@ -2,10 +2,6 @@ unit opstackcore_traction_proxy;
 
 // TODO: When running out of vNodes Allocate does not return a result.......
 
-{$IFDEF FPC}
-interface
-{$ENDIF}
-
 {$I Options.inc}
 
 uses

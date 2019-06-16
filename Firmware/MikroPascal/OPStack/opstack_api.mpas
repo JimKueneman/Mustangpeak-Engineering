@@ -1,17 +1,8 @@
 unit opstack_api;
 
-{$IFDEF FPC}
-interface
-{$ENDIF}
-
 {$I Options.inc}
 
 uses
-  {$IFDEF FPC}
-  Classes,
-  SysUtils,
-  FileUtil,
-  {$ENDIF}
   opstack_events,
   Float16,
   opstack_buffers,

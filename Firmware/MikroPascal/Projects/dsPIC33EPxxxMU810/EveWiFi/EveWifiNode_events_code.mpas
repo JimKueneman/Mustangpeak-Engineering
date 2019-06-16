@@ -1,0 +1,190 @@
+unit EveWifiNode_events_code;
+
+uses EveWifiNode_types, EveWifiNode_resources;
+
+{$I EveWifiNode_driver.inc}
+{$I EveWifiNode_objects.inc}
+
+procedure EveButtonConnectOnClick();
+procedure EveButtonDisconnectOnClick();
+
+//-------------- User code declarations ---------------//
+
+function IpToStr(var IP: array[4] of byte): string[11];
+function MacToStr(var Mac: array[6] of byte): string[17];
+procedure UpdateStatusBar(var Caption: String[254]; DoDelay: Boolean);
+procedure UpdateStatusBarWithErrorCode(ErrorCode: byte; DoDelay: Boolean);
+procedure UpdateStatusBarWithErrorAndStatusCodes(ErrorCode, StatusCode: byte; DoDelay: Boolean);
+procedure UpdateStatusBarWithErrorAndScanCount(ErrorCode, ScanCount: byte; DoDelay: Boolean);
+procedure ReadAndDisplayWiFiInfo;
+
+var
+  StatusBar: ^TEveText;
+  StatusBarText: string[254];
+  ActiveScreen: ^TScreen;
+  IsConnected: Boolean;
+  
+//-------------- End of User code declarations --------//
+
+implementation
+//--------------------- User code ---------------------//
+
+function IpToStr(var IP: array[4] of byte): string[15];
+var
+  s: string[3];
+begin
+  ByteToStr(IP[0], s);
+  Result := s + '.';
+  ByteToStr(IP[1], s);
+  Result := Result + s + '.';
+  ByteToStr(IP[2], s);
+  Result := Result + s + '.';
+  ByteToStr(IP[3], s);
+  Result := Result + s;
+end;
+
+function MacToStr(var Mac: array[6] of byte): string[23];
+var
+  s: string[3];
+begin
+  ByteToStr(Mac[0], s);
+  Result := s + '.';
+  ByteToStr(Mac[1], s);
+  Result := Result + s + '.';
+  ByteToStr(Mac[2], s);
+  Result := Result + s + '.';
+  ByteToStr(Mac[3], s);
+  Result := Result + s + '.';
+  ByteToStr(Mac[4], s);
+  Result := Result + s + '.';
+  ByteToStr(Mac[5], s);
+  Result := Result + s;
+end;
+
+procedure UpdateStatusBar(var Caption: String[254]; DoDelay: Boolean);
+begin
+  StatusBarText := Caption;
+  StatusBar^.Caption := @StatusBarText;
+  DrawScreen(ActiveScreen);
+  if DoDelay then
+    Delay_ms(2000);
+end;
+
+procedure UpdateStatusBarWithErrorCode(ErrorCode: byte; DoDelay: Boolean);
+var
+  s: string[3];
+begin
+  StatusBarText := 'ErrorCode: ';
+  ByteToStr(ErrorCode, s);
+  StatusBarText := StatusBarText + s;
+  StatusBar^.Caption := @StatusBarText;
+  DrawScreen(ActiveScreen);
+  if DoDelay then
+    Delay_ms(2000);
+end;
+
+procedure UpdateStatusBarWithErrorAndStatusCodes(ErrorCode, StatusCode: byte; DoDelay: Boolean);
+var
+  s: string[3];
+begin
+  StatusBarText := 'ErrorCode: ';
+  ByteToStr(ErrorCode, s);
+  StatusBarText := StatusBarText + s;
+  StatusBar^.Caption := @StatusBarText;
+  StatusBarText := StatusBarText + ' | StatusCode: ';
+  ByteToStr(StatusCode, s);
+  StatusBarText := StatusBarText + s;
+  StatusBar^.Caption := @StatusBarText;
+  DrawScreen(ActiveScreen);
+  if DoDelay then
+    Delay_ms(2000);
+end;
+
+procedure UpdateStatusBarWithErrorAndScanCount(ErrorCode, ScanCount: byte; DoDelay: Boolean);
+var
+  s: string[3];
+begin
+  StatusBarText := 'ErrorCode: ';
+  ByteToStr(ErrorCode, s);
+  StatusBarText := StatusBarText + s;
+  StatusBar^.Caption := @StatusBarText;
+  StatusBarText := StatusBarText + ' | ScanCount: ';
+  ByteToStr(ScanCount, s);
+  StatusBarText := StatusBarText + s;
+  StatusBar^.Caption := @StatusBarText;
+  DrawScreen(ActiveScreen);
+  if DoDelay then
+    Delay_ms(2000);
+end;
+
+procedure ReadAndDisplayWiFiInfo;
+var
+  StatusStr: string[6];
+begin
+  Net_Wireless_MCW1001_GetNetworkStatus;
+  labelmac_caption := 'Mac: ' + MacToStr(net_wireless_mcw1001_properties.macaddress);
+  LabelIP_Caption := 'Ip: ' + IpToStr(Net_Wireless_MCW1001_Properties.ipAddress);
+  LabelMask_Caption := 'Mask: ' + IpToStr(Net_Wireless_MCW1001_Properties.networkMask);
+  LabelGateway_Caption := 'Gateway: ' + IpToStr(Net_Wireless_MCW1001_Properties.gatewayAddress);
+  IntToStr(Net_Wireless_MCW1001_Properties.networkStatus, StatusStr);
+  LabelStatus_Caption := 'Network Status: ' + StatusStr;
+end;
+
+
+//----------------- End of User code ------------------//
+
+// Event Handlers
+
+procedure EveButtonConnectOnClick();
+var
+  ErrorCode, StatusCode: byte;
+  ServerStr: string[17];
+  PortStr: string[5];
+  TcpServer: array[4] of byte;
+  TcpSocket: Byte;
+begin
+  UpdateStatusBar('Connecting to Network', True);
+  ErrorCode := Net_Wireless_MCW1001_Connect(_NET_WIRELESS_MCW1001_CP_1, StatusCode);
+  UpdateStatusBarWithErrorAndStatusCodes(ErrorCode, StatusCode, True);
+  if ErrorCode = 0 then
+  begin
+    IsConnected := True;
+    UpdateStatusBar('Attemping to Connect to OpenLCB', True);
+    UpdateStatusBar('Creating TCP Socket', True);
+    ErrorCode := Net_Wireless_MCW1001_SocketCreate(TcpSocket, _NET_WIRELESS_MCW1001_SOCKET_TYPE_TCP);
+    UpdateStatusBarWithErrorCode(ErrorCode, True);
+    if ErrorCode = 0 then
+    begin
+       TcpServer[0] := 10;
+       TcpServer[1] := 0;
+       TcpServer[2] := 3;
+       TcpServer[3] := 149;
+       ServerStr := IpToStr(TcpServer);
+       WordToStr(12021, PortStr);
+       UpdateStatusBar('Connecting to OpenLCB Network: ' + ServerStr + ':' + PortStr, True);
+       ErrorCode := Net_Wireless_MCW1001_TCP_Connect(TcpSocket, 12021, TcpServer, StatusCode);
+       UpdateStatusBarWithErrorAndStatusCodes(ErrorCode, StatusCode, True);
+       UpdateStatusBar('OpenLCB Network ready to use!', False);
+       if ErrorCode <> 0 then
+         UpdateStatusBar('TCP Connection Failed', False);
+     end else
+       UpdateStatusBar('Can''t Create Socket', False);
+  end else
+    UpdateStatusBar('Unable to connect to the network', False);
+end;
+
+procedure EveButtonDisconnectOnClick();
+var
+  ErrorCode: byte;
+begin
+  if IsConnected then
+  begin
+    UpdateStatusBar('Disconnecting from Network', True);
+    ErrorCode := Net_Wireless_MCW1001_Disconnect;
+    UpdateStatusBarWithErrorCode(ErrorCode, True);
+    UpdateStatusBar('Disconnected from Network', True);
+    IsConnected := False;
+  end;
+end;
+
+end.
