@@ -1,0 +1,166 @@
+unit EveWifiNode_types;
+
+type TPointer   = dword;
+type TBytePtr   = ^byte;
+type TTextAlign = byte;
+
+type TObjInfo = record
+  Obj:    TPointer;
+  Type_:  byte;
+  Order:  byte;
+  Flags:  byte;
+
+  HitTag: byte;
+  HitX:   integer;
+  HitY:   integer;
+end;
+type TObjInfoPtr = ^TObjInfo;
+
+type TTouchStat = record
+  Pressed: byte;
+
+  Tag: byte;
+  X:   integer;
+  Y:   integer;
+
+  ActObjInfo: TObjInfo;
+end;
+
+type TDrawHandlerProc = Procedure(aObj: TPointer);
+type TDrawHandler     = ^TDrawHandlerProc;
+
+type TEvtActionProc = procedure();
+type TEvtAction     = ^TEvtActionProc;
+
+type TEvtSound = record
+  SndAct: byte;
+  Effect: byte;
+  Pitch:  byte;
+  Volume: byte;
+end;
+
+type TCEvent = record
+  Action: TEvtAction;
+  Sound:  TEvtSound;
+end; code; far;
+
+type TEvent = record
+  Action: TEvtAction;
+  Sound:  TEvtSound;
+end;
+
+type TCRect = record
+  Left:   integer;
+  Top:    integer;
+  Width:  integer;
+  Height: integer;
+end; code; far;
+type TCRectPtr = ^TCRect;
+
+type TRect = record
+  Left:   integer;
+  Top:    integer;
+  Width:  integer;
+  Height: integer;
+end;
+type TRectPtr = ^TRect;
+
+type TLabel = record
+  OwnerScreen: TPointer;
+  Order:       byte;
+  Visible:     byte;
+  Opacity:     byte;
+  Tag:         byte;
+  Left:        integer;
+  Top:         integer;
+  Width:       integer;
+  Height:      integer;
+  Caption:     ^char;
+  FontName:    TPointer;
+  Font_Color:  word;
+  FontHandle:  byte;
+  Source:      longint;
+  Active:      byte;
+  OnUp:        ^TEvent;
+  OnDown:      ^TEvent;
+  OnClick:     ^TEvent;
+  OnPress:     ^TEvent;
+end; 
+type TLabelPtr = ^TLabel;
+
+type TEveButton = record
+  OwnerScreen:   TPointer;
+  Order:         byte;
+  Visible:       byte;
+  Opacity:       byte;
+  Tag:           byte;
+  Left:          integer;
+  Top:           integer;
+  Width:         integer;
+  Height:        integer;
+  Color:         word;
+  Press_Color:   word;
+  ColorTo:       word;
+  Press_ColorTo: word;
+  Caption:       ^char;
+  FontName:      TPointer;
+  Font_Color:    word;
+  FontHandle:    byte;
+  Source:        longint;
+  Flat:          byte;
+  Active:        byte;
+  OnUp:          ^TEvent;
+  OnDown:        ^TEvent;
+  OnClick:       ^TEvent;
+  OnPress:       ^TEvent;
+end; 
+type TEveButtonPtr = ^TEveButton;
+
+type TEveText = record
+  OwnerScreen: TPointer;
+  Order:       byte;
+  Visible:     byte;
+  Opacity:     byte;
+  Tag:         byte;
+  Left:        integer;
+  Top:         integer;
+  Width:       integer;
+  Height:      integer;
+  Caption:     ^char;
+  TextAlign:   TTextAlign;
+  FontName:    TPointer;
+  Font_Color:  word;
+  FontHandle:  byte;
+  Source:      longint;
+  Active:      byte;
+  OnUp:        ^TEvent;
+  OnDown:      ^TEvent;
+  OnClick:     ^TEvent;
+  OnPress:     ^TEvent;
+end; 
+type TEveTextPtr = ^TEveText;
+
+type TScreen = record
+  Color:             word;
+  Width:             word;
+  Height:            word;
+  ObjectsCount:      byte;
+  LabelsCount:       byte;
+  Labels:             ^code far ^TLabel;
+  EveButtonsCount:   byte;
+  EveButtons:         ^code far ^TEveButton;
+  EveTextsCount:     byte;
+  EveTexts:           ^code far ^TEveText;
+  DynResStart:       dword;
+  Active:            byte;
+  SniffObjectEvents: byte;
+  OnUp:              ^TEvent;
+  OnDown:            ^TEvent;
+  OnTagChange:       ^TEvent;
+  OnPress:           ^TEvent;
+end;
+type TScreenPtr = ^TScreen;
+
+implementation
+
+end.

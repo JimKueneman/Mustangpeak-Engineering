@@ -1,8 +1,8 @@
 unit opstack_noderesolutionprotocol;
 
-uses
-  opstackdefines;
-  
+//uses
+//  opstackdefines;
+
 const
   MAX_NODE_INFO_CACHE = 256;
   

@@ -17,6 +17,7 @@ unit opstack_events;
 //                Implements callback Application Events ( _NOT_ OLCB/LCC events )
 //
 // ******************************************************************************
+
 {$I Options.inc}
 
 uses

@@ -21,14 +21,23 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
     Size.Height = 596.000000000000000000
     Size.PlatformDefault = False
     TabHeight = 49.000000000000000000
-    TabIndex = 3
+    TabIndex = 0
     TabOrder = 0
     TabPosition = PlatformDefault
+    Sizes = (
+      399s
+      547s
+      399s
+      547s
+      399s
+      547s
+      399s
+      547s)
     object TabItem1: TTabItem
       CustomIcon = <
         item
         end>
-      IsSelected = False
+      IsSelected = True
       Size.Width = 99.000000000000000000
       Size.Height = 49.000000000000000000
       Size.PlatformDefault = False
@@ -42,13 +51,18 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
         OnGesture = GestureDone
         Align = Client
         FullSize = True
-        Size.Width = 50.000000000000000000
-        Size.Height = 50.000000000000000000
+        Size.Width = 399.000000000000000000
+        Size.Height = 547.000000000000000000
         Size.PlatformDefault = False
         TabHeight = 49.000000000000000000
         TabIndex = 0
         TabOrder = 0
         TabPosition = None
+        Sizes = (
+          399s
+          547s
+          399s
+          547s)
         object TabItem5: TTabItem
           CustomIcon = <
             item
@@ -63,13 +77,13 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
           ExplicitSize.cx = 8.000000000000000000
           ExplicitSize.cy = 8.000000000000000000
           object ToolBar1: TToolBar
-            Size.Width = 50.000000000000000000
+            Size.Width = 399.000000000000000000
             Size.Height = 48.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
             object lblTitle1: TLabel
               Align = Contents
-              Size.Width = 50.000000000000000000
+              Size.Width = 399.000000000000000000
               Size.Height = 48.000000000000000000
               Size.PlatformDefault = False
               StyleLookup = 'toollabel'
@@ -82,11 +96,10 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
               Enabled = True
               ImageIndex = -1
               Margins.Right = 5.000000000000000000
-              Position.X = -15.000000000000000000
+              Position.X = 334.000000000000000000
               Size.Width = 60.000000000000000000
               Size.Height = 48.000000000000000000
               Size.PlatformDefault = False
-              Visible = True
             end
           end
           object Button1: TButton
@@ -111,13 +124,13 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
           ExplicitSize.cx = 8.000000000000000000
           ExplicitSize.cy = 8.000000000000000000
           object ToolBar2: TToolBar
-            Size.Width = 50.000000000000000000
+            Size.Width = 399.000000000000000000
             Size.Height = 48.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
             object lblTitle2: TLabel
               Align = Contents
-              Size.Width = 50.000000000000000000
+              Size.Width = 399.000000000000000000
               Size.Height = 48.000000000000000000
               Size.PlatformDefault = False
               StyleLookup = 'toollabel'
@@ -135,7 +148,6 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
               Size.Height = 48.000000000000000000
               Size.PlatformDefault = False
               StyleLookup = 'backtoolbutton'
-              Visible = True
             end
           end
         end
@@ -155,13 +167,13 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
       ExplicitSize.cx = 102.000000000000000000
       ExplicitSize.cy = 49.000000000000000000
       object ToolBar3: TToolBar
-        Size.Width = 50.000000000000000000
+        Size.Width = 399.000000000000000000
         Size.Height = 48.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 0
         object lblTitle3: TLabel
           Align = Contents
-          Size.Width = 50.000000000000000000
+          Size.Width = 399.000000000000000000
           Size.Height = 48.000000000000000000
           Size.PlatformDefault = False
           StyleLookup = 'toollabel'
@@ -171,12 +183,12 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
       end
       object FramedVertScrollBox1: TFramedVertScrollBox
         Align = Client
-        Size.Width = 50.000000000000000000
-        Size.Height = 2.000000000000000000
+        Size.Width = 399.000000000000000000
+        Size.Height = 499.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 1
-        Viewport.Width = 45.000000000000000000
-        Viewport.Height = 2.000000000000000000
+        Viewport.Width = 399.000000000000000000
+        Viewport.Height = 499.000000000000000000
         object Rectangle1: TRectangle
           Align = Client
           Fill.Bitmap.Bitmap.PNG = {
@@ -7033,8 +7045,8 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
             D6B1F9FF01A948BEC7C874CA560000000049454E44AE426082}
           Fill.Bitmap.WrapMode = Tile
           Fill.Kind = Bitmap
-          Size.Width = 45.000000000000000000
-          Size.Height = 2.000000000000000000
+          Size.Width = 399.000000000000000000
+          Size.Height = 499.000000000000000000
           Size.PlatformDefault = False
           object Layout1: TLayout
             Align = Top
@@ -7042,7 +7054,7 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
             Padding.Top = 8.000000000000000000
             Padding.Right = 16.000000000000000000
             Padding.Bottom = 8.000000000000000000
-            Size.Width = 45.000000000000000000
+            Size.Width = 399.000000000000000000
             Size.Height = 137.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
@@ -7051,7 +7063,7 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
               Margins.Bottom = 64.000000000000000000
               Position.X = 16.000000000000000000
               Position.Y = 8.000000000000000000
-              Size.Width = 13.000000000000000000
+              Size.Width = 367.000000000000000000
               Size.Height = 21.000000000000000000
               Size.PlatformDefault = False
               TextSettings.WordWrap = False
@@ -7065,7 +7077,7 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
               Orientation = Horizontal
               Position.X = 16.000000000000000000
               Position.Y = 93.000000000000000000
-              Size.Width = 13.000000000000000000
+              Size.Width = 367.000000000000000000
               Size.Height = 32.000000000000000000
               Size.PlatformDefault = False
               TabOrder = 1
@@ -7079,7 +7091,7 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
             Padding.Right = 16.000000000000000000
             Padding.Bottom = 8.000000000000000000
             Position.Y = 137.000000000000000000
-            Size.Width = 45.000000000000000000
+            Size.Width = 399.000000000000000000
             Size.Height = 137.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 1
@@ -7090,7 +7102,7 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
               Orientation = Horizontal
               Position.X = 16.000000000000000000
               Position.Y = 93.000000000000000000
-              Size.Width = 13.000000000000000000
+              Size.Width = 367.000000000000000000
               Size.Height = 32.000000000000000000
               Size.PlatformDefault = False
               TabOrder = 1
@@ -7099,13 +7111,13 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
               Align = Top
               Position.X = 16.000000000000000000
               Position.Y = 8.000000000000000000
-              Size.Width = 13.000000000000000000
+              Size.Width = 367.000000000000000000
               Size.Height = 81.000000000000000000
               Size.PlatformDefault = False
               TabOrder = 2
               object Layout4: TLayout
                 Align = Right
-                Position.X = -42.000000000000000000
+                Position.X = 312.000000000000000000
                 Size.Width = 55.000000000000000000
                 Size.Height = 81.000000000000000000
                 Size.PlatformDefault = False
@@ -7113,6 +7125,7 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
               end
               object Layout5: TLayout
                 Align = Client
+                Size.Width = 312.000000000000000000
                 Size.Height = 81.000000000000000000
                 Size.PlatformDefault = False
                 TabOrder = 1
@@ -7199,13 +7212,13 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
       ExplicitSize.cx = 101.000000000000000000
       ExplicitSize.cy = 49.000000000000000000
       object ToolBar4: TToolBar
-        Size.Width = 50.000000000000000000
+        Size.Width = 399.000000000000000000
         Size.Height = 48.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 0
         object lblTitle4: TLabel
           Align = Contents
-          Size.Width = 50.000000000000000000
+          Size.Width = 399.000000000000000000
           Size.Height = 48.000000000000000000
           Size.PlatformDefault = False
           StyleLookup = 'toollabel'
@@ -7218,7 +7231,7 @@ object TabbedwithNavigationForm: TTabbedwithNavigationForm
       CustomIcon = <
         item
         end>
-      IsSelected = True
+      IsSelected = False
       Size.Width = 102.000000000000000000
       Size.Height = 49.000000000000000000
       Size.PlatformDefault = False

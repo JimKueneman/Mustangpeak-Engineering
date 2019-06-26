@@ -164,19 +164,19 @@ begin
   StrPtr := @LccMessage.DataArray[0];
   FVersion := Ord(StrPtr^);
   Inc(StrPtr);
-  FManufacturer := StrPtr;
+  FManufacturer := String(StrPtr);
   StrPtr := NextString(StrPtr);
-  FModel := StrPtr;
+  FModel := String(StrPtr);;
   StrPtr := NextString(StrPtr);
-  FHardwareVersion := StrPtr;
+  FHardwareVersion := String(StrPtr);;
   StrPtr := NextString(StrPtr);
-  FSoftwareVersion := StrPtr;
+  FSoftwareVersion := String(StrPtr);;
   StrPtr := NextString(StrPtr);
   FUserVersion := Ord(StrPtr^);
   Inc(StrPtr);
-  FUserName := StrPtr;
+  FUserName := String(StrPtr);;
   StrPtr := NextString(StrPtr);
-  FUserDescription := StrPtr;
+  FUserDescription := String(StrPtr);;
 end;
 
 end.

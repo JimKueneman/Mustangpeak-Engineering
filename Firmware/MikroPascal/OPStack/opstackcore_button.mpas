@@ -1,10 +1,5 @@
 unit opstackcore_button;
 
-
-{$IFDEF FPC}
-interface
-{$ENDIF}
-
 {$I Options.inc}
 
 uses

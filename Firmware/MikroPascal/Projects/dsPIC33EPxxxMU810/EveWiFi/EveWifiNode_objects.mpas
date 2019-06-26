@@ -1,0 +1,110 @@
+unit EveWifiNode_objects;
+
+uses EveWifiNode_types, EveWifiNode_resources, EveWifiNode_events_code;
+
+{$I EveWifiNode_driver.inc}
+
+
+const Screen1_Labels:     array[005] of TLabelPtr;      code; far; forward;
+const Screen1_EveButtons: array[002] of TEveButtonPtr;  code; far; forward;
+const Screen1_EveTexts:   array[001] of TEveTextPtr;    code; far; forward;
+
+var   Screen1: TScreen;
+
+
+var   LabelIP_Caption: string[32];
+var   LabelIP:         TLabel;    
+
+var   LabelMAC_Caption: string[32];
+var   LabelMAC:         TLabel;    
+
+var   LabelMask_Caption: string[32];
+var   LabelMask:         TLabel;    
+
+var   LabelGateway_Caption: string[32];
+var   LabelGateway:         TLabel;    
+
+var   LabelStatus_Caption: string[32];
+var   LabelStatus:         TLabel;    
+
+var   EveButtonDisconnect_Caption: string[10];
+var   EveButtonDisconnect_OnClick: TEvent;    
+var   EveButtonDisconnect:         TEveButton;
+
+var   EveButtonConnect_Caption: string[7]; 
+var   EveButtonConnect_OnClick: TEvent;    
+var   EveButtonConnect:         TEveButton;
+
+var   EveTextStatusBar_Caption: string[254];
+var   EveTextStatusBar:         TEveText;   
+
+const Screen1_Labels:     array[005] of TLabelPtr      = (
+  @LabelIP,             
+  @LabelMAC,            
+  @LabelMask,           
+  @LabelGateway,        
+  @LabelStatus          
+); code; far;
+
+const Screen1_EveButtons: array[002] of TEveButtonPtr  = (
+  @EveButtonDisconnect, 
+  @EveButtonConnect     
+); code; far;
+
+const Screen1_EveTexts:   array[001] of TEveTextPtr    = (
+  @EveTextStatusBar     
+); code; far;
+
+// Table of object draw handlers
+// Use object type constants to access coresponding object draw handler
+const DrawHandlerTable: array[44] of TPointer = (
+  0,               // Button draw handler not used
+  0,               // CButton draw handler not used
+  0,               // ButtonRound draw handler not used
+  0,               // CButtonRound draw handler not used
+  @DrawLabel,      // Label draw handler
+  0,               // CLabel draw handler not used
+  0,               // Image draw handler not used
+  0,               // CImage draw handler not used
+  0,               // Circle draw handler not used
+  0,               // CCircle draw handler not used
+  0,               // CircleButton draw handler not used
+  0,               // CCircleButton draw handler not used
+  0,               // Box draw handler not used
+  0,               // CBox draw handler not used
+  0,               // BoxRound draw handler not used
+  0,               // CBoxRound draw handler not used
+  0,               // Line draw handler not used
+  0,               // CLine draw handler not used
+  0,               // Polygon draw handler not used
+  0,               // CPolygon draw handler not used
+  0,               // CheckBox draw handler not used
+  0,               // RadioButton draw handler not used
+  0,               // ProgressBar draw handler not used
+  0,               // Audio draw handler not used
+  0,               // EveClock draw handler not used
+  0,               // EveGauge draw handler not used
+  0,               // EveDial draw handler not used
+  0,               // EveKeys draw handler not used
+  0,               // CEveKeys draw handler not used
+  0,               // EveProgressBar draw handler not used
+  0,               // EveScrollBar draw handler not used
+  0,               // EveToggle draw handler not used
+  0,               // EveSlider draw handler not used
+  0,               // EveSpinner draw handler not used
+  0,               // EveScreenSaver draw handler not used
+  0,               // EveSketch draw handler not used
+  @DrawEveButton,  // EveButton draw handler
+  0,               // CEveButton draw handler not used
+  0,               // EveGradient draw handler not used
+  0,               // CEveGradient draw handler not used
+  @DrawEveText,    // EveText draw handler
+  0,               // CEveText draw handler not used
+  0,               // EveNumber draw handler not used
+  0                // CEveNumber draw handler not used
+);
+// ~Table of draw handler pointers
+
+implementation
+
+end.

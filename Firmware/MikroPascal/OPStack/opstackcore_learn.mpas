@@ -2,10 +2,6 @@ unit opstackcore_learn;
 
 // TODO:  Implement Learning
 
-{$IFDEF FPC}
-interface
-{$ENDIF}
-
 {$I Options.inc}
 
 uses

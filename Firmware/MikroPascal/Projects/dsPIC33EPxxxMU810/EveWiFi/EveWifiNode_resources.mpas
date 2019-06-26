@@ -1,0 +1,6 @@
+unit EveWifiNode_resources;
+const VisualLogo_bmp  : dword = 0x00000044;
+const BallastSmall_bmp: dword = 0x0000409A;
+implementation
+
+end.
