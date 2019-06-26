@@ -7,7 +7,7 @@
       <Unit0>
         <Filename Value="VeTableHelper.lpr"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="1"/>
         <CursorPos Y="20"/>
         <UsageCount Value="129"/>
         <Loaded Value="True"/>
@@ -19,6 +19,7 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="unitMain"/>
+        <IsVisibleTab Value="True"/>
         <TopLine Value="279"/>
         <CursorPos X="17" Y="304"/>
         <UsageCount Value="129"/>
@@ -101,11 +102,9 @@
       </Unit11>
       <Unit12>
         <Filename Value="C:/Documents and Settings/Jim Kueneman/Desktop/Smart/RTL/APIs/PhoneGap/PhoneGapAPI.pas"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="12"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit12>
     </Units>
     <JumpHistory Count="29" HistoryIndex="28">

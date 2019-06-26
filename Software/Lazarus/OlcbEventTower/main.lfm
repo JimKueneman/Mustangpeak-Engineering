@@ -1,11 +1,11 @@
 object FormEventTower: TFormEventTower
-  Left = 499
-  Height = 577
-  Top = 122
-  Width = 719
+  Left = 65
+  Height = 576
+  Top = 24
+  Width = 1195
   Caption = 'OpenLCB Event Tower (Alpha)'
-  ClientHeight = 577
-  ClientWidth = 719
+  ClientHeight = 576
+  ClientWidth = 1195
   OnShow = FormShow
   ShowHint = True
   LCLVersion = '1.6.2.0'
@@ -13,16 +13,16 @@ object FormEventTower: TFormEventTower
     Left = 0
     Height = 171
     Top = 0
-    Width = 719
+    Width = 1195
     Align = alTop
     ClientHeight = 171
-    ClientWidth = 719
+    ClientWidth = 1195
     TabOrder = 0
     object ListViewEvents: TListView
       Left = 1
       Height = 122
       Top = 48
-      Width = 717
+      Width = 1193
       Align = alClient
       Columns = <      
         item
@@ -42,7 +42,7 @@ object FormEventTower: TFormEventTower
         end      
         item
           Caption = 'Type'
-          Width = 150
+          Width = 600
         end>
       GridLines = True
       MultiSelect = True
@@ -57,7 +57,7 @@ object FormEventTower: TFormEventTower
       Left = 1
       Height = 47
       Top = 1
-      Width = 717
+      Width = 1193
       ButtonHeight = 47
       Caption = 'ToolBarEvents'
       Images = ImageListMain
@@ -70,12 +70,12 @@ object FormEventTower: TFormEventTower
         Action = ActionAddEvent
       end
       object ToolButton1: TToolButton
-        Left = 72
+        Left = 77
         Top = 2
         Action = ActionDeleteEvent
       end
       object ToolButton2: TToolButton
-        Left = 158
+        Left = 169
         Height = 47
         Top = 2
         Width = 8
@@ -83,22 +83,22 @@ object FormEventTower: TFormEventTower
         Style = tbsSeparator
       end
       object ToolButton3: TToolButton
-        Left = 166
+        Left = 177
         Top = 2
         Action = ActionEditEvent
       end
       object ToolButton4: TToolButton
-        Left = 236
+        Left = 252
         Top = 2
         Caption = 'ToolButton4'
       end
       object ToolButton5: TToolButton
-        Left = 321
+        Left = 343
         Top = 2
         Caption = 'ToolButton5'
       end
       object ToolButton6: TToolButton
-        Left = 406
+        Left = 434
         Top = 2
         Caption = 'ToolButton6'
       end
@@ -106,9 +106,9 @@ object FormEventTower: TFormEventTower
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Height = 15
-    Top = 562
-    Width = 719
+    Height = 21
+    Top = 555
+    Width = 1195
     Panels = <    
       item
         Width = 50
@@ -126,39 +126,39 @@ object FormEventTower: TFormEventTower
     Left = 0
     Height = 5
     Top = 171
-    Width = 719
+    Width = 1195
     Align = alTop
     ResizeAnchor = akTop
   end
   object Panel2: TPanel
     Left = 0
-    Height = 386
+    Height = 379
     Top = 176
-    Width = 719
+    Width = 1195
     Align = alClient
-    ClientHeight = 386
-    ClientWidth = 719
+    ClientHeight = 379
+    ClientWidth = 1195
     TabOrder = 3
     object Panel3: TPanel
       Left = 1
       Height = 103
       Top = 1
-      Width = 717
+      Width = 1193
       Align = alTop
       ClientHeight = 103
-      ClientWidth = 717
+      ClientWidth = 1193
       TabOrder = 0
       object Label1: TLabel
         Left = 152
-        Height = 16
+        Height = 17
         Top = 0
-        Width = 93
+        Width = 99
         Caption = 'Caption Indent'
         ParentColor = False
       end
       object SpinEditCaptionIndent: TSpinEdit
         Left = 160
-        Height = 16
+        Height = 27
         Top = 24
         Width = 98
         MaxValue = 1000
@@ -167,7 +167,7 @@ object FormEventTower: TFormEventTower
       end
       object SpinEditDetailsIndent: TSpinEdit
         Left = 160
-        Height = 16
+        Height = 27
         Top = 72
         Width = 98
         MaxValue = 1000
@@ -176,23 +176,23 @@ object FormEventTower: TFormEventTower
       end
       object Label2: TLabel
         Left = 153
-        Height = 16
+        Height = 17
         Top = 48
-        Width = 87
+        Width = 93
         Caption = 'Details Indent'
         ParentColor = False
       end
       object Label3: TLabel
         Left = 272
-        Height = 16
+        Height = 17
         Top = 0
-        Width = 68
+        Width = 71
         Caption = 'Line Count'
         ParentColor = False
       end
       object SpinEditCaptionLineCount: TSpinEdit
         Left = 288
-        Height = 16
+        Height = 27
         Top = 24
         Width = 98
         MaxValue = 1000
@@ -201,15 +201,15 @@ object FormEventTower: TFormEventTower
       end
       object Label4: TLabel
         Left = 400
-        Height = 16
+        Height = 17
         Top = 0
-        Width = 70
+        Width = 74
         Caption = 'Item Count'
         ParentColor = False
       end
       object ComboBoxAlign: TComboBox
         Left = 282
-        Height = 20
+        Height = 27
         Top = 67
         Width = 100
         ItemHeight = 0
@@ -226,7 +226,7 @@ object FormEventTower: TFormEventTower
       end
       object ComboBoxVAlign: TComboBox
         Left = 408
-        Height = 20
+        Height = 27
         Top = 67
         Width = 100
         ItemHeight = 0
@@ -243,17 +243,17 @@ object FormEventTower: TFormEventTower
       end
       object Label5: TLabel
         Left = 272
-        Height = 16
+        Height = 17
         Top = 48
-        Width = 65
+        Width = 69
         Caption = 'Alignment'
         ParentColor = False
       end
       object Label6: TLabel
         Left = 400
-        Height = 16
+        Height = 17
         Top = 48
-        Width = 116
+        Width = 124
         Caption = 'Vertical Alignment'
         ParentColor = False
       end
@@ -277,7 +277,7 @@ object FormEventTower: TFormEventTower
       end
       object SpinEditItemCount: TSpinEdit
         Left = 408
-        Height = 16
+        Height = 27
         Top = 24
         Width = 98
         MaxValue = 1000000
@@ -286,15 +286,15 @@ object FormEventTower: TFormEventTower
       end
       object Label7: TLabel
         Left = 8
-        Height = 16
+        Height = 17
         Top = 0
-        Width = 69
+        Width = 72
         Caption = 'Cell Height'
         ParentColor = False
       end
       object SpinEditCellHeight: TSpinEdit
         Left = 16
-        Height = 16
+        Height = 27
         Top = 24
         Width = 98
         MaxValue = 1000
@@ -303,9 +303,9 @@ object FormEventTower: TFormEventTower
       end
       object CheckBoxUseImages: TCheckBox
         Left = 16
-        Height = 18
+        Height = 24
         Top = 69
-        Width = 91
+        Width = 102
         Caption = 'Use Images'
         OnChange = CheckBoxUseImagesChange
         TabOrder = 9
@@ -313,9 +313,13 @@ object FormEventTower: TFormEventTower
     end
     object VirtualListview1: TVirtualListview
       Left = 1
-      Height = 281
+      Height = 274
       Top = 104
-      Width = 717
+      Width = 1193
+      HorzScrollBar.Page = 1
+      HorzScrollBar.Tracking = True
+      VertScrollBar.Page = 1
+      VertScrollBar.Tracking = True
       Align = alClient
       Color = clWindow
       ParentColor = False
