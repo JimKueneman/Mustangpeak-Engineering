@@ -1,0 +1,188 @@
+object Form1: TForm1
+  Left = 544
+  Height = 483
+  Top = 119
+  Width = 797
+  Caption = 'Form1'
+  ClientHeight = 483
+  ClientWidth = 797
+  LCLVersion = '1.8.0.6'
+  object Panel1: TPanel
+    Left = 0
+    Height = 483
+    Top = 0
+    Width = 280
+    Align = alLeft
+    ClientHeight = 483
+    ClientWidth = 280
+    TabOrder = 0
+    object EditBore: TEdit
+      Left = 24
+      Height = 22
+      Top = 32
+      Width = 168
+      TabOrder = 0
+      Text = '3.91'
+    end
+    object EditStroke: TEdit
+      Left = 24
+      Height = 22
+      Top = 80
+      Width = 168
+      TabOrder = 1
+      Text = '3.31'
+    end
+    object EditCylinders: TEdit
+      Left = 24
+      Height = 22
+      Top = 128
+      Width = 168
+      TabOrder = 2
+      Text = '8'
+    end
+    object LabelBore: TLabel
+      Left = 11
+      Height = 16
+      Top = 12
+      Width = 81
+      Caption = 'Bore (inches)'
+      ParentColor = False
+    end
+    object LabelStroke: TLabel
+      Left = 11
+      Height = 16
+      Top = 64
+      Width = 93
+      Caption = 'Stroke (inches)'
+      ParentColor = False
+    end
+    object LabelCylinders: TLabel
+      Left = 11
+      Height = 16
+      Top = 112
+      Width = 59
+      Caption = 'Cylinders'
+      ParentColor = False
+    end
+    object EditRPM: TEdit
+      Left = 24
+      Height = 22
+      Top = 224
+      Width = 168
+      TabOrder = 3
+      Text = '60'
+    end
+    object LabelCylinders1: TLabel
+      Left = 11
+      Height = 16
+      Top = 208
+      Width = 27
+      Caption = 'RPM'
+      ParentColor = False
+    end
+    object Button1: TButton
+      Left = 29
+      Height = 25
+      Top = 400
+      Width = 75
+      Caption = 'Button1'
+      OnClick = Button1Click
+      TabOrder = 4
+    end
+    object LabelRodLength: TLabel
+      Left = 11
+      Height = 16
+      Top = 160
+      Width = 125
+      Caption = 'Rod Length (inches)'
+      ParentColor = False
+    end
+    object EditRodLength: TEdit
+      Left = 24
+      Height = 22
+      Top = 176
+      Width = 168
+      TabOrder = 5
+      Text = '6.123'
+    end
+    object ComboBoxEngine: TComboBox
+      Left = 29
+      Height = 20
+      Top = 336
+      Width = 174
+      ItemHeight = 0
+      ItemIndex = 1
+      Items.Strings = (
+        'Mopar 273'
+        'Mopar 318'
+        'Mopar 340'
+        'Mopar 360'
+        'Mopar 383'
+        'Mopar 426'
+        'Mopar 440'
+      )
+      OnChange = ComboBoxEngineChange
+      Style = csDropDownList
+      TabOrder = 6
+      Text = 'Mopar 318'
+    end
+    object LabelDegrees: TLabel
+      Left = 11
+      Height = 16
+      Top = 256
+      Width = 52
+      Caption = 'Degrees'
+      ParentColor = False
+    end
+    object EditDegrees: TEdit
+      Left = 24
+      Height = 22
+      Top = 272
+      Width = 168
+      TabOrder = 7
+      Text = '360'
+    end
+  end
+  object ChartPostion: TChart
+    Left = 280
+    Height = 483
+    Top = 0
+    Width = 517
+    AxisList = <    
+      item
+        Minors = <>
+        Title.LabelFont.Orientation = 900
+      end    
+      item
+        Alignment = calBottom
+        Minors = <>
+      end>
+    Foot.Brush.Color = clBtnFace
+    Foot.Font.Color = clBlue
+    Legend.Alignment = laTopCenter
+    Legend.Visible = True
+    Title.Brush.Color = clBtnFace
+    Title.Font.Color = clBlue
+    Title.Text.Strings = (
+      'TAChart'
+    )
+    Align = alClient
+    ParentShowHint = False
+    ShowHint = True
+    object LineSeriesPistonPosition: TLineSeries
+      Title = 'Piston Position (inches)'
+      LinePen.Color = clBlue
+    end
+    object LineSeriesPistonVelocity: TLineSeries
+      Title = 'Piston Velocity (in/rad)'
+      LinePen.Color = clGreen
+    end
+    object LineSeriesPistonAccel: TLineSeries
+      Title = 'Piston Acceleration (in/rad^2)'
+      LinePen.Color = clRed
+    end
+    object CubicSplineSeries: TCubicSplineSeries
+      Title = 'Exhaust Lobe'
+    end
+  end
+end
