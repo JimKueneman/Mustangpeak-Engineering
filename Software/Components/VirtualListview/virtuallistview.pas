@@ -41,6 +41,10 @@ type
 
   TVirtualListviewItem = class(TComponent)
   private
+    FBkGkdGradient2: TColor;
+    FBkGndColor: TColor;
+    FBkGndGradient1: TColor;
+    FBkGndGradientEnable: Boolean;
     FCaptionRect: TRect;
     FCaptions: TStringList;
     FClientRect: TRect;
@@ -204,9 +208,13 @@ type
 
   { TCustomVirtualListview }
 
-  TCustomVirtualListview = class(TPanel)
+  TCustomVirtualListview = class(TCustomPanel)
   private
-    FAlignment: TAlignment;
+    FBkGkdGradient2: TColor;
+    FBkGkdGradientDirection: TGradientDirection;
+    FBkGndColor: TColor;
+    FBkGndGradient1: TColor;
+    FBkGndGradientEnable: Boolean;
     FExpandableItems: Boolean;
     FExpandImagePosition: TExpandImagePostition;
     FExpandImages: TImageList;
@@ -232,8 +240,13 @@ type
     FVisibleItems: TVirtualListviewItemVisibleList;
     FUpdateLock: Integer;
     OnFocusChanged: TOnVirtualListviewFocusedChanged;
-    procedure SetAlignment(AValue: TAlignment);
+    procedure SetBkGkdGradient2(AValue: TColor);
+    procedure SetBkGkdGradientDirection(AValue: TGradientDirection);
+    procedure SetBkGndColor(AValue: TColor);
+    procedure SetBkGndGradient1(AValue: TColor);
+    procedure SetBkGndGradientEnable(AValue: Boolean);
     procedure SetExpandableItems(AValue: Boolean);
+    procedure SetExpandImagePosition(AValue: TExpandImagePostition);
     procedure SetFocusedItem(AValue: TVirtualListviewItem);
     procedure SetLevelIndent(AValue: Integer);
     procedure SetTextLayout(AValue: TVirtualListviewTextLayout);
@@ -243,7 +256,11 @@ type
     procedure SetDetailsFont(AValue: TFont);
     procedure SetDetailsIndent(AValue: Integer);
   protected
-    property Alignment: TAlignment read FAlignment write SetAlignment;
+    property BkGndColor: TColor read FBkGndColor write SetBkGndColor;
+    property BkGndGradientEnable: Boolean read FBkGndGradientEnable write SetBkGndGradientEnable;
+    property BkGkdGradientDirection: TGradientDirection read FBkGkdGradientDirection write SetBkGkdGradientDirection;
+    property BkGndGradient1: TColor read FBkGndGradient1 write SetBkGndGradient1;
+    property BkGkdGradient2: TColor read FBkGkdGradient2 write SetBkGkdGradient2;
     property CaptionIndent: Integer read FCaptionIndent write SetCaptionIndent;
     property CaptionLineCount: Integer read FCaptionLineCount write SetCaptionLineCount;
     property DefaultItemHeight: Integer read FDefaultItemHeight write SetDefaultItemHeight;
@@ -253,7 +270,7 @@ type
     property ExpandImages: TImageList read FExpandImages write FExpandImages;
     property ExpandIndexExpanded: Integer read FExpandIndexExpanded write FExpandIndexExpanded;
     property ExpandIndexCollapsed: Integer read FExpandIndexCollapsed write FExpandIndexCollapsed;
-    property ExpandImagePosition: TExpandImagePostition read FExpandImagePosition write FExpandImagePosition;
+    property ExpandImagePosition: TExpandImagePostition read FExpandImagePosition write SetExpandImagePosition;
     property FocusedItem: TVirtualListviewItem read FFocusedItem write SetFocusedItem;
     property Images: TImageList read FImages write FImages;
     property Items: TVirtualListviewItemList read FItems write FItems;
@@ -321,26 +338,94 @@ type
     property Items;
     property VisibleItems;
   published
-    property Alignment;
+    property Align;
+ //   property Alignment;
+    property Anchors;
+    property AutoSize;
+    property BkGndColor;
+    property BkGndGradientEnable;
+    property BkGndGradient1;
+    property BkGkdGradient2;
+    property BorderSpacing;
+    property BevelColor;
+    property BevelInner;
+    property BevelOuter;
+    property BevelWidth;
+    property BidiMode;
+    property BorderWidth;
+    property BorderStyle;
+    property Caption;
     property CaptionIndent;
     property CaptionLineCount;
+    property ChildSizing;
+    property ClientHeight;
+    property ClientWidth;
+    property Color;
+    property Constraints;
     property DefaultItemHeight;
     property DetailsFont;
     property DetailsIndent;
+    property DockSite;
+    property DoubleBuffered;
+    property DragCursor;
+    property DragKind;
+    property DragMode;
+    property Enabled;
     property ExpandableItems;
     property ExpandImages;
     property ExpandIndexExpanded;
     property ExpandIndexCollapsed;
     property ExpandImagePosition;
+    property Font;
+    property FullRepaint;
+    property HorzScrollbar;
     property Images;
     property LevelIndent;
+    property ParentBackground;
+    property ParentBidiMode;
+    property ParentColor;
+    property ParentDoubleBuffered;
+    property ParentFont;
+    property ParentShowHint;
+    property PopupMenu;
+    property ShowHint;
+    property TabOrder;
+    property TabStop;
+    property UseDockManager default True;
+    property Visible;
+    property Wordwrap;
+    property OnClick;
+    property OnContextPopup;
     property OnDebugEvent;
+    property OnDockDrop;
+    property OnDockOver;
+    property OnDblClick;
+    property OnDragDrop;
+    property OnDragOver;
+    property OnEndDock;
+    property OnEndDrag;
+    property OnEnter;
+    property OnExit;
     property OnFocusedChanged;
+    property OnGetSiteInfo;
+    property OnGetDockCaption;
+    property OnMouseDown;
+    property OnMouseEnter;
+    property OnMouseLeave;
+    property OnMouseMove;
+    property OnMouseUp;
+    property OnMouseWheel;
+    property OnMouseWheelDown;
+    property OnMouseWheelUp;
+    property OnPaint;
+    property OnResize;
     property OnSort;
+    property OnStartDock;
+    property OnStartDrag;
+    property OnUnDock;
     property StateImages;
     property TextLayout;
     property VertScrollbar;
-    property HorzScrollbar;
   end;
 
 
@@ -509,7 +594,7 @@ end;
 
 function TVirtualListviewItem.ExpandablePropertiesValid: Boolean;
 begin
-  Result := Assigned(OwnerListview.ExpandImages) and (OwnerListview.ExpandIndexCollapsed > -1) and (OwnerListview.ExpandIndexExpanded > -1)
+  Result := OwnerListview.ExpandableItems and Assigned(OwnerListview.ExpandImages) and (OwnerListview.ExpandIndexCollapsed > -1) and (OwnerListview.ExpandIndexExpanded > -1)
 end;
 
 procedure TVirtualListviewItem.Invalidate(Update: Boolean);
@@ -524,26 +609,27 @@ end;
 
 procedure TVirtualListviewItem.Paint(Canvas: TCanvas; OffsetX, OffsetY: Integer);
 var
-  TextBoundsRect, LocalBoundsRect: TRect;
-  i, LocalOffset, Indent: Integer;
   TextExtent: TSize;
-
-  ImageWidth_LeftJustify, ImageWidth_RightJustify: Integer;
-  DrawExpandImages: Boolean;
-
-  TextLeft, TextRight, ClientH, ClientW, ImageX, ImageY, ImageW, ImageH, TextBkgndW, LocalOffsetX, LocalOffsetY, ViewPortOffsetX, ViewportOffsetY: Integer;
-  ViewportRect: TRect;
+  LeftDrawingEdge, RightDrawingEdge, DrawingW, ClientH, ImageX, ImageY, ImageW, ImageH,
+  i, Indent, LocalOffsetX, LocalOffsetY, ViewPortOffsetX, ViewportOffsetY: Integer;
+  ViewportRect, DrawingBoundsRect, TextBoundsRect: TRect;
 begin
   // Assume no images
-  TextLeft := (OwnerListview.LevelIndent * Level);
-  TextRight := ClientRect.Right;
-  ClientW := ClientRect.Right-ClientRect.Left;
+  DrawingBoundsRect := Rect(0, 0, 0, 0);
+  FImageRect := Rect(0, 0, 0, 0);
+  FStateImageRect := Rect(0, 0, 0, 0);
+
+  LeftDrawingEdge := (OwnerListview.LevelIndent * Level);
+  RightDrawingEdge := ClientRect.Right;
+  if OwnerListview.VertScrollbar.Visible then
+    Dec(RightDrawingEdge, OwnerListview.VertScrollbar.Width);
+
   ClientH := ClientRect.Bottom-ClientRect.Top;
 
   ViewportOffsetX := OffsetX + ClientRect.Left;
   ViewportOffsetY := OffsetY + ClientRect.Top;
 
-  // These images can be on the left or right
+  // These images can be on the left or right and set the stage for the rest of the painting
   if OwnerListview.ExpandableItems then
     if ExpandablePropertiesValid then
     begin
@@ -551,14 +637,18 @@ begin
       ImageH := OwnerListview.ExpandImages.Height;
       case OwnerListview.ExpandImagePosition of
         eip_Left : begin
-                     ImageX := TextLeft;
+                     ImageX := LeftDrawingEdge;
                      ImageY := (ClientH - ImageH) div 2;   // Center Vertical
-                     Inc(TextLeft, ImageW);
+                     Inc(LeftDrawingEdge, ImageW);
+                     DrawingBoundsRect.Left := LeftDrawingEdge;
+                     DrawingBoundsRect.Right := LeftDrawingEdge;
                    end;
         eip_Right: begin
-                     Dec(TextRight, ImageW);
-                     ImageX := TextRight;
+                     Dec(RightDrawingEdge, ImageW);
+                     ImageX := RightDrawingEdge;
                      ImageY := (ClientH - ImageH) div 2;   // Center Vertical
+                     DrawingBoundsRect.Left := RightDrawingEdge;
+                     DrawingBoundsRect.Left := LeftDrawingEdge;
                    end;
       end;
       FExpandImageRect := Rect(ImageX, ImageY, ImageX+ImageW, ImageY+ImageH);
@@ -572,43 +662,52 @@ begin
   begin
     ImageW := OwnerListview.StateImages.Width;
     ImageH := OwnerListview.StateImages.Height;
-    ImageX := TextLeft;
-    ImageY := (ClientH - ImageH) div 2;   // Center Vertical
-    Inc(TextLeft, ImageW);
+    ImageX := LeftDrawingEdge;
+    // Track the Text to keep it aligned
+    case OwnerListview.TextLayout of
+      vtlTop    : ImageY := 0;                          // Top
+      vtlCenter : ImageY := (ClientH - ImageH) div 2;   // Center Vertical
+      vtlBottom : ImageY := ClientH - ImageH            // Bottom
+    end;
+    Inc(LeftDrawingEdge, ImageW);
     FStateImageRect := Rect(ImageX, ImageY, ImageX+ImageW, ImageY+ImageH);
-  end else
-    FStateImageRect := Rect(0, 0, 0, 0);
+  end;
+  if HeightRect(DrawingBoundsRect) = 0 then
+    OffsetRect(DrawingBoundsRect, 0,  StateImageRect.Top);
+  UnionRect(DrawingBoundsRect, DrawingBoundsRect, StateImageRect);
 
   // Next come the item images if they exist
   if ImagePropertiesValid then
   begin
     ImageW := OwnerListview.Images.Width;
     ImageH := OwnerListview.Images.Height;
-    ImageX := TextLeft;
-    Inc(TextLeft, ImageW);
+    ImageX := LeftDrawingEdge;
+    Inc(LeftDrawingEdge, ImageW);
+    // Track the Text to keep it aligned
     case OwnerListview.TextLayout of
       vtlTop    : ImageY := 0;                          // Top
       vtlCenter : ImageY := (ClientH - ImageH) div 2;   // Center Vertical
       vtlBottom : ImageY := ClientH - ImageH            // Bottom
     end;
     FImageRect := Rect(ImageX, ImageY, ImageX+ImageW, ImageY+ImageH);
-  end else
-    FImageRect := Rect(0, 0, 0, 0);
+  end;
+  if HeightRect(DrawingBoundsRect) = 0 then
+    OffsetRect(DrawingBoundsRect, 0,  ImageRect.Top);
+  UnionRect(DrawingBoundsRect, DrawingBoundsRect, ImageRect);
 
   if CaptionPropertiesValid then
   begin
-
     CreateTextRects;
 
     Canvas.Font.Assign(OwnerListview.Font);
     TextExtent := Canvas.TextExtent(Captions[0]);
     TextRects[0].Right := TextExtent.cx;
     TextRects[0].Bottom := TextExtent.cy;
-    Indent := TextLeft + OwnerListview.CaptionIndent;
+    Indent := LeftDrawingEdge + OwnerListview.CaptionIndent;
     OffsetRect(TextRects[0], Indent, 0);
-    if TextRects[0].Right > TextRight then
-      TextRects[0].Right := TextRight;
-    TextBoundsRect := TextRects[0];       // Local variable to know the total bounds of the text
+    if TextRects[0].Right > RightDrawingEdge then
+      TextRects[0].Right := RightDrawingEdge;
+    TextBoundsRect := TextRects[0];
 
     Canvas.Font.Assign(OwnerListview.DetailsFont);
     i := 1;
@@ -617,16 +716,15 @@ begin
       TextExtent := Canvas.TextExtent(Captions[i]);
       TextRects[i].Right := TextExtent.cx;
       TextRects[i].Bottom := TextExtent.cy;
-      Indent := TextLeft + OwnerListview.DetailsIndent;
+      Indent := LeftDrawingEdge + OwnerListview.DetailsIndent;
       OffsetRect(TextRects[i], Indent, 0);
-      if TextRects[i].Right > TextRight then
-        TextRects[i].Right := TextRight;
+      if TextRects[i].Right > RightDrawingEdge then
+        TextRects[i].Right := RightDrawingEdge;
       StackRect(TextRects[i], TextRects[i-1], TextRects[i]); // Get it oriented below the previous line
       UnionRect(TextBoundsRect, TextBoundsRect, TextRects[i]);
       Inc(i)
     end;
 
-    TextBkgndW := TextRight - TextLeft;
     // Now Vertically adjust the block of texts in the Item
     LocalOffsetY := 0;
     case OwnerListview.TextLayout of
@@ -634,25 +732,20 @@ begin
       vtlCenter : if HeightRect(TextBoundsRect) < Height then
                     LocalOffsetY := (Height - HeightRect(TextBoundsRect)) div 2;
       vtlBottom : if TextBoundsRect.Bottom < Bottom then
-                    LocalOffsetY := Bottom - TextBoundsRect.Bottom;
+                    LocalOffsetY := Height - TextBoundsRect.Bottom;
     end;
-
-    // Now Horizontally adjust the text boxes
-    LocalOffsetX := 0;
-    case OwnerListview.Alignment of
-      taLeftJustify : begin end;  // Do nothing already there
-      taCenter       : if WidthRect(TextBoundsRect) < TextBkgndW then
-                         LocalOffsetX := (TextBkgndW - WidthRect(TextBoundsRect)) div 2;
-      taRightJustify : if WidthRect(TextBoundsRect) < TextBkgndW then
-                         LocalOffsetX := TextBkgndW - TextBoundsRect.Right
-    end;
+    // Modify the individual Text Boxes Vert
     for i := 0 to Length(TextRects) - 1 do
-      OffsetRect(TextRects[i], LocalOffsetX, LocalOffsetY);
-
-    // TextRects shifted so we need to shift the Bounds Rect too
-     OffsetRect(TextBoundsRect, LocalOffsetX, LocalOffsetY);
+    begin
+      OffsetRect(TextRects[i], 0, LocalOffsetY);
+      if HeightRect(DrawingBoundsRect) = 0 then
+          OffsetRect(DrawingBoundsRect, 0,  TextRects[i].Top);
+        UnionRect(DrawingBoundsRect, DrawingBoundsRect, TextRects[i]);
+    end;
   end else
     SetLength(TextRects, 0);
+
+  // Now everyone is correctly positioned in the Vertical Direction
 
   // Create a local Bounds rect that is modified by the Scroll Postion
   ViewportRect := ClientRect;
@@ -661,8 +754,14 @@ begin
   Canvas.Clipping := True;
 
   // Now paint the background
-  Canvas.Brush.Color := Color;
-  Canvas.FillRect(ViewportRect);
+  if OwnerListview.BkGndGradientEnable then
+  begin
+    Canvas.GradientFill(ViewportRect, OwnerListview.BkGndGradient1, OwnerListview.BkGkdGradient2, OwnerListview.BkGkdGradientDirection);
+  end else
+  begin
+    Canvas.Brush.Color := OwnerListview.BkGndColor;
+    Canvas.FillRect(ViewportRect);
+  end;
 
   // Special handling if it focused
   if Focused then
@@ -759,7 +858,7 @@ end;
 
 function TVirtualListviewItem.GetBottom: Integer;
 begin
-  Result := ClientRect.Top + Height;
+  Result := ClientRect.Bottom;
 end;
 
 function TVirtualListviewItem.GetHeight: Integer;
@@ -1088,6 +1187,47 @@ begin
   VertScrollBar.Position := Item.ClientRect.Top;
 end;
 
+procedure TCustomVirtualListview.SetBkGkdGradient2(AValue: TColor);
+begin
+  if FBkGkdGradient2 = AValue then Exit;
+  FBkGkdGradient2 := AValue;
+  BeginUpdate;
+  EndUpdate;
+end;
+
+procedure TCustomVirtualListview.SetBkGkdGradientDirection(
+  AValue: TGradientDirection);
+begin
+  if FBkGkdGradientDirection = AValue then Exit;
+  FBkGkdGradientDirection := AValue;
+  BeginUpdate;
+  EndUpdate;
+end;
+
+procedure TCustomVirtualListview.SetBkGndColor(AValue: TColor);
+begin
+  if FBkGndColor = AValue then Exit;
+  FBkGndColor := AValue;
+  BeginUpdate;
+  EndUpdate;
+end;
+
+procedure TCustomVirtualListview.SetBkGndGradient1(AValue: TColor);
+begin
+  if FBkGndGradient1 = AValue then Exit;
+  FBkGndGradient1 := AValue;
+  BeginUpdate;
+  EndUpdate;
+end;
+
+procedure TCustomVirtualListview.SetBkGndGradientEnable(AValue: Boolean);
+begin
+  if FBkGndGradientEnable = AValue then Exit;
+  FBkGndGradientEnable := AValue;
+  BeginUpdate;
+  EndUpdate;
+end;
+
 procedure TCustomVirtualListview.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   Item: TVirtualListviewItem;
@@ -1333,24 +1473,16 @@ end;
 
 procedure TCustomVirtualListview.OnFontChange(Sender: TObject);
 begin
-  Invalidate;
+  BeginUpdate;
+  EndUpdate;
 end;
-
-procedure TCustomVirtualListview.SetAlignment(AValue: TAlignment);
-begin
-  if FAlignment = AValue then Exit;
-  FAlignment := AValue;
-  Invalidate;
-  Update;
-end;
-
 
 procedure TCustomVirtualListview.SetTextLayout(AValue: TVirtualListviewTextLayout);
 begin
   if FTextLayout = AValue then Exit;
   FTextLayout := AValue;
-  Invalidate;
-  Update;
+  BeginUpdate;
+  EndUpdate;
 end;
 
 procedure TCustomVirtualListview.WMEraseBkgnd(var Message: TLMEraseBkgnd);
@@ -1418,16 +1550,16 @@ procedure TCustomVirtualListview.SetCaptionIndent(AValue: Integer);
 begin
   if FCaptionIndent = AValue then Exit;
   FCaptionIndent := AValue;
-  Invalidate;
-  Update;
+  BeginUpdate;
+  EndUpdate;
 end;
 
 procedure TCustomVirtualListview.SetCaptionLineCount(AValue: Integer);
 begin
   if FCaptionLineCount = AValue then Exit;
   FCaptionLineCount := AValue;
-  Invalidate;
-  Update;
+  BeginUpdate;
+  EndUpdate;
 end;
 
 procedure TCustomVirtualListview.SetDefaultItemHeight(AValue: Integer);
@@ -1436,7 +1568,8 @@ begin
     AValue := 1;
   if FDefaultItemHeight = AValue then Exit;
   FDefaultItemHeight := AValue;
-  RebuildItems(nil, 0);
+  BeginUpdate;
+  EndUpdate;
 end;
 
 procedure TCustomVirtualListview.SetDetailsFont(AValue: TFont);
@@ -1448,14 +1581,23 @@ procedure TCustomVirtualListview.SetDetailsIndent(AValue: Integer);
 begin
   if FDetailsIndent = AValue then Exit;
   FDetailsIndent := AValue;
-  Invalidate;
-  Update
+  BeginUpdate;
+  EndUpdate;
 end;
 
 procedure TCustomVirtualListview.SetExpandableItems(AValue: Boolean);
 begin
   if FExpandableItems = AValue then Exit;
   FExpandableItems := AValue;
+  BeginUpdate;
+  EndUpdate;
+end;
+
+procedure TCustomVirtualListview.SetExpandImagePosition(
+  AValue: TExpandImagePostition);
+begin
+  if FExpandImagePosition = AValue then Exit;
+  FExpandImagePosition := AValue;
   BeginUpdate;
   EndUpdate;
 end;
