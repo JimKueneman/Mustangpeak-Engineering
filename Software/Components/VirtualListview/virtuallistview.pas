@@ -32,6 +32,7 @@ type
   TVirtualListviewItemList = class;
 
   TOnVirtualListviewFocusedChanged = procedure(Sender: TObject; FocusedItem, OldFocusedItem: TVirtualListviewItem) of object;
+  TOnVirtualListviewSelectedChanged = procedure(Sender: TObject; SelectedItem, OldSelectedItem: TVirtualListviewItem) of object;
   TOnVirtualListviewSort = function(Sender: TObject; Item1, Item2: TVirtualListviewItem): Integer of object;
 
   type
@@ -41,10 +42,8 @@ type
 
   TVirtualListviewItem = class(TComponent)
   private
-    FBkGkdGradient2: TColor;
-    FBkGndColor: TColor;
-    FBkGndGradient1: TColor;
-    FBkGndGradientEnable: Boolean;
+    FAllowFocus: Boolean;
+    FAllowSelect: Boolean;
     FCaptionRect: TRect;
     FCaptions: TStringList;
     FClientRect: TRect;
@@ -52,7 +51,7 @@ type
     FColor: TColor;
     FDetailsRect: TRect;
     FEnabled: Boolean;
-    FExpandable: Boolean;
+    FAllowExpand: Boolean;
     FExpanded: Boolean;
     FExpandImageRect: TRect;
     FFocused: Boolean;
@@ -75,10 +74,12 @@ type
     function GetBottom: Integer;
     function GetHeight: Integer;
     function GetWidth: Integer;
+    procedure SetAllowExpand(AValue: Boolean);
+    procedure SetAllowFocus(AValue: Boolean);
+    procedure SetAllowSelect(AValue: Boolean);
     procedure SetCaptions(AValue: TStringList);
     procedure SetColor(AValue: TColor);
     procedure SetEnabled(AValue: Boolean);
-    procedure SetExpandable(AValue: Boolean);
     procedure SetExpanded(AValue: Boolean);
     procedure SetFocused(AValue: Boolean);
     procedure SetImageIndex(AValue: Integer);
@@ -101,6 +102,9 @@ type
     procedure SetClientWithChildrenRect(ALeft, ATop, AWidth, AHeight: Integer);
     function StateImagePropertiesValid: Boolean;
   public
+    property AllowExpand: Boolean read FAllowExpand write SetAllowExpand;
+    property AllowFocus: Boolean read FAllowFocus write SetAllowFocus;
+    property AllowSelect: Boolean read FAllowSelect write SetAllowSelect;
     property Bottom: Integer read GetBottom;
     property Captions: TStringList read FCaptions write SetCaptions;
     property ChildItems: TVirtualListviewItemList read FChildItems write FChildItems;
@@ -108,7 +112,6 @@ type
     property ClientWithChildrenRect: TRect read FClientWithChildrenRect;
     property Color: TColor read FColor write SetColor default clBtnFace;
     property Enabled: Boolean read FEnabled write SetEnabled;
-    property Expandable: Boolean read FExpandable write SetExpandable;
     property Expanded: Boolean read FExpanded write SetExpanded;
     property Focused: Boolean read FFocused write SetFocused;
     property Height: Integer read GetHeight;
@@ -126,10 +129,14 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
+    procedure CollapseAllChildren(IncludeSubChildren: Boolean);
+    procedure ExpandAllChildren(IncludeSubChildren: Boolean);
     procedure Invalidate(Update: Boolean);
-    function PtInExpandZone(ViewportPoint: TPoint): Boolean; virtual;
-    function PtInImage(ViewportPoint: TPoint): Boolean; virtual;
-    function PtInItem(ViewportPoint: TPoint): Boolean; virtual;
+    function PtInExpandZone(ClientPoint: TPoint): Boolean; virtual;
+    function PtInImage(ClientPoint: TPoint): Boolean; virtual;
+    function PtInItem(ClientPoint: TPoint): Boolean; virtual;
+    procedure SelectAllChildren(IncludeSubChildren: Boolean);
+    procedure UnSelectAllChildren(IncludeSubChildren: Boolean);
   end;
 
   { TVirtualListviewItemList }
@@ -210,7 +217,7 @@ type
 
   TCustomVirtualListview = class(TCustomPanel)
   private
-    FBkGkdGradient2: TColor;
+    FBkGndGradient2: TColor;
     FBkGkdGradientDirection: TGradientDirection;
     FBkGndColor: TColor;
     FBkGndGradient1: TColor;
@@ -227,6 +234,11 @@ type
     FMouseController: TMustangpeakMouseController;
     FOnDebugEvent: TNotifyEvent;
     FOnSort: TOnVirtualListviewSort;
+    FSelectedGradientHilightColor1: TColor;
+    FSelectedGradientHilightColor2: TColor;
+    FSelectedHilightColor: TColor;
+    FSelectedItem: TVirtualListviewItem;
+    FShowFocus: Boolean;
     FStateImages: TImageList;
     FTextLayout: TVirtualListviewTextLayout;
     FCaptionIndent: Integer;
@@ -240,7 +252,8 @@ type
     FVisibleItems: TVirtualListviewItemVisibleList;
     FUpdateLock: Integer;
     OnFocusChanged: TOnVirtualListviewFocusedChanged;
-    procedure SetBkGkdGradient2(AValue: TColor);
+    OnSelectChanged: TOnVirtualListviewSelectedChanged;
+    procedure SetBkGndGradient2(AValue: TColor);
     procedure SetBkGkdGradientDirection(AValue: TGradientDirection);
     procedure SetBkGndColor(AValue: TColor);
     procedure SetBkGndGradient1(AValue: TColor);
@@ -249,6 +262,11 @@ type
     procedure SetExpandImagePosition(AValue: TExpandImagePostition);
     procedure SetFocusedItem(AValue: TVirtualListviewItem);
     procedure SetLevelIndent(AValue: Integer);
+    procedure SetSelectedGradientHilightColor1(AValue: TColor);
+    procedure SetSelectedGradientHilightColor2(AValue: TColor);
+    procedure SetSelectedHilightColor(AValue: TColor);
+    procedure SetSelectedItem(AValue: TVirtualListviewItem);
+    procedure SetShowFocus(AValue: Boolean);
     procedure SetTextLayout(AValue: TVirtualListviewTextLayout);
     procedure SetCaptionIndent(AValue: Integer);
     procedure SetCaptionLineCount(AValue: Integer);
@@ -258,9 +276,9 @@ type
   protected
     property BkGndColor: TColor read FBkGndColor write SetBkGndColor;
     property BkGndGradientEnable: Boolean read FBkGndGradientEnable write SetBkGndGradientEnable;
-    property BkGkdGradientDirection: TGradientDirection read FBkGkdGradientDirection write SetBkGkdGradientDirection;
+    property BkGndGradientDirection: TGradientDirection read FBkGkdGradientDirection write SetBkGkdGradientDirection;
     property BkGndGradient1: TColor read FBkGndGradient1 write SetBkGndGradient1;
-    property BkGkdGradient2: TColor read FBkGkdGradient2 write SetBkGkdGradient2;
+    property BkGndGradient2: TColor read FBkGndGradient2 write SetBkGndGradient2;
     property CaptionIndent: Integer read FCaptionIndent write SetCaptionIndent;
     property CaptionLineCount: Integer read FCaptionLineCount write SetCaptionLineCount;
     property DefaultItemHeight: Integer read FDefaultItemHeight write SetDefaultItemHeight;
@@ -279,7 +297,13 @@ type
     property VisibleItems: TVirtualListviewItemVisibleList read FVisibleItems write FVisibleItems;
     property OnDebugEvent: TNotifyEvent read FOnDebugEvent write FOnDebugEvent;
     property OnFocusedChanged: TOnVirtualListviewFocusedChanged read OnFocusChanged write OnFocusChanged;
+    property OnSelectedChanged: TOnVirtualListviewSelectedChanged read OnSelectChanged write OnSelectChanged;
     property OnSort: TOnVirtualListviewSort read FOnSort write FOnSort;
+    property SelectedHilightColor: TColor read FSelectedHilightColor write SetSelectedHilightColor;
+    property SelectedItem: TVirtualListviewItem read FSelectedItem write SetSelectedItem;
+    property SelectedGradientHilightColor1: TColor read FSelectedGradientHilightColor1 write SetSelectedGradientHilightColor1;
+    property SelectedGradientHilightColor2: TColor read FSelectedGradientHilightColor2 write SetSelectedGradientHilightColor2;
+    property ShowFocus: Boolean read FShowFocus write SetShowFocus;
     property StateImages: TImageList read FStateImages write FStateImages;
     property TextLayout: TVirtualListviewTextLayout read FTextLayout write SetTextLayout;
     property UpdateLock: Integer read FUpdateLock write FUpdateLock;
@@ -288,14 +312,16 @@ type
     property HorzScrollbar: TScrollBar read FHorzScrollBar;
 
     procedure CalculateScrollbars;
+    procedure DoContextPopup(MousePos: TPoint; var Handled: Boolean); override;
     procedure DoOnDebugEvent; virtual;
-    procedure DoOnFocusChanged(LccItem, OldLccItem: TVirtualListviewItem); virtual;
+    procedure DoOnFocusChanged(Item, OldItem: TVirtualListviewItem); virtual;
     procedure DoOnResize; override;
     procedure DoOnShowHint(HintInfo: PHintInfo); override;
     function DoOnSort(Item1, Item2: TVirtualListviewItem): Integer; virtual;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure WMContextMenu(var Message: TLMContextMenu); message LM_CONTEXTMENU;
     procedure WMEraseBkgnd(var Message: TLMEraseBkgnd); message LM_ERASEBKGND;
     procedure WMShowWindow(var Message: TLMShowWindow); message LM_SHOWWINDOW;
     procedure WMKeyDown(var Message: TLMKeyDown); message LM_KEYDOWN;
@@ -305,6 +331,7 @@ type
     procedure RebuildItems(ItemList: TVirtualListviewItemList; ALevel: Integer);
     procedure OnScrollVertical(Sender: TObject; ScrollCode: TScrollCode; var ScrollPos: Integer);
     procedure OnScrollHorizontal(Sender: TObject; ScrollCode: TScrollCode; var ScrollPos: Integer);
+    procedure DoOnSelectedChanged(Item, OldItem: TVirtualListviewItem); virtual;
     procedure OnFontChange(Sender: TObject);
   public
     property ViewportRect: TRect read FViewportRect;
@@ -316,8 +343,10 @@ type
     function ClientRectToCurrentViewPt(ARect: TRect): TRect;
     function ClientPtToCurrentViewPt(APt: TPoint): TPoint;
     function ClientPtToVisibleItem(ClientPt: TPoint; CurrentViewOnly: Boolean): TVirtualListviewItem;
+    procedure CollapseAll(IncludeSubChildren: Boolean);
     procedure CurrentViewRect(var ARect: TRect);
     procedure EndUpdate;
+    procedure ExpandAll(IncludeSubChildren: Boolean);
     function First: TVirtualListviewItem;
     function FirstInView: TVirtualListviewItem;
     function FirstVisible: TVirtualListviewItem;
@@ -328,8 +357,10 @@ type
     function NextVisible(Item: TVirtualListviewItem): TVirtualListviewItem;
     function Previous(Item: TVirtualListviewItem): TVirtualListviewItem;
     function PreviousVisible(Item: TVirtualListviewItem): TVirtualListviewItem;
+    procedure SelectAll(IncludeSubChildren: Boolean);
     procedure ScrollDelta(X, Y: Integer);
     procedure ScrollIntoView(Item: TVirtualListviewItem);
+    procedure UnSelectAll(IncludeSubChildren: Boolean);
   end;
 
   TVirtualListview = class(TCustomVirtualListview)
@@ -345,7 +376,7 @@ type
     property BkGndColor;
     property BkGndGradientEnable;
     property BkGndGradient1;
-    property BkGkdGradient2;
+    property BkGndGradient2;
     property BorderSpacing;
     property BevelColor;
     property BevelInner;
@@ -388,6 +419,7 @@ type
     property ParentFont;
     property ParentShowHint;
     property PopupMenu;
+    property ShowFocus;
     property ShowHint;
     property TabOrder;
     property TabStop;
@@ -423,6 +455,9 @@ type
     property OnStartDock;
     property OnStartDrag;
     property OnUnDock;
+    property SelectedHilightColor;
+    property SelectedGradientHilightColor1;
+    property SelectedGradientHilightColor2;
     property StateImages;
     property TextLayout;
     property VertScrollbar;
@@ -433,9 +468,51 @@ procedure StackRect(var ResultRect: TRect; Upper, Lower: TRect);
 function HeightRect(ARect: TRect): Integer;
 function WidthRect(ARect: TRect): Integer;
 
+// graphics
+procedure Shade(ShadeFactor: real; var R, G, B: Byte);     // Does not work on System Colors
+function Shade(ShadeFactor: real; Color: TColor): TColor;  // Does not work on System Colors
+procedure Tint(TintFactor: real; var R, G, B: byte);       // Does not work on System Colors
+function Tint(TintFactor: real; Color: TColor): TColor;    // Does not work on System Colors
+
 procedure Register;
 
 implementation
+
+procedure Shade(ShadeFactor: real; var R, G, B: Byte);
+begin
+  R := Round(R * (1-ShadeFactor));
+  G := Round(G * (1-ShadeFactor));
+  B := Round(B * (1-ShadeFactor));
+end;
+
+function Shade(ShadeFactor: real; Color: TColor): TColor;
+var
+  R, G, B: Byte;
+begin
+  R := Red(Color);
+  G := Green(Color);
+  B := Blue(Color);
+  Shade(ShadeFactor, R, G, B);
+  Result := RGBToColor(R, G, B);
+end;
+
+procedure Tint(TintFactor: real; var R, G, B: byte);
+begin
+  R := Round(R + (255 - R) * TintFactor);
+  G := Round(G + (255 - G) * TintFactor);
+  B := Round(B + (255 - B) * TintFactor);
+end;
+
+function Tint(TintFactor: real; Color: TColor): TColor;
+var
+  R, G, B: Byte;
+begin
+  R := Red(Color);
+  G := Green(Color);
+  B := Blue(Color);
+  Tint(TintFactor, R, G, B);
+  Result := RGBToColor(R, G, B);
+end;
 
 procedure Register;
 begin
@@ -569,11 +646,29 @@ begin
   FWidth := 20;
   FHeight := 20;
   FChildItems := TVirtualListviewItemList.Create(nil);   // Will free ourselves
+  FAllowSelect := True;
+  FAllowFocus := True;
 end;
 
 function TVirtualListviewItem.CaptionPropertiesValid: Boolean;
 begin
   Result := (Captions.Count > 0) and (OwnerListview.CaptionLineCount > 0)
+end;
+
+procedure TVirtualListviewItem.CollapseAllChildren(IncludeSubChildren: Boolean);
+var
+  i: Integer;
+  Item: TVirtualListviewItem;
+begin
+  OwnerListview.BeginUpdate;
+  for i := 0 to ChildItems.Count - 1 do
+  begin
+    Item := ChildItems[i];
+    Item.Expanded := False;
+    if IncludeSubChildren then
+      Item.CollapseAllChildren(IncludeSubChildren);
+  end;
+  OwnerListview.EndUpdate;
 end;
 
 procedure TVirtualListviewItem.CreateTextRects;
@@ -597,12 +692,28 @@ begin
   Result := OwnerListview.ExpandableItems and Assigned(OwnerListview.ExpandImages) and (OwnerListview.ExpandIndexCollapsed > -1) and (OwnerListview.ExpandIndexExpanded > -1)
 end;
 
+procedure TVirtualListviewItem.ExpandAllChildren(IncludeSubChildren: Boolean);
+var
+  i: Integer;
+  Item: TVirtualListviewItem;
+begin
+  OwnerListview.BeginUpdate;
+  for i := 0 to ChildItems.Count - 1 do
+  begin
+    Item := ChildItems[i];
+    Item.Expanded := True;
+    if IncludeSubChildren then
+      Item.ExpandAllChildren(IncludeSubChildren);
+  end;
+  OwnerListview.EndUpdate;
+end;
+
 procedure TVirtualListviewItem.Invalidate(Update: Boolean);
 begin
   if Assigned(OwnerListview) then
   begin
     OwnerListview.Invalidate;
-    if Update then
+    if Update and (OwnerListview.UpdateLock = 0) then
       OwnerListview.Update;
   end;
 end;
@@ -610,22 +721,29 @@ end;
 procedure TVirtualListviewItem.Paint(Canvas: TCanvas; OffsetX, OffsetY: Integer);
 var
   TextExtent: TSize;
-  LeftDrawingEdge, RightDrawingEdge, DrawingW, ClientH, ImageX, ImageY, ImageW, ImageH,
-  i, Indent, LocalOffsetX, LocalOffsetY, ViewPortOffsetX, ViewportOffsetY: Integer;
-  ViewportRect, DrawingBoundsRect, TextBoundsRect: TRect;
+  LeftDrawingEdge, RightDrawingEdge, ClientH, ImageX, ImageY, ImageW, ImageH,
+  i, Indent, LocalOffsetY, ViewPortOffsetX, ViewportOffsetY: Integer;
+  ViewportRect, DrawingBoundsRect, TextBoundsRect, LocalClientRect: TRect;
+  Points: array of TPoint;
+  Color1, Color2: TColor;
 begin
   // Assume no images
   DrawingBoundsRect := Rect(0, 0, 0, 0);
   FImageRect := Rect(0, 0, 0, 0);
   FStateImageRect := Rect(0, 0, 0, 0);
+  TextBoundsRect := Rect(0, 0, 0, 0);
+
+  LocalClientRect := ClientRect;
+  InflateRect(LocalClientRect, -2, -2);
 
   LeftDrawingEdge := (OwnerListview.LevelIndent * Level);
-  RightDrawingEdge := ClientRect.Right;
+  RightDrawingEdge := LocalClientRect.Right;
   if OwnerListview.VertScrollbar.Visible then
     Dec(RightDrawingEdge, OwnerListview.VertScrollbar.Width);
 
-  ClientH := ClientRect.Bottom-ClientRect.Top;
+  ClientH := LocalClientRect.Bottom-LocalClientRect.Top;
 
+  // This must be the real complete Rect
   ViewportOffsetX := OffsetX + ClientRect.Left;
   ViewportOffsetY := OffsetY + ClientRect.Top;
 
@@ -742,6 +860,7 @@ begin
           OffsetRect(DrawingBoundsRect, 0,  TextRects[i].Top);
         UnionRect(DrawingBoundsRect, DrawingBoundsRect, TextRects[i]);
     end;
+    OffsetRect(TextBoundsRect, 0, LocalOffsetY);
   end else
     SetLength(TextRects, 0);
 
@@ -750,26 +869,52 @@ begin
   // Create a local Bounds rect that is modified by the Scroll Postion
   ViewportRect := ClientRect;
   OffsetRect(ViewportRect, OffsetX, OffsetY);
-  Canvas.ClipRect := ViewportRect;
-  Canvas.Clipping := True;
+  if OwnerListview.VertScrollbar.Visible then
+    Dec(ViewportRect.Right, OwnerListview.VertScrollbar.Width);
 
   // Now paint the background
   if OwnerListview.BkGndGradientEnable then
   begin
-    Canvas.GradientFill(ViewportRect, OwnerListview.BkGndGradient1, OwnerListview.BkGkdGradient2, OwnerListview.BkGkdGradientDirection);
+    if Selected then
+    begin
+      Color1 := ColorToRGB(OwnerListview.SelectedGradientHilightColor1);
+      Color2 := ColorToRGB(OwnerListview.SelectedGradientHilightColor2);
+    end else
+    begin
+      Color1 := ColorToRGB(OwnerListview.BkGndGradient1);
+      Color2 := ColorToRGB(OwnerListview.BkGndGradient2);
+    end;
+
+    Canvas.GradientFill(ViewPortRect, Color1, Color2, OwnerListview.BkGndGradientDirection);
+    // Tint the Bottom color darker for the outline
+    Canvas.Pen.Color := Shade(0.10, Color2);
+    SetLength(Points, 4);
+    Points[0].Create(ViewportRect.Left, ViewportRect.Top-1);
+    Points[1].Create(ViewportRect.Left, ViewportRect.Bottom-1);
+    Points[2].Create(ViewportRect.Right-1, ViewportRect.Bottom-1);
+    Points[3].Create(ViewportRect.Right-1, ViewportRect.Top-1);
+    Canvas.Polyline(Points, 0, 4);
+
+    Canvas.Pen.Color := Shade(0.10, Color1);
+    SetLength(Points, 4);
+    Points[0].Create(ViewportRect.Left+1, ViewportRect.Bottom-2);
+    Points[1].Create(ViewportRect.Left+1, ViewportRect.Top);
+    Points[2].Create(ViewportRect.Right-2, ViewportRect.Top);
+    Points[3].Create(ViewportRect.Right-2, ViewportRect.Bottom-2);
+    Canvas.Polyline(Points, 0, 4);
   end else
   begin
-    Canvas.Brush.Color := OwnerListview.BkGndColor;
-    Canvas.FillRect(ViewportRect);
-  end;
-
-  // Special handling if it focused
-  if Focused then
-  begin
-    Canvas.Pen.Width := 1;
-    Canvas.Pen.Color := clHighlightedText;
-    Canvas.Brush.Color := clHighlight;
-    Canvas.RoundRect(ViewportRect, 8, 8);
+    if Selected then
+    begin
+      Canvas.Pen.Width := 1;
+      Canvas.Pen.Color := Shade(0.25, ColorToRGB(OwnerListview.SelectedHilightColor));
+      Canvas.Brush.Color := OwnerListview.SelectedHilightColor;
+      Canvas.Rectangle(ViewportRect);
+    end else
+    begin
+      Canvas.Brush.Color := OwnerListview.BkGndColor;
+      Canvas.FillRect(ViewportRect);
+    end;
   end;
 
   if CaptionPropertiesValid then
@@ -779,12 +924,9 @@ begin
       OffsetRect(TextRects[i], ViewportOffsetX, ViewportOffsetY);
 
     Canvas.Font.Assign(OwnerListview.Font);
-    if Focused then
-      Canvas.Font.Color := clHighlightText;
     Canvas.TextRect(TextRects[0], TextRects[0].Left, TextRects[0].Top, Captions[0]);
+
     Canvas.Font.Assign(OwnerListview.DetailsFont);
-    if Focused then
-      Canvas.Font.Color := clHighlightText;
     i := 1;
     while (i < OwnerListview.CaptionLineCount) and (i < Captions.Count) do
     begin
@@ -795,9 +937,18 @@ begin
     // Turn the Text Boxes into Client Coordinates
     for i := 0 to Length(TextRects) - 1 do
       OffsetRect(TextRects[i], -ViewportOffsetX, -ViewportOffsetY);
+
+    if OwnerListview.ShowFocus and Focused then
+    begin
+      Canvas.Brush.Style := bsClear;
+      Canvas.Pen.Style := psDot;
+      Canvas.Pen.Color := clHighlightText;
+      Canvas.Rectangle(TextBoundsRect.Left-1 + ViewportOffsetX, TextBoundsRect.Top + ViewportOffsetY, TextBoundsRect.Right+1 + ViewportOffsetX, TextBoundsRect.Bottom + ViewportOffsetY);
+      Canvas.Pen.Style := psSolid; // StaveState won't save this
+    end;
   end;
 
-  if ExpandablePropertiesValid and Expandable then
+  if ExpandablePropertiesValid and AllowExpand then
   begin
     if Expanded then
       OwnerListview.ExpandImages.Draw(Canvas, ExpandImageRect.Left+ViewportOffsetX, ExpandImageRect.Top+ViewportOffsetY, OwnerListview.ExpandIndexExpanded)
@@ -813,25 +964,43 @@ begin
 
 end;
 
-function TVirtualListviewItem.PtInExpandZone(ViewportPoint: TPoint): Boolean;
+function TVirtualListviewItem.PtInExpandZone(ClientPoint: TPoint): Boolean;
 begin
   // Not valid until Paint is called for the first time
   Result := False;
-  if Expandable then
-    Result := PtInRect(FExpandImageRect, ViewportPoint)
+  if AllowExpand then
+    Result := PtInRect(FExpandImageRect, Point(OwnerListview.HorzScrollbar.Position + (ClientPoint.X - ClientRect.Left),
+                                               OwnerListview.VertScrollbar.Position + (ClientPoint.Y - ClientRect.Top)))
 end;
 
-function TVirtualListviewItem.PtInImage(ViewportPoint: TPoint): Boolean;
+function TVirtualListviewItem.PtInImage(ClientPoint: TPoint): Boolean;
 begin
   // Not valid until Paint is called for the first time
   Result := False;
   if (ImageIndex > -1) and Assigned(OwnerListview.Images) then
-    Result := PtInRect(FImageRect, ViewPortPoint)
+    Result := PtInRect(FImageRect, ClientPoint)
 end;
 
-function TVirtualListviewItem.PtInItem(ViewportPoint: TPoint): Boolean;
+function TVirtualListviewItem.PtInItem(ClientPoint: TPoint): Boolean;
 begin
-  Result := PtInRect(ClientRect, ViewportPoint);
+  Result := PtInRect(ClientRect, ClientPoint);
+end;
+
+procedure TVirtualListviewItem.SelectAllChildren(IncludeSubChildren: Boolean);
+var
+  i: Integer;
+  Item: TVirtualListviewItem;
+begin
+  OwnerListview.BeginUpdate;
+  for i := 0 to ChildItems.Count - 1 do
+  begin
+    Item := ChildItems[i];
+    Item.Selected := True;
+    Item.Focused := False;
+    if IncludeSubChildren then
+      Item.SelectAllChildren(IncludeSubChildren);
+  end;
+  OwnerListview.EndUpdate;
 end;
 
 procedure TVirtualListviewItem.SetCaptions(AValue: TStringList);
@@ -890,37 +1059,95 @@ begin
   Invalidate(True); // redraw needed
 end;
 
-procedure TVirtualListviewItem.SetExpandable(AValue: Boolean);
+procedure TVirtualListviewItem.SetAllowExpand(AValue: Boolean);
 begin
-  if FExpandable = AValue then Exit;
-  FExpandable := AValue;
-  Invalidate(True);  // redraw needed
+  if AValue then
+  begin
+    FAllowExpand := True;
+    OwnerListview.BeginUpdate;
+    OwnerListview.EndUpdate;
+  end else
+  begin
+    FAllowExpand := False;
+    FExpanded := False;
+    OwnerListview.BeginUpdate;
+    OwnerListview.EndUpdate;
+  end;
+end;
+
+procedure TVirtualListviewItem.SetAllowFocus(AValue: Boolean);
+begin
+  if AValue then
+  begin
+    FAllowFocus := True;
+    Invalidate(True);
+  end else
+  begin
+    FAllowFocus := False;
+    FFocused := False;
+    Invalidate(True);
+  end;
+end;
+
+procedure TVirtualListviewItem.SetAllowSelect(AValue: Boolean);
+begin
+  if AValue then
+  begin
+    FAllowSelect := True;
+    Invalidate(True);
+  end else
+  begin
+    FAllowSelect := False;
+    FSelected := False;
+    Invalidate(True);
+  end;
 end;
 
 procedure TVirtualListviewItem.SetExpanded(AValue: Boolean);
 begin
-  if FExpanded = AValue then Exit;
-  FExpanded := AValue;
-  OwnerListview.BeginUpdate;
-  OwnerListview.EndUpdate; // rebuild needed
+  if AllowExpand then
+  begin
+    if FExpanded = AValue then Exit;
+    FExpanded := AValue;
+    OwnerListview.BeginUpdate;
+    OwnerListview.EndUpdate; // rebuild needed
+  end else
+  begin
+    if Expanded then
+    begin
+      FExpanded := False;
+      OwnerListview.BeginUpdate;
+      OwnerListview.EndUpdate; // rebuild needed
+    end;
+  end;
 end;
 
 procedure TVirtualListviewItem.SetFocused(AValue: Boolean);
 begin
-  if (FFocused = AValue) or not Enabled then Exit;
-  FFocused := AValue;
-  if Assigned(OwnerListview) then
+  if AllowFocus and OwnerListview.ShowFocus then
   begin
-    if AValue then
+    if (FFocused = AValue) or not Enabled then Exit;
+    FFocused := AValue;
+    if Assigned(OwnerListview) then
     begin
-      if Assigned(OwnerListview.FocusedItem) and (OwnerListview.FocusedItem <> Self) then
-        OwnerListview.FocusedItem.Focused := False;
-      OwnerListview.FocusedItem := Self;
-      if not OwnerListview.IsInCurrentView(Self) then
-        OwnerListview.ScrollIntoView(Self);
+      if AValue then
+      begin
+        if Assigned(OwnerListview.FocusedItem) and (OwnerListview.FocusedItem <> Self) then
+          OwnerListview.FocusedItem.Focused := False;
+        OwnerListview.FocusedItem := Self;
+        if not OwnerListview.IsInCurrentView(Self) then
+          OwnerListview.ScrollIntoView(Self);
+      end;
+    end;
+    Invalidate(True);  // Redraw needed
+  end else
+  begin
+    if Focused then
+    begin
+      FFocused := False;
+      Invalidate(True);
     end;
   end;
-  Invalidate(True);  // Redraw needed
 end;
 
 procedure TVirtualListviewItem.SetImageIndex(AValue: Integer);
@@ -932,9 +1159,19 @@ end;
 
 procedure TVirtualListviewItem.SetSelected(AValue: Boolean);
 begin
-  if FSelected = AValue then Exit;
-  FSelected := AValue;
-  Invalidate(True);   // Redraw needed
+  if AllowSelect then
+  begin
+    if FSelected = AValue then Exit;
+    FSelected := AValue;
+    Invalidate(True);   // Redraw needed
+  end else
+  begin
+    if Selected then
+    begin
+      FSelected := False;
+      Invalidate(True);   // Redraw needed
+    end;
+  end;
 end;
 
 procedure TVirtualListviewItem.SetStateImageIndex(AValue: Integer);
@@ -957,6 +1194,23 @@ begin
   Result := Assigned(OwnerListview.StateImages);
 end;
 
+procedure TVirtualListviewItem.UnSelectAllChildren(IncludeSubChildren: Boolean);
+var
+  i: Integer;
+  Item: TVirtualListviewItem;
+begin
+  OwnerListview.BeginUpdate;
+  for i := 0 to ChildItems.Count - 1 do
+  begin
+    Item := ChildItems[i];
+    Item.Selected := False;
+    Item.Focused := False;
+    if IncludeSubChildren then
+      Item.UnSelectAllChildren(IncludeSubChildren);
+  end;
+  OwnerListview.EndUpdate;
+end;
+
 { TCustomVirtualListview }
 
 procedure TCustomVirtualListview.BeginUpdate;
@@ -964,10 +1218,10 @@ begin
   Inc(FUpdateLock);
 end;
 
-procedure TCustomVirtualListview.DoOnFocusChanged(LccItem, OldLccItem: TVirtualListviewItem);
+procedure TCustomVirtualListview.DoOnFocusChanged(Item, OldItem: TVirtualListviewItem);
 begin
   if Assigned(OnFocusChanged) then
-    OnFocusChanged(Self, LccItem, OldLccItem);
+    OnFocusChanged(Self, Item, OldItem);
 end;
 
 function TCustomVirtualListview.ClientPtToCurrentViewPt(APt: TPoint): TPoint;
@@ -1017,6 +1271,22 @@ begin
   Result.BottomRight := ClientPtToCurrentViewPt(ARect.BottomRight);
 end;
 
+procedure TCustomVirtualListview.CollapseAll(IncludeSubChildren: Boolean);
+var
+  i: Integer;
+  Item: TVirtualListviewItem;
+begin
+  BeginUpdate;
+  for i := 0 to Items.Count - 1 do
+  begin
+    Item := Items[i];
+    Item.Expanded := False;
+    if IncludeSubChildren then
+      Item.CollapseAllChildren(IncludeSubChildren);
+  end;
+  EndUpdate;
+end;
+
 constructor TCustomVirtualListview.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
@@ -1050,6 +1320,14 @@ begin
 
   Font.OnChange := @OnFontChange;
   DetailsFont.OnChange := @OnFontChange;
+
+  FBkGndGradient1 := clBtnFace;
+  FBkGndGradient2 := Shade(0.25, ColorToRGB(clBtnFace));
+  FBkGndColor := clBtnFace;
+
+  FSelectedHilightColor := clHighlight;
+  FSelectedGradientHilightColor1 := clHighlight;
+  FSelectedGradientHilightColor2 := Shade(0.25, ColorToRGB(clHighlight));  ;
 end;
 
 destructor TCustomVirtualListview.Destroy;
@@ -1061,10 +1339,21 @@ begin
   inherited Destroy;
 end;
 
+procedure TCustomVirtualListview.DoContextPopup(MousePos: TPoint; var Handled: Boolean);
+begin
+  inherited DoContextPopup(MousePos, Handled);
+end;
+
 procedure TCustomVirtualListview.DoOnResize;
 begin
   inherited DoOnResize;
    RebuildItems(nil, 0)
+end;
+
+procedure TCustomVirtualListview.DoOnSelectedChanged(Item, OldItem: TVirtualListviewItem);
+begin
+  if Assigned(OnSelectedChanged) then
+    OnSelectedChanged(Self, Item, OldItem);
 end;
 
 procedure TCustomVirtualListview.DoOnShowHint(HintInfo: PHintInfo);
@@ -1127,6 +1416,22 @@ begin
   end;
 end;
 
+procedure TCustomVirtualListview.ExpandAll(IncludeSubChildren: Boolean);
+var
+  i: Integer;
+  Item: TVirtualListviewItem;
+begin
+  BeginUpdate;
+  for i := 0 to Items.Count - 1 do
+  begin
+    Item := Items[i];
+    Item.Expanded := True;
+    if IncludeSubChildren then
+      Item.ExpandAllChildren(IncludeSubChildren);
+  end;
+  EndUpdate;
+end;
+
 function TCustomVirtualListview.First: TVirtualListviewItem;
 begin
   Result := nil;
@@ -1162,6 +1467,8 @@ begin
   Result := False;
   if Assigned(Item) then
   begin
+    AViewRect := Rect(0, 0, 0, 0);
+    ResultRect := Rect(0, 0, 0, 0);
     CurrentViewRect(AViewRect);
     IntersectRect(ResultRect, AViewRect, Item.ClientRect);
     Result := not IsRectEmpty(ResultRect)
@@ -1187,10 +1494,26 @@ begin
   VertScrollBar.Position := Item.ClientRect.Top;
 end;
 
-procedure TCustomVirtualListview.SetBkGkdGradient2(AValue: TColor);
+procedure TCustomVirtualListview.SelectAll(IncludeSubChildren: Boolean);
+var
+  i: Integer;
+  Item: TVirtualListviewItem;
 begin
-  if FBkGkdGradient2 = AValue then Exit;
-  FBkGkdGradient2 := AValue;
+  BeginUpdate;
+  for i := 0 to Items.Count - 1 do
+  begin
+    Item := Items[i];
+    Item.Selected := True;
+    if IncludeSubChildren then
+      Item.SelectAllChildren(IncludeSubChildren);
+  end;
+  EndUpdate;
+end;
+
+procedure TCustomVirtualListview.SetBkGndGradient2(AValue: TColor);
+begin
+  if FBkGndGradient2 = AValue then Exit;
+  FBkGndGradient2 := AValue;
   BeginUpdate;
   EndUpdate;
 end;
@@ -1252,9 +1575,24 @@ begin
   if Assigned(Item) then
   begin
     if Item.Enabled then
-      FocusedItem := Item
+    begin
+      if Item.AllowExpand then
+      begin
+        if Item.PtInExpandZone(Point(X, Y)) then
+        begin
+          Item.Expanded := not Item.Expanded;
+        end;
+      end;
+      if Item.AllowFocus then
+        FocusedItem := Item;
+      if Item.AllowSelect then
+        SelectedItem := Item;
+    end;
   end else
+  begin
     FocusedItem := nil;
+    SelectedItem := nil;
+  end;
 end;
 
 procedure TCustomVirtualListview.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -1299,10 +1637,7 @@ end;
 procedure TCustomVirtualListview.Paint;
 var
   Item: TVirtualListviewItem;
-  IntersetRect: TRect;
 begin
-  Canvas.SaveHandleState;
-
   Canvas.Brush.Color := Color;
   Canvas.FillRect(ClientRect);
 
@@ -1310,20 +1645,18 @@ begin
   Item := FirstInView;
   while Assigned(Item) do
   begin
+    Canvas.SaveHandleState;
     Item.Paint(Canvas, -HorzScrollbar.Position, -VertScrollbar.Position);
+    Canvas.RestoreHandleState;
     Item := NextVisible(Item);
     if not IsInCurrentView(Item) then
       Item := nil
   end;
 
-
-  Canvas.RestoreHandleState;
-
   if mcs_DragRect in MouseController.State then
    begin
     MouseController.Paint(Canvas, -HorzScrollbar.Position, -VertScrollbar.Position);
   end;
-
 
 end;
 
@@ -1436,8 +1769,12 @@ procedure TCustomVirtualListview.RebuildItems(ItemList: TVirtualListviewItemList
 
         if Item.ChildItems.Count > 0 then
         begin
-          UnionRect(Result, RunItems(Item.ChildItems, Level + 1, VisibleIndexCounter, NextTop), Result);
-          Item.FClientWithChildrenRect := Result;
+          if Item.Expanded then
+          begin
+            UnionRect(Result, RunItems(Item.ChildItems, Level + 1, VisibleIndexCounter, NextTop), Result);
+            Item.FClientWithChildrenRect := Result;
+          end else
+            Item.UnSelectAllChildren(True)
         end;
       end;
     end;
@@ -1446,7 +1783,9 @@ procedure TCustomVirtualListview.RebuildItems(ItemList: TVirtualListviewItemList
 var
   VisibleIndexCounter, NextTop: Integer;
 begin
-  if UpdateLock > 0 then Exit;
+  if UpdateLock > 0 then
+    Exit;
+  FUpdateLock := 1;     // Force the Lock so we don't get recursion within this block
   if Assigned(VisibleItems) and Assigned(Items) then
   begin
     NextTop := 0;
@@ -1459,6 +1798,7 @@ begin
     Invalidate;
     Update;
   end;
+  FUpdateLock := 0;
 end;
 
 procedure TCustomVirtualListview.OnScrollVertical(Sender: TObject; ScrollCode: TScrollCode; var ScrollPos: Integer);
@@ -1483,6 +1823,29 @@ begin
   FTextLayout := AValue;
   BeginUpdate;
   EndUpdate;
+end;
+
+procedure TCustomVirtualListview.UnSelectAll(IncludeSubChildren: Boolean);
+var
+  i: Integer;
+  Item: TVirtualListviewItem;
+begin
+  BeginUpdate;
+  for i := 0 to Items.Count - 1 do
+  begin
+    Item := Items[i];
+    Item.Selected := False;
+    if IncludeSubChildren then
+      Item.UnSelectAllChildren(IncludeSubChildren);
+  end;
+  EndUpdate;
+end;
+
+procedure TCustomVirtualListview.WMContextMenu(var Message: TLMContextMenu);
+begin
+  inherited;
+  MouseCapture := False;
+  MouseController.State := []; // Clear the state
 end;
 
 procedure TCustomVirtualListview.WMEraseBkgnd(var Message: TLMEraseBkgnd);
@@ -1649,6 +2012,52 @@ begin
   if FLevelIndent = AValue then Exit;
   BeginUpdate;
   FLevelIndent := AValue;
+  EndUpdate;
+end;
+
+procedure TCustomVirtualListview.SetSelectedGradientHilightColor1(AValue: TColor);
+begin
+  if FSelectedGradientHilightColor1 = AValue then Exit;
+  FSelectedGradientHilightColor1 := AValue;
+  BeginUpdate;
+  EndUpdate;
+end;
+
+procedure TCustomVirtualListview.SetSelectedGradientHilightColor2(AValue: TColor);
+begin
+  if FSelectedGradientHilightColor2 = AValue then Exit;
+  FSelectedGradientHilightColor2 := AValue;
+  BeginUpdate;
+  EndUpdate;
+end;
+
+procedure TCustomVirtualListview.SetSelectedHilightColor(AValue: TColor);
+begin
+  if FSelectedHilightColor = AValue then Exit;
+  FSelectedHilightColor := AValue;
+  BeginUpdate;
+  EndUpdate;
+end;
+
+procedure TCustomVirtualListview.SetSelectedItem(AValue: TVirtualListviewItem);
+var
+  OldSelected: TVirtualListviewItem;
+begin
+  if FSelectedItem = AValue then Exit;
+  OldSelected := SelectedItem;
+  FSelectedItem := AValue;
+  DoOnSelectedChanged(AValue, OldSelected);
+  if Assigned(AValue) then
+    AValue.Selected := True;
+  if Assigned(OldSelected) then
+    OldSelected.Selected := False;
+end;
+
+procedure TCustomVirtualListview.SetShowFocus(AValue: Boolean);
+begin
+  if FShowFocus = AValue then Exit;
+  FShowFocus := AValue;
+  BeginUpdate;
   EndUpdate;
 end;
 
