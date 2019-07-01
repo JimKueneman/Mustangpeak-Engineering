@@ -189,7 +189,7 @@ type
     procedure Delete(Index: Integer);
   end;
 
-  TMouseControllerState = (mcs_Captured, mcs_Down, mcs_Dragging, mcs_DragRect, mcs_CtrlDown, mcs_AltDown, mcs_ShiftDown, mcs_LeftButton, mcs_RightButton, mcs_MiddleButton);
+  TMouseControllerState = (mcs_Captured, mcs_Down, mcs_Dragging, mcs_DragRect, mcs_CtrlDown, mcs_Meta {Apple Key, Ctrl in Windows?}, mcs_AltDown, mcs_ShiftDown, mcs_LeftButton, mcs_RightButton, mcs_MiddleButton);
   TMouseControllerStateSet = set of TMouseControllerState;
 
   { TMustangpeakMouseController }
@@ -1560,12 +1560,21 @@ begin
   MouseCapture := True;
 
   Include(MouseController.FState, mcs_Captured);
-  if ssShift in Shift then Include(MouseController.FState, mcs_ShiftDown);
-  if ssAlt in Shift then Include(MouseController.FState, mcs_AltDown);
-  if ssCtrl in Shift then Include(MouseController.FState, mcs_CtrlDown);
-  if ssLeft in Shift then Include(MouseController.FState, mcs_LeftButton);
-  if ssRight in Shift then Include(MouseController.FState, mcs_RightButton);
-  if ssMiddle in Shift then Include(MouseController.FState, mcs_MiddleButton);
+
+  if ssModifier in Shift then
+    Include(MouseController.FState, mcs_Meta);
+  if ssShift in Shift then
+    Include(MouseController.FState, mcs_ShiftDown);
+  if ssAlt in Shift then
+    Include(MouseController.FState, mcs_AltDown);
+  if ssCtrl in Shift then
+    Include(MouseController.FState, mcs_CtrlDown);
+  if ssLeft in Shift then
+    Include(MouseController.FState, mcs_LeftButton);
+  if ssRight in Shift then
+    Include(MouseController.FState, mcs_RightButton);
+  if ssMiddle in Shift then
+    Include(MouseController.FState, mcs_MiddleButton);
   MouseController.FMouseDownPt.X := X;
   MouseController.FMouseDownPt.Y := Y;
   MouseController.FMouseLastPt.X := X;
@@ -1586,7 +1595,28 @@ begin
       if Item.AllowFocus then
         FocusedItem := Item;
       if Item.AllowSelect then
-        SelectedItem := Item;
+      begin
+        if [mcs_Meta, mcs_MiddleButton] * MouseController.State <> [] then    // Unix maps Apple/LeftClick to MiddleClick // Windows maps Ctrl/Left click to Right Click.....
+        begin
+          Item.Selected := not Item.Selected;
+          if SelectedItem = nil then
+            SelectedItem := Item;
+        end else
+        if mcs_ShiftDown in MouseController.State then
+        begin
+          // TODO figure out how to select a range with Shift is down
+          Item.Selected := not Item.Selected;
+          if SelectedItem = nil then
+            SelectedItem := Item;
+        end else
+        begin
+          if [mcs_CtrlDown, mcs_RightButton] * MouseController.State = [] then   // OSX Ctrl Click = show context menu
+          begin
+            UnSelectAll(True);
+            SelectedItem := Item;
+          end;
+        end;
+      end;
     end;
   end else
   begin
