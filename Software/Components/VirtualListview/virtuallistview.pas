@@ -219,6 +219,7 @@ type
     procedure Add(Item: TVirtualListviewItem);
     procedure Clear;
     procedure Delete(Index: Integer);
+    function IndexOf(AnItem: TVirtualListviewItem): Integer;
     function Remove(Item: TVirtualListviewItem): Integer;
   end;
 
@@ -245,7 +246,10 @@ type
     function AnyButtonDown: Boolean;
   end;
 
-  TCustomVirtualListviewInternalState = (vlis_SelectionMultiSelect, vlis_SelectionLockUpdate);
+  TCustomVirtualListviewInternalState = (
+    vlis_SelectionMultiSelect,  // Sets the control state so any newly selected items are added to the selection list
+    vlis_SelectionLockUpdate    // Sets the control state so Selection Changed Events are blocked while multiple items are selected as to not slow the selection process down by Event handlers
+    );
   TCustomVirtualListviewInternalStateSet = set of TCustomVirtualListviewInternalState;
 
   { TCustomVirtualListview }
@@ -718,6 +722,11 @@ end;
 function TVirtualListviewItemContainer.GetItems(Index: Integer): TVirtualListviewItem;
 begin
   Result := ItemList[Index] as TVirtualListviewItem
+end;
+
+function TVirtualListviewItemContainer.IndexOf(AnItem: TVirtualListviewItem): Integer;
+begin
+  Result := ItemList.IndexOf(AnItem);
 end;
 
 function TVirtualListviewItemContainer.Remove(Item: TVirtualListviewItem): Integer;
@@ -1266,6 +1275,8 @@ begin
   begin
     if FExpanded = AValue then Exit;
     FExpanded := AValue;
+    if not Expanded then
+      UnSelectAllChildren(True);
     OwnerListview.BeginUpdate;
     OwnerListview.EndUpdate; // rebuild needed
   end else
@@ -1805,6 +1816,7 @@ end;
 procedure TCustomVirtualListview.SelectChangedNotify(Item: TVirtualListviewItem);
 var
   Old: TVirtualListviewItem;
+  i: Integer;
 begin
   if Assigned(SelectedItem) and (Item.Selected) then  // This should stop recursion
   begin
@@ -1822,7 +1834,22 @@ begin
     SelectedItems.Add(Item);
   end else
   begin
-    FSelectedItem := nil;
+    if SelectedItem = Item then
+    begin
+      if SelectedItems.Count > 1 then
+      begin
+        i := SelectedItems.ItemList.IndexOf(Item);
+        if i > 0 then
+          FSelectedItem := SelectedItems.ItemList[i-1] as TVirtualListviewItem    // Select item before
+        else
+          FSelectedItem := SelectedItems.ItemList[i+1] as TVirtualListviewItem;    // Select item after
+        SelectedItems.ItemList.Delete(i);
+      end else
+      begin
+        SelectedItems.Remove(Item);
+        FSelectedItem := nil;
+      end;
+    end;
     SelectedItems.Remove(Item);
   end;
   DoOnSelectedChanged;
@@ -1872,6 +1899,7 @@ end;
 procedure TCustomVirtualListview.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   Item: TVirtualListviewItem;
+  CtrlSelectStartIndex, CtrlSelectEndIndex, i: Integer;
 begin
   inherited MouseDown(Button, Shift, X, Y);
   SetFocus;
@@ -1920,10 +1948,83 @@ begin
           BeginUpdate;
           try
             if mcs_ShiftDown in MouseController.State then
-            begin // TODO figure out how to select a range with Shift is down
+            begin
               Include(FInternalState, vlis_SelectionMultiSelect);
-              Item.Selected := not Item.Selected;
+              Include(FInternalState, vlis_SelectionLockUpdate);
+
+              if Assigned(SelectedItem) then
+                CtrlSelectStartIndex := SelectedItem.VisibleIndex
+              else begin
+                if VisibleItems.Count > 0 then
+                  CtrlSelectStartIndex := 0;
+              end;
+
+              if VisibleItems.Count > 1 then
+              begin
+                CtrlSelectEndIndex := Item.VisibleIndex;
+
+                if CtrlSelectEndIndex > CtrlSelectStartIndex then
+                begin
+                  if VisibleItems.Items[CtrlSelectStartIndex+1].Selected then
+                  begin // Selecting back over the existing selection
+                    i := CtrlSelectStartIndex;
+                    while i <= CtrlSelectEndIndex do
+                    begin
+                      if VisibleItems.Items[i+1].Selected then
+                      begin
+                        if i < CtrlSelectEndIndex then // May have clicking in the middle of the selection
+                           VisibleItems.Items[i].Selected := not VisibleItems.Items[i].Selected;
+                        Inc(i);
+                      end else
+                      begin
+                        Inc(i);  // Skip over the Pivot
+                        while i <= CtrlSelectEndIndex do
+                        begin
+                           VisibleItems.Items[i].Selected := not VisibleItems.Items[i].Selected;
+                           Inc(i)
+                        end;
+                      end;
+                    end;
+                  end else
+                  begin   // Normal adding to the selection as a continuation
+                    Inc(CtrlSelectStartIndex);
+                    for i := CtrlSelectStartIndex to CtrlSelectEndIndex do
+                      VisibleItems.Items[i].Selected := not VisibleItems.Items[i].Selected;
+                  end;
+                end else
+                begin
+                  if VisibleItems.Items[CtrlSelectStartIndex-1].Selected then
+                  begin // Selecting back over the existing selection
+                    i := CtrlSelectStartIndex;
+                    while i >= CtrlSelectEndIndex do
+                    begin
+                      if VisibleItems.Items[i-1].Selected then
+                      begin
+                        if i > CtrlSelectEndIndex then // May have clicking in the middle of the selection
+                           VisibleItems.Items[i].Selected := not VisibleItems.Items[i].Selected;
+                        Dec(i);
+                      end else
+                      begin
+                        Dec(i);  // Skip over the Pivot
+                        while i >= CtrlSelectEndIndex do
+                        begin
+                           VisibleItems.Items[i].Selected := not VisibleItems.Items[i].Selected;
+                           Dec(i)
+                        end;
+                      end;
+                    end;
+                  end else
+                  begin   // Normal adding to the selection as a continuation
+                    Dec(CtrlSelectStartIndex);
+                    for i := CtrlSelectStartIndex downto CtrlSelectEndIndex do
+                      VisibleItems.Items[i].Selected := not VisibleItems.Items[i].Selected;
+                  end;
+                end;
+              end;
               Exclude(FInternalState, vlis_SelectionMultiSelect);
+              Exclude(FInternalState, vlis_SelectionLockUpdate);
+        //      FSelectedItem := OriginalSelectedItem;
+              DoOnSelectedChanged;  // Locked update so we need to it
               Exit;    // Do nothing else, leave
             end;
             if mcs_Meta in MouseController.State then
@@ -1936,8 +2037,6 @@ begin
             begin  // Unselect all and this is the only selected item now
               UnSelectAll(True);
               Item.Selected := not Item.Selected;
-        //      if SelectedItem = nil then
-        //        SelectedItem := Item;
               Exit;    // Do nothing else, leave
             end;
           finally
@@ -2172,8 +2271,7 @@ procedure TCustomVirtualListview.RebuildItems(ItemList: TVirtualListviewItemList
           begin
             UnionRect(Result, RunItems(Item.ChildItems, Level + 1, VisibleIndexCounter, NextTop), Result);
             Item.FClientWithChildrenRect := Result;
-          end else
-            Item.UnSelectAllChildren(True)
+          end
         end;
       end;
     end;
