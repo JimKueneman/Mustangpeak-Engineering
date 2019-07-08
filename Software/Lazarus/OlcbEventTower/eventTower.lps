@@ -3,7 +3,7 @@
   <ProjectSession>
     <Version Value="9"/>
     <BuildModes Active="Default"/>
-    <Units Count="25">
+    <Units Count="26">
       <Unit0>
         <Filename Value="eventTower.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -17,9 +17,9 @@
         <ComponentName Value="FormEventTower"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <IsVisibleTab Value="True"/>
         <TopLine Value="42"/>
         <CursorPos X="16" Y="48"/>
+        <ComponentState Value="2"/>
         <UsageCount Value="274"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -185,11 +185,10 @@
       <Unit23>
         <Filename Value="/Developer/lazarus/lcl/lresources.pp"/>
         <UnitName Value="LResources"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="3120"/>
         <CursorPos Y="3135"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit23>
       <Unit24>
         <Filename Value="main.lfm"/>
@@ -199,8 +198,17 @@
         <UsageCount Value="10"/>
         <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit24>
+      <Unit25>
+        <Filename Value="../../../../LccLib/Library/Generics/src/inc/generics.dictionaries.inc"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="673"/>
+        <CursorPos X="12" Y="684"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit25>
     </Units>
-    <JumpHistory Count="29" HistoryIndex="28">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="main.pas"/>
         <Caret Line="119" Column="59" TopLine="101"/>
@@ -317,6 +325,9 @@
         <Filename Value="../../Components/VirtualListview/virtuallistview.pas"/>
         <Caret Line="221" Column="35" TopLine="204"/>
       </Position29>
+      <Position30>
+        <Filename Value="../../../../LccLib/Library/Generics/src/inc/generics.dictionaries.inc"/>
+      </Position30>
     </JumpHistory>
   </ProjectSession>
   <Debugging>

@@ -45,12 +45,12 @@ Count=0
 Count=1
 File0=Templates\Options.inc
 [SEARCH_PATH]
-Count=5
+Count=8
 Path0=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Defs\
 Path1=C:\Program Files\Mikroelektronika\mikroPascal PRO for dsPIC\Uses\
-Path2=W:\Mustangpeak-Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\
-Path3=W:\Mustangpeak-Engineering\Firmware\MikroPascal\Library\Common\
-Path4=W:\Mustangpeak-Engineering\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\
+Path2=Z:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\
+Path6=Z:\Firmware\MikroPascal\Library\Common\
+Path7=Z:\Firmware\MikroPascal\Projects\dsPIC33EPxxxGP502\EthernetCanHub\Templates\
 [HEADER_PATH]
 Count=0
 [HEADERS]
