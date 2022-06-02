@@ -1,0 +1,1566 @@
+object Form1: TForm1
+  Left = 140
+  Height = 822
+  Top = 130
+  Width = 1535
+  Caption = 'Form1'
+  ClientHeight = 822
+  ClientWidth = 1535
+  LCLVersion = '2.2.0.4'
+  object Button1: TButton
+    Left = 784
+    Height = 25
+    Top = 24
+    Width = 75
+    Caption = 'Button1'
+    OnClick = Button1Click
+    TabOrder = 0
+  end
+  object ChartInterest: TChart
+    Left = 1184
+    Height = 128
+    Top = 336
+    Width = 328
+    AxisList = <    
+      item
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelFont.Orientation = 900
+        Title.LabelBrush.Style = bsClear
+      end    
+      item
+        Alignment = calBottom
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelBrush.Style = bsClear
+      end>
+    Foot.Brush.Color = clBtnFace
+    Foot.Font.Color = clBlue
+    Title.Brush.Color = clBtnFace
+    Title.Font.Color = clBlue
+    Title.Text.Strings = (
+      'TAChart'
+    )
+    object LineSeriesInterest: TLineSeries
+    end
+  end
+  object ChartNestEgg: TChart
+    Left = 1152
+    Height = 244
+    Top = 48
+    Width = 352
+    AxisList = <    
+      item
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Range.Max = 20000000
+        Range.UseMax = True
+        Range.UseMin = True
+        Title.LabelFont.Orientation = 900
+        Title.LabelBrush.Style = bsClear
+      end    
+      item
+        Alignment = calBottom
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelBrush.Style = bsClear
+      end>
+    Foot.Brush.Color = clBtnFace
+    Foot.Font.Color = clBlue
+    Title.Brush.Color = clBtnFace
+    Title.Font.Color = clBlue
+    Title.Text.Strings = (
+      'TAChart'
+    )
+    object LineSeriesNestEgg: TLineSeries
+    end
+  end
+  object ChartIncome: TChart
+    Left = 768
+    Height = 168
+    Top = 88
+    Width = 336
+    AxisList = <    
+      item
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelFont.Orientation = 900
+        Title.LabelBrush.Style = bsClear
+      end    
+      item
+        Alignment = calBottom
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelBrush.Style = bsClear
+      end>
+    Foot.Brush.Color = clBtnFace
+    Foot.Font.Color = clBlue
+    Title.Brush.Color = clBtnFace
+    Title.Font.Color = clBlue
+    Title.Text.Strings = (
+      'TAChart'
+    )
+    object LineSeriesIncome: TLineSeries
+    end
+  end
+  object ChartExpendatures: TChart
+    Left = 768
+    Height = 128
+    Top = 496
+    Width = 336
+    AxisList = <    
+      item
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelFont.Orientation = 900
+        Title.LabelBrush.Style = bsClear
+      end    
+      item
+        Alignment = calBottom
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelBrush.Style = bsClear
+      end>
+    Foot.Brush.Color = clBtnFace
+    Foot.Font.Color = clBlue
+    Title.Brush.Color = clBtnFace
+    Title.Font.Color = clBlue
+    Title.Text.Strings = (
+      'TAChart'
+    )
+    object LineSeriesExpendatures: TLineSeries
+    end
+  end
+  object ChartTaxes: TChart
+    Left = 768
+    Height = 160
+    Top = 304
+    Width = 336
+    AxisList = <    
+      item
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelFont.Orientation = 900
+        Title.LabelBrush.Style = bsClear
+      end    
+      item
+        Alignment = calBottom
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelBrush.Style = bsClear
+      end>
+    Foot.Brush.Color = clBtnFace
+    Foot.Font.Color = clBlue
+    Title.Brush.Color = clBtnFace
+    Title.Font.Color = clBlue
+    Title.Text.Strings = (
+      'TAChart'
+    )
+    object LineSeriesTaxes: TLineSeries
+    end
+  end
+  object Label20: TLabel
+    Left = 791
+    Height = 16
+    Top = 62
+    Width = 44
+    Caption = 'Income'
+  end
+  object Label47: TLabel
+    Left = 792
+    Height = 16
+    Top = 280
+    Width = 34
+    Caption = 'Taxes'
+  end
+  object Label48: TLabel
+    Left = 777
+    Height = 16
+    Top = 472
+    Width = 83
+    Caption = 'Expendatures'
+  end
+  object Label49: TLabel
+    Left = 1177
+    Height = 16
+    Top = 312
+    Width = 46
+    Caption = 'Interest'
+  end
+  object Label50: TLabel
+    Left = 1184
+    Height = 16
+    Top = 21
+    Width = 55
+    Caption = 'Nest Egg'
+  end
+  object ChartNetGains: TChart
+    Left = 24
+    Height = 152
+    Top = 656
+    Width = 336
+    AxisList = <    
+      item
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelFont.Orientation = 900
+        Title.LabelBrush.Style = bsClear
+      end    
+      item
+        Alignment = calBottom
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelBrush.Style = bsClear
+      end>
+    Foot.Brush.Color = clBtnFace
+    Foot.Font.Color = clBlue
+    Title.Brush.Color = clBtnFace
+    Title.Font.Color = clBlue
+    Title.Text.Strings = (
+      'TAChart'
+    )
+    object LineSeriesNetGains: TLineSeries
+    end
+  end
+  object ChartIdeal4Percent: TChart
+    Left = 384
+    Height = 152
+    Top = 656
+    Width = 336
+    AxisList = <    
+      item
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Range.UseMin = True
+        Title.LabelFont.Orientation = 900
+        Title.LabelBrush.Style = bsClear
+      end    
+      item
+        Alignment = calBottom
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelBrush.Style = bsClear
+      end>
+    Foot.Brush.Color = clBtnFace
+    Foot.Font.Color = clBlue
+    Title.Brush.Color = clBtnFace
+    Title.Font.Color = clBlue
+    Title.Text.Strings = (
+      'TAChart'
+    )
+    object LineSeriesIdeal4Percent: TLineSeries
+    end
+  end
+  object ChartOffsetFromIdeal4Percent: TChart
+    Left = 768
+    Height = 152
+    Top = 648
+    Width = 336
+    AxisList = <    
+      item
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Range.UseMin = True
+        Title.LabelFont.Orientation = 900
+        Title.LabelBrush.Style = bsClear
+      end    
+      item
+        Alignment = calBottom
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelBrush.Style = bsClear
+      end>
+    Foot.Brush.Color = clBtnFace
+    Foot.Font.Color = clBlue
+    Title.Brush.Color = clBtnFace
+    Title.Font.Color = clBlue
+    Title.Text.Strings = (
+      'TAChart'
+    )
+    object LineSeriesOffsetFromIdeal4Percent: TLineSeries
+    end
+  end
+  object Label51: TLabel
+    Left = 36
+    Height = 16
+    Top = 638
+    Width = 59
+    Caption = 'Net Gains'
+  end
+  object Label52: TLabel
+    Left = 416
+    Height = 16
+    Top = 638
+    Width = 52
+    Caption = 'Ideal 4%'
+  end
+  object Label53: TLabel
+    Left = 792
+    Height = 16
+    Top = 632
+    Width = 125
+    Caption = 'Offset from Ideal 4%'
+  end
+  object Label54: TLabel
+    Left = 1195
+    Height = 16
+    Top = 484
+    Width = 76
+    Caption = 'Yearly Gross'
+  end
+  object ChartYearlyGross: TChart
+    Left = 1184
+    Height = 128
+    Top = 512
+    Width = 328
+    AxisList = <    
+      item
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Range.Max = 250000
+        Range.UseMax = True
+        Range.UseMin = True
+        Title.LabelFont.Orientation = 900
+        Title.LabelBrush.Style = bsClear
+      end    
+      item
+        Alignment = calBottom
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelBrush.Style = bsClear
+      end>
+    Foot.Brush.Color = clBtnFace
+    Foot.Font.Color = clBlue
+    Title.Brush.Color = clBtnFace
+    Title.Font.Color = clBlue
+    Title.Text.Strings = (
+      'TAChart'
+    )
+    object LineSeriesYearlyGross: TLineSeries
+    end
+  end
+  object ChartPreviousYearTaxableIncome: TChart
+    Left = 1184
+    Height = 128
+    Top = 664
+    Width = 328
+    AxisList = <    
+      item
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelFont.Orientation = 900
+        Title.LabelBrush.Style = bsClear
+      end    
+      item
+        Alignment = calBottom
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Title.LabelBrush.Style = bsClear
+      end>
+    Foot.Brush.Color = clBtnFace
+    Foot.Font.Color = clBlue
+    Title.Brush.Color = clBtnFace
+    Title.Font.Color = clBlue
+    Title.Text.Strings = (
+      'TAChart'
+    )
+    object LineSeriesPreviousYearTaxableIncome: TLineSeries
+    end
+  end
+  object Label55: TLabel
+    Left = 1198
+    Height = 16
+    Top = 647
+    Width = 180
+    Caption = 'Previous Year Taxable Income'
+  end
+  object PageControl1: TPageControl
+    Left = 16
+    Height = 584
+    Top = 24
+    Width = 736
+    ActivePage = TabSheet6
+    ParentFont = False
+    TabIndex = 5
+    TabOrder = 11
+    object TabSheet1: TTabSheet
+      Caption = 'People and Income'
+      ClientHeight = 554
+      ClientWidth = 730
+      object SpinEditJimPensionYears: TSpinEdit
+        Left = 556
+        Height = 21
+        Top = 92
+        Width = 72
+        MaxValue = 100000
+        OnChange = SpinEditJimPensionChange
+        TabOrder = 0
+        Value = 10
+      end
+      object Label16: TLabel
+        Left = 456
+        Height = 16
+        Top = 93
+        Width = 85
+        Caption = 'Pension Years'
+      end
+      object Label15: TLabel
+        Left = 8
+        Height = 16
+        Top = 36
+        Width = 76
+        Caption = 'Cheryl''s Age'
+      end
+      object SpinEditCherylAge: TSpinEdit
+        Left = 120
+        Height = 21
+        Top = 32
+        Width = 44
+        TabOrder = 1
+        Value = 55
+      end
+      object SpinEditJimAge: TSpinEdit
+        Left = 120
+        Height = 21
+        Top = 8
+        Width = 44
+        TabOrder = 2
+        Value = 59
+      end
+      object Label14: TLabel
+        Left = 8
+        Height = 16
+        Top = 13
+        Width = 58
+        Caption = 'Jim''s Age'
+      end
+      object Label13: TLabel
+        Left = 168
+        Height = 16
+        Top = 92
+        Width = 166
+        Caption = 'Social Security per Year ($)'
+      end
+      object SpinEditCherylSocialSecurity: TSpinEdit
+        Left = 344
+        Height = 21
+        Top = 88
+        Width = 72
+        MaxValue = 100000
+        OnChange = SpinEditJimPensionChange
+        TabOrder = 3
+        Value = 16000
+      end
+      object SpinEditJimSocialSecurity: TSpinEdit
+        Left = 344
+        Height = 21
+        Top = 64
+        Width = 72
+        MaxValue = 100000
+        OnChange = SpinEditJimPensionChange
+        TabOrder = 4
+        Value = 32000
+      end
+      object Label12: TLabel
+        Left = 168
+        Height = 16
+        Top = 69
+        Width = 166
+        Caption = 'Social Security per Year ($)'
+      end
+      object SpinEditJimPension: TSpinEdit
+        Left = 568
+        Height = 21
+        Top = 64
+        Width = 72
+        MaxValue = 100000
+        OnChange = SpinEditJimPensionChange
+        TabOrder = 5
+        Value = 7500
+      end
+      object Label11: TLabel
+        Left = 424
+        Height = 16
+        Top = 69
+        Width = 135
+        Caption = 'Pension per Month ($)'
+      end
+      object Label3: TLabel
+        Left = 192
+        Height = 16
+        Top = 13
+        Width = 93
+        Caption = 'Retirement Age'
+        OnClick = Label3Click
+      end
+      object SpinEditRetirementAge: TSpinEdit
+        Left = 296
+        Height = 21
+        Top = 8
+        Width = 90
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 6
+        Value = 59
+      end
+      object Label2: TLabel
+        Left = 8
+        Height = 16
+        Top = 92
+        Width = 105
+        Caption = 'Cheryl''s Max Age'
+      end
+      object Label1: TLabel
+        Left = 8
+        Height = 16
+        Top = 69
+        Width = 87
+        Caption = 'Jim''s Max Age'
+      end
+      object SpinEditCherylMaxAge: TSpinEdit
+        Left = 120
+        Height = 21
+        Top = 88
+        Width = 44
+        TabOrder = 7
+        Value = 90
+      end
+      object SpinEditJimMaxAge: TSpinEdit
+        Left = 120
+        Height = 21
+        Top = 64
+        Width = 44
+        TabOrder = 8
+        Value = 90
+      end
+      object Label33: TLabel
+        Left = 8
+        Height = 16
+        Top = 137
+        Width = 145
+        Caption = 'Outside Income (yearly)'
+        OnClick = Label3Click
+      end
+      object SpinEditOutsideIncome1: TSpinEdit
+        Left = 168
+        Height = 21
+        Top = 136
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 9
+      end
+      object Label34: TLabel
+        Left = 272
+        Height = 16
+        Top = 137
+        Width = 30
+        Caption = 'Start'
+      end
+      object SpinEditOutsideIncomeStart1: TSpinEdit
+        Left = 312
+        Height = 21
+        Top = 136
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 10
+      end
+      object Label63: TLabel
+        Left = 368
+        Height = 16
+        Top = 136
+        Width = 28
+        Caption = 'Stop'
+      end
+      object SpinEditOutsideIncomeEnd1: TSpinEdit
+        Left = 408
+        Height = 21
+        Top = 136
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 11
+        Value = 2
+      end
+      object Label64: TLabel
+        Left = 8
+        Height = 16
+        Top = 169
+        Width = 145
+        Caption = 'Outside Income (yearly)'
+        OnClick = Label3Click
+      end
+      object SpinEditOutsideIncome2: TSpinEdit
+        Left = 168
+        Height = 21
+        Top = 168
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 12
+      end
+      object Label65: TLabel
+        Left = 272
+        Height = 16
+        Top = 169
+        Width = 30
+        Caption = 'Start'
+      end
+      object SpinEditOutsideIncomeStart2: TSpinEdit
+        Left = 312
+        Height = 21
+        Top = 168
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 13
+      end
+      object Label66: TLabel
+        Left = 368
+        Height = 16
+        Top = 168
+        Width = 28
+        Caption = 'Stop'
+      end
+      object SpinEditOutsideIncomeEnd2: TSpinEdit
+        Left = 408
+        Height = 21
+        Top = 168
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 14
+        Value = 2
+      end
+    end
+    object TabSheet2: TTabSheet
+      Caption = 'Interest Rate'
+      ClientHeight = 554
+      ClientWidth = 730
+      object CheckBoxIncludeBadYear: TCheckBox
+        Left = 8
+        Height = 18
+        Top = 64
+        Width = 126
+        Caption = 'Include a bad year'
+        TabOrder = 0
+      end
+      object SpinEditConsecutiveLossYearsTarget: TSpinEdit
+        Left = 248
+        Height = 21
+        Top = 40
+        Width = 52
+        MaxValue = 30
+        TabOrder = 1
+        Value = 3
+      end
+      object FloatSpinEditAvgTargetMax: TFloatSpinEdit
+        Left = 360
+        Height = 21
+        Top = 8
+        Width = 50
+        DecimalPlaces = 1
+        Increment = 0.1
+        TabOrder = 2
+        Value = 9
+      end
+      object FloatSpinEditAvgTargetMin: TFloatSpinEdit
+        Left = 248
+        Height = 21
+        Top = 8
+        Width = 50
+        DecimalPlaces = 1
+        Increment = 0.1
+        TabOrder = 3
+        Value = 7
+      end
+      object Label9: TLabel
+        Left = 416
+        Height = 16
+        Top = 13
+        Width = 11
+        Caption = '%'
+      end
+      object Label8: TLabel
+        Left = 304
+        Height = 16
+        Top = 13
+        Width = 11
+        Caption = '%'
+      end
+      object Label7: TLabel
+        Left = 328
+        Height = 16
+        Top = 13
+        Width = 25
+        Caption = 'Max'
+      end
+      object Label6: TLabel
+        Left = 216
+        Height = 16
+        Top = 13
+        Width = 22
+        Caption = 'Min'
+      end
+      object LabelInterestMaxLoss: TLabel
+        Left = 220
+        Height = 16
+        Top = 176
+        Width = 114
+        Caption = 'Interest Max Loss: '
+      end
+      object LabelInterestMaxGain: TLabel
+        Left = 8
+        Height = 16
+        Top = 176
+        Width = 113
+        Caption = 'Interest Max Gain: '
+      end
+      object LabelInterestConsectutiveYearLoss: TLabel
+        Left = 8
+        Height = 16
+        Top = 40
+        Width = 226
+        Caption = 'Interest Consecutive Loss Years Max:'
+      end
+      object LabelInterestPercentLoss: TLabel
+        Left = 8
+        Height = 16
+        Top = 152
+        Width = 151
+        Caption = 'Interest Percent of Loss: '
+      end
+      object LabelInterestAverage: TLabel
+        Left = 8
+        Height = 16
+        Top = 128
+        Width = 106
+        Caption = 'Interest Average: '
+      end
+      object Label67: TLabel
+        Left = 8
+        Height = 16
+        Top = 13
+        Width = 172
+        Caption = 'Target Average Interest Rate'
+      end
+    end
+    object TabSheet3: TTabSheet
+      Caption = 'Expendatures'
+      ClientHeight = 554
+      ClientWidth = 730
+      object SpinEditYearlyGrossSalary: TSpinEdit
+        Left = 112
+        Height = 21
+        Top = 8
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 0
+        Value = 30000
+      end
+      object Label17: TLabel
+        Left = 8
+        Height = 16
+        Top = 13
+        Width = 78
+        Caption = 'Yearly Salary'
+        OnClick = Label3Click
+      end
+      object SpinEditMortgage: TSpinEdit
+        Left = 136
+        Height = 21
+        Top = 69
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 1
+        Value = 1500
+      end
+      object Label18: TLabel
+        Left = 8
+        Height = 16
+        Top = 70
+        Width = 59
+        Caption = 'Mortgage'
+        OnClick = Label3Click
+      end
+      object Label19: TLabel
+        Left = 8
+        Height = 16
+        Top = 98
+        Width = 119
+        Caption = 'Heallth/Dental/Eyes'
+        OnClick = Label3Click
+      end
+      object SpinEditHealthInsurance: TSpinEdit
+        Left = 136
+        Height = 21
+        Top = 97
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 2
+        Value = 1800
+      end
+      object LabelUtilities: TLabel
+        Left = 8
+        Height = 16
+        Top = 126
+        Width = 46
+        Caption = 'Utilities'
+        OnClick = Label3Click
+      end
+      object SpinEditUtilities: TSpinEdit
+        Left = 136
+        Height = 21
+        Top = 125
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 3
+        Value = 250
+      end
+      object Label21: TLabel
+        Left = 8
+        Height = 16
+        Top = 153
+        Width = 38
+        Caption = 'Phone'
+        OnClick = Label3Click
+      end
+      object SpinEditPhone: TSpinEdit
+        Left = 136
+        Height = 21
+        Top = 153
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 4
+        Value = 250
+      end
+      object SpinEditMortgageStart: TSpinEdit
+        Left = 280
+        Height = 21
+        Top = 69
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 5
+      end
+      object SpinEditMortgageEnd: TSpinEdit
+        Left = 376
+        Height = 21
+        Top = 69
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 6
+        Value = 9
+      end
+      object SpinEditHealthInsuranceStart: TSpinEdit
+        Left = 280
+        Height = 21
+        Top = 98
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 7
+      end
+      object SpinEditHealthInsuranceEnd: TSpinEdit
+        Left = 376
+        Height = 21
+        Top = 97
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 8
+        Value = 10
+      end
+      object SpinEditUtilitiesStart: TSpinEdit
+        Left = 280
+        Height = 21
+        Top = 126
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 9
+      end
+      object SpinEditUtilitiesEnd: TSpinEdit
+        Left = 376
+        Height = 21
+        Top = 125
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 10
+        Value = 30
+      end
+      object SpinEditPhoneStart: TSpinEdit
+        Left = 280
+        Height = 21
+        Top = 153
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 11
+      end
+      object SpinEditPhoneEnd: TSpinEdit
+        Left = 376
+        Height = 21
+        Top = 153
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 12
+        Value = 30
+      end
+      object Label22: TLabel
+        Left = 240
+        Height = 16
+        Top = 70
+        Width = 30
+        Caption = 'Start'
+      end
+      object Label23: TLabel
+        Left = 336
+        Height = 16
+        Top = 69
+        Width = 28
+        Caption = 'Stop'
+      end
+      object Label24: TLabel
+        Left = 240
+        Height = 16
+        Top = 98
+        Width = 30
+        Caption = 'Start'
+      end
+      object Label25: TLabel
+        Left = 336
+        Height = 16
+        Top = 97
+        Width = 28
+        Caption = 'Stop'
+      end
+      object Label26: TLabel
+        Left = 240
+        Height = 16
+        Top = 126
+        Width = 30
+        Caption = 'Start'
+      end
+      object Label27: TLabel
+        Left = 336
+        Height = 16
+        Top = 125
+        Width = 28
+        Caption = 'Stop'
+      end
+      object Label28: TLabel
+        Left = 240
+        Height = 16
+        Top = 153
+        Width = 30
+        Caption = 'Start'
+      end
+      object Label29: TLabel
+        Left = 336
+        Height = 16
+        Top = 153
+        Width = 28
+        Caption = 'Stop'
+      end
+      object Label30: TLabel
+        Left = 232
+        Height = 16
+        Top = 40
+        Width = 202
+        Caption = 'Start/Stop Years After Retirement'
+      end
+      object Label31: TLabel
+        Left = 424
+        Height = 16
+        Top = 12
+        Width = 11
+        Caption = '%'
+      end
+      object Label32: TLabel
+        Left = 8
+        Height = 16
+        Top = 181
+        Width = 61
+        Caption = 'Car Loans'
+        OnClick = Label3Click
+      end
+      object SpinEditCarLoan: TSpinEdit
+        Left = 136
+        Height = 21
+        Top = 181
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 13
+        Value = 600
+      end
+      object SpinEditCarLoanStart: TSpinEdit
+        Left = 280
+        Height = 21
+        Top = 181
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 14
+      end
+      object SpinEditCarLoanEnd: TSpinEdit
+        Left = 376
+        Height = 21
+        Top = 181
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 15
+        Value = 5
+      end
+      object Label35: TLabel
+        Left = 8
+        Height = 16
+        Top = 208
+        Width = 91
+        Caption = 'Property Taxes'
+        OnClick = Label3Click
+      end
+      object SpinEditPropertyTaxes: TSpinEdit
+        Left = 136
+        Height = 21
+        Top = 208
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 16
+        Value = 350
+      end
+      object Label36: TLabel
+        Left = 240
+        Height = 16
+        Top = 208
+        Width = 30
+        Caption = 'Start'
+      end
+      object SpinEditPropertyTaxesStart: TSpinEdit
+        Left = 280
+        Height = 21
+        Top = 208
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 17
+        Value = 9
+      end
+      object Label37: TLabel
+        Left = 336
+        Height = 16
+        Top = 208
+        Width = 28
+        Caption = 'Stop'
+      end
+      object SpinEditPropertyTaxesEnd: TSpinEdit
+        Left = 376
+        Height = 21
+        Top = 208
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 18
+        Value = 30
+      end
+      object Label38: TLabel
+        Left = 8
+        Height = 16
+        Top = 240
+        Width = 84
+        Caption = 'Car Insurance'
+        OnClick = Label3Click
+      end
+      object SpinEditCarInsurance: TSpinEdit
+        Left = 136
+        Height = 21
+        Top = 240
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 19
+        Value = 330
+      end
+      object Label39: TLabel
+        Left = 240
+        Height = 16
+        Top = 240
+        Width = 30
+        Caption = 'Start'
+      end
+      object SpinEditCarInsuranceStart: TSpinEdit
+        Left = 280
+        Height = 21
+        Top = 240
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 20
+      end
+      object Label40: TLabel
+        Left = 336
+        Height = 16
+        Top = 240
+        Width = 28
+        Caption = 'Stop'
+      end
+      object SpinEditCarInsuranceEnd: TSpinEdit
+        Left = 376
+        Height = 21
+        Top = 240
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 21
+        Value = 30
+      end
+      object Label41: TLabel
+        Left = 8
+        Height = 16
+        Top = 408
+        Width = 90
+        Caption = 'College Tuition'
+        OnClick = Label3Click
+      end
+      object SpinEditCollegeTuition: TSpinEdit
+        Left = 168
+        Height = 21
+        Top = 408
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 22
+        Value = 1000
+      end
+      object Label42: TLabel
+        Left = 272
+        Height = 16
+        Top = 408
+        Width = 30
+        Caption = 'Start'
+      end
+      object SpinEditCollegeTuitionStart: TSpinEdit
+        Left = 312
+        Height = 21
+        Top = 408
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 23
+        Value = 4
+      end
+      object Label43: TLabel
+        Left = 368
+        Height = 16
+        Top = 408
+        Width = 28
+        Caption = 'Stop'
+      end
+      object SpinEditCollegeTuitionEnd: TSpinEdit
+        Left = 408
+        Height = 21
+        Top = 408
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 24
+        Value = 14
+      end
+      object Label44: TLabel
+        Left = 8
+        Height = 16
+        Top = 272
+        Width = 59
+        Caption = 'Groceries'
+        OnClick = Label3Click
+      end
+      object SpinEditGroceries: TSpinEdit
+        Left = 136
+        Height = 21
+        Top = 272
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 25
+        Value = 1000
+      end
+      object Label45: TLabel
+        Left = 240
+        Height = 16
+        Top = 272
+        Width = 30
+        Caption = 'Start'
+      end
+      object SpinEditGroceriesStart: TSpinEdit
+        Left = 280
+        Height = 21
+        Top = 272
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 26
+      end
+      object Label46: TLabel
+        Left = 336
+        Height = 16
+        Top = 272
+        Width = 28
+        Caption = 'Stop'
+      end
+      object SpinEditGroceriesEnd: TSpinEdit
+        Left = 376
+        Height = 21
+        Top = 272
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 27
+        Value = 30
+      end
+      object Label57: TLabel
+        Left = 8
+        Height = 16
+        Top = 304
+        Width = 96
+        Caption = 'Long Term Care'
+        OnClick = Label3Click
+      end
+      object SpinEditLongTermCare: TSpinEdit
+        Left = 136
+        Height = 21
+        Top = 304
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 28
+        Value = 4000
+      end
+      object Label58: TLabel
+        Left = 240
+        Height = 16
+        Top = 304
+        Width = 30
+        Caption = 'Start'
+      end
+      object SpinEditLongTermCareStart: TSpinEdit
+        Left = 280
+        Height = 21
+        Top = 304
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 29
+        Value = 15
+      end
+      object SpinEditLongTermCareEnd: TSpinEdit
+        Left = 376
+        Height = 21
+        Top = 304
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 30
+        Value = 20
+      end
+      object Label59: TLabel
+        Left = 8
+        Height = 16
+        Top = 441
+        Width = 119
+        Caption = 'Heallth/Dental/Eyes'
+        OnClick = Label3Click
+      end
+      object SpinEditHealthInsuranceChildren: TSpinEdit
+        Left = 168
+        Height = 21
+        Top = 440
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 31
+      end
+      object Label60: TLabel
+        Left = 272
+        Height = 16
+        Top = 441
+        Width = 30
+        Caption = 'Start'
+      end
+      object SpinEditHealthInsuranceChildrenStart: TSpinEdit
+        Left = 312
+        Height = 21
+        Top = 441
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 32
+      end
+      object Label61: TLabel
+        Left = 368
+        Height = 16
+        Top = 440
+        Width = 28
+        Caption = 'Stop'
+      end
+      object SpinEditHealthInsuranceChildrenEnd: TSpinEdit
+        Left = 408
+        Height = 21
+        Top = 440
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 33
+        Value = 5
+      end
+      object Label62: TLabel
+        Left = 9
+        Height = 16
+        Top = 373
+        Width = 67
+        Caption = 'Child Care'
+        Font.Style = [fsBold]
+        ParentFont = False
+      end
+      object Label68: TLabel
+        Left = 9
+        Height = 16
+        Top = 472
+        Width = 147
+        Caption = 'College Living Expenses'
+        OnClick = Label3Click
+      end
+      object SpinEditCollegeLivingExpenses: TSpinEdit
+        Left = 168
+        Height = 21
+        Top = 472
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 34
+        Value = 2500
+      end
+      object Label69: TLabel
+        Left = 272
+        Height = 16
+        Top = 472
+        Width = 30
+        Caption = 'Start'
+      end
+      object SpinEditCollegeLivingExpensesStart: TSpinEdit
+        Left = 312
+        Height = 21
+        Top = 472
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 35
+      end
+      object Label70: TLabel
+        Left = 368
+        Height = 16
+        Top = 472
+        Width = 28
+        Caption = 'Stop'
+      end
+      object SpinEditCollegeLivingExpensesEnd: TSpinEdit
+        Left = 408
+        Height = 21
+        Top = 472
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 36
+        Value = 3
+      end
+      object FloatSpinEditInflation: TFloatSpinEdit
+        Left = 368
+        Height = 21
+        Top = 8
+        Width = 50
+        DecimalPlaces = 1
+        Increment = 0.1
+        TabOrder = 37
+        Value = 3.5
+      end
+      object CheckBoxInflation: TCheckBox
+        Left = 232
+        Height = 18
+        Top = 8
+        Width = 126
+        Caption = 'Adjust for Inflation'
+        TabOrder = 38
+      end
+    end
+    object TabSheet4: TTabSheet
+      Caption = 'Nest Egg'
+      ClientHeight = 554
+      ClientWidth = 730
+      object Label5: TLabel
+        Left = 224
+        Height = 16
+        Top = 13
+        Width = 82
+        Caption = 'Nest Egg End'
+        OnClick = Label3Click
+      end
+      object LabelNestEggEnd: TLabel
+        Left = 328
+        Height = 16
+        Top = 13
+        Width = 42
+        Caption = '[None]'
+        OnClick = Label3Click
+      end
+      object Label4: TLabel
+        Left = 8
+        Height = 16
+        Top = 13
+        Width = 89
+        Caption = 'Nest Egg Start'
+        OnClick = Label3Click
+      end
+      object SpinEditNestEgg: TSpinEdit
+        Left = 112
+        Height = 21
+        Top = 8
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 0
+        Value = 1800000
+      end
+    end
+    object TabSheet5: TTabSheet
+      Caption = ' Taxes'
+      ClientHeight = 554
+      ClientWidth = 730
+      object CheckBoxTaxFreeSource: TCheckBox
+        Left = 47
+        Height = 18
+        Top = 26
+        Width = 202
+        Caption = 'Pay Taxes from Tax Free Source'
+        TabOrder = 0
+      end
+    end
+    object TabSheet6: TTabSheet
+      Caption = 'Monte Carlo'
+      ClientHeight = 554
+      ClientWidth = 730
+      object SpinEditMultiRun: TSpinEdit
+        Left = 160
+        Height = 21
+        Top = 56
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 0
+        Value = 1500
+      end
+      object Label56: TLabel
+        Left = 48
+        Height = 16
+        Top = 61
+        Width = 98
+        Caption = 'Number of Runs'
+      end
+      object CheckBoxMultiRun: TCheckBox
+        Left = 31
+        Height = 18
+        Top = 23
+        Width = 117
+        Caption = 'Enable Multi Run'
+        TabOrder = 1
+      end
+      object ChartStatistics: TChart
+        Left = 16
+        Height = 192
+        Top = 128
+        Width = 696
+        AxisList = <        
+          item
+            Marks.LabelBrush.Style = bsClear
+            Minors = <>
+            Title.LabelFont.Orientation = 900
+            Title.LabelBrush.Style = bsClear
+          end        
+          item
+            Alignment = calBottom
+            Marks.LabelBrush.Style = bsClear
+            Minors = <>
+            Title.LabelBrush.Style = bsClear
+          end>
+        Legend.Visible = True
+        Title.Text.Strings = (
+          'TAChart'
+        )
+        object BarSeriesStatistics: TBarSeries
+          BarBrush.Color = clRed
+        end
+      end
+      object Label10: TLabel
+        Left = 16
+        Height = 16
+        Top = 104
+        Width = 110
+        Caption = 'Minimum NestEgg'
+      end
+      object ChartStatisticsUserYear: TChart
+        Left = 16
+        Height = 192
+        Top = 352
+        Width = 696
+        AxisList = <        
+          item
+            Marks.LabelBrush.Style = bsClear
+            Minors = <>
+            Title.LabelFont.Orientation = 900
+            Title.LabelBrush.Style = bsClear
+          end        
+          item
+            Alignment = calBottom
+            Marks.LabelBrush.Style = bsClear
+            Minors = <>
+            Title.LabelBrush.Style = bsClear
+          end>
+        Legend.Visible = True
+        Title.Text.Strings = (
+          'TAChart'
+        )
+        object BarSeriesStatisticsUserYear: TBarSeries
+          Legend.UserItemsCount = 5
+          Legend.Visible = False
+          BarBrush.Color = clRed
+        end
+      end
+      object Label71: TLabel
+        Left = 26
+        Height = 16
+        Top = 328
+        Width = 187
+        Caption = 'NestEgg at User Defined Years'
+      end
+      object SpinEditMultiRunUserYearNestEgg: TSpinEdit
+        Left = 224
+        Height = 21
+        Top = 323
+        Width = 90
+        MaxValue = 30
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 4
+        Value = 30
+      end
+    end
+  end
+end
