@@ -1,12 +1,12 @@
 object Form1: TForm1
   Left = 140
-  Height = 822
+  Height = 948
   Top = 130
   Width = 1535
   Caption = 'Form1'
-  ClientHeight = 822
+  ClientHeight = 948
   ClientWidth = 1535
-  LCLVersion = '2.2.0.4'
+  LCLVersion = '2.2.4.0'
   object Button1: TButton
     Left = 784
     Height = 25
@@ -165,6 +165,7 @@ object Form1: TForm1
     Top = 62
     Width = 44
     Caption = 'Income'
+    ParentColor = False
   end
   object Label47: TLabel
     Left = 792
@@ -172,6 +173,7 @@ object Form1: TForm1
     Top = 280
     Width = 34
     Caption = 'Taxes'
+    ParentColor = False
   end
   object Label48: TLabel
     Left = 777
@@ -179,6 +181,7 @@ object Form1: TForm1
     Top = 472
     Width = 83
     Caption = 'Expendatures'
+    ParentColor = False
   end
   object Label49: TLabel
     Left = 1177
@@ -186,6 +189,7 @@ object Form1: TForm1
     Top = 312
     Width = 46
     Caption = 'Interest'
+    ParentColor = False
   end
   object Label50: TLabel
     Left = 1184
@@ -193,11 +197,12 @@ object Form1: TForm1
     Top = 21
     Width = 55
     Caption = 'Nest Egg'
+    ParentColor = False
   end
   object ChartNetGains: TChart
     Left = 24
     Height = 152
-    Top = 656
+    Top = 746
     Width = 336
     AxisList = <    
       item
@@ -225,7 +230,7 @@ object Form1: TForm1
   object ChartIdeal4Percent: TChart
     Left = 384
     Height = 152
-    Top = 656
+    Top = 746
     Width = 336
     AxisList = <    
       item
@@ -283,23 +288,26 @@ object Form1: TForm1
   object Label51: TLabel
     Left = 36
     Height = 16
-    Top = 638
+    Top = 728
     Width = 59
     Caption = 'Net Gains'
+    ParentColor = False
   end
   object Label52: TLabel
     Left = 416
     Height = 16
-    Top = 638
-    Width = 52
+    Top = 728
+    Width = 53
     Caption = 'Ideal 4%'
+    ParentColor = False
   end
   object Label53: TLabel
     Left = 792
     Height = 16
     Top = 632
-    Width = 125
+    Width = 126
     Caption = 'Offset from Ideal 4%'
+    ParentColor = False
   end
   object Label54: TLabel
     Left = 1195
@@ -307,6 +315,7 @@ object Form1: TForm1
     Top = 484
     Width = 76
     Caption = 'Yearly Gross'
+    ParentColor = False
   end
   object ChartYearlyGross: TChart
     Left = 1184
@@ -373,19 +382,20 @@ object Form1: TForm1
     Top = 647
     Width = 180
     Caption = 'Previous Year Taxable Income'
+    ParentColor = False
   end
   object PageControl1: TPageControl
     Left = 16
-    Height = 584
+    Height = 672
     Top = 24
     Width = 736
-    ActivePage = TabSheet6
+    ActivePage = TabSheet3
     ParentFont = False
-    TabIndex = 5
+    TabIndex = 2
     TabOrder = 11
     object TabSheet1: TTabSheet
       Caption = 'People and Income'
-      ClientHeight = 554
+      ClientHeight = 642
       ClientWidth = 730
       object SpinEditJimPensionYears: TSpinEdit
         Left = 556
@@ -403,13 +413,15 @@ object Form1: TForm1
         Top = 93
         Width = 85
         Caption = 'Pension Years'
+        ParentColor = False
       end
       object Label15: TLabel
         Left = 8
         Height = 16
         Top = 36
-        Width = 76
+        Width = 77
         Caption = 'Cheryl''s Age'
+        ParentColor = False
       end
       object SpinEditCherylAge: TSpinEdit
         Left = 120
@@ -431,15 +443,17 @@ object Form1: TForm1
         Left = 8
         Height = 16
         Top = 13
-        Width = 58
+        Width = 59
         Caption = 'Jim''s Age'
+        ParentColor = False
       end
       object Label13: TLabel
         Left = 168
         Height = 16
         Top = 92
-        Width = 166
+        Width = 165
         Caption = 'Social Security per Year ($)'
+        ParentColor = False
       end
       object SpinEditCherylSocialSecurity: TSpinEdit
         Left = 344
@@ -465,8 +479,9 @@ object Form1: TForm1
         Left = 168
         Height = 16
         Top = 69
-        Width = 166
+        Width = 165
         Caption = 'Social Security per Year ($)'
+        ParentColor = False
       end
       object SpinEditJimPension: TSpinEdit
         Left = 568
@@ -484,6 +499,7 @@ object Form1: TForm1
         Top = 69
         Width = 135
         Caption = 'Pension per Month ($)'
+        ParentColor = False
       end
       object Label3: TLabel
         Left = 192
@@ -491,6 +507,7 @@ object Form1: TForm1
         Top = 13
         Width = 93
         Caption = 'Retirement Age'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditRetirementAge: TSpinEdit
@@ -506,15 +523,17 @@ object Form1: TForm1
         Left = 8
         Height = 16
         Top = 92
-        Width = 105
+        Width = 106
         Caption = 'Cheryl''s Max Age'
+        ParentColor = False
       end
       object Label1: TLabel
         Left = 8
         Height = 16
         Top = 69
-        Width = 87
+        Width = 88
         Caption = 'Jim''s Max Age'
+        ParentColor = False
       end
       object SpinEditCherylMaxAge: TSpinEdit
         Left = 120
@@ -538,6 +557,7 @@ object Form1: TForm1
         Top = 137
         Width = 145
         Caption = 'Outside Income (yearly)'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditOutsideIncome1: TSpinEdit
@@ -555,6 +575,7 @@ object Form1: TForm1
         Top = 137
         Width = 30
         Caption = 'Start'
+        ParentColor = False
       end
       object SpinEditOutsideIncomeStart1: TSpinEdit
         Left = 312
@@ -571,6 +592,7 @@ object Form1: TForm1
         Top = 136
         Width = 28
         Caption = 'Stop'
+        ParentColor = False
       end
       object SpinEditOutsideIncomeEnd1: TSpinEdit
         Left = 408
@@ -588,6 +610,7 @@ object Form1: TForm1
         Top = 169
         Width = 145
         Caption = 'Outside Income (yearly)'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditOutsideIncome2: TSpinEdit
@@ -605,6 +628,7 @@ object Form1: TForm1
         Top = 169
         Width = 30
         Caption = 'Start'
+        ParentColor = False
       end
       object SpinEditOutsideIncomeStart2: TSpinEdit
         Left = 312
@@ -621,6 +645,7 @@ object Form1: TForm1
         Top = 168
         Width = 28
         Caption = 'Stop'
+        ParentColor = False
       end
       object SpinEditOutsideIncomeEnd2: TSpinEdit
         Left = 408
@@ -635,13 +660,13 @@ object Form1: TForm1
     end
     object TabSheet2: TTabSheet
       Caption = 'Interest Rate'
-      ClientHeight = 554
+      ClientHeight = 642
       ClientWidth = 730
       object CheckBoxIncludeBadYear: TCheckBox
         Left = 8
         Height = 18
         Top = 64
-        Width = 126
+        Width = 130
         Caption = 'Include a bad year'
         TabOrder = 0
       end
@@ -678,15 +703,17 @@ object Form1: TForm1
         Left = 416
         Height = 16
         Top = 13
-        Width = 11
+        Width = 12
         Caption = '%'
+        ParentColor = False
       end
       object Label8: TLabel
         Left = 304
         Height = 16
         Top = 13
-        Width = 11
+        Width = 12
         Caption = '%'
+        ParentColor = False
       end
       object Label7: TLabel
         Left = 328
@@ -694,6 +721,7 @@ object Form1: TForm1
         Top = 13
         Width = 25
         Caption = 'Max'
+        ParentColor = False
       end
       object Label6: TLabel
         Left = 216
@@ -701,6 +729,7 @@ object Form1: TForm1
         Top = 13
         Width = 22
         Caption = 'Min'
+        ParentColor = False
       end
       object LabelInterestMaxLoss: TLabel
         Left = 220
@@ -708,6 +737,7 @@ object Form1: TForm1
         Top = 176
         Width = 114
         Caption = 'Interest Max Loss: '
+        ParentColor = False
       end
       object LabelInterestMaxGain: TLabel
         Left = 8
@@ -715,6 +745,7 @@ object Form1: TForm1
         Top = 176
         Width = 113
         Caption = 'Interest Max Gain: '
+        ParentColor = False
       end
       object LabelInterestConsectutiveYearLoss: TLabel
         Left = 8
@@ -722,6 +753,7 @@ object Form1: TForm1
         Top = 40
         Width = 226
         Caption = 'Interest Consecutive Loss Years Max:'
+        ParentColor = False
       end
       object LabelInterestPercentLoss: TLabel
         Left = 8
@@ -729,6 +761,7 @@ object Form1: TForm1
         Top = 152
         Width = 151
         Caption = 'Interest Percent of Loss: '
+        ParentColor = False
       end
       object LabelInterestAverage: TLabel
         Left = 8
@@ -736,6 +769,7 @@ object Form1: TForm1
         Top = 128
         Width = 106
         Caption = 'Interest Average: '
+        ParentColor = False
       end
       object Label67: TLabel
         Left = 8
@@ -743,11 +777,12 @@ object Form1: TForm1
         Top = 13
         Width = 172
         Caption = 'Target Average Interest Rate'
+        ParentColor = False
       end
     end
     object TabSheet3: TTabSheet
       Caption = 'Expendatures'
-      ClientHeight = 554
+      ClientHeight = 642
       ClientWidth = 730
       object SpinEditYearlyGrossSalary: TSpinEdit
         Left = 112
@@ -765,6 +800,7 @@ object Form1: TForm1
         Top = 13
         Width = 78
         Caption = 'Yearly Salary'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditMortgage: TSpinEdit
@@ -783,14 +819,16 @@ object Form1: TForm1
         Top = 70
         Width = 59
         Caption = 'Mortgage'
+        ParentColor = False
         OnClick = Label3Click
       end
       object Label19: TLabel
         Left = 8
         Height = 16
         Top = 98
-        Width = 119
+        Width = 118
         Caption = 'Heallth/Dental/Eyes'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditHealthInsurance: TSpinEdit
@@ -801,7 +839,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 2
-        Value = 1800
+        Value = 2100
       end
       object LabelUtilities: TLabel
         Left = 8
@@ -809,6 +847,7 @@ object Form1: TForm1
         Top = 126
         Width = 46
         Caption = 'Utilities'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditUtilities: TSpinEdit
@@ -819,7 +858,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 3
-        Value = 250
+        Value = 300
       end
       object Label21: TLabel
         Left = 8
@@ -827,6 +866,7 @@ object Form1: TForm1
         Top = 153
         Width = 38
         Caption = 'Phone'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditPhone: TSpinEdit
@@ -875,7 +915,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 8
-        Value = 10
+        Value = 8
       end
       object SpinEditUtilitiesStart: TSpinEdit
         Left = 280
@@ -921,6 +961,7 @@ object Form1: TForm1
         Top = 70
         Width = 30
         Caption = 'Start'
+        ParentColor = False
       end
       object Label23: TLabel
         Left = 336
@@ -928,6 +969,7 @@ object Form1: TForm1
         Top = 69
         Width = 28
         Caption = 'Stop'
+        ParentColor = False
       end
       object Label24: TLabel
         Left = 240
@@ -935,6 +977,7 @@ object Form1: TForm1
         Top = 98
         Width = 30
         Caption = 'Start'
+        ParentColor = False
       end
       object Label25: TLabel
         Left = 336
@@ -942,6 +985,7 @@ object Form1: TForm1
         Top = 97
         Width = 28
         Caption = 'Stop'
+        ParentColor = False
       end
       object Label26: TLabel
         Left = 240
@@ -949,6 +993,7 @@ object Form1: TForm1
         Top = 126
         Width = 30
         Caption = 'Start'
+        ParentColor = False
       end
       object Label27: TLabel
         Left = 336
@@ -956,6 +1001,7 @@ object Form1: TForm1
         Top = 125
         Width = 28
         Caption = 'Stop'
+        ParentColor = False
       end
       object Label28: TLabel
         Left = 240
@@ -963,6 +1009,7 @@ object Form1: TForm1
         Top = 153
         Width = 30
         Caption = 'Start'
+        ParentColor = False
       end
       object Label29: TLabel
         Left = 336
@@ -970,6 +1017,7 @@ object Form1: TForm1
         Top = 153
         Width = 28
         Caption = 'Stop'
+        ParentColor = False
       end
       object Label30: TLabel
         Left = 232
@@ -977,13 +1025,15 @@ object Form1: TForm1
         Top = 40
         Width = 202
         Caption = 'Start/Stop Years After Retirement'
+        ParentColor = False
       end
       object Label31: TLabel
         Left = 424
         Height = 16
         Top = 12
-        Width = 11
+        Width = 12
         Caption = '%'
+        ParentColor = False
       end
       object Label32: TLabel
         Left = 8
@@ -991,6 +1041,7 @@ object Form1: TForm1
         Top = 181
         Width = 61
         Caption = 'Car Loans'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditCarLoan: TSpinEdit
@@ -1001,7 +1052,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 13
-        Value = 600
+        Value = 300
       end
       object SpinEditCarLoanStart: TSpinEdit
         Left = 280
@@ -1026,8 +1077,9 @@ object Form1: TForm1
         Left = 8
         Height = 16
         Top = 208
-        Width = 91
+        Width = 90
         Caption = 'Property Taxes'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditPropertyTaxes: TSpinEdit
@@ -1046,6 +1098,7 @@ object Form1: TForm1
         Top = 208
         Width = 30
         Caption = 'Start'
+        ParentColor = False
       end
       object SpinEditPropertyTaxesStart: TSpinEdit
         Left = 280
@@ -1063,6 +1116,7 @@ object Form1: TForm1
         Top = 208
         Width = 28
         Caption = 'Stop'
+        ParentColor = False
       end
       object SpinEditPropertyTaxesEnd: TSpinEdit
         Left = 376
@@ -1080,6 +1134,7 @@ object Form1: TForm1
         Top = 240
         Width = 84
         Caption = 'Car Insurance'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditCarInsurance: TSpinEdit
@@ -1090,7 +1145,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 19
-        Value = 330
+        Value = 400
       end
       object Label39: TLabel
         Left = 240
@@ -1098,6 +1153,7 @@ object Form1: TForm1
         Top = 240
         Width = 30
         Caption = 'Start'
+        ParentColor = False
       end
       object SpinEditCarInsuranceStart: TSpinEdit
         Left = 280
@@ -1114,6 +1170,7 @@ object Form1: TForm1
         Top = 240
         Width = 28
         Caption = 'Stop'
+        ParentColor = False
       end
       object SpinEditCarInsuranceEnd: TSpinEdit
         Left = 376
@@ -1131,6 +1188,7 @@ object Form1: TForm1
         Top = 408
         Width = 90
         Caption = 'College Tuition'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditCollegeTuition: TSpinEdit
@@ -1149,6 +1207,7 @@ object Form1: TForm1
         Top = 408
         Width = 30
         Caption = 'Start'
+        ParentColor = False
       end
       object SpinEditCollegeTuitionStart: TSpinEdit
         Left = 312
@@ -1158,7 +1217,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 23
-        Value = 4
+        Value = 3
       end
       object Label43: TLabel
         Left = 368
@@ -1166,6 +1225,7 @@ object Form1: TForm1
         Top = 408
         Width = 28
         Caption = 'Stop'
+        ParentColor = False
       end
       object SpinEditCollegeTuitionEnd: TSpinEdit
         Left = 408
@@ -1175,7 +1235,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 24
-        Value = 14
+        Value = 13
       end
       object Label44: TLabel
         Left = 8
@@ -1183,6 +1243,7 @@ object Form1: TForm1
         Top = 272
         Width = 59
         Caption = 'Groceries'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditGroceries: TSpinEdit
@@ -1201,6 +1262,7 @@ object Form1: TForm1
         Top = 272
         Width = 30
         Caption = 'Start'
+        ParentColor = False
       end
       object SpinEditGroceriesStart: TSpinEdit
         Left = 280
@@ -1217,6 +1279,7 @@ object Form1: TForm1
         Top = 272
         Width = 28
         Caption = 'Stop'
+        ParentColor = False
       end
       object SpinEditGroceriesEnd: TSpinEdit
         Left = 376
@@ -1234,6 +1297,7 @@ object Form1: TForm1
         Top = 304
         Width = 96
         Caption = 'Long Term Care'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditLongTermCare: TSpinEdit
@@ -1252,6 +1316,7 @@ object Form1: TForm1
         Top = 304
         Width = 30
         Caption = 'Start'
+        ParentColor = False
       end
       object SpinEditLongTermCareStart: TSpinEdit
         Left = 280
@@ -1277,8 +1342,9 @@ object Form1: TForm1
         Left = 8
         Height = 16
         Top = 441
-        Width = 119
+        Width = 118
         Caption = 'Heallth/Dental/Eyes'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditHealthInsuranceChildren: TSpinEdit
@@ -1296,6 +1362,7 @@ object Form1: TForm1
         Top = 441
         Width = 30
         Caption = 'Start'
+        ParentColor = False
       end
       object SpinEditHealthInsuranceChildrenStart: TSpinEdit
         Left = 312
@@ -1312,6 +1379,7 @@ object Form1: TForm1
         Top = 440
         Width = 28
         Caption = 'Stop'
+        ParentColor = False
       end
       object SpinEditHealthInsuranceChildrenEnd: TSpinEdit
         Left = 408
@@ -1330,6 +1398,7 @@ object Form1: TForm1
         Width = 67
         Caption = 'Child Care'
         Font.Style = [fsBold]
+        ParentColor = False
         ParentFont = False
       end
       object Label68: TLabel
@@ -1338,6 +1407,7 @@ object Form1: TForm1
         Top = 472
         Width = 147
         Caption = 'College Living Expenses'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditCollegeLivingExpenses: TSpinEdit
@@ -1356,6 +1426,7 @@ object Form1: TForm1
         Top = 472
         Width = 30
         Caption = 'Start'
+        ParentColor = False
       end
       object SpinEditCollegeLivingExpensesStart: TSpinEdit
         Left = 312
@@ -1372,6 +1443,7 @@ object Form1: TForm1
         Top = 472
         Width = 28
         Caption = 'Stop'
+        ParentColor = False
       end
       object SpinEditCollegeLivingExpensesEnd: TSpinEdit
         Left = 408
@@ -1397,14 +1469,121 @@ object Form1: TForm1
         Left = 232
         Height = 18
         Top = 8
-        Width = 126
+        Width = 130
         Caption = 'Adjust for Inflation'
         TabOrder = 38
+      end
+      object SpinEditLoanRepayEnd: TSpinEdit
+        Left = 408
+        Height = 21
+        Top = 520
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 39
+        Value = 10
+      end
+      object Label72: TLabel
+        Left = 368
+        Height = 16
+        Top = 520
+        Width = 28
+        Caption = 'Stop'
+        ParentColor = False
+      end
+      object SpinEditLoanRepayStart: TSpinEdit
+        Left = 312
+        Height = 21
+        Top = 520
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 40
+      end
+      object Label73: TLabel
+        Left = 272
+        Height = 16
+        Top = 520
+        Width = 30
+        Caption = 'Start'
+        ParentColor = False
+      end
+      object SpinEditLoanRepay: TSpinEdit
+        Left = 168
+        Height = 21
+        Top = 520
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 41
+        Value = 950
+      end
+      object Label74: TLabel
+        Left = 9
+        Height = 16
+        Top = 520
+        Width = 70
+        Caption = 'Loan Repay'
+        ParentColor = False
+        OnClick = Label3Click
+      end
+      object SpinEditOtherEnd: TSpinEdit
+        Left = 408
+        Height = 21
+        Top = 552
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 42
+        Value = 3
+      end
+      object SpinEditOther: TSpinEdit
+        Left = 168
+        Height = 21
+        Top = 552
+        Width = 90
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 43
+      end
+      object Other1: TLabel
+        Left = 8
+        Height = 16
+        Top = 554
+        Width = 34
+        Caption = 'Other'
+        ParentColor = False
+        OnClick = Label3Click
+      end
+      object Label75: TLabel
+        Left = 368
+        Height = 16
+        Top = 558
+        Width = 28
+        Caption = 'Stop'
+        ParentColor = False
+      end
+      object Label76: TLabel
+        Left = 272
+        Height = 16
+        Top = 560
+        Width = 30
+        Caption = 'Start'
+        ParentColor = False
+      end
+      object SpinEditOtherStart: TSpinEdit
+        Left = 312
+        Height = 21
+        Top = 554
+        Width = 50
+        MaxValue = 10000000
+        OnChange = SpinEditRetirementAgeChange
+        TabOrder = 44
       end
     end
     object TabSheet4: TTabSheet
       Caption = 'Nest Egg'
-      ClientHeight = 554
+      ClientHeight = 642
       ClientWidth = 730
       object Label5: TLabel
         Left = 224
@@ -1412,6 +1591,7 @@ object Form1: TForm1
         Top = 13
         Width = 82
         Caption = 'Nest Egg End'
+        ParentColor = False
         OnClick = Label3Click
       end
       object LabelNestEggEnd: TLabel
@@ -1420,14 +1600,16 @@ object Form1: TForm1
         Top = 13
         Width = 42
         Caption = '[None]'
+        ParentColor = False
         OnClick = Label3Click
       end
       object Label4: TLabel
         Left = 8
         Height = 16
         Top = 13
-        Width = 89
+        Width = 88
         Caption = 'Nest Egg Start'
+        ParentColor = False
         OnClick = Label3Click
       end
       object SpinEditNestEgg: TSpinEdit
@@ -1438,25 +1620,25 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 0
-        Value = 1800000
+        Value = 1700000
       end
     end
     object TabSheet5: TTabSheet
       Caption = ' Taxes'
-      ClientHeight = 554
+      ClientHeight = 642
       ClientWidth = 730
       object CheckBoxTaxFreeSource: TCheckBox
         Left = 47
         Height = 18
         Top = 26
-        Width = 202
+        Width = 206
         Caption = 'Pay Taxes from Tax Free Source'
         TabOrder = 0
       end
     end
     object TabSheet6: TTabSheet
       Caption = 'Monte Carlo'
-      ClientHeight = 554
+      ClientHeight = 642
       ClientWidth = 730
       object SpinEditMultiRun: TSpinEdit
         Left = 160
@@ -1474,12 +1656,13 @@ object Form1: TForm1
         Top = 61
         Width = 98
         Caption = 'Number of Runs'
+        ParentColor = False
       end
       object CheckBoxMultiRun: TCheckBox
         Left = 31
         Height = 18
         Top = 23
-        Width = 117
+        Width = 121
         Caption = 'Enable Multi Run'
         TabOrder = 1
       end
@@ -1515,6 +1698,7 @@ object Form1: TForm1
         Top = 104
         Width = 110
         Caption = 'Minimum NestEgg'
+        ParentColor = False
       end
       object ChartStatisticsUserYear: TChart
         Left = 16
@@ -1550,6 +1734,7 @@ object Form1: TForm1
         Top = 328
         Width = 187
         Caption = 'NestEgg at User Defined Years'
+        ParentColor = False
       end
       object SpinEditMultiRunUserYearNestEgg: TSpinEdit
         Left = 224

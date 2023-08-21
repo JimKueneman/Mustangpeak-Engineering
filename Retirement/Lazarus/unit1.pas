@@ -130,6 +130,12 @@ type
     Label7: TLabel;
     Label70: TLabel;
     Label71: TLabel;
+    Label72: TLabel;
+    Label73: TLabel;
+    Label74: TLabel;
+    Label75: TLabel;
+    Label76: TLabel;
+    Other1: TLabel;
     Label8: TLabel;
     Label9: TLabel;
     LabelInterestAverage: TLabel;
@@ -159,6 +165,12 @@ type
     SpinEditCherylAge: TSpinEdit;
     SpinEditCherylMaxAge: TSpinEdit;
     SpinEditCherylSocialSecurity: TSpinEdit;
+    SpinEditLoanRepay: TSpinEdit;
+    SpinEditOther: TSpinEdit;
+    SpinEditLoanRepayEnd: TSpinEdit;
+    SpinEditOtherEnd: TSpinEdit;
+    SpinEditLoanRepayStart: TSpinEdit;
+    SpinEditOtherStart: TSpinEdit;
     SpinEditCollegeTuition: TSpinEdit;
     SpinEditCollegeLivingExpenses: TSpinEdit;
     SpinEditCollegeTuitionEnd: TSpinEdit;
@@ -517,6 +529,13 @@ begin
 
       if (i >= SpinEditCollegeLivingExpensesStart.Value) and (i <= SpinEditCollegeLivingExpensesEnd.Value) then
         FYearlyDataArray[i].Expendatures := FYearlyDataArray[i].Expendatures +  SpinEditCollegeLivingExpenses.Value*12;
+
+
+      if (i >= SpinEditOtherStart.Value) and (i <= SpinEditOtherEnd.Value) then
+        FYearlyDataArray[i].Expendatures := FYearlyDataArray[i].Expendatures +  SpinEditOther.Value*12;
+
+      if (i >= SpinEditLoanRepayStart.Value) and (i <= SpinEditLoanRepayEnd.Value) then
+        FYearlyDataArray[i].Expendatures := FYearlyDataArray[i].Expendatures +  SpinEditLoanRepay.Value*12;
 
       //------------------------------------------------------------------------------
 
