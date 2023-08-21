@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Playground for blob-util</title>
+
+  <script src="scripts/prettify/prettify.js"></script>
+  <script src="scripts/prettify/lang-css.js"></script>
+  <!--[if lt IE 9]>
+  <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+  <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+  <style>
+    body {
+      padding: 20px;
+    }
+    #main {
+      margin: 0 auto;
+      max-width: 800px;
+      float: none;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="main">
+
+  <h1 class="page-title">Playground for blob-util</h1>
+
+
+  <p>Welcome to the playground for <a
+    href="https://github.com/nolanlawson/blob-util"><code>blob-util</code></a>!</p>
+  <p>Below is a little Kirby GIF you can play around with.</p>
+  <p><img id="kirby" alt="Kirby" src="kirby.gif"/></p>
+  <p>Here's some code to get you started. Copy-paste this into your console:</p>
+  <pre class="prettyprint source" style="border-left: 3px solid #A35A00; margin-left: 20px; max-width: 700px;">
+    <code>
+    var img = document.getElementById('kirby');
+
+    blobUtil.imgSrcToBlob(img.src).then(function (blob) {
+      var blobURL = blobUtil.createObjectURL(blob);
+
+      var newImg = document.createElement('img');
+      newImg.src = blobURL;
+
+      img.parentNode.appendChild(newImg);
+    });</code>
+</pre>
+  <p>If you see two Kirbys, you're on your way!</p>
+
+</div>
+
+<script> prettyPrint() </script>
+<script src="scripts/linenumber.js"></script>
+<script src="https://unpkg.com/blob-util/dist/blob-util.js"></script>
+</body>
+</html>

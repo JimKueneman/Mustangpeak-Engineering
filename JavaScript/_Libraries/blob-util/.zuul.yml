@@ -1,0 +1,19 @@
+ui: mocha-bdd
+concurrency: 1
+tunnel:
+  type: ngrok
+browsers:
+  - name: chrome
+    version: latest
+  - name: firefox
+    version: latest
+  - name: safari
+    version: latest
+  - name: ie
+    version: 10
+  - name: microsoftedge
+    version: latest
+  - name: iphone
+    version: latest
+  - name: android
+    version: 4.4

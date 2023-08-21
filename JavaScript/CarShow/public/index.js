@@ -583,6 +583,11 @@ async function initMap() {
     // END 
     // *******************************************************************
 
+    // start out disabled
+    document.getElementById("runOcrButtonId").disabled = true
+
+    let blobArray = new Array()
+
     // *******************************************************************
     // Handlers for the image Pasting/Clearing calls
     // *******************************************************************
@@ -593,8 +598,13 @@ async function initMap() {
           var clipboardFile = eventPaste.clipboardData.files[iclipItem]; 
           if (clipboardFile.type.startsWith('image/')) {
             var blob = URL.createObjectURL(clipboardFile)
-            document.getElementById("container").src = blob    
-            alert("image pasted")
+            let uniqueID = "pasteImageContainer" + UniquieIdCounter
+            UniquieIdCounter++
+            var dynamicHTML = '<img id="' + uniqueID + '" class="carouselImageitem" />'
+            document.getElementById("pasteImageGalleryDiv").insertAdjacentHTML("beforeend", dynamicHTML)
+            document.getElementById(uniqueID).src = blob
+            document.getElementById("runOcrButtonId").disabled = false
+            blobArray[blobArray.length] = blob
           } 
         } 
       });
@@ -602,41 +612,43 @@ async function initMap() {
       // Handler: Button Push Paste 
       document.getElementById("pasteButtonId").addEventListener('click', () => {
 
-        ClipboardUtils.readImage(function(blob, error) {
-          if (error) {
-              console.log(error);
+        if (window.isSecureContext) {
+          ClipboardUtils.readImage(function(blob, error) {
+            if (error) {
+                console.log(error);
+                return;
+            }
+            if (blob) {
+              let uniqueID = "pasteImageContainer" + UniquieIdCounter
+              UniquieIdCounter++
+              var dynamicHTML = '<img id="' + uniqueID + '" class="carouselImageitem" />'
+              document.getElementById("pasteImageGalleryDiv").insertAdjacentHTML("beforeend", dynamicHTML)
+              document.getElementById(uniqueID).src = blob
+              document.getElementById("runOcrButtonId").disabled = false
+              blobArray[blobArray.length] = blob
               return;
-          }
-          if (blob) {
-            let uniqueID = "pasteImageContainer" + UniquieIdCounter
-            UniquieIdCounter++
-            var dynamicHTML = '<img id="' + uniqueID + '" class="carouselImageitem" />'
-            document.getElementById("pasteImageGalleryDiv").insertAdjacentHTML("beforeend", dynamicHTML)
-            document.getElementById(uniqueID).src = blob
-
-              // Tesseract.recognize(blob)
-              // .then (result => {
-              //    document.getElementById("convertedTextID").value = result.text
-              // })
-            return;
-          }
-          alert("Image is not avaialble - please 'copy' one to the clipboard.")
-          console.log('Image bitmap is not avaialble - copy it to clipboard.');
-        });
+            }
+            alert("Image is not avaialble - please 'copy' one to the clipboard.")
+            console.log('Image bitmap is not avaialble - copy it to clipboard.');
+          });
+        } else alert("Can only paste with secure (HTTP/LocalHost) connection") 
       });
 
-      // Handler: Button Push Paste 
+      // Handler: Button Clear
       document.getElementById("pasteImageClearButtonId").addEventListener('click', () => {
-        let pasteImageGalleryDiv = document.getElementById("pasteImageGalleryDiv")
 
-        var pastImageGalleryImage = pasteImageGalleryDiv.firstChild
-        while (!(pastImageGalleryImage == undefined)) {
-          pasteImageGalleryDiv.removeChild(pastImageGalleryImage)
-          pastImageGalleryImage = pasteImageGalleryDiv.firstChild
-        }    
-      })
+        if (window.isSecureContext) {
+          let pasteImageGalleryDiv = document.getElementById("pasteImageGalleryDiv")
 
-      
+          var pastImageGalleryImage = pasteImageGalleryDiv.firstChild
+          while (!(pastImageGalleryImage == null)) {
+            pasteImageGalleryDiv.removeChild(pastImageGalleryImage)
+            pastImageGalleryImage = pasteImageGalleryDiv.firstChild
+          }  
+          document.getElementById("runOcrButtonId").disabled = true
+          blobArray.length = 0
+        } else alert("Can only paste with secure (HTTP/LocalHost) connection") 
+      })  
     // END 
     // *******************************************************************
     
@@ -645,11 +657,11 @@ async function initMap() {
     // Handlers for the Show Enter Location information and GeoCoder calls
     // *******************************************************************
 
-
-      let newShowLocationValid = false  // Global variable to signal if the show location is valid 
+      let newLocationLatLng = undefined // Global variable to signal if the show location is valid 
+      let formatedAddress = undefined
 
       document.getElementById("locationInputId").addEventListener('input', () => {
-        newShowLocationValid = false
+        newLocationLatLng = undefined
         document.getElementById("locationTestButtonId").disabled = false
         document.getElementById("testLocationAddresslabelId").innerHTML = "Invalid: unknown"
         document.getElementById("testLocationlabelId").innerHTML  = "unknown"
@@ -661,18 +673,18 @@ async function initMap() {
       if (document.getElementById("locationInputId").value.length > 0) {
         geocoder.geocode({address: document.getElementById("locationInputId").value}, (results, status) => {
           if (status === 'OK') {
-            newShowLocationValid = true
+            newLocationLatLng = results[0].geometry.location
+            formatedAddress = results[0].formatted_address
             document.getElementById("locationTestButtonId").disabled = true
-
-            document.getElementById("testLocationAddresslabelId").innerHTML = "Success: " + results[0].formatted_address
+            document.getElementById("testLocationAddresslabelId").innerHTML = "Success: " + formatedAddress
             document.getElementById("testLocationlabelId").innerHTML = 
               " [lat: " + 
-              results[0].geometry.location.lat() +
+              newLocationLatLng.lat() +
               " lng: " +
-              results[0].geometry.location.lng() +
+              newLocationLatLng.lng() +
               "]"
           } else {
-            newShowLocationValid = false
+            newLocationLatLng = undefined
             document.getElementById("locationTestButtonId").disabled = false
             document.getElementById("testLocationAddresslabelId").innerHTML = "Invalid: unknown"
             document.getElementById("testLocationlabelId").innerHTML  = "unknown"
@@ -682,7 +694,30 @@ async function initMap() {
     })
     // END
     // *******************************************************************
-  })
+
+    document.getElementById("newshowSubmitButtonId").addEventListener('click', () => {
+      if (!(newLocationLatLng == null)) { 
+        if (document.getElementById("pasteImageGalleryDiv").childElementCount > 0) {
+          var txt = "Submit the following?  Location: " + formatedAddress +         
+          " [lat: " + newLocationLatLng.lat() +" lng: " + newLocationLatLng.lng() + "]" + 
+          "  Flyer Page Count: " + document.getElementById("pasteImageGalleryDiv").childElementCount
+          if (confirm(txt)) {
+            alert("Pretending to write to Database....")
+          }
+        } else alert("There is no flyer image assigned")
+      } else alert("Location has not been validated")
+    })
+
+    document.getElementById("runOcrButtonId").addEventListener('click', () => {
+      if (blobArray.length > 0) {
+        Tesseract.recognize(blobArray[0])
+          .then (result => { 
+            alert(result.text)
+          })    
+        } 
+    })
+
+  }) // document ready
 }
 
 initMap()
