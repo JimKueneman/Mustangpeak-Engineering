@@ -25,13 +25,14 @@
       .sidebar {
         height: 100%;
         width: 0;
+        max-width: 800;
         position: fixed;
         z-index: 1;
         top: 0;
         left: 0;
         background-color: #403f3f; 
         overflow-x: hidden;
-        transition: 0.5s;
+        transition: 0.1s;
         padding-top: 40px;
       }
       
@@ -129,7 +130,7 @@
       label.input-label_flatpickr {
           color: #8a8a8a;
           min-width:300px;
-          top: -28px;
+          top: -24px;
           position: absolute; /* so we can offet it negative and so the fancy label hilighting */
       }
 
@@ -151,6 +152,13 @@
         align-items: center;    
       }
 
+      .carouselImageitem {
+        flex: 0 0 auto; 
+        max-width: 360px;
+        padding: 10px;
+        background-color:#333;
+      }
+
       .carouselImageContainerMapInfoWindowItem {
         display: flex;
         flex-wrap: nowrap;
@@ -160,13 +168,6 @@
         align-items: center;    
         background-color:#333;
         max-width: 120px;
-      }
-
-      .carouselImageitem {
-        flex: 0 0 auto; 
-        max-width: 480px;
-        padding: 10px;
-        background-color:#333;
       }
 
       .carouselMapInfoWindowItem {
@@ -279,7 +280,7 @@
     </script>
     <!-- end // Flyer Add SideBar  -->
 
-    <span style="font-size:16px;cursor:pointer" onclick="OnOpenflyerAddSideBar()">&#9776; add new show...</span>
+    <span style="font-size:20px;cursor:pointer;margin:10px" onclick="OnOpenflyerAddSideBar()">&#9776; add new show...</span>
 
     <div class="container-database-input">
       <div class="group">

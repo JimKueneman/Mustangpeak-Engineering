@@ -1,44 +1,15 @@
 {
-  "Carshows": {
-    "Watson Lake, Prescott Az": {
-      "LatLng": null,
+  "Shows": {
+    "Google Maps Formated String": {
+      "LatLng": "Google Maps LatLng Object",
       "Date": "2023-08-05T07:00:00.000Z",
-      "Days": 2,
-      "FlyerKey": null,
-      "FlyerPages": ["watsonlake1.jpg", "watsonlake2.jpg"]
-    },
-    "Flagstaff, City Hall": {
-      "LatLng": null,
-      "Date": "2023-08-19T07:00:00.000Z",
-      "Days": 1,
-      "FlyerKey": null,
-      "FlyerPages": ["motherroad1.jpg", "motherroad2.jpg"]
-    },
-    "Graham County Fairgrounds": {
-      "LatLng": null,
-      "Date": "2023-08-05T07:00:00.000Z",
-      "Days": 1,
-      "FlyerKey": null,
-      "FlyerPages": ["mccabeproductions.jpg"]
-    },
-    "Yavapi County Courthouse, Prescott Az": {
-      "LatLng": null,
-      "Date": "2023-08-19T07:00:00.000Z",
-      "Days": 1,
-      "FlyerKey": null,
-      "FlyerPages": ["hopefest.jpg"]
-    },
-    "Safeway Plaza, Springerville Az": {
-      "LatLng": null,
-      "Date": "2023-08-05T07:00:00.000Z",
-      "Days": 1,
-      "FlyerKey": null,
-      "FlyerPages": ["rodsandhogs.jpg"]
+      "FlyerKey": "GUID"
     }
   },
   "Flyers": {
     "FlyerKey": {
-      "image": null
+      "image0": "string encoded with the image as a URL",
+      "image1": "string encoded with the image as a URL"
     }
   }
 }

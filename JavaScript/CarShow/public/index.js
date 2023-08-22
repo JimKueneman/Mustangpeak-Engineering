@@ -33,7 +33,9 @@ class CarShowObj {
 
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
-import {getDatabase, set, get, update, remove, ref, child, onValue} from "https://www.gstatic.com/firebasejs/10.1.0/firebase-database.js";
+import {getDatabase, set, get, push, update, remove, ref as dBref, child, onValue, query, 
+       limitToFirst, limitToLast, orderByChild, startAt, startAfter, endAt, endBefore, equalTo }
+        from "https://www.gstatic.com/firebasejs/10.1.0/firebase-database.js";
 
 let map;
 let geocoder;
@@ -56,10 +58,6 @@ function LatLngToPixel(AMap, AMarker) {
   return [Math.floor((worldPoint.x - bottomLeft.x) * scale), Math.floor((worldPoint.y - topRight.y) * scale)] 
 }
 
-
-function prepareSlideInFlyer() {
-
-}
 
 function getFormattedDate(date, isoFormat) {
   let year = date.getFullYear();
@@ -167,132 +165,70 @@ function ShowInfoWindow(map, CarShow, infowindow) {
   mouseoffset = { xPos: MarkerPixel[0], yPos: MarkerPixel[1] }
 }
 
-async function loadDatabase(map, database, carshows, imgMarker) {
-  return new Promise((resolve, reject) => {
-
-   // Get a reference to the "Carshows" block in the database
-    const CarShowsInDatabase = ref(database, "Carshows");
-
-    // Grab a snapshow of the items in the "Carshows" block
-    
-    onValue(CarShowsInDatabase, (snapshot) => {
-      // NOTICE:  THIS IS CALLED ANYTIME THE DATABASE CHANGES ON THE SERVER!!!!!!!!!!!
-      // Remove from the map and clear the Carshows
-      // May get fancier here and only change what is different someday.....
-      for (var iCarShow=0; iCarShow < carshows.length; iCarShow++) {
-        if (!(carshows[iCarShow].Marker == null)) {   // loose == should check for null or undefined
-          carshows[iCarShow].Marker.setMap(null)
-        }
-      };
-      carshows.splice(0, carshows.length)// https://www.tutorialspoint.com/in-javascript-how-to-empty-an-array
-
-      // Get the Value of those item
-      const snapshotValues = snapshot.val()
-
-      if (!(snapshotValues == null)) {
-        // TODO:  Location could be duplicated depending on how lazy the data input is for mulitple shows........
-        // Get the Keys of the carshow (the Location is the Key)
-        const snapshotKeysArray = Object.keys(snapshotValues)
-        const snapshotValuesArray = Object.values(snapshotValues)   
-  
-        // Create our CarShow data struture from the database
-        for (var iKey=0; iKey < snapshotKeysArray.length; iKey++) {
-          var CarShow = new CarShowObj
-          CarShow.Location = snapshotKeysArray[iKey];
-          CarShow.Date = new Date(snapshotValuesArray[iKey]["Date"])
-          CarShow.Date.setHours(0, 0, 0, 0);
-          CarShow.Days = snapshotValuesArray[iKey]["Days"]
-          CarShow.DateEnd = new Date(CarShow.Date.getTime() + (CarShow.Days-1) * oneDayInMilliSeconds)
-          CarShow.DateEnd.setHours(0, 0, 0, 0);
-          CarShow.LatLng = snapshotValuesArray[iKey]["LatLng"]
-          CarShow.FlyerImageNames = snapshotValuesArray[iKey]["FlyerPages"]
-          carshows[carshows.length] = CarShow  // push seem to be non munitive... the changes are not reflected when the function returns
-        }
-
-
-        validateGeoLocations(map, database, imgMarker, carshows)
-        .then( () => {
-          console.log('validateGeoLocations resoved')
-          createMarkers(carshows, imgMarker)
-          .then( () => {
-            console.log('createMarkers resolved')
-            resolve()
-          }).catch ( () => {
-            reject()
-          })
-        });
-
-      }
-    }, (Error) => {
-      reject(Error)
-    })
-  });
-  
-};
 
 // Uses Fuction Closure, good reference here: https://www.javascripttutorial.net/javascript-closure/
 // Using the "let" for the variables that needs to be saved on the stack for each instance of the for loop
 // this is ES6 (2015 document) and up only.  The old way is more messy for code and is the IFEE way with 
 // functions that return functions
-async function validateGeoLocations(map, database, imgMarker, carshows) {
-  return new Promise((resolve, reject) => {
+// async function validateGeoLocations(map, database, imgMarker, carshows) {
+//   return new Promise((resolve, reject) => {
 
-    // here "let" allows iCarShow be a block variable for Function Closure
-    let carshowCount = carshows.length
-    let carshowsProcessed = 0
+//     // here "let" allows iCarShow be a block variable for Function Closure
+//     let carshowCount = carshows.length
+//     let carshowsProcessed = 0
     
-    if (carshows.length > 0) {
-      for (let iCarShow=0; iCarShow < carshows.length; iCarShow++) {
+//     if (carshows.length > 0) {
+//       for (let iCarShow=0; iCarShow < carshows.length; iCarShow++) {
       
-        if (carshows[iCarShow].LatLng == null) {   // loose == should check for null or undefined
+//         if (carshows[iCarShow].LatLng == null) {   // loose == should check for null or undefined
 
-          // Create a let here so it is on the stack when the callback function is called outside the for loop 
-          let CarShow = carshows[iCarShow];
+//           // Create a let here so it is on the stack when the callback function is called outside the for loop 
+//           let CarShow = carshows[iCarShow];
 
-          // Google Maps limits GeoCode access to 50 calls per second or 20ms per call so delay 25ms
-          setTimeout( () => {
+//           // Google Maps limits GeoCode access to 50 calls per second or 20ms per call so delay 25ms
+//           setTimeout( () => {
             
-            geocoder.geocode({address: CarShow.Location}, (results, status) => {
-              if (status === 'OK') {
-                  // May return more than one place... just pick up the first one  
-                  const ShowRef = ref(database, "Carshows/" + CarShow.Location); 
-                  update(ShowRef, {
-                    LatLng: {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()}
-                  }).then( () => {
-                    // Called later so don't use iCarShow!!!!!
-                    // Only update the CarShow if the database was updated
-                    CarShow.LatLng = {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()};
-                    carshowsProcessed ++ // Geocode location finder failed
-                    if (carshowCount === carshowsProcessed) {
-                      resolve()
-                    }
-                    console.log("Database Write for LatLng Succeeded")
-                  })
-                  .catch( (error) => {
-                    console.log("validateGeoLocations: " + error)
-                  })
-              } else {
-                carshowsProcessed ++ // Geocode location finder failed
-                if (carshowCount === carshowsProcessed) {
-                  resolve()
-                }
-                console.log("validateGeoLocations: " + status) 
-                }
-            })
-          }, 25)
+//             geocoder.geocode({address: CarShow.Location}, (results, status) => {
+//               if (status === 'OK') {
+//                   // May return more than one place... just pick up the first one  
+//                   const ShowRef = dBref(database, "Carshows/" + CarShow.Location); 
+//                   update(ShowRef, {
+//                     LatLng: {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()}
+//                   }).then( () => {
+//                     // Called later so don't use iCarShow!!!!!
+//                     // Only update the CarShow if the database was updated
+//                     CarShow.LatLng = {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()};
+//                     carshowsProcessed ++ // Geocode location finder failed
+//                     if (carshowCount === carshowsProcessed) {
+//                       resolve()
+//                     }
+//                     console.log("Database Write for LatLng Succeeded")
+//                   })
+//                   .catch( (error) => {
+//                     console.log("validateGeoLocations: " + error)
+//                   })
+//               } else {
+//                 carshowsProcessed ++ // Geocode location finder failed
+//                 if (carshowCount === carshowsProcessed) {
+//                   resolve()
+//                 }
+//                 console.log("validateGeoLocations: " + status) 
+//                 }
+//             })
+//           }, 25)
 
-        } else { // Have the location of this show
-          carshowsProcessed ++
-          if (carshowCount === carshowsProcessed) {
-            resolve()
-          }
-        }
-      }
-    } else {
-      resolve()
-    }
-  })
-}
+//         } else { // Have the location of this show
+//           carshowsProcessed ++
+//           if (carshowCount === carshowsProcessed) {
+//             resolve()
+//           }
+//         }
+//       }
+//     } else {
+//       resolve()
+//     }
+//   })
+// }
 
 // Creates the markers and assigns them to the CarShows item but does not set the map yet
 async function createMarkers(carshows, image) {
@@ -476,6 +412,53 @@ var ClipboardUtils = new function() {
   };
 };
 
+async function queryDatabase(database, snapshot, dateStart, dateEnd) {
+
+  if (snapshot) {
+    console.log(snapshot.val())
+
+    snapshot.forEach(childSnapshot => {
+      var d = new Date(childSnapshot.val().datestart)
+      console.log(d)
+      var d = new Date(childSnapshot.val().dateend)
+      console.log(d)
+    });
+  }
+
+  // Store in UTC time with no time, first shift for timezone to possible update the day then strip the time
+  dateStart.setMinutes(dateStart.getMinutes() + dateStart.getTimezoneOffset());
+  dateEnd.setMinutes(dateEnd.getMinutes() + dateEnd.getTimezoneOffset());
+  dateStart.setHours(0, 0, 0);
+  dateEnd.setHours(0, 0, 0);
+
+  const millisecUtcStart = dateStart.getTime();
+  const millisecUtcEnd = dateEnd.getTime();
+
+  console.log("Query:")
+  var d = new Date(millisecUtcStart)
+  console.log(d)
+  var d = new Date(millisecUtcEnd)
+  console.log(d)
+
+
+  const queryRef = query(dBref(database, "shows"), orderByChild("datestart"), startAt(millisecUtcStart), endAt(millisecUtcEnd));
+
+  get(queryRef)
+  .then( (snapshot) => {
+    var carshows = [];
+
+    console.log(snapshot.val())
+
+    snapshot.forEach(childSnapshot => {
+      carshows.push(childSnapshot.val());
+    });
+  })
+  .catch( (Error) => {
+    console.log(Error);
+  })
+
+}
+
 async function initMap() {
 
 
@@ -516,7 +499,6 @@ async function initMap() {
   const scaleMarkerImagePromise = scaleMarkerImage(imgMarker, 60);
   // Launch off reading the database
   const CarShows = new Array();
-  const loadDatabasePromise = loadDatabase(map, database, CarShows, imgMarker);
 
   var dateNow = new Date(Date.now())
   var dateEnd = new Date(Date.now() + 31 * 24 * 60 * 60 * 1000)
@@ -529,7 +511,7 @@ async function initMap() {
   showDatePicker.setDate( new Array(dateNow, dateEnd) )
 
 
-  var showNewDatePicker = flatpickr('#calendar-range-newshow', {
+  let showNewDatePicker = flatpickr('#calendar-range-newshow', {
     dateFormat: "m.d.Y",
     mode: "range",
     minDate: getFormattedDate(dateNow)
@@ -539,7 +521,7 @@ async function initMap() {
 
 
   // Wait for the Marker Scaling, Database Load and Map Loading
-  Promise.all([scaleMarkerImagePromise, MapLoadedPromise, loadDatabasePromise])
+  Promise.all([scaleMarkerImagePromise, MapLoadedPromise])
   .then( (values) => {
     console.log("Map and Show Markers are displayed initially")
   
@@ -555,7 +537,59 @@ async function initMap() {
   $(document).ready( () => { 
 
     // If not secured most browsers won't allow Paste
-    console.log(window.isSecureContext)
+    console.log(window.isSecureContext);
+
+
+     // Set a callback that is called everytime something in the "shows" folder changes
+
+    onValue(dBref(database, "shows/"), (snapshot) => {
+
+      queryDatabase(database, snapshot, new Date( showDatePicker.selectedDates[0]), new Date( showDatePicker.selectedDates[1]));
+
+      // console.log(snapshot.val())
+
+      // snapshot.forEach(childSnapshot => {
+      //   var d = new Date(childSnapshot.val().datestart)
+      //   console.log(d)
+      //   var d = new Date(childSnapshot.val().dateend)
+      //   console.log(d)
+      // });
+
+      // // Store in UTC time with no time, first shift for timezone to possible update the day then strip the time
+      // const dateStart = new Date( showDatePicker.selectedDates[0]);
+      // const dateEnd = new Date( showDatePicker.selectedDates[1]);
+      // dateStart.setMinutes(dateStart.getMinutes() + dateStart.getTimezoneOffset());
+      // dateEnd.setMinutes(dateEnd.getMinutes() + dateEnd.getTimezoneOffset());
+      // dateStart.setHours(0, 0, 0);
+      // dateEnd.setHours(0, 0, 0);
+
+      // const millisecUtcStart = dateStart.getTime();
+      // const millisecUtcEnd = dateEnd.getTime();
+
+      // console.log("Query:")
+      // var d = new Date(millisecUtcStart)
+      // console.log(d)
+      // var d = new Date(millisecUtcEnd)
+      // console.log(d)
+
+
+      // const queryRef = query(dBref(database, "shows"), orderByChild("datestart"), startAt(millisecUtcStart), endAt(millisecUtcEnd));
+
+      // get(queryRef)
+      // .then( (snapshot) => {
+      //   var carshows = [];
+
+      //   console.log(snapshot.val())
+
+      //   snapshot.forEach(childSnapshot => {
+      //     carshows.push(childSnapshot.val());
+      //   });
+      // })
+      // .catch( (Error) => {
+      //   console.log(Error);
+      // })
+    })
+
 
     // *******************************************************************
     // Handlers for the showDatePicker calls
@@ -568,13 +602,24 @@ async function initMap() {
 
       showDatePicker.config.onClose.push( (selectedDates, dateStr, instance) => {
         if (filterDateChanged) {
-          filterMarkers(CarShows, map, showDatePicker.selectedDates)
-          .then( () => {
-            console.log('filterMarkers resolved')
-          }).catch( (Error) => {
-            console.log('filterMarkers error' + Error)
-          })
-      }
+
+          queryDatabase(database, null, new Date( showDatePicker.selectedDates[0]), new Date( showDatePicker.selectedDates[1]));
+
+          
+          // filterMarkers(CarShows, map, showDatePicker.selectedDates)
+          // .then( () => {
+          //   console.log('filterMarkers resolved')
+          // }).catch( (Error) => {
+          //   console.log('filterMarkers error' + Error)
+          // })
+          
+          // filterMarkers(CarShows, map, showDatePicker.selectedDates)
+          // .then( () => {
+          //   console.log('filterMarkers resolved')
+          // }).catch( (Error) => {
+          //   console.log('filterMarkers error' + Error)
+          // })
+        }
       })
 
       showDatePicker.config.onOpen.push( (selectedDates, dateStr, instance) => {
@@ -586,7 +631,7 @@ async function initMap() {
     // start out disabled
     document.getElementById("runOcrButtonId").disabled = true
 
-    let blobArray = new Array()
+    let newimageEncodedAsUrlArray = new Array()
 
     // *******************************************************************
     // Handlers for the image Pasting/Clearing calls
@@ -604,7 +649,7 @@ async function initMap() {
             document.getElementById("pasteImageGalleryDiv").insertAdjacentHTML("beforeend", dynamicHTML)
             document.getElementById(uniqueID).src = blob
             document.getElementById("runOcrButtonId").disabled = false
-            blobArray[blobArray.length] = blob
+            newimageEncodedAsUrlArray[newimageEncodedAsUrlArray.length] = blob
           } 
         } 
       });
@@ -625,7 +670,7 @@ async function initMap() {
               document.getElementById("pasteImageGalleryDiv").insertAdjacentHTML("beforeend", dynamicHTML)
               document.getElementById(uniqueID).src = blob
               document.getElementById("runOcrButtonId").disabled = false
-              blobArray[blobArray.length] = blob
+              newimageEncodedAsUrlArray[newimageEncodedAsUrlArray.length] = blob
               return;
             }
             alert("Image is not avaialble - please 'copy' one to the clipboard.")
@@ -646,7 +691,7 @@ async function initMap() {
             pastImageGalleryImage = pasteImageGalleryDiv.firstChild
           }  
           document.getElementById("runOcrButtonId").disabled = true
-          blobArray.length = 0
+          newimageEncodedAsUrlArray.length = 0
         } else alert("Can only paste with secure (HTTP/LocalHost) connection") 
       })  
     // END 
@@ -658,7 +703,7 @@ async function initMap() {
     // *******************************************************************
 
       let newLocationLatLng = undefined // Global variable to signal if the show location is valid 
-      let formatedAddress = undefined
+      let newFormatedAddress = undefined
 
       document.getElementById("locationInputId").addEventListener('input', () => {
         newLocationLatLng = undefined
@@ -674,9 +719,9 @@ async function initMap() {
         geocoder.geocode({address: document.getElementById("locationInputId").value}, (results, status) => {
           if (status === 'OK') {
             newLocationLatLng = results[0].geometry.location
-            formatedAddress = results[0].formatted_address
+            newFormatedAddress = results[0].formatted_address
             document.getElementById("locationTestButtonId").disabled = true
-            document.getElementById("testLocationAddresslabelId").innerHTML = "Success: " + formatedAddress
+            document.getElementById("testLocationAddresslabelId").innerHTML = "Success: " + newFormatedAddress
             document.getElementById("testLocationlabelId").innerHTML = 
               " [lat: " + 
               newLocationLatLng.lat() +
@@ -698,19 +743,60 @@ async function initMap() {
     document.getElementById("newshowSubmitButtonId").addEventListener('click', () => {
       if (!(newLocationLatLng == null)) { 
         if (document.getElementById("pasteImageGalleryDiv").childElementCount > 0) {
-          var txt = "Submit the following?  Location: " + formatedAddress +         
+
+          var txt = "Submit the following?  Location: " + newFormatedAddress +         
           " [lat: " + newLocationLatLng.lat() +" lng: " + newLocationLatLng.lng() + "]" + 
-          "  Flyer Page Count: " + document.getElementById("pasteImageGalleryDiv").childElementCount
+          "  Flyer Page Count: " + newimageEncodedAsUrlArray.length
           if (confirm(txt)) {
-            alert("Pretending to write to Database....")
-          }
+
+            // Need across contexts
+            let newFlyerKey = self.crypto.randomUUID() 
+
+            // Store in UTC time with no time, first shift for timezone to possible update the day then strip the time
+            const dateStart = new Date( showNewDatePicker.selectedDates[0]);
+            const dateEnd = new Date( showNewDatePicker.selectedDates[1]);
+            dateStart.setMinutes(dateStart.getMinutes() + dateStart.getTimezoneOffset());
+            dateEnd.setMinutes(dateEnd.getMinutes() + dateEnd.getTimezoneOffset());
+            dateStart.setHours(0, 0, 0);
+            dateEnd.setHours(0, 0, 0);
+      
+            let millisecUtcStart = dateStart.getTime();
+            let millisecUtcEnd = dateEnd.getTime();
+
+            push(dBref(database, "shows"), {
+              location: newFormatedAddress,
+              lat: newLocationLatLng.lat(),
+              lng: newLocationLatLng.lng(),
+              datestart: millisecUtcStart,
+              dateend:  millisecUtcEnd,
+              flyerkey: newFlyerKey
+            })
+            .then( () => {
+
+              for (var iFlyers=0; iFlyers < newimageEncodedAsUrlArray.length; iFlyers++) {
+                var localRef = dBref(database, "flyers/" + newFlyerKey +"/" + iFlyers)
+                set(localRef, {
+                  flyer: newimageEncodedAsUrlArray[0]
+                })
+                .then( (newflyerkey) => {
+                  alert("Database Updated Successfully")
+                })
+                .catch( () => {
+                  alert(Error)
+                });
+              }
+            })
+            .catch( () => {
+              alert(Error)
+            });
+          } // confirmed
         } else alert("There is no flyer image assigned")
       } else alert("Location has not been validated")
     })
 
     document.getElementById("runOcrButtonId").addEventListener('click', () => {
-      if (blobArray.length > 0) {
-        Tesseract.recognize(blobArray[0])
+      if (blobStringArray.length > 0) {
+        Tesseract.recognize(blobStringArray[0])
           .then (result => { 
             alert(result.text)
           })    
