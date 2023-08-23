@@ -160,22 +160,39 @@
       }
 
       .carouselImageContainerMapInfoWindowItem {
+        border-radius: 4px;
         display: flex;
         flex-wrap: nowrap;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        -ms-overflow-style: -ms-autohiding-scrollbar;  
-        align-items: center;    
-        background-color:#333;
+        -ms-overflow-style: -ms-autohiding-scrollbar;
+        background-color: #333;
         max-width: 120px;
+        margin-left: auto;
+        margin-right: auto;
       }
 
       .carouselMapInfoWindowItem {
-        flex: 0 0 auto; 
-        max-width: 80%;
+        width: 50%;
+        background-color: #333;
         padding: 5px;
-        cursor:hand;
-        cursor:pointer;
+        width: 90px;
+        height: 130px;
+        cursor: hand;
+        cursor: pointer;
+      }
+
+      .center-empty-image-small {
+        border-style: solid;
+        border-color: #333;
+        border-radius: 4px;
+        vertical-align: baseline;
+        text-align: center;
+        margin: auto;
+        /* background-color: #333; */
+        padding: 5px;
+        width: 110px;
+        height: 120px;
       }
     </style>
 
@@ -221,7 +238,7 @@
     <!-- end // Flyer SideBar  -->
 
 
-    <!-- Flyer Add SideBar  -->
+    <!-- Add a new Flyer SideBar  -->
     <div id="flyerAddSideBar" class="sidebar">
       <div>
         <!-- "javascript:void(0)" is a hack to make it look like a URL link but do nothing -->
@@ -233,30 +250,29 @@
 
       <div class="container-database-input">
         <div class="group">
-            <input type="text" id="locationInputId" name="locationInput" class="database">
-            <label class="input-label">show location (google maps compatible)</label>
-            <!-- Listener is in index.js -->
-            <button type="button" id="locationTestButtonId" name="locationTest" style="height:44; margin:10px">Check Location</button> 
-            <label id="testLocationAddresslabelId" class="informative" ">Invalid: unknown</label>
-            <label id="testLocationlabelId" class="informative" ">unknown</label>
+          <input type="text" id="locationInputId" name="locationInput" class="database">
+          <label class="input-label">show location (google maps compatible)</label>
+          <!-- Listener is in index.js -->
+          <button type="button" id="locationTestButtonId" name="locationTest" style="height:44; margin:10px">Check Location</button> 
+          <label id="testLocationAddresslabelId" class="informative" ">Invalid: unknown</label>
+          <label id="testLocationlabelId" class="informative" ">unknown</label>
         </div>
+
         <div class="group">
-            <input id="calendar-range-newshow" type="text" class="database">
-            <label class="input-label_flatpickr">select a range of dates for the new show </label>
-            <div id="pasteImageGalleryDiv" class="carouselImageContainer">
-              <!-- <img id="pasteImageContainer" class="carouselImageitem" /> will be dynamically filled to this prototype -->
-            </div>
-        </div>
-          <div class="group">
-            <span>
-              <button id="pasteButtonId" style="margin-left: 10px; height: 44px; width: 30%" type="button">Paste</button>
-              <button id="pasteImageClearButtonId" style="height: 44; width:30%" type="button">Clear</button>
-              <button id="runOcrButtonId" style="height: 44; width:30%" type="button">Run OCR</button>
-            </span>
-            <button id="newshowSubmitButtonId" style="margin: 10px; height: 44; width:94%" type="button">Submit</button>
-            <!-- <textarea id="convertedTextID" placeholder="Converted text of image"></textarea> -->
+          <input id="calendar-range-newshow" type="text" class="database">
+          <label class="input-label_flatpickr">select a range of dates for the new show </label>
+          <span style>
+            <button id="pasteButtonId" style="margin: 10px; height: 44px; width: 30%" type="button">Paste</button>
+            <button id="pasteImageClearButtonId" style="height: 44; width:30%" type="button">Clear</button>
+            <!-- <button id="runOcrButtonId" style="height: 44; width:30%" type="button">Run OCR</button> -->
+            <button id="newshowSubmitButtonId" style="margin: 10px; height: 44; width:30%" type="button">Submit</button>
+          </span>
+          <!-- <textarea id="convertedTextID" placeholder="Converted text of image"></textarea> -->
+          <div id="pasteImageGalleryDiv" class="carouselImageContainer">
+            <!-- <img id="pasteImageContainer" class="carouselImageitem" /> will be dynamically filled to this prototype -->
           </div> 
         </div> 
+
       </div> 
     </div>
 
@@ -271,10 +287,6 @@
         document.getElementById("flyerAddSideBar").style.width = "0"; 
         return false
 
-      }
-
-      function onTestLocation() {
-  alert("test location")
       }
 
     </script>

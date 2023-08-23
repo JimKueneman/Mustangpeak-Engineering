@@ -18,16 +18,11 @@ const contentString = '<div style="width:250px;">'+
 const oneDayInMilliSeconds =  24 * 60 * 60 * 1000;
 	
 
-class CarShowObj {
-    constructor(ALocation, ADate, ADays, AWebsite, AContactPhone){
-        this.Location = ALocation                       // From the Flyer
-        this.LatLng = {Lat: undefined, Lng: undefined}  // Eventually will use Geocoder to extract
-        this.Date = ADate
-        this.DateEnd = undefined
-        this.Days = ADays
-        this.FlyerImageNames = []
-        this.Marker = undefined 
-        this.Visible = true
+class carshow {
+    constructor(_snapshot, _flyers, _marker){
+        this.snapshot = _snapshot
+        this.flyers = _flyers
+        this.marker = _marker 
     }
 }
 
@@ -98,203 +93,100 @@ function InitializeArizonaCarShowWebsiteApp () {
   return app;
 }
 
-function ShowInfoWindow(map, CarShow, infowindow) {
+function ShowInfoWindow(database, map, snapshot, infowindow, marker) {
 
-  // Setup the flyerSideBar
-  var dynamicImgDiv = document.getElementById("flyerSideBarDiv")
+  console.log(snapshot.val())
 
-  // Delete the previous images
-  var dynamicImg = dynamicImgDiv.firstChild;
-  while ( !(dynamicImg == null)) {
- //   console.log(dynamicImg.nodeName)
-    dynamicImgDiv.removeChild(dynamicImg)
-    dynamicImg = dynamicImgDiv.firstChild;
-  }
+  let infowindowLocation =  snapshot.val().location;
+  let infowindowLatLng=  new google.maps.LatLng(snapshot.val().lat, snapshot.val().lng);
+  let infowindowDate = new Date(snapshot.val().datestart);
 
-  let imageW = window.innerWidth * 0.90
-  // Load the new ones for this car show
-  for(let iFlyerPage=0; iFlyerPage < CarShow.FlyerImageNames.length; iFlyerPage++) {
-    var dynamicHTML = // not sure how to add the dynamic max-height/max-width using the .carouselImageitem css
-    '<img style="flex-wrap: nowrap;-webkit-overflow-scrolling: touch;-ms-overflow-style: -ms-autohiding-scrollbar;margin: 4px; max-width:' + 
-    (window.innerWidth * 0.90) + 
-    'px; max-height:' + 
-    (window.innerHeight * 0.90) + 
-    'px"; src="' +
-    './images/' +
-    CarShow.FlyerImageNames[iFlyerPage]  +
-    '" />'
-    dynamicImgDiv.insertAdjacentHTML("beforeend", dynamicHTML)
-  //  alert(dynamicHTML);
-  }
+  const imagekeyRef = dBref(database, "flyers/" + snapshot.val().flyerkey);
+  get(imagekeyRef)
+  .then( (snapshot) => {
+    console.log(snapshot.val())
 
-  var infowindowHTML = 
+    // HTML load up the flyin window with images
+    // ----------------------------------------------------------------
 
-    '<div class="carouselImageContainerMapInfoWindowItem">';
+    // Setup the flyerSideBar
+    var dynamicImgDiv = document.getElementById("flyerSideBarDiv")
     
-      for(let iFlyerPage=0; iFlyerPage<CarShow.FlyerImageNames.length; iFlyerPage++) {
-        var flyerPath = './images/'
-
-        infowindowHTML = infowindowHTML + 
-        '<img width="80" class="carouselMapInfoWindowItem" onclick="onOpenflyerSideBar()" src="' + // Need the width= to for scaling
-        flyerPath + CarShow.FlyerImageNames[iFlyerPage] +
-        '"/>'
+    // Delete the previous images
+    var dynamicImg = dynamicImgDiv.firstChild;
+    while ( !(dynamicImg == null)) {
+      dynamicImgDiv.removeChild(dynamicImg)
+      dynamicImg = dynamicImgDiv.firstChild;
     }
+
+    snapshot.forEach(childSnapshot => {
+      var dynamicHTML = 
+      '<img style="flex-wrap: nowrap;-webkit-overflow-scrolling: touch;-ms-overflow-style: -ms-autohiding-scrollbar;margin: 4px; max-width:' + 
+      (window.innerWidth * 0.90) + 
+      'px; max-height:' + 
+      (window.innerHeight * 0.90) + 
+      'px"; src="' + childSnapshot.val().flyer +'" />';
+      dynamicImgDiv.insertAdjacentHTML("beforeend", dynamicHTML);
+    });
+  
+    // HTML for the InfoWindow to fill in the images
+    // ----------------------------------------------------------------
+    var infowindowHTML = 
+    '<div class="carouselImageContainerMapInfoWindowItem">';
+    snapshot.forEach(childSnapshot => {
+      infowindowHTML = infowindowHTML + 
+      '<img width="80" class="carouselMapInfoWindowItem" onclick="onOpenflyerSideBar()" src="' + 
+      childSnapshot.val().flyer + 
+      '"/>'
+    })
     infowindowHTML = infowindowHTML + 
     '</div>' +
     '<hr/>' +
     '<div style="font-family: Tahoma, Verdana, sans-serif;fon-weigh:bold;font-size: 14px;color: black;">' + 
-      CarShow.Location + 
+    infowindowLocation + 
     '</div>' +
     '<div style="font-family: Tahoma, Verdana, sans-serif;fon-weigh:normal;font-size: 12px;color: DimGray;">' +
-      getFormattedDate( CarShow.Date) + 
+      getFormattedDate( infowindowDate) + 
     '</div>' +
 
     '<hr/>' +
     '<div style="font-family: Verdana, sans-serif;font-size:10px;color: blue;">' +
-      '<a href="https://www.google.com/maps/search/?api=1&query=' + CarShow.LatLng.lat + ',' + CarShow.LatLng.lng + '">Show in Google Maps</a>' +
+    '<a href="https://www.google.com/maps/search/?api=1&query=' + infowindowLatLng.lat() + ',' + infowindowLatLng.lng() + '">Show in Google Maps</a>' +
+    '</div>' +
+    '</div>';
+    infowindow.setContent(infowindowHTML)
+  });  // get().then
+
+
+   
+  // Default HTML for the InfoWindow while the images are loading....
+  // ----------------------------------------------------------------
+  var infowindowHTML = 
+    '<div class="center-empty-image-small">' + 
+    '<label class="informative" ">Fetching Flyer...</label>' +
+    '</div>' +
+    '<hr/>' +
+    '<div style="font-family: Tahoma, Verdana, sans-serif;fon-weigh:bold;font-size: 14px;color: black;">' + 
+    infowindowLocation + 
+    '</div>' +
+    '<div style="font-family: Tahoma, Verdana, sans-serif;fon-weigh:normal;font-size: 12px;color: DimGray;">' +
+      getFormattedDate( infowindowDate) + 
+    '</div>' +
+
+    '<hr/>' +
+    '<div style="font-family: Verdana, sans-serif;font-size:10px;color: blue;">' +
+      '<a href="https://www.google.com/maps/search/?api=1&query=' + infowindowLatLng.lat() + ',' + infowindowLatLng.lng() + '">Show in Google Maps</a>' +
     '</div>' +
   '</div>';
 
   infowindow.setContent(infowindowHTML)
   infowindow.open({
-    anchor: CarShow.Marker,
+    anchor: marker,
     map,
   })
 
-  var MarkerPixel = LatLngToPixel(map, CarShow.Marker)
+  var MarkerPixel = LatLngToPixel(map, marker)
   mouseoffset = { xPos: MarkerPixel[0], yPos: MarkerPixel[1] }
-}
-
-
-// Uses Fuction Closure, good reference here: https://www.javascripttutorial.net/javascript-closure/
-// Using the "let" for the variables that needs to be saved on the stack for each instance of the for loop
-// this is ES6 (2015 document) and up only.  The old way is more messy for code and is the IFEE way with 
-// functions that return functions
-// async function validateGeoLocations(map, database, imgMarker, carshows) {
-//   return new Promise((resolve, reject) => {
-
-//     // here "let" allows iCarShow be a block variable for Function Closure
-//     let carshowCount = carshows.length
-//     let carshowsProcessed = 0
-    
-//     if (carshows.length > 0) {
-//       for (let iCarShow=0; iCarShow < carshows.length; iCarShow++) {
-      
-//         if (carshows[iCarShow].LatLng == null) {   // loose == should check for null or undefined
-
-//           // Create a let here so it is on the stack when the callback function is called outside the for loop 
-//           let CarShow = carshows[iCarShow];
-
-//           // Google Maps limits GeoCode access to 50 calls per second or 20ms per call so delay 25ms
-//           setTimeout( () => {
-            
-//             geocoder.geocode({address: CarShow.Location}, (results, status) => {
-//               if (status === 'OK') {
-//                   // May return more than one place... just pick up the first one  
-//                   const ShowRef = dBref(database, "Carshows/" + CarShow.Location); 
-//                   update(ShowRef, {
-//                     LatLng: {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()}
-//                   }).then( () => {
-//                     // Called later so don't use iCarShow!!!!!
-//                     // Only update the CarShow if the database was updated
-//                     CarShow.LatLng = {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()};
-//                     carshowsProcessed ++ // Geocode location finder failed
-//                     if (carshowCount === carshowsProcessed) {
-//                       resolve()
-//                     }
-//                     console.log("Database Write for LatLng Succeeded")
-//                   })
-//                   .catch( (error) => {
-//                     console.log("validateGeoLocations: " + error)
-//                   })
-//               } else {
-//                 carshowsProcessed ++ // Geocode location finder failed
-//                 if (carshowCount === carshowsProcessed) {
-//                   resolve()
-//                 }
-//                 console.log("validateGeoLocations: " + status) 
-//                 }
-//             })
-//           }, 25)
-
-//         } else { // Have the location of this show
-//           carshowsProcessed ++
-//           if (carshowCount === carshowsProcessed) {
-//             resolve()
-//           }
-//         }
-//       }
-//     } else {
-//       resolve()
-//     }
-//   })
-// }
-
-// Creates the markers and assigns them to the CarShows item but does not set the map yet
-async function createMarkers(carshows, image) {
-  return new Promise((resolve, reject) => {
-
-    // here "let" allows iCarShow be a block variable for Function Closure
-    let carshowCount = carshows.length
-    let carshowsProcessed = 0
-
-    if (carshows.length > 0) {
-    // Again, "let" so it is pushed on the stack
-      for (let iCarShow=0; iCarShow < carshows.length; iCarShow++) {
-        if ( (carshows[iCarShow].Marker == null) ) {  // loose == should check for null or undefined
-          // Will set the map in the filtering function
-          carshows[iCarShow].Marker = new google.maps.Marker({
-            position: carshows[iCarShow].LatLng,
-            title: carshows[iCarShow].Location,
-            icon: image.src,
-          });
-
-          carshows[iCarShow].Marker.addListener("click", function () {
-            ShowInfoWindow(map, carshows[iCarShow], infowindow);
-          })
-          carshowsProcessed ++
-          if (carshowCount === carshowsProcessed) {
-            resolve()
-          }
-        } else {
-          carshowsProcessed ++
-          if (carshowCount === carshowsProcessed) {
-            resolve()
-          }
-        }
-      }
-    } else {
-      resolve()
-    }
-  })
-}
-
-// Creates the markers and assigns them to the CarShows item but does not set the map yet
-async function filterMarkers(carshows, map, selectedDates) {
-  return new Promise((resolve, reject) => {
-
-    if (carshows.length > 0) {
-      // Again "let" so it is pushed on the stack
-      for (let iCarShow=0; iCarShow < carshows.length; iCarShow++) {
-     
-        let carShow = carshows[iCarShow]
-
-        selectedDates[0].setHours(0, 0, 0, 0);
-        selectedDates[1].setHours(0, 0, 0, 0);
-
-        // this is ok because we stripped off the time when the date objects were created and they were all created in the same timezone
-        if ( (  carShow.Date.valueOf() >= selectedDates[0].valueOf() ) && ( carShow.Date.valueOf() <= selectedDates[1].valueOf() ) )
-        {
-          carShow.Marker.setMap(map)
-        } else {
-          carShow.Marker.setMap(null)
-        }
-      }
-      resolve()
-    } else {
-      resolve()
-    }
-  })
 }
 
 async function scaleMarkerImage(marker, wantedWidth) {
@@ -412,18 +304,20 @@ var ClipboardUtils = new function() {
   };
 };
 
-async function queryDatabase(database, snapshot, dateStart, dateEnd) {
+let carshows = [];
 
-  if (snapshot) {
-    console.log(snapshot.val())
+async function queryDatabase(database, snapshot, dateStart, dateEnd, image, map, infowindow) {
 
-    snapshot.forEach(childSnapshot => {
-      var d = new Date(childSnapshot.val().datestart)
-      console.log(d)
-      var d = new Date(childSnapshot.val().dateend)
-      console.log(d)
-    });
-  }
+  // if (snapshot) {
+  //   console.log(snapshot.val())
+
+  //   snapshot.forEach(childSnapshot => {
+  //     var d = new Date(childSnapshot.val().datestart)
+  //     console.log(d)
+  //     var d = new Date(childSnapshot.val().dateend)
+  //     console.log(d)
+  //   });
+  // }
 
   // Store in UTC time with no time, first shift for timezone to possible update the day then strip the time
   dateStart.setMinutes(dateStart.getMinutes() + dateStart.getTimezoneOffset());
@@ -434,23 +328,39 @@ async function queryDatabase(database, snapshot, dateStart, dateEnd) {
   const millisecUtcStart = dateStart.getTime();
   const millisecUtcEnd = dateEnd.getTime();
 
-  console.log("Query:")
-  var d = new Date(millisecUtcStart)
-  console.log(d)
-  var d = new Date(millisecUtcEnd)
-  console.log(d)
+  // console.log("Query:")
+  // var d = new Date(millisecUtcStart)
+  // console.log(d)
+  // var d = new Date(millisecUtcEnd)
+  // console.log(d)
 
 
   const queryRef = query(dBref(database, "shows"), orderByChild("datestart"), startAt(millisecUtcStart), endAt(millisecUtcEnd));
-
   get(queryRef)
   .then( (snapshot) => {
-    var carshows = [];
 
-    console.log(snapshot.val())
+    // console.log(snapshot.val())
+    carshows.forEach((carshow) => {
+      carshow.marker.setMap(null)
+      carshow.marker = null;
+    })
+    carshows.length = 0
 
     snapshot.forEach(childSnapshot => {
-      carshows.push(childSnapshot.val());
+
+      var newmarker = new google.maps.Marker({
+        position: { lat: childSnapshot.val().lat, lng: childSnapshot.val().lng },
+        title: childSnapshot.val().location,
+        icon: image.src,
+        map: map
+      });
+
+      newmarker.addListener("click", function () {
+        ShowInfoWindow(database, map, childSnapshot, infowindow, newmarker);
+      })
+
+      let newshow = new carshow(childSnapshot, [], newmarker);
+      carshows.push(newshow);
     });
   })
   .catch( (Error) => {
@@ -463,6 +373,7 @@ async function initMap() {
 
 
   let UniquieIdCounter = 0;
+  let mapReady = false;
 
   // Intitialize the Arizona Car Shows Website App which links the database to it 
   var ArizonaCarShowWebsiteApp = InitializeArizonaCarShowWebsiteApp();
@@ -524,13 +435,7 @@ async function initMap() {
   Promise.all([scaleMarkerImagePromise, MapLoadedPromise])
   .then( (values) => {
     console.log("Map and Show Markers are displayed initially")
-  
-    filterMarkers(CarShows, map, showDatePicker.selectedDates)
-    .then( () => {
-
-    }).catch( (Error) => {
-      console.log('filterMarkers error' + Error)
-    })
+    mapReady = true
   });
 
   // JQuery function that is called once the document is fully loaded and ready to work on
@@ -543,51 +448,9 @@ async function initMap() {
      // Set a callback that is called everytime something in the "shows" folder changes
 
     onValue(dBref(database, "shows/"), (snapshot) => {
-
-      queryDatabase(database, snapshot, new Date( showDatePicker.selectedDates[0]), new Date( showDatePicker.selectedDates[1]));
-
-      // console.log(snapshot.val())
-
-      // snapshot.forEach(childSnapshot => {
-      //   var d = new Date(childSnapshot.val().datestart)
-      //   console.log(d)
-      //   var d = new Date(childSnapshot.val().dateend)
-      //   console.log(d)
-      // });
-
-      // // Store in UTC time with no time, first shift for timezone to possible update the day then strip the time
-      // const dateStart = new Date( showDatePicker.selectedDates[0]);
-      // const dateEnd = new Date( showDatePicker.selectedDates[1]);
-      // dateStart.setMinutes(dateStart.getMinutes() + dateStart.getTimezoneOffset());
-      // dateEnd.setMinutes(dateEnd.getMinutes() + dateEnd.getTimezoneOffset());
-      // dateStart.setHours(0, 0, 0);
-      // dateEnd.setHours(0, 0, 0);
-
-      // const millisecUtcStart = dateStart.getTime();
-      // const millisecUtcEnd = dateEnd.getTime();
-
-      // console.log("Query:")
-      // var d = new Date(millisecUtcStart)
-      // console.log(d)
-      // var d = new Date(millisecUtcEnd)
-      // console.log(d)
-
-
-      // const queryRef = query(dBref(database, "shows"), orderByChild("datestart"), startAt(millisecUtcStart), endAt(millisecUtcEnd));
-
-      // get(queryRef)
-      // .then( (snapshot) => {
-      //   var carshows = [];
-
-      //   console.log(snapshot.val())
-
-      //   snapshot.forEach(childSnapshot => {
-      //     carshows.push(childSnapshot.val());
-      //   });
-      // })
-      // .catch( (Error) => {
-      //   console.log(Error);
-      // })
+  //    if (mapReady) {
+        queryDatabase(database, snapshot, new Date( showDatePicker.selectedDates[0]), new Date( showDatePicker.selectedDates[1]), imgMarker, map, infowindow);
+    //  }
     })
 
 
@@ -602,23 +465,7 @@ async function initMap() {
 
       showDatePicker.config.onClose.push( (selectedDates, dateStr, instance) => {
         if (filterDateChanged) {
-
-          queryDatabase(database, null, new Date( showDatePicker.selectedDates[0]), new Date( showDatePicker.selectedDates[1]));
-
-          
-          // filterMarkers(CarShows, map, showDatePicker.selectedDates)
-          // .then( () => {
-          //   console.log('filterMarkers resolved')
-          // }).catch( (Error) => {
-          //   console.log('filterMarkers error' + Error)
-          // })
-          
-          // filterMarkers(CarShows, map, showDatePicker.selectedDates)
-          // .then( () => {
-          //   console.log('filterMarkers resolved')
-          // }).catch( (Error) => {
-          //   console.log('filterMarkers error' + Error)
-          // })
+          queryDatabase(database, null, new Date( showDatePicker.selectedDates[0]), new Date( showDatePicker.selectedDates[1]), imgMarker, map, infowindow);
         }
       })
 
@@ -629,7 +476,7 @@ async function initMap() {
     // *******************************************************************
 
     // start out disabled
-    document.getElementById("runOcrButtonId").disabled = true
+ //   document.getElementById("runOcrButtonId").disabled = true
 
     let newimageEncodedAsUrlArray = new Array()
 
@@ -637,19 +484,20 @@ async function initMap() {
     // Handlers for the image Pasting/Clearing calls
     // *******************************************************************
       document.addEventListener('paste', async (eventPaste) => {  // Control-V paste
-        eventPaste.preventDefault();
-
+      
         for (let iclipItem=0; iclipItem < eventPaste.clipboardData.files.length; iclipItem++) {
           var clipboardFile = eventPaste.clipboardData.files[iclipItem]; 
           if (clipboardFile.type.startsWith('image/')) {
-            var blob = URL.createObjectURL(clipboardFile)
-            let uniqueID = "pasteImageContainer" + UniquieIdCounter
-            UniquieIdCounter++
-            var dynamicHTML = '<img id="' + uniqueID + '" class="carouselImageitem" />'
-            document.getElementById("pasteImageGalleryDiv").insertAdjacentHTML("beforeend", dynamicHTML)
-            document.getElementById(uniqueID).src = blob
-            document.getElementById("runOcrButtonId").disabled = false
-            newimageEncodedAsUrlArray[newimageEncodedAsUrlArray.length] = blob
+            var blob = URL.createObjectURL(clipboardFile);
+            let uniqueID = "pasteImageContainer" + UniquieIdCounter;
+            UniquieIdCounter++;
+            var dynamicHTML = '<img id="' + uniqueID + '" class="carouselImageitem" />';
+            document.getElementById("pasteImageGalleryDiv").insertAdjacentHTML("beforeend", dynamicHTML);
+            document.getElementById(uniqueID).src = blob;
+ //           document.getElementById("runOcrButtonId").disabled = false;
+            newimageEncodedAsUrlArray[newimageEncodedAsUrlArray.length] = blob;
+
+            eventPaste.preventDefault();
           } 
         } 
       });
@@ -669,7 +517,7 @@ async function initMap() {
               var dynamicHTML = '<img id="' + uniqueID + '" class="carouselImageitem" />'
               document.getElementById("pasteImageGalleryDiv").insertAdjacentHTML("beforeend", dynamicHTML)
               document.getElementById(uniqueID).src = blob
-              document.getElementById("runOcrButtonId").disabled = false
+   //           document.getElementById("runOcrButtonId").disabled = false
               newimageEncodedAsUrlArray[newimageEncodedAsUrlArray.length] = blob
               return;
             }
@@ -690,7 +538,7 @@ async function initMap() {
             pasteImageGalleryDiv.removeChild(pastImageGalleryImage)
             pastImageGalleryImage = pasteImageGalleryDiv.firstChild
           }  
-          document.getElementById("runOcrButtonId").disabled = true
+   //       document.getElementById("runOcrButtonId").disabled = true
           newimageEncodedAsUrlArray.length = 0
         } else alert("Can only paste with secure (HTTP/LocalHost) connection") 
       })  
@@ -776,32 +624,32 @@ async function initMap() {
               for (var iFlyers=0; iFlyers < newimageEncodedAsUrlArray.length; iFlyers++) {
                 var localRef = dBref(database, "flyers/" + newFlyerKey +"/" + iFlyers)
                 set(localRef, {
-                  flyer: newimageEncodedAsUrlArray[0]
+                  flyer: newimageEncodedAsUrlArray[iFlyers]
                 })
                 .then( (newflyerkey) => {
-                  alert("Database Updated Successfully")
+              //    alert("Database Updated Successfully")
                 })
                 .catch( () => {
-                  alert(Error)
+                  alert("Database Error: " + Error)
                 });
               }
             })
             .catch( () => {
-              alert(Error)
+              alert("Database Error: " + Error)
             });
           } // confirmed
         } else alert("There is no flyer image assigned")
       } else alert("Location has not been validated")
     })
 
-    document.getElementById("runOcrButtonId").addEventListener('click', () => {
-      if (blobStringArray.length > 0) {
-        Tesseract.recognize(blobStringArray[0])
-          .then (result => { 
-            alert(result.text)
-          })    
-        } 
-    })
+    // document.getElementById("runOcrButtonId").addEventListener('click', () => {
+    //   if (blobStringArray.length > 0) {
+    //     Tesseract.recognize(blobStringArray[0])
+    //       .then (result => { 
+    //         alert(result.text)
+    //       })    
+    //     } 
+    // })
 
   }) // document ready
 }
