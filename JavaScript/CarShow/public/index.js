@@ -1,22 +1,7 @@
-const contentString = '<div style="width:250px;">'+
-'    <div style="text-align: center;background-color: #333;overflow: auto;white-space: nowrap;padding: 10px">'+
-'        <img width="180" src="https://lh3.googleusercontent.com/drive-viewer/AITFw-zETvkOZ4zrRoVYiaTWtI9ptHy8M_ef-cp61xOVYEJObXNYZtLccapXsw_9lLw4qQYzusz33tbFD24NKjEjz0U7BKV7=s1600" />'+
-'        <img width="180" src="https://lh3.googleusercontent.com/drive-viewer/AITFw-zETvkOZ4zrRoVYiaTWtI9ptHy8M_ef-cp61xOVYEJObXNYZtLccapXsw_9lLw4qQYzusz33tbFD24NKjEjz0U7BKV7=s1600" />'+
-'        <img width="180" src="https://lh3.googleusercontent.com/drive-viewer/AITFw-zETvkOZ4zrRoVYiaTWtI9ptHy8M_ef-cp61xOVYEJObXNYZtLccapXsw_9lLw4qQYzusz33tbFD24NKjEjz0U7BKV7=s1600" />'+
-'        <img width="180" src="https://lh3.googleusercontent.com/drive-viewer/AITFw-zETvkOZ4zrRoVYiaTWtI9ptHy8M_ef-cp61xOVYEJObXNYZtLccapXsw_9lLw4qQYzusz33tbFD24NKjEjz0U7BKV7=s1600" />'+
-'    </div>'+
-'    <hr/>'+
-'    <div style="font-family: Tahoma, Verdana, sans-serif;fon-weigh: bold;font-size: 18px;color: black;">$ShowLocation</div>'+
-'    <div style="font-family: Tahoma, Verdana, sans-serif; font-weight: normal; font-size: 16px; color: darkgrey;">$ShowDate</div>'+
-'    <hr/>'+
-'    <div style="font-family: Verdana, sans-serif;font-size:12px;color: blue;">'+
-'        <a href=â€œhttp://maps.google.comâ€>Show in Google Maps</a>'+
-'        '+
-'        </div>'+
-'</div>';
 
-const oneDayInMilliSeconds =  24 * 60 * 60 * 1000;
-	
+import { LatLngToPixel, getFormattedDate, sleep, scaleMarkerImage, clipboardReadImageAsEncodedURL, MapLoaded,
+         isValidUrl} 
+from "./utilities.js";
 
 class carshow {
     constructor(_snapshot, _flyers, _marker){
@@ -35,41 +20,11 @@ import {getDatabase, set, get, push, update, remove, ref as dBref, child, onValu
 let map;
 let geocoder;
 let infowindow;
+let carshows = [];
 let mousepos = {xPos: 0.0, yPos: 0.0};
 let mouseoffset = {xPos: 0.0, yPos: 0.0};
-
 let currentDate = Date.now();
 
-//const globalMousePosText = document.getElementById('global-mouse-pos');
-//const globalScreenSizeText = document.getElementById('global-screen-size');
-
-function LatLngToPixel(AMap, AMarker) {
-  var projection = AMap.getProjection()
-  var bounds = AMap.getBounds()
-  var topRight = projection.fromLatLngToPoint(bounds.getNorthEast())
-  var bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest())
-  var scale = Math.pow(2, AMap.getZoom())
-  var worldPoint = projection.fromLatLngToPoint(AMarker.getPosition())
-  return [Math.floor((worldPoint.x - bottomLeft.x) * scale), Math.floor((worldPoint.y - topRight.y) * scale)] 
-}
-
-
-function getFormattedDate(date, isoFormat) {
-  let year = date.getFullYear();
-  let month = (1 + date.getMonth()).toString().padStart(2, '0');
-  let day = date.getDate().toString().padStart(2, '0');
-
-  if (isoFormat) {
-    return year + '/' + month + '/' + day;
-  } else {
-    return month + '/' + day + '/' + year;
-  }
-}
-
-function sleep(milliSeconds) {
-  var startTime = new Date().getTime();
-  while (new Date().getTime() < startTime + milliSeconds);
-}
 
 function InitializeArizonaCarShowWebsiteApp () {
 
@@ -93,9 +48,27 @@ function InitializeArizonaCarShowWebsiteApp () {
   return app;
 }
 
-function ShowInfoWindow(database, map, snapshot, infowindow, marker) {
+function commonInfoWindowHtml(infowindowLocation, infowindowDate, infowindowLatLng) {
+  var result = 
+  '</div>' +
+    '<hr/>' +
+    '<div style="font-family: Tahoma, Verdana, sans-serif;fon-weigh:bold;font-size: 14px;color: black;">' + 
+    infowindowLocation + 
+    '</div>' +
+    '<div style="font-family: Tahoma, Verdana, sans-serif;fon-weigh:normal;font-size: 12px;color: DimGray;">' +
+      getFormattedDate( infowindowDate) + 
+    '</div>' +
 
-  console.log(snapshot.val())
+    '<hr/>' +
+    '<div style="font-family: Verdana, sans-serif;font-size:10px;color: blue;">' +
+    '<a href="https://www.google.com/maps/search/?api=1&query=' + infowindowLatLng.lat() + ',' + infowindowLatLng.lng() + '">Show in Google Maps</a>' +
+    '</div>' +
+    '</div>';
+  return  result
+}
+
+
+function ShowInfoWindow(database, map, snapshot, infowindow, marker) {
 
   let infowindowLocation =  snapshot.val().location;
   let infowindowLatLng=  new google.maps.LatLng(snapshot.val().lat, snapshot.val().lng);
@@ -104,11 +77,9 @@ function ShowInfoWindow(database, map, snapshot, infowindow, marker) {
   const imagekeyRef = dBref(database, "flyers/" + snapshot.val().flyerkey);
   get(imagekeyRef)
   .then( (snapshot) => {
-    console.log(snapshot.val())
 
     // HTML load up the flyin window with images
     // ----------------------------------------------------------------
-
     // Setup the flyerSideBar
     var dynamicImgDiv = document.getElementById("flyerSideBarDiv")
     
@@ -138,46 +109,18 @@ function ShowInfoWindow(database, map, snapshot, infowindow, marker) {
       '<img width="80" class="carouselMapInfoWindowItem" onclick="onOpenflyerSideBar()" src="' + 
       childSnapshot.val().flyer + 
       '"/>'
-    })
-    infowindowHTML = infowindowHTML + 
-    '</div>' +
-    '<hr/>' +
-    '<div style="font-family: Tahoma, Verdana, sans-serif;fon-weigh:bold;font-size: 14px;color: black;">' + 
-    infowindowLocation + 
-    '</div>' +
-    '<div style="font-family: Tahoma, Verdana, sans-serif;fon-weigh:normal;font-size: 12px;color: DimGray;">' +
-      getFormattedDate( infowindowDate) + 
-    '</div>' +
+    });
+    infowindowHTML = infowindowHTML + commonInfoWindowHtml(infowindowLocation, infowindowDate, infowindowLatLng)
 
-    '<hr/>' +
-    '<div style="font-family: Verdana, sans-serif;font-size:10px;color: blue;">' +
-    '<a href="https://www.google.com/maps/search/?api=1&query=' + infowindowLatLng.lat() + ',' + infowindowLatLng.lng() + '">Show in Google Maps</a>' +
-    '</div>' +
-    '</div>';
     infowindow.setContent(infowindowHTML)
-  });  // get().then
+  });
 
-
-   
   // Default HTML for the InfoWindow while the images are loading....
   // ----------------------------------------------------------------
-  var infowindowHTML = 
+  let infowindowHTML = 
     '<div class="center-empty-image-small">' + 
-    '<label class="informative" ">Fetching Flyer...</label>' +
-    '</div>' +
-    '<hr/>' +
-    '<div style="font-family: Tahoma, Verdana, sans-serif;fon-weigh:bold;font-size: 14px;color: black;">' + 
-    infowindowLocation + 
-    '</div>' +
-    '<div style="font-family: Tahoma, Verdana, sans-serif;fon-weigh:normal;font-size: 12px;color: DimGray;">' +
-      getFormattedDate( infowindowDate) + 
-    '</div>' +
-
-    '<hr/>' +
-    '<div style="font-family: Verdana, sans-serif;font-size:10px;color: blue;">' +
-      '<a href="https://www.google.com/maps/search/?api=1&query=' + infowindowLatLng.lat() + ',' + infowindowLatLng.lng() + '">Show in Google Maps</a>' +
-    '</div>' +
-  '</div>';
+    '<label class="informative" ">Fetching Flyer...</label>';
+    infowindowHTML = infowindowHTML + commonInfoWindowHtml(infowindowLocation, infowindowDate, infowindowLatLng)
 
   infowindow.setContent(infowindowHTML)
   infowindow.open({
@@ -189,135 +132,7 @@ function ShowInfoWindow(database, map, snapshot, infowindow, marker) {
   mouseoffset = { xPos: MarkerPixel[0], yPos: MarkerPixel[1] }
 }
 
-async function scaleMarkerImage(marker, wantedWidth) {
-  return new Promise((resolve, reject) => {
-
-    marker.addEventListener('load', () => {
-      // Initialize the canvas and it's size
-      
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-  
-      const aspect = marker.width / marker.height;
-  
-      canvas.width = wantedWidth;
-      canvas.height = wantedWidth / aspect;
-  
-      // Draw image and export to a data-uri
-      ctx.drawImage(marker, 0, 0, canvas.width, canvas.height);
-  
-      marker.src = canvas.toDataURL();
-
-      // We have resolved our Promise to finish
-      resolve("scaleMarkerImage");
-  
-    }, {once : true}) // Only fire once or we get recursion with this assignment imgMarker.src = canvas.toDataURL();
-  
-    // Load a fresh copy to scale, this will fire the 'load' Listener above and resolve the promise
-    marker.src = "./icons/Classic Cars/icons 128x128/67533_chevelot_128_128_chevelot_yellow_yellow.png" 
-  })
-}
-
-async function MapLoaded(aMap) {
-  return new Promise((resolve, reject) => {
-    aMap.addListener('tilesloaded', function() {  
-      resolve("MapLoaded")
-  }, {once : true}); 
-  })
-}
-
-
-
-var ClipboardUtils = new function() {
-  var permissions = {
-      'image/bmp': true,
-      'image/gif': true,
-      'image/png': true,
-      'image/jpeg': true,
-      'image/tiff': true
-  };
-
-  function getType(types) {
-      for (var j = 0; j < types.length; ++j) {
-          var type = types[j];
-          if (permissions[type]) {
-              return type;
-          }
-      }
-      return null;
-  }
-  function getItem(items) {
-      for (var i = 0; i < items.length; ++i) {
-          var item = items[i];
-          if(item) {
-              var type = getType(item.types);
-              if(type) {
-                  return item.getType(type);
-              }
-          }
-      }
-      return null;
-  }
-  function loadFile(file, callback) {
-      if (window.FileReader) {
-          var reader = new FileReader();
-          reader.onload = function() {
-              callback(reader.result, null);
-          };
-          reader.onerror = function() {
-              callback(null, 'Incorrect file.');
-          };
-          reader.readAsDataURL(file);
-      } else {
-          callback(null, 'File api is not supported.');
-      }
-  }
-
-  this.readImage = function(callback) {
-      if (navigator.clipboard) {
-          var promise = navigator.clipboard.read();
-          promise
-              .then(function(items) {
-                  var promise = getItem(items);
-                  if (promise == null) {
-                      callback(null, null);
-                      return;
-                  }
-                  promise
-                      .then(function(result) {
-                        loadFile(result, callback);
-                      })
-                      .catch(function(error) {
-                         console.log('1')
-                         console.log(error)
-                          callback(null, 'Reading clipboard error.');
-                      });
-              })
-              .catch(function(error) {
-                  console.log('1')
-                  console.log(error)
-                  callback(null, 'Reading clipboard error.');
-              });
-      } else {
-          callback(null, 'Clipboard is not supported.');
-      }
-  };
-};
-
-let carshows = [];
-
 async function queryDatabase(database, snapshot, dateStart, dateEnd, image, map, infowindow) {
-
-  // if (snapshot) {
-  //   console.log(snapshot.val())
-
-  //   snapshot.forEach(childSnapshot => {
-  //     var d = new Date(childSnapshot.val().datestart)
-  //     console.log(d)
-  //     var d = new Date(childSnapshot.val().dateend)
-  //     console.log(d)
-  //   });
-  // }
 
   // Store in UTC time with no time, first shift for timezone to possible update the day then strip the time
   dateStart.setMinutes(dateStart.getMinutes() + dateStart.getTimezoneOffset());
@@ -327,13 +142,6 @@ async function queryDatabase(database, snapshot, dateStart, dateEnd, image, map,
 
   const millisecUtcStart = dateStart.getTime();
   const millisecUtcEnd = dateEnd.getTime();
-
-  // console.log("Query:")
-  // var d = new Date(millisecUtcStart)
-  // console.log(d)
-  // var d = new Date(millisecUtcEnd)
-  // console.log(d)
-
 
   const queryRef = query(dBref(database, "shows"), orderByChild("datestart"), startAt(millisecUtcStart), endAt(millisecUtcEnd));
   get(queryRef)
@@ -366,7 +174,6 @@ async function queryDatabase(database, snapshot, dateStart, dateEnd, image, map,
   .catch( (Error) => {
     console.log(Error);
   })
-
 }
 
 async function initMap() {
@@ -475,9 +282,6 @@ async function initMap() {
     // END 
     // *******************************************************************
 
-    // start out disabled
- //   document.getElementById("runOcrButtonId").disabled = true
-
     let newimageEncodedAsUrlArray = new Array()
 
     // *******************************************************************
@@ -485,6 +289,9 @@ async function initMap() {
     // *******************************************************************
       document.addEventListener('paste', async (eventPaste) => {  // Control-V paste
       
+        console.log(eventPaste.clipboardData.getData("text"));
+
+
         for (let iclipItem=0; iclipItem < eventPaste.clipboardData.files.length; iclipItem++) {
           var clipboardFile = eventPaste.clipboardData.files[iclipItem]; 
           if (clipboardFile.type.startsWith('image/')) {
@@ -494,36 +301,60 @@ async function initMap() {
             var dynamicHTML = '<img id="' + uniqueID + '" class="carouselImageitem" />';
             document.getElementById("pasteImageGalleryDiv").insertAdjacentHTML("beforeend", dynamicHTML);
             document.getElementById(uniqueID).src = blob;
- //           document.getElementById("runOcrButtonId").disabled = false;
             newimageEncodedAsUrlArray[newimageEncodedAsUrlArray.length] = blob;
 
             eventPaste.preventDefault();
           } 
-        } 
+        }
       });
 
       // Handler: Button Push Paste 
       document.getElementById("pasteButtonId").addEventListener('click', () => {
-
         if (window.isSecureContext) {
-          ClipboardUtils.readImage(function(blob, error) {
-            if (error) {
-                console.log(error);
+
+          navigator.clipboard.readText()
+          .then ( (text) => {
+            if (isValidUrl(text)) {
+              fetch(text)
+              .then((response) => {
+
+
+                console.log(response)
+                console.log(response.headers.get("Content-Type"))
+
+                if (response.ok) {
+                  console.log("Image URL is valid");
+                } else {
+                  console.log("Image URL is invalid");
+                }
+              })
+              .catch((error) => {
+                console.error("Error validating image URL:", error);
+              });
+            }
+           })
+           .catch ( () => {
+
+            clipboardReadImageAsEncodedURL.readImage(function(blob, error) {
+              if (error) {
+                  console.log(error);
+                  return;
+              }
+              if (blob) {
+                let uniqueID = "pasteImageContainer" + UniquieIdCounter
+                UniquieIdCounter++
+                var dynamicHTML = '<img id="' + uniqueID + '" class="carouselImageitem" />'
+                document.getElementById("pasteImageGalleryDiv").insertAdjacentHTML("beforeend", dynamicHTML)
+                document.getElementById(uniqueID).src = blob
+                newimageEncodedAsUrlArray[newimageEncodedAsUrlArray.length] = blob
                 return;
-            }
-            if (blob) {
-              let uniqueID = "pasteImageContainer" + UniquieIdCounter
-              UniquieIdCounter++
-              var dynamicHTML = '<img id="' + uniqueID + '" class="carouselImageitem" />'
-              document.getElementById("pasteImageGalleryDiv").insertAdjacentHTML("beforeend", dynamicHTML)
-              document.getElementById(uniqueID).src = blob
-   //           document.getElementById("runOcrButtonId").disabled = false
-              newimageEncodedAsUrlArray[newimageEncodedAsUrlArray.length] = blob
-              return;
-            }
-            alert("Image is not avaialble - please 'copy' one to the clipboard.")
-            console.log('Image bitmap is not avaialble - copy it to clipboard.');
-          });
+              }
+              alert("Image is not avaialble - please 'copy' one to the clipboard.")
+              console.log('Image bitmap is not avaialble - copy it to clipboard.');
+            });
+
+
+           })
         } else alert("Can only paste with secure (HTTP/LocalHost) connection") 
       });
 
@@ -641,16 +472,6 @@ async function initMap() {
         } else alert("There is no flyer image assigned")
       } else alert("Location has not been validated")
     })
-
-    // document.getElementById("runOcrButtonId").addEventListener('click', () => {
-    //   if (blobStringArray.length > 0) {
-    //     Tesseract.recognize(blobStringArray[0])
-    //       .then (result => { 
-    //         alert(result.text)
-    //       })    
-    //     } 
-    // })
-
   }) // document ready
 }
 
