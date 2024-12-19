@@ -1,0 +1,39 @@
+1x6 Header||#DIL=6=1x6 Header||@Manufacturer=3M||@Manufacturer Part Number=929400-01-36-RK||@Distributor=Digikey||@Distributor Part Number=929400E-01-36-ND||#DIL-2mm=6=1x6 Header 2mm||@Manufacturer=3M||@Manufacturer Part Number=929400-01-36-RK||@Distributor=Digikey||@Distributor Part Number=929400E-01-36-ND
+1x6 Header Socket||#DIL=6=1x6 Header||@Manufacturer=3M||@Manufacturer Part Number=929400-01-36-RK||@Distributor=Digikey||@Distributor Part Number=929400E-01-36-ND
+1x8 Header||#DIL=8=1x8 Header||@Manufacturer=3M||@Manufacturer Part Number=929400-01-36-RK||@Distributor=Digikey||@Distributor Part Number=929400E-01-36-ND
+1x10 Header||#DIL=10=1x10 Header||@Manufacturer=3M||@Manufacturer Part Number=929400-01-36-RK||@Distributor=Digikey||@Distributor Part Number=929400E-01-36-ND
+1x10 Header Socket||#DIL=10=1x10 Header||@Manufacturer=3M||@Manufacturer Part Number=929400-01-36-RK||@Distributor=Digikey||@Distributor Part Number=929400E-01-36-ND
+1x16 Header||#DIL=16=1x16 Header||@Manufacturer=3M||@Manufacturer Part Number=929400-01-36-RK||@Distributor=Digikey||@Distributor Part Number=929400E-01-36-ND
+1x20 Header||#DIL=20=1x20 Header||@Manufacturer=3M||@Manufacturer Part Number=929400-01-36-RK||@Distributor=Digikey||@Distributor Part Number=929400E-01-36-ND
+2x5 Header||#SM=10=2x5 Header||@Manufacturer=Molex Inc||@Manufacturer Part Number=0015912100||@Distributor=Digikey||@Distributor Part Number=WM17451-ND
+2x8 Header||#SM=16=2x8 Header||@Manufacturer=||@Manufacturer Part Number=||@Distributor=Digikey||@Distributor Part Number=
+2x13 Header||#DIL=26=2x13 Header||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+2x14 Header Socket||#SM=28=2x14 Header Socket||@Manufacturer=||@Manufacturer Part Number=||@Distributor=Digikey||@Distributor Part Number=
+DIN5 Female Socket - Xpressnet||#DIL=7=DIN5 Female Socket||@Manufacturer=Tyco||@Manufacturer Part Number=5750477-1||@Distributor=Digikey||@Distributor Part Number=A99366-ND
+DIN5 Female Socket Right Angle||#DIL=7=DIN5 Female Socket||@Manufacturer=Tyco||@Manufacturer Part Number=5750477-1||@Distributor=Digikey||@Distributor Part Number=A99366-ND
+ENC424J600||#SM=44=44-TQFP||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+FTDI UART Header 1x6||#DIL=6=1x6 Header||@Manufacturer=3M||@Manufacturer Part Number=929400-01-36-RK||@Distributor=Digikey||@Distributor Part Number=929400E-01-36-ND
+GLCD Header||#DIL=20=1x20 GLCD Header||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+LDC Header||#DIL=16=1x16 LCD Header||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+mikroBUS||#DIL=16=mikroBUS||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+Molex microSD||#SM=10=Molex microSD||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+PicKit 3 Header 1x6||#DIL=6=1x6 Header||@Manufacturer=3M||@Manufacturer Part Number=929400-01-36-RK||@Distributor=Digikey||@Distributor Part Number=929400E-01-36-ND
+Power Jack 2.1mm x 5.5mm||#SM=6=Power Barrel 2.1mmX5.5mm||@Manufacturer=CUI Inc||@Manufacturer Part Number=PJ-002AH-SMT||@Distributor=Digikey||@Distributor Part Number=CP-002AHPJCT-ND
+Power Jack 2.5mm x 5.5mm||#SM=6=Power Barrel 2.1mmX5.5mm||@Manufacturer=CUI Inc||@Manufacturer Part Number=PJ-002BH-SMT||@Distributor=Digikey||@Distributor Part Number=CP-002BHPJCT-ND
+Raspberry Pi 2 B Header 2x40||#DIL=84=Raspberry Pi 2 B Shield||@Manufacturer=3M||@Manufacturer Part Number=929852-01-20-RB||@Distributor=Mouser||@Distributor Part Number=517-929852-01-20-RB
+RJ12 Molex Plastic||#SM=8=Molex RJ12 - 95501-6669||@Manufacturer=Molex||@Manufacturer Part Number=95501-6669||@Distributor=Digikey||@Distributor Part Number=WM5575-ND
+RJ12 Molex Plastic Xpressnet||#SM=8=Molex RJ12 - 95501-6669||@Manufacturer=Molex||@Manufacturer Part Number=95501-6669||@Distributor=Digikey||@Distributor Part Number=WM5575-ND
+RJ45 Amphenol Plastic||#DIL=10=Amphenol RJ45 - RJHSE-5080||@Manufacturer=Amphenol||@Manufacturer Part Number=RJHSE-5080||@Distributor=Digikey||@Distributor Part Number=RJHSE-5080-ND
+RJ45 Amphenol Plastic OpenLCB||#DIL=10=Amphenol RJ45 - RJHSE-5080||@Manufacturer=Amphenol||@Manufacturer Part Number=RJHSE-5080||@Distributor=Digikey||@Distributor Part Number=RJHSE-5080-ND
+RJ45 Amphinol Dual SMT||#SM=20=RJ45 Amphinol Dual SMT||@Manufacturer=Amphenol||@Manufacturer Part Number=RJSSE-5080-02||@Distributor=Digikey||@Distributor Part Number=RJSSE-5080-02-ND
+RJ45 Amphinol Dual SMT OpenLCB||#SM=20=RJ45 Amphinol Dual SMT||@Manufacturer=Amphenol||@Manufacturer Part Number=RJSSE-5080-02||@Distributor=Digikey||@Distributor Part Number=RJSSE-5080-02-ND
+RJ45 Molex Plastic SMT OpenLCB||#SM=10=Molex 8-8-RJ45-SMT||@Manufacturer=Molex||@Manufacturer Part Number=43743-8101||@Distributor=Digikey||@Distributor Part Number=WM6469CT-ND
+Terminal Block 2 Wire - 100mil||#DIL=2=Termnial Block 2 Wire - 100mil||@Manufacturer=TE Connectivity||@Manufacturer Part Number=282834-2||@Distributor=Digikey||@Distributor Part Number=A98333-ND
+Terminal Block 2 Wire - 200mil||#MISC=2=Termnial Block 2 Wire||@Manufacturer=TE Connectivity||@Manufacturer Part Number=282841-2||@Distributor=Digikey||@Distributor Part Number=A98342-ND
+Terminal Block 3 Wire-100mil||#Q_SIL=3=Terminal Block 3 Wire - 100mil||@Manufacturer=TE Connectivity||@Manufacturer Part Number=282834-3||@Distributor=Digikey||@Distributor Part Number=A98334-ND
+Terminal Block 4 Wire||#MISC=4=Termnial Block 4 Wire||@Manufacturer=||@Manufacturer Part Number=||@Distributor=Digikey||@Distributor Part Number=
+Terminal Block 4 Wire-100mil||#DIL=4=Terminal Block 4 Wire - 100mil||@Manufacturer=TE Connectivity||@Manufacturer Part Number=282834-4||@Distributor=Digikey||@Distributor Part Number=A98335-ND
+Terminal Block 5 Wire - 100mil||#DIL=5=Terminal Block 5 Wire - 100mil||@Manufacturer=TE Connectivity||@Manufacturer Part Number=282834-5||@Distributor=Digikey||@Distributor Part Number=A98336-ND
+TortoiseEdge||#Q_SIL=8=TortoiseBoardEdge||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=
+USB-B - Metal Shell||#MISC=6=USB-B||@Manufacturer=TE Connecctivity||@Manufacturer Part Number=292304-1||@Distributor=Digikey||@Distributor Part Number=A31725-ND
+WireLaunch||#DIL=1=WireLaunch||@Manufacturer=||@Manufacturer Part Number=||@Distributor=||@Distributor Part Number=

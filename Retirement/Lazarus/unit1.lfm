@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 140
+  Left = 456
   Height = 948
-  Top = 130
+  Top = 127
   Width = 1535
   Caption = 'Form1'
   ClientHeight = 948
@@ -53,7 +53,7 @@ object Form1: TForm1
       item
         Marks.LabelBrush.Style = bsClear
         Minors = <>
-        Range.Max = 20000000
+        Range.Max = 10000000
         Range.UseMax = True
         Range.UseMin = True
         Title.LabelFont.Orientation = 900
@@ -389,9 +389,9 @@ object Form1: TForm1
     Height = 672
     Top = 24
     Width = 736
-    ActivePage = TabSheet3
+    ActivePage = TabSheet1
     ParentFont = False
-    TabIndex = 2
+    TabIndex = 0
     TabOrder = 11
     object TabSheet1: TTabSheet
       Caption = 'People and Income'
@@ -405,7 +405,7 @@ object Form1: TForm1
         MaxValue = 100000
         OnChange = SpinEditJimPensionChange
         TabOrder = 0
-        Value = 10
+        Value = 9
       end
       object Label16: TLabel
         Left = 456
@@ -429,7 +429,7 @@ object Form1: TForm1
         Top = 32
         Width = 44
         TabOrder = 1
-        Value = 55
+        Value = 57
       end
       object SpinEditJimAge: TSpinEdit
         Left = 120
@@ -437,7 +437,7 @@ object Form1: TForm1
         Top = 8
         Width = 44
         TabOrder = 2
-        Value = 59
+        Value = 61
       end
       object Label14: TLabel
         Left = 8
@@ -491,7 +491,7 @@ object Form1: TForm1
         MaxValue = 100000
         OnChange = SpinEditJimPensionChange
         TabOrder = 5
-        Value = 7500
+        Value = 7600
       end
       object Label11: TLabel
         Left = 424
@@ -687,7 +687,7 @@ object Form1: TForm1
         DecimalPlaces = 1
         Increment = 0.1
         TabOrder = 2
-        Value = 9
+        Value = 6
       end
       object FloatSpinEditAvgTargetMin: TFloatSpinEdit
         Left = 248
@@ -697,7 +697,7 @@ object Form1: TForm1
         DecimalPlaces = 1
         Increment = 0.1
         TabOrder = 3
-        Value = 7
+        Value = 4
       end
       object Label9: TLabel
         Left = 416
@@ -896,7 +896,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 6
-        Value = 9
+        Value = 8
       end
       object SpinEditHealthInsuranceStart: TSpinEdit
         Left = 280
@@ -915,7 +915,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 8
-        Value = 8
+        Value = 7
       end
       object SpinEditUtilitiesStart: TSpinEdit
         Left = 280
@@ -1052,7 +1052,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 13
-        Value = 300
+        Value = 1000
       end
       object SpinEditCarLoanStart: TSpinEdit
         Left = 280
@@ -1199,7 +1199,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 22
-        Value = 1000
+        Value = 12000
       end
       object Label42: TLabel
         Left = 272
@@ -1217,7 +1217,6 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 23
-        Value = 3
       end
       object Label43: TLabel
         Left = 368
@@ -1235,7 +1234,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 24
-        Value = 13
+        Value = 1
       end
       object Label44: TLabel
         Left = 8
@@ -1254,7 +1253,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 25
-        Value = 1000
+        Value = 600
       end
       object Label45: TLabel
         Left = 240
@@ -1418,7 +1417,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 34
-        Value = 2500
+        Value = 1800
       end
       object Label69: TLabel
         Left = 272
@@ -1453,7 +1452,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 36
-        Value = 3
+        Value = 1
       end
       object FloatSpinEditInflation: TFloatSpinEdit
         Left = 368
@@ -1620,7 +1619,7 @@ object Form1: TForm1
         MaxValue = 10000000
         OnChange = SpinEditRetirementAgeChange
         TabOrder = 0
-        Value = 1700000
+        Value = 1800000
       end
     end
     object TabSheet5: TTabSheet

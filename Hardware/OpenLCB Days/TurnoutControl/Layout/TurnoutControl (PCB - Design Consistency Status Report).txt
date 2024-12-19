@@ -1,0 +1,19 @@
+Design Consistency Status Report
+--------------------------------
+
+Report File    : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\TurnoutControl\Layout\TurnoutControl (PCB - Design Consistency Status Report).txt
+Report Written : Sunday, June 09, 2013
+Project Path   : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\TurnoutControl\Layout\TurnoutControl.prj
+Design Path    : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\TurnoutControl\Layout\TurnoutControl.pcb
+Design Title   : 
+Created        : 3/9/2013 7:12:51 AM
+Last Saved     : 6/9/2013 10:46:02 AM
+Editing Time   : 1637 min
+Units          : mil (precision 0)
+
+
+Checking integrity of Schematic and Pcb designs in project "TurnoutControl"
+===========================================================================
+
+
+End Of Report.

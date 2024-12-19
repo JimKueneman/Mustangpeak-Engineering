@@ -1,0 +1,17 @@
+Forward Design Changes Report
+-----------------------------
+
+Report File    : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\LCBlocks\MicroFoundation\Version 2.0\LCBricks_MicroFoundation (PCB - Forward Design Changes Report).txt
+Report Written : Monday, May 06, 2013
+Project Path   : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\LCBlocks\MicroFoundation\Version 2.0\LCBricks_MicroFoundation.prj
+Design Path    : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\LCBlocks\MicroFoundation\Version 2.0\LCBricks_MicroFoundation.pcb
+Design Title   : 
+Created        : 7/1/2012 10:18:41 PM
+Last Saved     : 5/7/2013 2:29:42 AM
+Editing Time   : 4435 min
+Units          : mil (precision 0)
+
+The designs are the same, so no design changes to forward.
+
+
+End Of Report.

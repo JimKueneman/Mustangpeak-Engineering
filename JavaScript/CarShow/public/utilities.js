@@ -1,4 +1,10 @@
 
+export function dateStripTimeAndTimeZone(date) {
+    // Store in UTC time with no time, first shift for timezone to possible update the day then strip the time
+    date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
+    date.setHours(0, 0, 0);
+    return date
+}
 
 export function isValidUrl(string) {
   try {

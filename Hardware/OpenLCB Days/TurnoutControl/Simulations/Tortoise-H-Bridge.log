@@ -1,0 +1,25 @@
+Circuit: * W:\openlcb\trunk\scratchpads\jkueneman\Hardware\TurnoutControl\Simulations\Tortoise-H-Bridge.asc
+
+Direct Newton iteration for .op point succeeded.
+Heightened Def Con from 0.056028 to 0.056028
+Heightened Def Con from 0.07047 to 0.07047
+Heightened Def Con from 0.07047 to 0.07047
+
+Date: Mon Mar 11 10:32:02 2013
+Total elapsed time: 26.375 seconds.
+
+tnom = 27
+temp = 27
+method = modified trap
+totiter = 1632185
+traniter = 1632135
+tranpoints = 469192
+accept = 348302
+rejected = 120893
+matrix size = 53
+fillins = 62
+solver = Normal
+Matrix Compiler1:     353 opcodes  3.3/[2.2]/3.4
+Matrix Compiler2: 5.18 KB object code size  2.1/2.4/[1.8]
+
+

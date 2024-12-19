@@ -1,0 +1,44 @@
+Design Rule Check Report
+------------------------
+
+Report File    : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\LCBlocks\MicroFoundation\Version 2.0\Full Panel\LCBricks_MicroFoundation (PCB - Design Rule Check Report).txt
+Report Written : Monday, May 06, 2013
+Project Path   : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\LCBlocks\MicroFoundation\Version 2.0\Full Panel\LCBricks_MicroFoundation.prj
+Design Path    : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\LCBlocks\MicroFoundation\Version 2.0\Full Panel\LCBricks_MicroFoundation.pcb
+Design Title   : 
+Created        : 7/1/2012 10:18:41 PM
+Last Saved     : 5/7/2013 4:09:55 AM
+Editing Time   : 4532 min
+Units          : mil (precision 0)
+
+Results
+-------
+
+
+No errors found
+
+Settings
+--------
+
+Spacings
+    Tracks                             Yes
+    Pads and Vias                      Yes
+    Shapes                             Yes
+    Text                               Yes
+    Board                              Yes
+    Drills                             Yes
+    Components                         No
+
+Manufacturing
+    Min Drill Hole Size                Yes
+    Min Track Width                    Yes
+    Min Annular Ring                   Yes
+    Drill Breakout                     Yes
+
+Nets
+    Net Completion                     Yes
+    Dangling Tracks                    Yes
+    Net Track Length Differences       No
+
+
+End Of Report.

@@ -1,0 +1,17 @@
+Design Consistency Status Report
+--------------------------------
+
+Report File    : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\LCBlocks\BoosterCapBlock\Version 2.0\LCBricks_BoosterCapBlock (PCB - Design Consistency Status Report).txt
+Report Written : Tuesday, May 07, 2013
+Project Path   : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\LCBlocks\BoosterCapBlock\Version 2.0\LCBricks_BoosterCapBlock.prj
+Design Path    : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\LCBlocks\BoosterCapBlock\Version 2.0\LCBricks_BoosterCapBlock.pcb
+Design Title   : 
+Created        : 7/1/2012 10:18:41 PM
+Last Saved     : 5/7/2013 2:05:11 PM
+Editing Time   : 4300 min
+Units          : mil (precision 0)
+
+Checking integrity of Schematic and Pcb designs in project "LCBricks_BoosterCapBlock".
+
+
+End Of Report.

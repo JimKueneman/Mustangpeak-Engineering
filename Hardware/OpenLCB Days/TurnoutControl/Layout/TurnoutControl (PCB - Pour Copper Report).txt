@@ -1,0 +1,15 @@
+Pour Copper Report
+------------------
+
+Report File    : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\TurnoutControl\Layout\TurnoutControl (PCB - Pour Copper Report).txt
+Report Written : Sunday, March 10, 2013
+Project Path   : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\TurnoutControl\Layout\TurnoutControl.prj
+Design Path    : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\TurnoutControl\Layout\TurnoutControl.pcb
+Design Title   : 
+Created        : 3/9/2013 2:12:51 PM
+Last Saved     : 3/10/2013 11:07:33 PM
+Editing Time   : 535 min
+Units          : mil (precision 0)
+
+
+End Of Report.

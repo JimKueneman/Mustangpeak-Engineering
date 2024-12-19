@@ -45,7 +45,7 @@ var
   Spi_RxBRawBufferArray: TSpi_RawBufferArray; {far; dma;} absolute SPI_RX_DMA_B_DATA_OFFSET;
 
   procedure MCU_Setup_Initialize;
-  procedure MCU_Enable_CAN;
+  procedure  ;
   procedure MCU_Enable_100msTimer;
   procedure MCU_Enable_UART;
   procedure MCU_Enable_SPI;

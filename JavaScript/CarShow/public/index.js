@@ -1,6 +1,6 @@
 
 import { LatLngToPixel, getFormattedDate, sleep, scaleMarkerImage, clipboardReadImageAsEncodedURL, MapLoaded,
-         isValidUrl} 
+         isValidUrl, dateStripTimeAndTimeZone } 
 from "./utilities.js";
 
 class carshow {
@@ -177,6 +177,8 @@ async function queryDatabase(database, snapshot, dateStart, dateEnd, image, map,
 }
 
 async function initMap() {
+
+  var d = dateStripTimeAndTimeZone( (new Date))
 
 
   let UniquieIdCounter = 0;

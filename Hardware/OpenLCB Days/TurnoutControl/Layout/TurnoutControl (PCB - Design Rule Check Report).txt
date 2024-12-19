@@ -1,0 +1,44 @@
+Design Rule Check Report
+------------------------
+
+Report File    : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\TurnoutControl\Layout\TurnoutControl (PCB - Design Rule Check Report).txt
+Report Written : Sunday, March 10, 2013
+Project Path   : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\TurnoutControl\Layout\TurnoutControl.prj
+Design Path    : W:\openlcb\trunk\scratchpads\jkueneman\Hardware\TurnoutControl\Layout\TurnoutControl.pcb
+Design Title   : 
+Created        : 3/9/2013 2:12:51 PM
+Last Saved     : 3/10/2013 11:16:03 PM
+Editing Time   : 539 min
+Units          : mil (precision 0)
+
+Results
+-------
+
+
+No errors found
+
+Settings
+--------
+
+Spacings
+    Tracks                             Yes
+    Pads and Vias                      Yes
+    Shapes                             Yes
+    Text                               Yes
+    Board                              Yes
+    Drills                             Yes
+    Components                         No
+
+Manufacturing
+    Min Drill Hole Size                No
+    Min Track Width                    No
+    Min Annular Ring                   No
+    Drill Breakout                     No
+
+Nets
+    Net Completion                     No
+    Dangling Tracks                    No
+    Net Track Length Differences       No
+
+
+End Of Report.
