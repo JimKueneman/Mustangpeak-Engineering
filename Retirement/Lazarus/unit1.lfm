@@ -6,15 +6,14 @@ object Form1: TForm1
   Caption = 'Form1'
   ClientHeight = 948
   ClientWidth = 1535
-  LCLVersion = '2.2.4.0'
   object Button1: TButton
     Left = 784
     Height = 25
     Top = 24
     Width = 75
     Caption = 'Button1'
-    OnClick = Button1Click
     TabOrder = 0
+    OnClick = Button1Click
   end
   object ChartInterest: TChart
     Left = 1184
@@ -389,23 +388,23 @@ object Form1: TForm1
     Height = 672
     Top = 24
     Width = 736
-    ActivePage = TabSheet1
+    ActivePage = TabSheet2
     ParentFont = False
-    TabIndex = 0
+    TabIndex = 1
     TabOrder = 11
     object TabSheet1: TTabSheet
       Caption = 'People and Income'
-      ClientHeight = 642
+      ClientHeight = 636
       ClientWidth = 730
       object SpinEditJimPensionYears: TSpinEdit
         Left = 556
-        Height = 21
+        Height = 20
         Top = 92
         Width = 72
         MaxValue = 100000
-        OnChange = SpinEditJimPensionChange
         TabOrder = 0
         Value = 9
+        OnChange = SpinEditJimPensionChange
       end
       object Label16: TLabel
         Left = 456
@@ -425,7 +424,7 @@ object Form1: TForm1
       end
       object SpinEditCherylAge: TSpinEdit
         Left = 120
-        Height = 21
+        Height = 20
         Top = 32
         Width = 44
         TabOrder = 1
@@ -433,7 +432,7 @@ object Form1: TForm1
       end
       object SpinEditJimAge: TSpinEdit
         Left = 120
-        Height = 21
+        Height = 20
         Top = 8
         Width = 44
         TabOrder = 2
@@ -457,23 +456,23 @@ object Form1: TForm1
       end
       object SpinEditCherylSocialSecurity: TSpinEdit
         Left = 344
-        Height = 21
+        Height = 20
         Top = 88
         Width = 72
         MaxValue = 100000
-        OnChange = SpinEditJimPensionChange
         TabOrder = 3
         Value = 16000
+        OnChange = SpinEditJimPensionChange
       end
       object SpinEditJimSocialSecurity: TSpinEdit
         Left = 344
-        Height = 21
+        Height = 20
         Top = 64
         Width = 72
         MaxValue = 100000
-        OnChange = SpinEditJimPensionChange
         TabOrder = 4
         Value = 32000
+        OnChange = SpinEditJimPensionChange
       end
       object Label12: TLabel
         Left = 168
@@ -485,13 +484,13 @@ object Form1: TForm1
       end
       object SpinEditJimPension: TSpinEdit
         Left = 568
-        Height = 21
+        Height = 20
         Top = 64
         Width = 72
         MaxValue = 100000
-        OnChange = SpinEditJimPensionChange
         TabOrder = 5
         Value = 7600
+        OnChange = SpinEditJimPensionChange
       end
       object Label11: TLabel
         Left = 424
@@ -512,12 +511,12 @@ object Form1: TForm1
       end
       object SpinEditRetirementAge: TSpinEdit
         Left = 296
-        Height = 21
+        Height = 20
         Top = 8
         Width = 90
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 6
         Value = 59
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label2: TLabel
         Left = 8
@@ -537,7 +536,7 @@ object Form1: TForm1
       end
       object SpinEditCherylMaxAge: TSpinEdit
         Left = 120
-        Height = 21
+        Height = 20
         Top = 88
         Width = 44
         TabOrder = 7
@@ -545,7 +544,7 @@ object Form1: TForm1
       end
       object SpinEditJimMaxAge: TSpinEdit
         Left = 120
-        Height = 21
+        Height = 20
         Top = 64
         Width = 44
         TabOrder = 8
@@ -562,12 +561,12 @@ object Form1: TForm1
       end
       object SpinEditOutsideIncome1: TSpinEdit
         Left = 168
-        Height = 21
+        Height = 20
         Top = 136
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 9
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label34: TLabel
         Left = 272
@@ -579,12 +578,12 @@ object Form1: TForm1
       end
       object SpinEditOutsideIncomeStart1: TSpinEdit
         Left = 312
-        Height = 21
+        Height = 20
         Top = 136
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 10
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label63: TLabel
         Left = 368
@@ -596,13 +595,13 @@ object Form1: TForm1
       end
       object SpinEditOutsideIncomeEnd1: TSpinEdit
         Left = 408
-        Height = 21
+        Height = 20
         Top = 136
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 11
         Value = 2
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label64: TLabel
         Left = 8
@@ -615,12 +614,12 @@ object Form1: TForm1
       end
       object SpinEditOutsideIncome2: TSpinEdit
         Left = 168
-        Height = 21
+        Height = 20
         Top = 168
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 12
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label65: TLabel
         Left = 272
@@ -632,12 +631,12 @@ object Form1: TForm1
       end
       object SpinEditOutsideIncomeStart2: TSpinEdit
         Left = 312
-        Height = 21
+        Height = 20
         Top = 168
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 13
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label66: TLabel
         Left = 368
@@ -649,18 +648,18 @@ object Form1: TForm1
       end
       object SpinEditOutsideIncomeEnd2: TSpinEdit
         Left = 408
-        Height = 21
+        Height = 20
         Top = 168
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 14
         Value = 2
+        OnChange = SpinEditRetirementAgeChange
       end
     end
     object TabSheet2: TTabSheet
       Caption = 'Interest Rate'
-      ClientHeight = 642
+      ClientHeight = 636
       ClientWidth = 730
       object CheckBoxIncludeBadYear: TCheckBox
         Left = 8
@@ -672,16 +671,17 @@ object Form1: TForm1
       end
       object SpinEditConsecutiveLossYearsTarget: TSpinEdit
         Left = 248
-        Height = 21
+        Height = 20
         Top = 40
         Width = 52
         MaxValue = 30
+        MinValue = 2
         TabOrder = 1
         Value = 3
       end
       object FloatSpinEditAvgTargetMax: TFloatSpinEdit
         Left = 360
-        Height = 21
+        Height = 20
         Top = 8
         Width = 50
         DecimalPlaces = 1
@@ -691,7 +691,7 @@ object Form1: TForm1
       end
       object FloatSpinEditAvgTargetMin: TFloatSpinEdit
         Left = 248
-        Height = 21
+        Height = 20
         Top = 8
         Width = 50
         DecimalPlaces = 1
@@ -751,8 +751,8 @@ object Form1: TForm1
         Left = 8
         Height = 16
         Top = 40
-        Width = 226
-        Caption = 'Interest Consecutive Loss Years Max:'
+        Width = 176
+        Caption = 'Consecutive Loss Years Max:'
         ParentColor = False
       end
       object LabelInterestPercentLoss: TLabel
@@ -782,17 +782,17 @@ object Form1: TForm1
     end
     object TabSheet3: TTabSheet
       Caption = 'Expendatures'
-      ClientHeight = 642
+      ClientHeight = 636
       ClientWidth = 730
       object SpinEditYearlyGrossSalary: TSpinEdit
         Left = 112
-        Height = 21
+        Height = 20
         Top = 8
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 0
         Value = 30000
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label17: TLabel
         Left = 8
@@ -805,13 +805,13 @@ object Form1: TForm1
       end
       object SpinEditMortgage: TSpinEdit
         Left = 136
-        Height = 21
+        Height = 20
         Top = 69
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 1
         Value = 1500
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label18: TLabel
         Left = 8
@@ -833,13 +833,13 @@ object Form1: TForm1
       end
       object SpinEditHealthInsurance: TSpinEdit
         Left = 136
-        Height = 21
+        Height = 20
         Top = 97
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 2
         Value = 2100
+        OnChange = SpinEditRetirementAgeChange
       end
       object LabelUtilities: TLabel
         Left = 8
@@ -852,13 +852,13 @@ object Form1: TForm1
       end
       object SpinEditUtilities: TSpinEdit
         Left = 136
-        Height = 21
+        Height = 20
         Top = 125
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 3
         Value = 300
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label21: TLabel
         Left = 8
@@ -871,89 +871,89 @@ object Form1: TForm1
       end
       object SpinEditPhone: TSpinEdit
         Left = 136
-        Height = 21
+        Height = 20
         Top = 153
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 4
         Value = 250
+        OnChange = SpinEditRetirementAgeChange
       end
       object SpinEditMortgageStart: TSpinEdit
         Left = 280
-        Height = 21
+        Height = 20
         Top = 69
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 5
+        OnChange = SpinEditRetirementAgeChange
       end
       object SpinEditMortgageEnd: TSpinEdit
         Left = 376
-        Height = 21
+        Height = 20
         Top = 69
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 6
         Value = 8
+        OnChange = SpinEditRetirementAgeChange
       end
       object SpinEditHealthInsuranceStart: TSpinEdit
         Left = 280
-        Height = 21
+        Height = 20
         Top = 98
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 7
+        OnChange = SpinEditRetirementAgeChange
       end
       object SpinEditHealthInsuranceEnd: TSpinEdit
         Left = 376
-        Height = 21
+        Height = 20
         Top = 97
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 8
         Value = 7
+        OnChange = SpinEditRetirementAgeChange
       end
       object SpinEditUtilitiesStart: TSpinEdit
         Left = 280
-        Height = 21
+        Height = 20
         Top = 126
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 9
+        OnChange = SpinEditRetirementAgeChange
       end
       object SpinEditUtilitiesEnd: TSpinEdit
         Left = 376
-        Height = 21
+        Height = 20
         Top = 125
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 10
         Value = 30
+        OnChange = SpinEditRetirementAgeChange
       end
       object SpinEditPhoneStart: TSpinEdit
         Left = 280
-        Height = 21
+        Height = 20
         Top = 153
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 11
+        OnChange = SpinEditRetirementAgeChange
       end
       object SpinEditPhoneEnd: TSpinEdit
         Left = 376
-        Height = 21
+        Height = 20
         Top = 153
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 12
         Value = 30
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label22: TLabel
         Left = 240
@@ -1046,32 +1046,32 @@ object Form1: TForm1
       end
       object SpinEditCarLoan: TSpinEdit
         Left = 136
-        Height = 21
+        Height = 20
         Top = 181
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 13
         Value = 1000
+        OnChange = SpinEditRetirementAgeChange
       end
       object SpinEditCarLoanStart: TSpinEdit
         Left = 280
-        Height = 21
+        Height = 20
         Top = 181
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 14
+        OnChange = SpinEditRetirementAgeChange
       end
       object SpinEditCarLoanEnd: TSpinEdit
         Left = 376
-        Height = 21
+        Height = 20
         Top = 181
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 15
         Value = 5
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label35: TLabel
         Left = 8
@@ -1084,13 +1084,13 @@ object Form1: TForm1
       end
       object SpinEditPropertyTaxes: TSpinEdit
         Left = 136
-        Height = 21
+        Height = 20
         Top = 208
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 16
         Value = 350
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label36: TLabel
         Left = 240
@@ -1102,13 +1102,13 @@ object Form1: TForm1
       end
       object SpinEditPropertyTaxesStart: TSpinEdit
         Left = 280
-        Height = 21
+        Height = 20
         Top = 208
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 17
         Value = 9
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label37: TLabel
         Left = 336
@@ -1120,13 +1120,13 @@ object Form1: TForm1
       end
       object SpinEditPropertyTaxesEnd: TSpinEdit
         Left = 376
-        Height = 21
+        Height = 20
         Top = 208
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 18
         Value = 30
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label38: TLabel
         Left = 8
@@ -1139,13 +1139,13 @@ object Form1: TForm1
       end
       object SpinEditCarInsurance: TSpinEdit
         Left = 136
-        Height = 21
+        Height = 20
         Top = 240
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 19
         Value = 400
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label39: TLabel
         Left = 240
@@ -1157,12 +1157,12 @@ object Form1: TForm1
       end
       object SpinEditCarInsuranceStart: TSpinEdit
         Left = 280
-        Height = 21
+        Height = 20
         Top = 240
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 20
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label40: TLabel
         Left = 336
@@ -1174,13 +1174,13 @@ object Form1: TForm1
       end
       object SpinEditCarInsuranceEnd: TSpinEdit
         Left = 376
-        Height = 21
+        Height = 20
         Top = 240
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 21
         Value = 30
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label41: TLabel
         Left = 8
@@ -1193,13 +1193,13 @@ object Form1: TForm1
       end
       object SpinEditCollegeTuition: TSpinEdit
         Left = 168
-        Height = 21
+        Height = 20
         Top = 408
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 22
         Value = 12000
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label42: TLabel
         Left = 272
@@ -1211,12 +1211,12 @@ object Form1: TForm1
       end
       object SpinEditCollegeTuitionStart: TSpinEdit
         Left = 312
-        Height = 21
+        Height = 20
         Top = 408
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 23
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label43: TLabel
         Left = 368
@@ -1228,13 +1228,13 @@ object Form1: TForm1
       end
       object SpinEditCollegeTuitionEnd: TSpinEdit
         Left = 408
-        Height = 21
+        Height = 20
         Top = 408
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 24
         Value = 1
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label44: TLabel
         Left = 8
@@ -1247,13 +1247,13 @@ object Form1: TForm1
       end
       object SpinEditGroceries: TSpinEdit
         Left = 136
-        Height = 21
+        Height = 20
         Top = 272
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 25
         Value = 600
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label45: TLabel
         Left = 240
@@ -1265,12 +1265,12 @@ object Form1: TForm1
       end
       object SpinEditGroceriesStart: TSpinEdit
         Left = 280
-        Height = 21
+        Height = 20
         Top = 272
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 26
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label46: TLabel
         Left = 336
@@ -1282,13 +1282,13 @@ object Form1: TForm1
       end
       object SpinEditGroceriesEnd: TSpinEdit
         Left = 376
-        Height = 21
+        Height = 20
         Top = 272
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 27
         Value = 30
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label57: TLabel
         Left = 8
@@ -1301,13 +1301,13 @@ object Form1: TForm1
       end
       object SpinEditLongTermCare: TSpinEdit
         Left = 136
-        Height = 21
+        Height = 20
         Top = 304
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 28
         Value = 4000
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label58: TLabel
         Left = 240
@@ -1319,23 +1319,23 @@ object Form1: TForm1
       end
       object SpinEditLongTermCareStart: TSpinEdit
         Left = 280
-        Height = 21
+        Height = 20
         Top = 304
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 29
         Value = 15
+        OnChange = SpinEditRetirementAgeChange
       end
       object SpinEditLongTermCareEnd: TSpinEdit
         Left = 376
-        Height = 21
+        Height = 20
         Top = 304
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 30
         Value = 20
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label59: TLabel
         Left = 8
@@ -1348,12 +1348,12 @@ object Form1: TForm1
       end
       object SpinEditHealthInsuranceChildren: TSpinEdit
         Left = 168
-        Height = 21
+        Height = 20
         Top = 440
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 31
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label60: TLabel
         Left = 272
@@ -1365,12 +1365,12 @@ object Form1: TForm1
       end
       object SpinEditHealthInsuranceChildrenStart: TSpinEdit
         Left = 312
-        Height = 21
+        Height = 20
         Top = 441
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 32
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label61: TLabel
         Left = 368
@@ -1382,13 +1382,13 @@ object Form1: TForm1
       end
       object SpinEditHealthInsuranceChildrenEnd: TSpinEdit
         Left = 408
-        Height = 21
+        Height = 20
         Top = 440
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 33
         Value = 5
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label62: TLabel
         Left = 9
@@ -1411,13 +1411,13 @@ object Form1: TForm1
       end
       object SpinEditCollegeLivingExpenses: TSpinEdit
         Left = 168
-        Height = 21
+        Height = 20
         Top = 472
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 34
         Value = 1800
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label69: TLabel
         Left = 272
@@ -1429,12 +1429,12 @@ object Form1: TForm1
       end
       object SpinEditCollegeLivingExpensesStart: TSpinEdit
         Left = 312
-        Height = 21
+        Height = 20
         Top = 472
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 35
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label70: TLabel
         Left = 368
@@ -1446,17 +1446,17 @@ object Form1: TForm1
       end
       object SpinEditCollegeLivingExpensesEnd: TSpinEdit
         Left = 408
-        Height = 21
+        Height = 20
         Top = 472
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 36
         Value = 1
+        OnChange = SpinEditRetirementAgeChange
       end
       object FloatSpinEditInflation: TFloatSpinEdit
         Left = 368
-        Height = 21
+        Height = 20
         Top = 8
         Width = 50
         DecimalPlaces = 1
@@ -1474,13 +1474,13 @@ object Form1: TForm1
       end
       object SpinEditLoanRepayEnd: TSpinEdit
         Left = 408
-        Height = 21
+        Height = 20
         Top = 520
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 39
         Value = 10
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label72: TLabel
         Left = 368
@@ -1492,12 +1492,12 @@ object Form1: TForm1
       end
       object SpinEditLoanRepayStart: TSpinEdit
         Left = 312
-        Height = 21
+        Height = 20
         Top = 520
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 40
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label73: TLabel
         Left = 272
@@ -1509,13 +1509,13 @@ object Form1: TForm1
       end
       object SpinEditLoanRepay: TSpinEdit
         Left = 168
-        Height = 21
+        Height = 20
         Top = 520
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 41
         Value = 950
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label74: TLabel
         Left = 9
@@ -1528,22 +1528,22 @@ object Form1: TForm1
       end
       object SpinEditOtherEnd: TSpinEdit
         Left = 408
-        Height = 21
+        Height = 20
         Top = 552
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 42
         Value = 3
+        OnChange = SpinEditRetirementAgeChange
       end
       object SpinEditOther: TSpinEdit
         Left = 168
-        Height = 21
+        Height = 20
         Top = 552
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 43
+        OnChange = SpinEditRetirementAgeChange
       end
       object Other1: TLabel
         Left = 8
@@ -1572,17 +1572,17 @@ object Form1: TForm1
       end
       object SpinEditOtherStart: TSpinEdit
         Left = 312
-        Height = 21
+        Height = 20
         Top = 554
         Width = 50
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 44
+        OnChange = SpinEditRetirementAgeChange
       end
     end
     object TabSheet4: TTabSheet
       Caption = 'Nest Egg'
-      ClientHeight = 642
+      ClientHeight = 636
       ClientWidth = 730
       object Label5: TLabel
         Left = 224
@@ -1613,18 +1613,18 @@ object Form1: TForm1
       end
       object SpinEditNestEgg: TSpinEdit
         Left = 112
-        Height = 21
+        Height = 20
         Top = 8
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 0
         Value = 1800000
+        OnChange = SpinEditRetirementAgeChange
       end
     end
     object TabSheet5: TTabSheet
       Caption = ' Taxes'
-      ClientHeight = 642
+      ClientHeight = 636
       ClientWidth = 730
       object CheckBoxTaxFreeSource: TCheckBox
         Left = 47
@@ -1637,17 +1637,17 @@ object Form1: TForm1
     end
     object TabSheet6: TTabSheet
       Caption = 'Monte Carlo'
-      ClientHeight = 642
+      ClientHeight = 636
       ClientWidth = 730
       object SpinEditMultiRun: TSpinEdit
         Left = 160
-        Height = 21
+        Height = 20
         Top = 56
         Width = 90
         MaxValue = 10000000
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 0
         Value = 1500
+        OnChange = SpinEditRetirementAgeChange
       end
       object Label56: TLabel
         Left = 48
@@ -1737,13 +1737,13 @@ object Form1: TForm1
       end
       object SpinEditMultiRunUserYearNestEgg: TSpinEdit
         Left = 224
-        Height = 21
+        Height = 20
         Top = 323
         Width = 90
         MaxValue = 30
-        OnChange = SpinEditRetirementAgeChange
         TabOrder = 4
         Value = 30
+        OnChange = SpinEditRetirementAgeChange
       end
     end
   end

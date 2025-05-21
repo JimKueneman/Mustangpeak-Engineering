@@ -65,6 +65,8 @@
         <OverflowChecks Value="True"/>
         <StackChecks Value="True"/>
       </Checks>
+      <TargetCPU Value="x86_64"/>
+      <TargetOS Value="darwin"/>
     </CodeGeneration>
     <Linking>
       <Debugging>
